@@ -1,0 +1,32 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Vars inlined no bundle — lidas do .env na VPS automaticamente pelo Compose
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_ORGANIZER_APP_HOST: ${NEXT_PUBLIC_ORGANIZER_APP_HOST}
+        NEXT_PUBLIC_ROOT_SITE_URL: ${NEXT_PUBLIC_ROOT_SITE_URL}
+        NEXT_PUBLIC_BRASPAG_3DS_ENV: ${NEXT_PUBLIC_BRASPAG_3DS_ENV:-SDB}
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+        # Gate de produção real (tracking/indexação): precisa em BUILD-time porque o
+        # layout.tsx (server component) é renderizado no build p/ páginas estáticas.
+        ENABLE_TRACKING_SCRIPTS: ${ENABLE_TRACKING_SCRIPTS:-}
+        # Opcional: NODE_MAX_OLD_SPACE_SIZE=768 para VPS com 1 GB de RAM
+        NODE_MAX_OLD_SPACE_SIZE: ${NODE_MAX_OLD_SPACE_SIZE:-1024}
+    container_name: lets4trade-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      # Vars de runtime (servidor Next.js / middleware) — não precisam existir em build-time
+      ORGANIZER_APP_HOST: ${ORGANIZER_APP_HOST}
+      ADMIN_APP_HOST: ${ADMIN_APP_HOST}
+      ROOT_SITE_URL: ${ROOT_SITE_URL}
+      # Token da API comercial cnpj.ws (rota server-side /api/cnpj)
+      CNPJ_WS_TOKEN: ${CNPJ_WS_TOKEN}
+      # Gate de produção real em RUNTIME (middleware/robots/sitemap) — mesmo flag do build
+      ENABLE_TRACKING_SCRIPTS: ${ENABLE_TRACKING_SCRIPTS:-}

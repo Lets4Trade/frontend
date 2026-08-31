@@ -1,0 +1,1573 @@
+@import "tailwindcss";
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: var(--font-manrope), "Manrope", sans-serif;
+  }
+
+  button {
+    cursor: pointer;
+  }
+}
+
+@theme {
+  --font-family-manrope: var(--font-manrope);
+  --font-family-dm-sans: var(--font-dm-sans);
+  
+  --color-primary-1: var(--primary-1);
+  --color-primary-2: var(--primary-2);
+  --color-primary-3: var(--primary-3);
+  --color-primary-4: var(--primary-4);
+  --color-primary-5: var(--primary-5);
+  --color-primary-6: var(--primary-6);
+  --color-primary-7: var(--primary-7);
+  --color-primary-8: var(--primary-8);
+  --color-primary-9: var(--primary-9);
+  --color-primary-10: var(--primary-10);
+  --color-primary-11: var(--primary-11);
+  --color-primary-12: var(--primary-12);
+
+  --color-gray-1: var(--gray-1);
+  --color-gray-2: var(--gray-2);
+  --color-gray-3: var(--gray-3);
+  --color-gray-4: var(--gray-4);
+  --color-gray-5: var(--gray-5);
+  --color-gray-6: var(--gray-6);
+  --color-gray-7: var(--gray-7);
+  --color-gray-8: var(--gray-8);
+  --color-gray-9: var(--gray-9);
+  --color-gray-10: var(--gray-10);
+  --color-gray-11: var(--gray-11);
+  --color-gray-12: var(--gray-12);
+
+  --color-red-1: var(--red-1);
+  --color-red-2: var(--red-2);
+  --color-red-3: var(--red-3);
+  --color-red-4: var(--red-4);
+  --color-red-5: var(--red-5);
+  --color-red-6: var(--red-6);
+  --color-red-7: var(--red-7);
+  --color-red-8: var(--red-8);
+  --color-red-9: var(--red-9);
+  --color-red-10: var(--red-10);
+  --color-red-11: var(--red-11);
+  --color-red-12: var(--red-12);
+
+  --color-yellow-1: var(--yellow-1);
+  --color-yellow-2: var(--yellow-2);
+  --color-yellow-3: var(--yellow-3);
+  --color-yellow-4: var(--yellow-4);
+  --color-yellow-5: var(--yellow-5);
+  --color-yellow-6: var(--yellow-6);
+  --color-yellow-7: var(--yellow-7);
+  --color-yellow-8: var(--yellow-8);
+  --color-yellow-9: var(--yellow-9);
+  --color-yellow-10: var(--yellow-10);
+  --color-yellow-11: var(--yellow-11);
+  --color-yellow-12: var(--yellow-12);
+
+  --color-blue-1: var(--blue-1);
+  --color-blue-2: var(--blue-2);
+  --color-blue-3: var(--blue-3);
+  --color-blue-4: var(--blue-4);
+  --color-blue-5: var(--blue-5);
+  --color-blue-6: var(--blue-6);
+  --color-blue-7: var(--blue-7);
+  --color-blue-8: var(--blue-8);
+  --color-blue-9: var(--blue-9);
+  --color-blue-10: var(--blue-10);
+  --color-blue-11: var(--blue-11);
+  --color-blue-12: var(--blue-12);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--gray-8);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-12);
+  border-radius: 8px;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+:root {
+
+  --primary-1: #fbfefb;
+  --primary-2: #f5fbf5;
+  --primary-3: #daf1db;
+  --primary-4: #c8f4e0;
+  --primary-5: #c9e8ca;
+  --primary-6: #b2ddb5;
+  --primary-7: #94ce9a;
+  --primary-8: #46a758;
+  --primary-9: #46a758;
+  --primary-10: #3e9b4f;
+  --primary-11: #308737;
+  --primary-12: #203c25;
+
+  --gray-1: #fbfdfc;
+  --gray-2: #f9f9f9;
+  --gray-3: #f0f0f0;
+  --gray-4: #e8e8e8;
+  --gray-5: #e0e0e0;
+  --gray-6: #d9d9d9;
+  --gray-7: #cecece;
+  --gray-8: #bbbbbb;
+  --gray-9: #868e8b;
+  --gray-10: #7c8481;
+  --gray-11: #646464;
+  --gray-12: #202020;
+
+  --red-1: #fffcfc;
+  --red-2: #fff7f7;
+  --red-3: #feebec;
+  --red-4: #ffdbdc;
+  --red-5: #ffcdce;
+  --red-6: #fdbdbe;
+  --red-7: #f4a9aa;
+  --red-8: #eb8e90;
+  --red-9: #e0434a;
+  --red-10: #dc3e42;
+  --red-11: #ce2c31;
+  --red-12: #641723;
+
+  --yellow-1: #fdfdf9;
+  --yellow-2: #fefce9;
+  --yellow-3: #fffab8;
+  --yellow-4: #fff394;
+  --yellow-5: #ffe770;
+  --yellow-6: #f3d768;
+  --yellow-7: #e4c767;
+  --yellow-8: #d5ae39;
+  --yellow-9: #ffe629;
+  --yellow-10: #ffdc00;
+  --yellow-11: #9e6c00;
+  --yellow-12: #473b1f;
+
+  --blue-1: #fafdfe;
+  --blue-2: #f2fafb;
+  --blue-3: #def7f9;
+  --blue-4: #caf1f6;
+  --blue-5: #b5e9f0;
+  --blue-6: #9ddde7;
+  --blue-7: #7dcedc;
+  --blue-8: #3db9cf;
+  --blue-9: #00a2c7;
+  --blue-10: #079789;
+  --blue-11: #107d98;
+  --blue-12: #0d3c48;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/*
+ * iOS Safari dá ZOOM ao focar qualquer campo com font-size < 16px. Garantimos
+ * ≥16px em TODOS os controles de texto no mobile (< md, 768px) — trava sistêmica
+ * pra não depender de cada input lembrar de subir a fonte (ex.: um `text-sm`
+ * esquecido). Fora de `@layer` de propósito: precisa vencer os utilitários do
+ * Tailwind. Os `:not(...)` excluem controles que não dão zoom E elevam a
+ * especificidade acima de `.text-sm`. No desktop o zoom não existe, então a
+ * regra só vale abaixo de 768px (mantém os tamanhos originais no desktop).
+ */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+@keyframes spin-dots {
+  0% {
+    transform: rotate(0deg) translateX(16px) rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg) translateX(16px) rotate(-360deg);
+  }
+}
+
+.loading-container {
+  position: relative;
+  width: 48px;
+  height: 48px;
+}
+
+.loading-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin-top: -5px;
+  margin-left: -5px;
+  background-color: #59E373;
+  border-radius: 50%;
+  transform-origin: 0 24px;
+  animation: spin-dots 1.4s linear infinite;
+}
+
+.loading-dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.loading-dot:nth-child(2) {
+  animation-delay: 0.47s;
+}
+
+.loading-dot:nth-child(3) {
+  animation-delay: 0.94s;
+}
+
+/* Quill alignment classes for rendered content */
+.ql-align-left {
+  text-align: left;
+}
+
+.ql-align-center {
+  text-align: center;
+}
+
+.ql-align-right {
+  text-align: right;
+}
+
+.ql-align-justify {
+  text-align: justify;
+}
+
+/*
+ * Imagens no Quill: inline-block (como quill-image-resize) — mesma linha com texto
+ * ou duas imagens; alinhamento vem do text-align do <p> (.ql-align-*).
+ * Só "justificar" força bloco em largura total.
+ *
+ * `height: auto` aplicado apenas quando a imagem NÃO tem atributo `height`. Se o
+ * usuário redimensionou manualmente (resize module escreve <img height="X">), o
+ * atributo HTML precisa reger — senão o CSS vence o atributo e o browser calcula
+ * altura pela proporção nativa, ignorando o resize vertical. Mesma lógica para
+ * width: só forçar 100% quando não há width manual.
+ */
+.ql-editor p > img:not([data-layout]),
+.topic-rich-html p > img:not([data-layout]) {
+  display: inline-block;
+  vertical-align: top;
+  max-width: 100%;
+}
+
+.ql-editor p > img:not([data-layout]):not([height]),
+.topic-rich-html p > img:not([data-layout]):not([height]) {
+  height: auto;
+}
+
+.ql-align-justify img:not([data-layout]) {
+  display: block;
+  max-width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.ql-align-justify img:not([data-layout]):not([width]) {
+  width: 100%;
+}
+
+.ql-align-justify img:not([data-layout]):not([height]) {
+  height: auto;
+}
+
+/*
+ * Vídeos embeds (YouTube/Vimeo/etc.) inseridos via Quill Video blot.
+ * Sem estas regras, o iframe fica com tamanho 0 e o embed não aparece.
+ *
+ * IMPORTANTE: não usar `display: block` + `margin: … auto` no estado padrão — isso
+ * centraliza o iframe quando ele tem largura fixa (resize) e ignora o alinhamento
+ * do parágrafo (.ql-align-left/center/right). Imagens usam inline-block + text-align;
+ * vídeos sem data-layout seguem o mesmo modelo para alinhar e permitir texto na mesma linha.
+ *
+ * As regras de "estilo de vídeo" (aspect-ratio 16/9, fundo preto) ficam restritas a
+ * `iframe.ql-video`. Iframes de outras fontes (Instagram, Twitter, Facebook) têm
+ * proporções verticais/quadradas e altura dinâmica via postMessage — forçá-los em
+ * 16/9 corta o conteúdo.
+ */
+.topic-rich-html iframe {
+  max-width: 100%;
+  border: 0;
+  box-sizing: border-box;
+}
+
+.topic-rich-html iframe.ql-video,
+.ql-editor iframe.ql-video {
+  border-radius: 8px;
+  background: #000;
+}
+
+.topic-rich-html iframe.ql-video:not([data-layout]),
+.ql-editor iframe.ql-video:not([data-layout]) {
+  display: inline-block;
+  vertical-align: top;
+  margin: 0.75rem 0;
+}
+
+/*
+ * Sem tamanho explícito: largura total 16:9 (comportamento padrão para vídeos do Quill).
+ * `.ql-editor iframe.ql-video[...]` bate especificidade (0,3,1) > Quill Snow (0,3,0).
+ */
+.topic-rich-html iframe.ql-video:not([width]):not([data-layout]),
+.ql-editor iframe.ql-video:not([width]):not([data-layout]) {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  min-height: 220px;
+}
+
+/* Justificar = bloco em largura total (igual imagens em .ql-align-justify) */
+.topic-rich-html .ql-align-justify iframe.ql-video:not([data-layout]),
+.ql-editor .ql-align-justify iframe.ql-video:not([data-layout]) {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/*
+ * Embeds de redes sociais (Instagram, Twitter/X, Facebook): respeitam a altura
+ * calculada dinamicamente pelo script oficial via postMessage. Aqui apenas
+ * centralizamos e impomos limites de largura razoáveis. Não setar `height` —
+ * o iframe interno reporta a altura correta após carregar o conteúdo.
+ */
+.topic-rich-html .instagram-media,
+.topic-rich-html iframe.instagram-media,
+.topic-rich-html iframe.instagram-media-rendered {
+  display: block !important;
+  margin: 1rem auto !important;
+  max-width: 540px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.topic-rich-html .twitter-tweet,
+.topic-rich-html .fb-post {
+  display: block !important;
+  margin: 1rem auto !important;
+}
+
+/*
+ * Tailwind Typography (`prose`) aplica `font-style: italic`, `font-weight: 500`
+ * e injeta aspas decorativas via `blockquote p::before/::after`. Em embeds de
+ * redes sociais isso desfigura o placeholder oficial — anulamos para o blockquote
+ * ser substituído pelo iframe real sem ruído visual.
+ */
+.topic-rich-html blockquote.instagram-media,
+.topic-rich-html blockquote.twitter-tweet {
+  font-style: normal !important;
+  font-weight: normal !important;
+  color: inherit !important;
+}
+
+.topic-rich-html blockquote.instagram-media p::before,
+.topic-rich-html blockquote.instagram-media p::after,
+.topic-rich-html blockquote.twitter-tweet p::before,
+.topic-rich-html blockquote.twitter-tweet p::after {
+  content: none !important;
+}
+
+/*
+ * Barra do quill-resize-module (left/center/right/full) grava classes na LINHA (<p>).
+ * resize.css só entra no modal — duplicamos aqui para .topic-rich-html na página do evento.
+ */
+.topic-rich-html p.ql-resize-style-left,
+.ql-editor p.ql-resize-style-left {
+  float: left;
+  margin: 0 1em 1em 0;
+  max-width: 100%;
+}
+
+.topic-rich-html p.ql-resize-style-right,
+.ql-editor p.ql-resize-style-right {
+  float: right;
+  margin: 0 0 1em 1em;
+  max-width: 100%;
+}
+
+.topic-rich-html p.ql-resize-style-center,
+.ql-editor p.ql-resize-style-center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+  float: none;
+}
+
+.topic-rich-html p.ql-resize-style-full,
+.ql-editor p.ql-resize-style-full {
+  width: 100% !important;
+  float: none;
+  max-width: 100%;
+}
+
+.topic-rich-html p.ql-resize-style-full > iframe,
+.ql-editor p.ql-resize-style-full > iframe.ql-video {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Fallback quando o HTML não tem estilos inline no iframe */
+.topic-rich-html p.ql-align-center iframe.ql-video:not([data-layout]),
+.ql-editor p.ql-align-center iframe.ql-video:not([data-layout]) {
+  display: block;
+  margin: 0.75rem auto;
+  max-width: 100%;
+}
+
+.topic-rich-html p.ql-align-right iframe.ql-video:not([data-layout]),
+.ql-editor p.ql-align-right iframe.ql-video:not([data-layout]) {
+  display: block;
+  margin: 0.75rem 0 0.75rem auto;
+  max-width: 100%;
+}
+
+/*
+ * Layout flutuante para vídeos (igual imagens).
+ * No editor (.ql-editor), o Quill Snow CSS tem `.ql-video.ql-align-center { margin: 0 auto }`
+ * com especificidade (0,3,0). Para vencer, usamos `.ql-editor iframe.ql-video[data-layout]`
+ * que tem especificidade (0,3,1) — maior. No event page (.topic-rich-html) não há conflito.
+ */
+.topic-rich-html iframe[data-layout="left"],
+.ql-editor iframe.ql-video[data-layout="left"] {
+  float: left;
+  display: block;
+  width: 48%;
+  max-width: 48%;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  min-height: 120px;
+  margin: 0 1rem 0.75rem 0;
+  box-sizing: border-box;
+}
+
+.topic-rich-html iframe[data-layout="right"],
+.ql-editor iframe.ql-video[data-layout="right"] {
+  float: right;
+  display: block;
+  width: 48%;
+  max-width: 48%;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  min-height: 120px;
+  margin: 0 0 0.75rem 1rem;
+  box-sizing: border-box;
+}
+
+.topic-rich-html iframe[data-layout="inline-half"],
+.ql-editor iframe.ql-video[data-layout="inline-half"] {
+  float: left;
+  display: block;
+  width: calc(50% - 0.5rem);
+  max-width: calc(50% - 0.5rem);
+  aspect-ratio: 16 / 9;
+  height: auto;
+  min-height: 120px;
+  margin: 0 0.5rem 0.5rem 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .topic-rich-html iframe[data-layout="left"],
+  .topic-rich-html iframe[data-layout="right"],
+  .topic-rich-html iframe[data-layout="inline-half"],
+  .ql-editor iframe.ql-video[data-layout="left"],
+  .ql-editor iframe.ql-video[data-layout="right"],
+  .ql-editor iframe.ql-video[data-layout="inline-half"] {
+    float: none;
+    width: 100%;
+    max-width: 100%;
+    aspect-ratio: 16 / 9;
+    min-height: 180px;
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+
+/* Links no conteúdo dos tópicos (HTML do Quill na página do evento e afins) */
+.topic-rich-html a {
+  color: var(--blue-11);
+  text-decoration: underline;
+}
+.topic-rich-html a:hover {
+  color: var(--blue-10);
+}
+
+/* Tópicos (HTML do Quill): clearfix para elementos flutuantes (imagens e vídeos) */
+.topic-rich-html::after,
+.ql-editor::after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+.topic-rich-html img[data-layout="left"],
+.ql-editor img[data-layout="left"] {
+  float: left;
+  display: block;
+  max-width: min(100%, 48%);
+  height: auto;
+  margin: 0 1rem 0.75rem 0;
+  box-sizing: border-box;
+}
+
+.topic-rich-html img[data-layout="right"],
+.ql-editor img[data-layout="right"] {
+  float: right;
+  display: block;
+  max-width: min(100%, 48%);
+  height: auto;
+  margin: 0 0 0.75rem 1rem;
+  box-sizing: border-box;
+}
+
+.topic-rich-html img[data-layout="inline-half"],
+.ql-editor img[data-layout="inline-half"] {
+  float: left;
+  display: block;
+  width: calc(50% - 0.5rem);
+  max-width: calc(50% - 0.5rem);
+  height: auto;
+  margin: 0 0.5rem 0.5rem 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .topic-rich-html img[data-layout="inline-half"],
+  .ql-editor img[data-layout="inline-half"] {
+    width: 100%;
+    max-width: 100%;
+    float: none;
+    margin-right: 0;
+  }
+}
+
+/*
+ * Tipografia Quill na página do evento: quill.snow.css só carrega no TopicModal
+ * (.ql-editor). O HTML salvo usa classes ql-size-* / ql-font-* e <h1>–<h6> sem
+ * esse ancestral — sem estas regras o tamanho não aparece no público.
+ * Espelho de .ql-snow .ql-editor (Quill 2.0.x).
+ */
+.topic-rich-html .ql-font-serif {
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.topic-rich-html .ql-font-monospace {
+  font-family: Monaco, "Courier New", monospace;
+}
+
+.topic-rich-html .ql-size-small {
+  font-size: 0.75em;
+}
+
+.topic-rich-html .ql-size-large {
+  font-size: 1.5em;
+}
+
+.topic-rich-html .ql-size-huge {
+  font-size: 2.5em;
+}
+
+.topic-rich-html h1 {
+  font-size: 2em;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+.topic-rich-html h2 {
+  font-size: 1.5em;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.topic-rich-html h3 {
+  font-size: 1.17em;
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.topic-rich-html h4 {
+  font-size: 1em;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.topic-rich-html h5 {
+  font-size: 0.83em;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.topic-rich-html h6 {
+  font-size: 0.67em;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+/*
+ * Listas (Quill 2.x). O reset global `* { padding: 0; margin: 0 }` zera o
+ * indent nativo de <ol>/<ul>/<li>, e como `@tailwindcss/typography` não está
+ * instalado a classe `prose` não cobre. Quill 2.x sempre emite `<ol>` com
+ * `<li data-list="bullet|ordered">` (o data-list controla o tipo do marcador).
+ *
+ * No editor (.ql-editor) o Quill insere um `<span class="ql-ui">` runtime que
+ * carrega o bullet/contador via `::before` — mas esconde-se aqui pra evitar
+ * duplicar com o nosso `::before`, que é a única fonte que funciona no HTML
+ * salvo (`.topic-rich-html`), onde `.ql-ui` não existe.
+ */
+.ql-editor ol,
+.ql-editor ul,
+.topic-rich-html ol,
+.topic-rich-html ul {
+  padding-left: 1.5em;
+  list-style: none;
+  counter-reset: list-0 list-1 list-2 list-3 list-4 list-5 list-6 list-7 list-8 list-9;
+}
+
+.ql-editor li,
+.topic-rich-html li {
+  display: list-item;
+  list-style: none;
+  padding-left: 1.5em;
+  position: relative;
+}
+
+/* Quill injeta esse span em cada <li> dentro do editor — escondemos pra que o
+ * bullet venha do nosso ::before (consistente com a página pública). */
+.ql-editor li > .ql-ui {
+  display: none;
+}
+
+.ql-editor li[data-list=bullet]::before,
+.topic-rich-html li[data-list=bullet]::before {
+  content: '\2022';
+  display: inline-block;
+  width: 1.2em;
+  margin-left: -1.5em;
+  margin-right: 0.3em;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ql-editor li[data-list=ordered],
+.topic-rich-html li[data-list=ordered] {
+  counter-increment: list-0;
+}
+
+.ql-editor li[data-list=ordered]::before,
+.topic-rich-html li[data-list=ordered]::before {
+  content: counter(list-0, decimal) '. ';
+  display: inline-block;
+  width: 1.2em;
+  margin-left: -1.5em;
+  margin-right: 0.3em;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Indent aninhado (botão "indent right" do Quill). Cada nível adiciona ~1.5em
+ * de padding-left no <li> e troca o tipo do marcador (alpha → roman → decimal). */
+.ql-editor li.ql-indent-1,
+.topic-rich-html li.ql-indent-1 {
+  padding-left: 4.5em;
+}
+.ql-editor li.ql-indent-2,
+.topic-rich-html li.ql-indent-2 {
+  padding-left: 7.5em;
+}
+.ql-editor li.ql-indent-3,
+.topic-rich-html li.ql-indent-3 {
+  padding-left: 10.5em;
+}
+
+.ql-editor li[data-list=ordered].ql-indent-1,
+.topic-rich-html li[data-list=ordered].ql-indent-1 {
+  counter-increment: list-1;
+}
+.ql-editor li[data-list=ordered].ql-indent-1::before,
+.topic-rich-html li[data-list=ordered].ql-indent-1::before {
+  content: counter(list-1, lower-alpha) '. ';
+}
+
+.ql-editor li[data-list=ordered].ql-indent-2,
+.topic-rich-html li[data-list=ordered].ql-indent-2 {
+  counter-increment: list-2;
+}
+.ql-editor li[data-list=ordered].ql-indent-2::before,
+.topic-rich-html li[data-list=ordered].ql-indent-2::before {
+  content: counter(list-2, lower-roman) '. ';
+}
+
+.ql-editor li[data-list=ordered].ql-indent-3,
+.topic-rich-html li[data-list=ordered].ql-indent-3 {
+  counter-increment: list-3;
+}
+.ql-editor li[data-list=ordered].ql-indent-3::before,
+.topic-rich-html li[data-list=ordered].ql-indent-3::before {
+  content: counter(list-3, decimal) '. ';
+}
+/* ──────────────────────────────────────────────────────────────────────────
+   Seletor de local do evento (LocationPickerModal): casa o web component do
+   Google (Places API New — <gmp-place-autocomplete>) com os inputs do
+   formulário. O elemento tem shadow DOM: só herança (font/cor) e propriedades
+   no host atravessam; por isso estilizamos o HOST (borda/raio/altura/fundo) e
+   deixamos font-family/color herdarem para o input interno.
+   ────────────────────────────────────────────────────────────────────────── */
+/* Host = a "caixa" do campo (mesma aparência dos <Input> do form). NÃO usar
+   overflow:hidden aqui — o dropdown é renderizado para fora e seria cortado. */
+gmp-place-autocomplete {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 3rem; /* h-12 */
+  border: 1px solid var(--gray-6);
+  border-radius: 0.5rem; /* rounded-lg */
+  background-color: var(--gray-1);
+  font-family: var(--font-family-dm-sans);
+  color: var(--gray-12);
+  /* Força o tema CLARO do widget — sem isso ele segue o color-scheme do
+     sistema e renderiza as divisórias/chrome internos em PRETO no dark mode. */
+  color-scheme: light;
+  transition: border-color 0.2s ease;
+}
+gmp-place-autocomplete:focus-within {
+  border-color: var(--primary-9);
+  outline: none;
+}
+
+/* Campo de texto interno: transparente e sem borda (a caixa é o host). */
+gmp-place-autocomplete::part(input) {
+  width: 100%;
+  height: 3rem; /* h-12 */
+  padding: 0 0.75rem; /* px-3 */
+  border: none;
+  background-color: transparent;
+  outline: none;
+  font-family: var(--font-family-dm-sans);
+  font-size: 1rem; /* text-base */
+  color: var(--gray-12);
+}
+/* Foco já é indicado pela borda primary-9 no host — evita anel duplicado. */
+gmp-place-autocomplete::part(focus-ring) {
+  display: none;
+}
+
+/* Dropdown de sugestões: card no padrão do projeto. */
+gmp-place-autocomplete::part(prediction-list) {
+  z-index: 60;
+  margin-top: 0.375rem;
+  padding: 0.25rem;
+  background-color: var(--gray-1);
+  border: 1px solid var(--gray-6);
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 24px rgba(17, 17, 17, 0.12);
+}
+gmp-place-autocomplete::part(prediction-item) {
+  padding: 0.5rem 0.625rem;
+  border: none; /* remove a divisória escura/arredondada padrão entre itens */
+  border-radius: 0.375rem; /* rounded-md */
+  font-family: var(--font-family-dm-sans);
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  color: var(--gray-12);
+  cursor: pointer;
+}
+gmp-place-autocomplete::part(prediction-item):hover,
+gmp-place-autocomplete::part(prediction-item-selected) {
+  background-color: var(--gray-3);
+}
+/* Ícone do local em verde (padrão dos ícones de localização do app). */
+gmp-place-autocomplete::part(prediction-item-icon) {
+  color: var(--primary-11);
+  fill: var(--primary-11);
+}
+gmp-place-autocomplete::part(prediction-item-main-text) {
+  color: var(--gray-12);
+}
+gmp-place-autocomplete::part(prediction-item-match) {
+  font-weight: 600;
+  color: var(--gray-12);
+}
+gmp-place-autocomplete::part(prediction-item-secondary-text) {
+  color: var(--gray-11);
+  font-size: 0.8125rem; /* text-sm */
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Marca Lets4Trade — tema dark do Figma (nó 1941:873).
+   Tokens ADITIVOS de propósito: NÃO sobrescrevem --primary-* / --gray-*, que
+   ainda servem o tema claro legado (plataforma de ingressos). Enquanto a
+   virada de produto não for decidida, as duas paletas convivem e cada tela
+   escolhe a sua — trocar a paleta global aqui repintaria o app inteiro sem
+   ninguém pedir. Ver .claude/context/open-questions.md.
+   ────────────────────────────────────────────────────────────────────────── */
+:root {
+  --brand-orange: #ff7300;
+  --brand-orange-deep: #ff4d00;
+  --brand-bg: #000000;
+  --brand-surface: #0a0a0a;
+  --brand-border: rgba(255, 255, 255, 0.15);
+  --brand-hairline: rgba(255, 255, 255, 0.1);
+  --brand-fg: #ffffff;
+  --brand-fg-muted: rgba(255, 255, 255, 0.8);
+  --brand-fg-subtle: rgba(255, 255, 255, 0.4);
+  --brand-placeholder: #d8d8d8;
+}
+
+@theme {
+  --font-family-poppins: var(--font-poppins);
+
+  --color-brand-orange: var(--brand-orange);
+  --color-brand-orange-deep: var(--brand-orange-deep);
+  --color-brand-bg: var(--brand-bg);
+  --color-brand-surface: var(--brand-surface);
+  --color-brand-border: var(--brand-border);
+  --color-brand-hairline: var(--brand-hairline);
+  --color-brand-fg: var(--brand-fg);
+  --color-brand-fg-muted: var(--brand-fg-muted);
+  --color-brand-fg-subtle: var(--brand-fg-subtle);
+  --color-brand-placeholder: var(--brand-placeholder);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Superfícies de botão/campo do Figma. Os retângulos exportados do design são
+   SVG com fill e stroke em degradê — não dá para reproduzir com `bg-*` +
+   `border-*` simples, então os degradês viram tokens aqui e os componentes os
+   consomem via `background: <fill> padding-box, <stroke> border-box`, que é o
+   jeito de ter borda em degradê preservando o raio da pílula.
+
+   Valores extraídos dos assets: Rectangle 6440/6443/6444/6445 (fill cinza
+   #616161→#242424 a 10%, vertical) e o stroke laranja #FF7300→#FF4D00 (~160deg).
+   ────────────────────────────────────────────────────────────────────────── */
+:root {
+  /* "Cinza button" do design — fill translúcido de GAMES, CRIAR CONTA e campos. */
+  --brand-surface-fill: linear-gradient(
+    180deg,
+    rgba(97, 97, 97, 0.1),
+    rgba(36, 36, 36, 0.1)
+  );
+  /* "Laranja 1" — usado como stroke nos secundários e como fill no CTA do header. */
+  --brand-orange-gradient: linear-gradient(160deg, #ff7300, #ff4d00);
+  /* Stroke branco sutil dos primários e dos campos. */
+  --brand-stroke-soft: rgba(255, 255, 255, 0.15);
+}
+
+/*
+ * Anel de 2px em degradê com MIOLO TRANSPARENTE.
+ *
+ * O truque comum (`background: <fill> padding-box, <stroke> border-box`) não
+ * serve aqui: ele só funciona quando a camada de dentro é opaca. O fill do
+ * design é translúcido (cinza a 10%), então o degradê da borda vazaria por
+ * baixo e pintaria o botão inteiro de laranja.
+ *
+ * A solução é desenhar o degradê num ::before do tamanho do elemento e recortar
+ * o miolo com duas máscaras compostas por exclusão — sobra só a moldura. O raio
+ * é herdado, então funciona igual em pílula ou em canto arredondado.
+ */
+.brand-ring {
+  position: relative;
+}
+
+.brand-ring::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: var(--brand-orange-gradient);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Famílias do design que NÃO estão no Google Fonts.
+
+   Helvetica Neue (título LOGIN, labels do card, placeholder da busca e o
+   parágrafo do footer): é licenciada e não pode ser servida por nós. A pilha
+   abaixo usa a real onde ela existe (macOS/iOS) e cai em Helvetica → Arial no
+   resto — que são metricamente próximas o bastante para não quebrar o layout.
+
+   Korataki (selo "+1000 REFERÊNCIAS"): fonte paga da Typodermic, sem
+   equivalente livre. Enquanto o arquivo não existir, a pilha cai na mesma
+   Helvetica. Para ativar de verdade, coloque o arquivo em `public/fonts/` e
+   descomente o @font-face abaixo — nenhuma outra mudança é necessária, o token
+   já está ligado aos componentes.
+   ────────────────────────────────────────────────────────────────────────── */
+:root {
+  --font-helvetica: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-korataki: "Korataki", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+/*
+@font-face {
+  font-family: "Korataki";
+  src: url("/fonts/korataki-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Korataki";
+  src: url("/fonts/korataki-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+*/
+
+@theme {
+  --font-family-helvetica: var(--font-helvetica);
+  --font-family-korataki: var(--font-korataki);
+}
+
+/*
+ * CORREÇÃO: as classes `font-*` não existiam.
+ *
+ * O bloco `@theme` no topo declara `--font-family-manrope`, `--font-family-dm-sans`
+ * etc., mas no Tailwind v4 o namespace de família é `--font-*`, não
+ * `--font-family-*` — então nenhum utilitário `font-manrope` / `font-poppins`
+ * chegava a ser gerado e TODO texto caía na fonte do body. O `tailwind.config.ts`
+ * também não cobre isso: sem a diretiva `@config`, o v4 ignora o arquivo JS.
+ *
+ * Os `--font-family-*` originais ficam onde estão: não são inúteis, as regras do
+ * `gmp-place-autocomplete` mais acima os consomem como variável CSS crua.
+ *
+ * `@theme inline` é o que permite repetir o nome da variável do next/font sem
+ * referência circular: com `inline` o Tailwind não redeclara a variável em
+ * `:root`, só embute o `var(...)` dentro do utilitário — e aí o valor vem do
+ * `<html>`, onde o next/font o define.
+ */
+@theme inline {
+  --font-manrope: var(--font-manrope);
+  --font-dm-sans: var(--font-dm-sans);
+  --font-poppins: var(--font-poppins);
+  --font-helvetica: var(--font-helvetica);
+  --font-korataki: var(--font-korataki);
+}
+
+/*
+ * Barra de rolagem do painel de pedidos (Figma 2073:1612): trilho branco a 20%
+ * e polegar laranja, ambos com raio 8.
+ *
+ * Feito em CSS puro, e não com o `tailwind-scrollbar`: aquele plugin está
+ * declarado no `tailwind.config.ts`, que o Tailwind v4 IGNORA por não haver
+ * diretiva `@config` — as classes `scrollbar-*` simplesmente não existem.
+ * As regras `::-webkit-scrollbar` globais mais acima usam a paleta clara
+ * legada, por isso esta escopada.
+ */
+.scrollbar-orange {
+  scrollbar-width: thin;
+  scrollbar-color: var(--brand-orange) rgba(255, 255, 255, 0.2);
+}
+
+.scrollbar-orange::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-orange::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+}
+
+.scrollbar-orange::-webkit-scrollbar-thumb {
+  background: var(--brand-orange);
+  border-radius: 8px;
+}
+
+/*
+ * Texto em degradê laranja — usado nos números de destaque (saldo, cashback,
+ * percentual de progresso) das telas de fidelidade e do painel.
+ * `bg-clip-text` + `text-transparent` recorta o degradê na forma das letras.
+ */
+.text-brand-gradient {
+  background-image: linear-gradient(165.3deg, #ff7300 13.819%, #ff4d00 89.223%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Baralho de jogos do hero (Figma 1075:4856) — entrada e interação.
+
+   Tudo em CSS puro: o efeito é `:hover` + seletor de irmãos, sem estado no
+   React, sem `mousemove` chegando ao JS e sem transformar a home num client
+   component. É a diferença entre animar no compositor e re-renderizar cinco
+   cards a cada frame.
+
+   PERFORMANCE — é a restrição que DESENHOU este efeito, não um detalhe. Cada
+   card tem `backdrop-filter: blur(40px)` e eles se sobrepõem; todo pixel que
+   se move obriga o navegador a recalcular o desfoque do que está atrás. Este
+   hero já congelou o renderizador uma vez (ver .claude/memory/lessons.md).
+   Consequências no código abaixo:
+     - só `transform` e `opacity` são animados — nada que force layout ou
+       recalcule `filter`;
+     - EM REPOUSO NADA ANIMA. A entrada roda uma vez e para; o resto só
+       acontece sob o cursor;
+     - `will-change` só existe enquanto o baralho está sob o cursor. Deixá-lo
+       fixo manteria cinco camadas promovidas na GPU o tempo todo, que é
+       justamente o custo que estamos tentando evitar.
+
+   GEOMETRIA — os 40px de empurrão são o limite, não uma escolha estética. O
+   baralho termina em x=1870 numa página de 1920, ou seja, sobram exatamente
+   50px. Com 40px de empurrão mais o crescimento da escala, o card mais à
+   direita chega a ~1910: cabe, e a página não ganha barra de rolagem
+   horizontal.
+
+   SEM TREMOR — o card sob o cursor ESCALA, não sobe. Escala mantém o centro
+   fixo e empurra as bordas para fora, então o ponteiro nunca deixa de estar
+   sobre o card. Subir o card (o `hover:-translate-y-1` que estava aqui antes)
+   faz a borda de baixo fugir do cursor perto do rodapé do card: o `:hover`
+   desliga, o card volta, o `:hover` religa — o loop de piscar clássico. A
+   sensação de "levantar" vem da sombra e do personagem, que esse sim sobe.
+   ────────────────────────────────────────────────────────────────────────── */
+
+.hero-card {
+  transition:
+    transform 420ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 300ms ease,
+    box-shadow 420ms ease;
+}
+
+.hero-deck:hover .hero-card {
+  will-change: transform;
+}
+
+/* Abre espaço para o card sob o cursor empurrando só os que vêm DEPOIS dele.
+   Puxar os anteriores para a esquerda invadiria o banner, que está a 25px. */
+.hero-card:hover ~ .hero-card {
+  transform: translate3d(40px, 0, 0);
+}
+
+.hero-card:hover {
+  transform: scale(1.03);
+  border-color: rgba(255, 115, 0, 0.5);
+  box-shadow: 0 24px 70px -24px rgba(255, 77, 0, 0.55);
+  /* Traz o card à frente dos que vêm depois dele no DOM. */
+  z-index: 1;
+}
+
+/* Parallax interno: o personagem sobe MAIS que o card, o que dá a impressão
+   de que a arte está saindo do cartão. Só `transform` — o `filter: blur()` da
+   cópia borrada atrás fica intocado de propósito, animar desfoque é caro. */
+.hero-art {
+  transition: transform 480ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hero-card:hover .hero-art {
+  transform: translate3d(0, -14px, 0) scale(1.05);
+}
+
+/* A linha divisória do card (branco a 5% no design) acende em laranja. */
+.hero-rule {
+  transition:
+    background-color 320ms ease,
+    box-shadow 320ms ease;
+}
+
+.hero-card:hover .hero-rule {
+  background-color: rgba(255, 115, 0, 0.55);
+  box-shadow: 0 0 12px rgba(255, 115, 0, 0.5);
+}
+
+.hero-zoom {
+  transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hero-card:hover .hero-zoom {
+  transform: scale(1.18);
+}
+
+/*
+ * Brilho que varre o card uma vez a cada entrada do cursor.
+ *
+ * Vive num `::after` em vez de um elemento: é decoração pura, não precisa
+ * existir no DOM. O `overflow-hidden` do card já recorta a faixa nas bordas
+ * arredondadas.
+ */
+.hero-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 38%,
+    rgba(255, 255, 255, 0.14) 50%,
+    transparent 62%
+  );
+}
+
+@keyframes hero-sheen {
+  0% {
+    opacity: 0;
+    transform: translate3d(-110%, 0, 0);
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(110%, 0, 0);
+  }
+}
+
+/*
+ * Entrada: os cinco cards entram em cascata da direita, como um baralho sendo
+ * aberto na mesa. `backwards` segura o estado inicial durante o atraso — sem
+ * ele os cards apareceriam prontos e só então começariam a animar.
+ *
+ * O atraso vem de `--hero-i`, o índice do card, injetado no `style`.
+ *
+ * A varredura de brilho e a entrada ficam dentro de `prefers-reduced-motion:
+ * no-preference`: são movimento decorativo, exatamente o que a preferência
+ * existe para desligar. O efeito de hover (escala, brilho, sombra) continua
+ * valendo — é resposta direta a uma ação do usuário, e some junto com o cursor.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-card {
+    animation: hero-card-in 720ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: calc(var(--hero-i, 0) * 90ms);
+  }
+
+  .hero-card:hover::after {
+    animation: hero-sheen 900ms cubic-bezier(0.3, 0, 0.2, 1);
+  }
+}
+
+/*
+ * O estado inicial obedece ao MESMO orçamento de 40px do empurrão de hover, e
+ * pelo mesmo motivo: qualquer pixel além de 1920 faz o `overflow-x-auto` do
+ * `main` piscar uma barra de rolagem durante o carregamento.
+ *
+ * Cuidado com a rotação — ela também gasta orçamento. Um card de 336×758
+ * girado 2,5° tem caixa envolvente de ~369px, ou seja, ~16px a mais de cada
+ * lado. Somando: 1870 (borda do último card) + 24 de deslocamento + 16 da
+ * rotação = 1910. A primeira versão usava 70px e 3° e estourava para 1960.
+ */
+@keyframes hero-card-in {
+  from {
+    opacity: 0;
+    transform: translate3d(24px, 52px, 0) rotate(2.5deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ==========================================================================
+   LINGUAGEM DE MOVIMENTO DA HOME
+
+   Três regras. Elas existem para o site parecer DESENHADO, e não montado a
+   partir do repertório padrão de animação de landing page.
+
+   1. NADA ANIMA SOZINHO. O movimento vem do usuário — do cursor ou da
+      rolagem. Nenhum elemento flutua, pulsa ou aparece com fade sozinho.
+      Página que se mexe sem ninguém pedir cansa em dois scrolls, e é a
+      assinatura mais óbvia de template. As únicas exceções são a entrada do
+      baralho do hero, que roda UMA vez e para, e o anel do botão de vídeo,
+      que já estava no design.
+
+   2. A CAIXA FICA PARADA; O CONTEÚDO REAGE. Levantar o card inteiro no hover
+      é o gesto genérico — todo card do mundo faz isso. Aqui quem se mexe é a
+      foto, o texto, o ícone, a moldura. Isso também evita o tremor de
+      `:hover` (ver .claude/memory/lessons.md).
+
+   3. RÁPIDO E SECO. 160–280ms na `--ease-snap`, que responde no primeiro
+      frame e para. Movimento lento e flutuante é linguagem de marketing;
+      isto é uma loja de gamecoins, o tempo é o de UI de jogo.
+
+   Custo: tudo abaixo anima só `transform`, `opacity`, `color`,
+   `background-color`, `border-color` e `box-shadow`. Nada de layout, nada de
+   `filter`.
+   ========================================================================== */
+
+:root {
+  /* A curva "de jogo": sai rápido e assenta curto, sem balanço. */
+  --ease-snap: cubic-bezier(0.2, 0.9, 0.25, 1);
+  /* Desaceleração longa, só para movimentos grandes. */
+  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-micro: 160ms;
+  --dur-base: 280ms;
+  --dur-slow: 620ms;
+}
+
+/* --------------------------------------------------------------------------
+   PROFUNDIDADE POR ROLAGEM
+
+   O mapa-múndi da equipe e a arte do bloco de dúvidas deslizam devagar
+   enquanto passam pela tela, e a faixa de reviews escorrega na horizontal.
+   Isso dá profundidade sem violar a regra 1: quem move é a rolagem do
+   usuário — parou de rolar, parou tudo.
+
+   Feito com `animation-timeline`, que roda FORA da thread principal. A
+   alternativa (listener de `scroll` em JS) recalcularia posição a cada evento
+   na mesma thread que renderiza, que é exatamente o que este hero não
+   aguenta.
+
+   `@supports` porque a propriedade ainda não é universal: onde não existe, o
+   estado é o do arquivo do Figma, parado. Degradação limpa, sem polyfill.
+   -------------------------------------------------------------------------- */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /*
+     * A faixa de depoimentos escorrega 160px para cada lado ao longo da
+     * passagem pela tela. No MEIO do percurso ela está exatamente na posição
+     * do arquivo — ou seja, o design é o estado de repouso quando a seção
+     * está centralizada. Nas pontas, o movimento revela o começo do primeiro
+     * card e o fim do último, que no arquivo ficam cortados.
+     */
+    .reviews-strip {
+      animation-name: reviews-drift;
+      animation-duration: auto;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: view();
+      animation-range: cover;
+    }
+
+    .map-drift {
+      animation-name: map-drift;
+      animation-duration: auto;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: view();
+      animation-range: cover;
+    }
+
+    .faq-art {
+      animation-name: faq-art-drift;
+      animation-duration: auto;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: view();
+      animation-range: cover;
+    }
+  }
+}
+
+@keyframes reviews-drift {
+  from {
+    transform: translate3d(160px, 0, 0);
+  }
+  to {
+    transform: translate3d(-160px, 0, 0);
+  }
+}
+
+@keyframes map-drift {
+  from {
+    transform: translate3d(0, 48px, 0);
+  }
+  to {
+    transform: translate3d(0, -48px, 0);
+  }
+}
+
+@keyframes faq-art-drift {
+  from {
+    transform: translate3d(0, 26px, 0);
+  }
+  to {
+    transform: translate3d(0, -26px, 0);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   DEPOIMENTOS — "marca de texto"
+
+   O gesto é o de passar marca-texto: uma barra laranja CRESCE de cima para
+   baixo na borda esquerda do card, como quem marca a citação que interessa.
+   O card não sai do lugar; mudam a moldura, o avatar e o brilho do texto.
+
+   `scaleY` a partir do topo, não `height` — altura é layout, escala é
+   compositor.
+   -------------------------------------------------------------------------- */
+
+.review-card {
+  transition:
+    border-color var(--dur-base) var(--ease-snap),
+    background-color var(--dur-base) var(--ease-snap);
+}
+
+.review-card::before {
+  content: "";
+  position: absolute;
+  top: 25px;
+  left: 0;
+  width: 3px;
+  height: 337px;
+  border-radius: 0 3px 3px 0;
+  background: var(--brand-orange-gradient);
+  transform: scaleY(0);
+  transform-origin: top center;
+  transition: transform var(--dur-slow) var(--ease-expo);
+  pointer-events: none;
+}
+
+.review-card:hover {
+  border-color: rgba(255, 115, 0, 0.35);
+  background-color: rgba(255, 115, 0, 0.03);
+}
+
+.review-card:hover::before {
+  transform: scaleY(1);
+}
+
+.review-avatar {
+  transition:
+    transform var(--dur-base) var(--ease-snap),
+    box-shadow var(--dur-base) var(--ease-snap);
+}
+
+.review-card:hover .review-avatar {
+  transform: scale(1.08);
+  box-shadow: 0 0 0 2px rgba(255, 115, 0, 0.7);
+}
+
+.review-body {
+  transition: color var(--dur-base) ease;
+}
+
+.review-card:hover .review-body {
+  color: #f5f5f5;
+}
+
+.review-yt {
+  transition: transform var(--dur-base) var(--ease-snap);
+}
+
+.review-card:hover .review-yt {
+  transform: translate3d(4px, 0, 0);
+}
+
+/* --------------------------------------------------------------------------
+   EQUIPE — "dar um passo à frente"
+
+   A foto cresce a partir da BASE (`transform-origin: bottom`), então a pessoa
+   parece dar um passo para fora do card em vez de simplesmente inchar no
+   meio. Sob o nome, um traço laranja abre do centro para os lados.
+   -------------------------------------------------------------------------- */
+
+.team-card {
+  transition:
+    border-color var(--dur-base) var(--ease-snap),
+    box-shadow var(--dur-base) var(--ease-snap);
+}
+
+.team-card:hover {
+  border-color: rgba(255, 115, 0, 0.4);
+  box-shadow: 0 22px 60px -28px rgba(255, 77, 0, 0.6);
+}
+
+.team-photo {
+  transform-origin: bottom center;
+  transition: transform var(--dur-slow) var(--ease-expo);
+}
+
+.team-card:hover .team-photo {
+  transform: scale(1.05);
+}
+
+.team-name::after {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  width: 44px;
+  height: 2px;
+  margin-left: -22px;
+  border-radius: 2px;
+  background: var(--brand-orange-gradient);
+  transform: scaleX(0);
+  transition: transform var(--dur-base) var(--ease-snap);
+}
+
+.team-card:hover .team-name::after {
+  transform: scaleX(1);
+}
+
+/* --------------------------------------------------------------------------
+   GUIAS — aproximação editorial
+
+   A arte se aproxima devagar dentro do recorte do card enquanto o degradê
+   escurece e o texto sobe. É o tratamento clássico de card de matéria, e aqui
+   ele cabe: o card É a arte do jogo.
+   -------------------------------------------------------------------------- */
+
+.guide-card {
+  transition: border-color var(--dur-base) var(--ease-snap);
+}
+
+.guide-card:hover {
+  border-color: rgba(255, 115, 0, 0.4);
+}
+
+.guide-art {
+  transition: transform var(--dur-slow) var(--ease-expo);
+}
+
+.guide-card:hover .guide-art {
+  transform: scale(1.06);
+}
+
+.guide-scrim {
+  transition: opacity var(--dur-slow) ease;
+}
+
+.guide-card:hover .guide-scrim {
+  opacity: 0.88;
+}
+
+.guide-text {
+  transition: transform var(--dur-base) var(--ease-snap);
+}
+
+.guide-card:hover .guide-text {
+  transform: translate3d(0, -6px, 0);
+}
+
+.guide-logo {
+  transition: transform var(--dur-base) var(--ease-snap);
+}
+
+.guide-card:hover .guide-logo {
+  transform: translate3d(0, -3px, 0) scale(1.06);
+}
+
+/* Card "VISITAR BLOG": a seta ANDA. É o único movimento que promete destino. */
+.blog-arrow {
+  transition: transform var(--dur-base) var(--ease-snap);
+}
+
+.blog-card:hover .blog-arrow {
+  transform: translate3d(6px, 0, 0);
+}
+
+.blog-glow {
+  transition: transform var(--dur-slow) var(--ease-expo);
+}
+
+.blog-card:hover .blog-glow-a {
+  transform: translate3d(-14px, -10px, 0);
+}
+
+.blog-card:hover .blog-glow-b {
+  transform: translate3d(16px, 8px, 0);
+}
+
+/* --------------------------------------------------------------------------
+   NAVEGAÇÃO — "clique" com antecipação
+
+   O ícone ENCOLHE antes de crescer. Essa antecipação de ~90ms é o que separa
+   um pop com peso de um `scale(1.1)` chapado, e é vocabulário de UI de jogo,
+   não de site institucional.
+
+   O ícone e a pílula do vídeo passaram a ser centralizados por
+   `inset-0 m-auto`, e não mais por `-translate-x-1/2 -translate-y-1/2`.
+   Motivo: a centralização por `transform` briga com QUALQUER animação de
+   transform — o keyframe teria que repetir o `translate(-50%, -50%)` em todo
+   passo, e esquecer num deles joga o elemento para o canto. Com `m-auto` a
+   centralização é layout, e o transform fica livre para a animação.
+   -------------------------------------------------------------------------- */
+
+@keyframes nav-pop {
+  0% {
+    transform: scale(1);
+  }
+  22% {
+    transform: scale(0.9);
+  }
+  62% {
+    transform: scale(1.14);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .nav-item:hover .nav-icon {
+    animation: nav-pop 420ms var(--ease-snap);
+  }
+}
+
+.nav-tile {
+  transition: transform var(--dur-base) var(--ease-snap);
+}
+
+.nav-item:hover .nav-tile {
+  transform: scale(1.06);
+}
+
+.nav-label {
+  transition: color var(--dur-micro) ease;
+}
+
+.nav-item:hover .nav-label {
+  color: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   VÍDEO — o botão ganha corpo
+
+   O anel de texto já gira e continua girando: é o único movimento em repouso
+   da página, e estava no design. No hover, só o botão responde.
+   -------------------------------------------------------------------------- */
+
+.play-thumb,
+.play-pill,
+.play-core {
+  transition: transform var(--dur-base) var(--ease-snap);
+}
+
+.play-button:hover .play-thumb {
+  transform: scale(1.02);
+}
+
+.play-button:hover .play-pill {
+  transform: scale(1.05);
+}
+
+.play-button:hover .play-core {
+  transform: scale(1.12);
+}

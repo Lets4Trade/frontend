@@ -1,0 +1,12 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="1122.12" height="1122.12" viewBox="0 0 1122.12 1122.12" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Efeito 15" filter="url(#filter0_f_0_32)">
+<circle cx="561.061" cy="561.061" r="184.565" fill="#0F0F0F"/>
+</g>
+<defs>
+<filter id="filter0_f_0_32" x="0" y="0" width="1122.12" height="1122.12" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feGaussianBlur stdDeviation="188.248" result="effect1_foregroundBlur_0_32"/>
+</filter>
+</defs>
+</svg>

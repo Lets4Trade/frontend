@@ -1,0 +1,13 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="859" height="758" viewBox="0 0 859 758" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Group 44">
+<foreignObject x="-200" y="-200" width="1259" height="1158"><div xmlns="http://www.w3.org/1999/xhtml" style="backdrop-filter:blur(100px);clip-path:url(#bgblur_0_0_4_clip_path);height:100%;width:100%"></div></foreignObject><g id="Rectangle 16" data-figma-bg-blur-radius="200">
+<path d="M0 30C0 13.4315 13.4315 0 30 0H829C845.569 0 859 13.4315 859 30V379V728C859 744.569 845.569 758 829 758H30C13.4315 758 0 744.569 0 728V30Z" fill="black" fill-opacity="0.1"/>
+<path d="M30 0.5H829C845.292 0.5 858.5 13.7076 858.5 30V728C858.5 744.292 845.292 757.5 829 757.5H30C13.7076 757.5 0.500001 744.292 0.5 728V30C0.500002 13.7076 13.7076 0.500001 30 0.5Z" stroke="white" stroke-opacity="0.1"/>
+</g>
+<g id="Logo">
+</g>
+</g>
+<defs>
+<clipPath id="bgblur_0_0_4_clip_path" transform="translate(200 200)"><path d="M0 30C0 13.4315 13.4315 0 30 0H829C845.569 0 859 13.4315 859 30V379V728C859 744.569 845.569 758 829 758H30C13.4315 758 0 744.569 0 728V30Z"/>
+</clipPath></defs>
+</svg>

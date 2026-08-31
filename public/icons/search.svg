@@ -1,0 +1,11 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Outline / Search / Minimalistic Magnifer">
+<path id="Vector" fill-rule="evenodd" clip-rule="evenodd" d="M9.58333 2.29167C5.55626 2.29167 2.29167 5.55626 2.29167 9.58333C2.29167 13.6104 5.55626 16.875 9.58333 16.875C13.6104 16.875 16.875 13.6104 16.875 9.58333C16.875 5.55626 13.6104 2.29167 9.58333 2.29167ZM1.04167 9.58333C1.04167 4.8659 4.8659 1.04167 9.58333 1.04167C14.3008 1.04167 18.125 4.8659 18.125 9.58333C18.125 14.3008 14.3008 18.125 9.58333 18.125C4.8659 18.125 1.04167 14.3008 1.04167 9.58333ZM16.2247 16.2247C16.4688 15.9806 16.8645 15.9806 17.1086 16.2247L18.7753 17.8914C19.0194 18.1355 19.0194 18.5312 18.7753 18.7753C18.5312 19.0194 18.1355 19.0194 17.8914 18.7753L16.2247 17.1086C15.9806 16.8645 15.9806 16.4688 16.2247 16.2247Z" fill="url(#paint0_linear_0_42)"/>
+</g>
+<defs>
+<linearGradient id="paint0_linear_0_42" x1="2.53484" y1="4.625" x2="16.8682" y2="17.3458" gradientUnits="userSpaceOnUse">
+<stop stop-color="#FF7300"/>
+<stop offset="0.995192" stop-color="#FF4D00"/>
+</linearGradient>
+</defs>
+</svg>
