@@ -101,7 +101,9 @@
  * de 1820px de largura) fica com a espessura padrão do sistema, destoando.
  */
 html {
-  scrollbar-color: var(--brand-orange) rgba(255, 255, 255, 0.1);
+  /* Trilho no fundo do site: a barra vira só o polegar laranja correndo sobre
+     a página, sem a faixa clara atravessando a tela inteira. */
+  scrollbar-color: var(--brand-orange) var(--brand-bg);
 }
 
 ::-webkit-scrollbar {
@@ -110,7 +112,7 @@ html {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--brand-bg);
 }
 
 ::-webkit-scrollbar-thumb {
@@ -858,6 +860,10 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
 :root {
   --brand-orange: #ff7300;
   --brand-orange-deep: #ff4d00;
+  /* Fim do degradê dos halos do card de blog (Figma 791:1600). */
+  --brand-orange-shade: #b24400;
+  /* Verde das estrelas de avaliação (Figma 537:1085). */
+  --brand-rating: #00cb45;
   --brand-bg: #000000;
   --brand-surface: #0a0a0a;
   --brand-border: rgba(255, 255, 255, 0.15);
@@ -873,6 +879,8 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
 
   --color-brand-orange: var(--brand-orange);
   --color-brand-orange-deep: var(--brand-orange-deep);
+  --color-brand-orange-shade: var(--brand-orange-shade);
+  --color-brand-rating: var(--brand-rating);
   --color-brand-bg: var(--brand-bg);
   --color-brand-surface: var(--brand-surface);
   --color-brand-border: var(--brand-border);
@@ -950,8 +958,7 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
 
    A pilha de reserva (Helvetica Neue do sistema → Helvetica → Arial) é
    declarada no próprio `localFont`, no `layout.tsx`, e já vem embutida nestas
-   variáveis. Não repetir aqui: uma lista depois de `var()` dentro de outra
-   custom property é descartada pelo compilador de CSS.
+   variáveis. Não repetir aqui — um lugar só para mudar a ordem.
    ────────────────────────────────────────────────────────────────────────── */
 :root {
   --font-helvetica: var(--font-helvetica-neue);

@@ -1,7 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonVariants } from "@/components/ui/Button";
+import { getSessionUser, type SessionUser } from "@/features/auth/session";
+import { cn } from "@/lib/cn";
 import { GlowBar } from "./GlowBar";
+import { UserMenu } from "./UserMenu";
 
 /**
  * Header do tema dark (Figma 1946:1060) — 83px, preto 50% com backdrop-blur 9px
@@ -22,20 +25,23 @@ import { GlowBar } from "./GlowBar";
  * Responsivo: o design é fixo em 1920px. Abaixo de `xl` o selo sai, abaixo de
  * `lg` a busca sai, e abaixo de `sm` sobram logo + ações.
  */
-/** Dados mínimos do usuário logado para o header. */
-export type HeaderUser = {
-  name: string;
-  avatar: string;
-  /** Mostra o ponto verde de "online" sobre o avatar. */
-  online?: boolean;
-};
-
 /**
- * `user` alterna o lado direito entre os dois estados do design: deslogado
- * (CRIAR CONTA + ACESSAR CONTA, nó 1946:1060) e logado (avatar + seta, nó
- * 2073:1778). O carrinho aparece nos dois.
+ * O lado direito alterna entre os dois estados do design: deslogado (CRIAR
+ * CONTA + ACESSAR CONTA, nó 1946:1060) e logado (avatar + seta, nó 2073:1778).
+ * O carrinho aparece nos dois.
+ *
+ * A sessão é LIDA AQUI, não recebida por prop. Antes cada página decidia o que
+ * passar, e o resultado era o cabeçalho sempre deslogado na loja e sempre
+ * logado (com perfil fixo) no painel — não importava quem estivesse acessando.
+ * Como é server component, ele consulta a sessão direto; `getSessionUser` é
+ * memorizado por requisição, então montar o header em várias páginas não
+ * multiplica chamadas ao backend.
+ *
+ * `user` continua aceito para sobrepor a sessão em telas de exemplo. Deixe
+ * vazio em qualquer tela real.
  */
-export function SiteHeader({ user }: { user?: HeaderUser } = {}) {
+export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
+  const sessao = user ?? (await getSessionUser());
   return (
     <header className="relative z-20 h-[83px] w-full bg-black/50 backdrop-blur-[9px]">
       <GlowBar className="-top-[2px]" />
@@ -97,17 +103,26 @@ export function SiteHeader({ user }: { user?: HeaderUser } = {}) {
         </div>
 
         <div className="ml-auto flex shrink-0 items-center gap-[25px]">
-          {user ? null : (
+          {sessao ? null : (
             <>
-              <Button
-                variant="outline"
-                className="hidden w-[197px] px-0 sm:inline-flex"
+              {/* `Link` com as classes do botão, e não `Button`: eles PRECISAM
+                  navegar. Como <button> sem handler, não faziam nada — era o
+                  motivo de o cabeçalho parecer "morto" para login e cadastro. */}
+              <Link
+                href="/criar-conta"
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "hidden w-[197px] px-0 sm:inline-flex",
+                )}
               >
                 CRIAR CONTA
-              </Button>
-              <Button variant="cta" className="w-[197px] px-0">
+              </Link>
+              <Link
+                href="/login"
+                className={cn(buttonVariants({ variant: "cta" }), "w-[197px] px-0")}
+              >
                 ACESSAR CONTA
-              </Button>
+              </Link>
             </>
           )}
 
@@ -129,46 +144,9 @@ export function SiteHeader({ user }: { user?: HeaderUser } = {}) {
             />
           </button>
 
-          {/* Estado logado: avatar de 50px com o ponto de status e a seta do
-              menu. Os vãos do design são 25px (carrinho→avatar) e 15px
-              (avatar→seta), por isso a seta traz `-ml-[10px]` sobre o gap de 25. */}
-          {user ? (
-            <button
-              type="button"
-              aria-label={`Menu de ${user.name}`}
-              className="flex shrink-0 items-center gap-[15px] transition-opacity hover:opacity-80"
-            >
-              <span className="relative block size-[50px] shrink-0">
-                <Image
-                  src={user.avatar}
-                  alt=""
-                  width={50}
-                  height={50}
-                  aria-hidden
-                  className="size-[50px] rounded-full object-cover"
-                />
-                {user.online ? (
-                  <Image
-                    src="/icons/status-dot.svg"
-                    alt=""
-                    width={8}
-                    height={8}
-                    aria-hidden
-                    className="absolute bottom-[-2px] left-[4px]"
-                  />
-                ) : null}
-              </span>
-
-              <Image
-                src="/icons/chevron-down.svg"
-                alt=""
-                width={18}
-                height={18}
-                aria-hidden
-                className="-ml-[10px]"
-              />
-            </button>
-          ) : null}
+          {/* Estado logado: avatar + seta, que abre o menu da conta. Os vãos
+              do design são 25px (carrinho→avatar) e 15px (avatar→seta). */}
+          {sessao ? <UserMenu user={sessao} /> : null}
         </div>
       </div>
     </header>

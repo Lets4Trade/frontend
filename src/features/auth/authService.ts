@@ -12,6 +12,18 @@ import {
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 
 /**
+ * O backend isola as sessões de `admin`, `organizer` e `client` em jogos de
+ * cookie separados e decide qual usar por este header (o default já é
+ * `client`). A loja é sempre `client`; mandamos explícito para não depender do
+ * default. O CORS do backend já declara `x-pt-surface` em `allowedHeaders` —
+ * sem isso o preflight barraria toda requisição.
+ */
+const SURFACE_HEADERS = {
+  "Content-Type": "application/json",
+  "x-pt-surface": "client",
+} as const;
+
+/**
  * Enquanto o backend não existe, o formulário precisa ser exercitável — dá pra
  * ver loading, erro e sucesso sem servidor. O mock só liga FORA de produção E
  * quando não há API configurada (fail secure: se alguém esquecer a env em
@@ -20,13 +32,18 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 const USE_MOCK = process.env.NODE_ENV !== "production" && API_URL === "";
 
 /**
- * ⚠️ PONTO DE TROCA — quando o servidor existir, este é o ÚNICO arquivo a mexer.
+ * Contrato REAL do backend (../backend/src/app/auth/auth.controller.ts,
+ * conferido em 2026-09-01):
+ *   POST /auth/login  → body { email, password }, guardas Turnstile + Local
+ *   200               → grava os cookies `pt_at_client`/`pt_rt_client`
+ *                       (httpOnly) e `pt_authed_client` (dica, sem segredo)
+ *   401               → credenciais inválidas
+ *   429               → rate limit
  *
- * Contrato esperado do backend em `POST /auth/login`:
- *   request  → { email, password }                     (JSON, HTTPS)
- *   200      → { user: { id, name, email } }
- *   401      → { code: "invalid_credentials" }
- *   429      → { code: "rate_limited" }
+ * O Turnstile só é EXIGIDO quando `CLOUDFLARE_TURNSTILE_SECRET_KEY` existe no
+ * backend; sem a chave, e fora de produção, o guard deixa passar. Em produção
+ * a chave é obrigatória — aí o formulário precisará mandar `turnstileToken`
+ * (o `@marsidev/react-turnstile` já está instalado). Ainda NÃO manda.
  *
  * SESSÃO: o servidor deve responder com `Set-Cookie` httpOnly + Secure +
  * SameSite=Lax carregando o token. NÃO devolva o token no corpo e NÃO o guarde
@@ -51,7 +68,7 @@ export async function login(
   try {
     response = await fetch(`${API_URL}/auth/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: SURFACE_HEADERS,
       // Sessão por cookie httpOnly — ver nota acima.
       credentials: "include",
       body: JSON.stringify(credentials),
@@ -112,13 +129,16 @@ function delay(ms: number, signal?: AbortSignal) {
 }
 
 /**
- * ⚠️ PONTO DE TROCA — cadastro. Mesmas regras do `login` acima.
+ * Cadastro. Mesmas regras do `login` acima.
  *
- * Contrato esperado em `POST /auth/signup`:
- *   request  → { email, name, password, whatsapp }   (JSON, HTTPS)
- *   201      → { user: { id, name, email } }
- *   409      → { field: "email" | "name" }           (colisão de unicidade)
- *   429      → { code: "rate_limited" }
+ * Contrato REAL: `POST /auth/register` (NÃO `/auth/signup`) com
+ * `EmailRegisterDto` — { email, password, name, whatsapp } e, opcionais,
+ * { acceptedTerms, acceptedPrivacyPolicy, language }. Responde 201 JÁ
+ * AUTOLOGADO (grava os cookies de sessão), 409 em colisão de e-mail.
+ *
+ * ⚠️ A senha passa por um regex no DTO do backend (`PASSWORD_REGEX`). O
+ * `signupSchema` do front precisa exigir o mesmo, senão o usuário só descobre
+ * a regra no 400 do servidor. Ver open-questions.md.
  *
  * O servidor decide unicidade — o cliente não tem como saber. Por isso o 409
  * precisa dizer QUAL campo colidiu, para o formulário marcar o campo certo.
@@ -138,9 +158,12 @@ export async function signup(
 
   let response: Response;
   try {
-    response = await fetch(`${API_URL}/auth/signup`, {
+    // A rota do backend é `register`, não `signup` (ver auth.controller.ts).
+    // Ela também JÁ AUTOLOGA: responde 201 gravando os cookies de sessão, então
+    // não é preciso chamar o login em seguida.
+    response = await fetch(`${API_URL}/auth/register`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: SURFACE_HEADERS,
       credentials: "include",
       body: JSON.stringify(credentials),
       signal,
@@ -165,15 +188,21 @@ async function signupCodeFromResponse(
 ): Promise<SignupErrorCode> {
   if (response.status === 429) return "rate_limited";
   if (response.status === 409) {
-    // O corpo diz qual campo colidiu. Se vier malformado, cai no genérico em
-    // vez de estourar — erro de parse não pode virar tela branca.
+    // O backend responde `ConflictException` do Nest — corpo
+    // { statusCode, message, error }, SEM um campo `field`. E o único conflito
+    // que ele levanta no cadastro é de e-mail (o nome não é único). Por isso o
+    // 409 vira `email_taken` por padrão, que é o que marca o campo certo no
+    // formulário; antes caía no genérico e o usuário não sabia onde corrigir.
+    //
+    // O `field` continua sendo respeitado se um dia passar a vir — assim o dia
+    // em que o backend adicionar unicidade de nome, só o servidor muda.
     try {
       const body = (await response.json()) as { field?: string };
-      if (body.field === "email") return "email_taken";
       if (body.field === "name") return "name_taken";
     } catch {
-      /* corpo ausente ou inválido — segue para o genérico */
+      /* corpo ausente ou inválido — segue para o padrão de e-mail */
     }
+    return "email_taken";
   }
   return "unknown";
 }
@@ -193,4 +222,31 @@ async function mockSignup(
   }
 
   return { user: { id: "mock-2", name, email } };
+}
+
+/**
+ * Encerra a sessão.
+ *
+ * Quem apaga o cookie é o SERVIDOR (`POST /auth/logout` → `clearAuthCookies`):
+ * o `pt_at_client` é httpOnly e o JS da página não consegue removê-lo. Um
+ * "logout" só no cliente deixaria a sessão viva no backend — o usuário
+ * pareceria deslogado e continuaria autenticado.
+ *
+ * Não lança: falhar o logout não pode prender ninguém na tela. Se a chamada
+ * cair, quem chama segue para a home mesmo assim e o cookie expira sozinho.
+ * O efeito colateral aceito é uma sessão que continua válida no servidor até
+ * expirar — por isso a expiração curta do access token importa.
+ */
+export async function logout(signal?: AbortSignal): Promise<void> {
+  if (API_URL === "") return;
+  try {
+    await fetch(`${API_URL}/auth/logout`, {
+      method: "POST",
+      headers: SURFACE_HEADERS,
+      credentials: "include",
+      signal,
+    });
+  } catch {
+    // Silencioso de propósito — ver nota acima.
+  }
 }

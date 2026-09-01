@@ -26,9 +26,7 @@ export function AccountShell({
 }) {
   return (
     <div className="flex min-h-dvh flex-col bg-brand-bg">
-      <SiteHeader
-        user={{ name: MOCK_PROFILE.name, avatar: MOCK_PROFILE.avatar, online: true }}
-      />
+      <SiteHeader />
 
       <main className="flex-1 overflow-x-auto">
         <div className="mx-auto flex w-max gap-[50px] px-[50px] py-[68px]">

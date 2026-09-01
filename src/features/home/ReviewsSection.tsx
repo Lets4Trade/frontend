@@ -99,13 +99,13 @@ function RatingPill() {
           pílula de 288, o que faz o risco morrer antes da curva da borda. */}
       <span
         aria-hidden
-        className="absolute -top-[2px] left-1/2 h-[2px] w-[249px] -translate-x-1/2 bg-linear-to-r from-transparent via-[#00cb45] to-transparent"
+        className="absolute -top-[2px] left-1/2 h-[2px] w-[249px] -translate-x-1/2 bg-linear-to-r from-transparent via-brand-rating to-transparent"
       />
     </div>
   );
 }
 
-/** Cinco estrelas de 16px com 10px de vão, em #00CB45 (lido do arquivo). */
+/** Cinco estrelas de 16px com 10px de vão, no verde de avaliação do arquivo. */
 function Stars({ className }: { className?: string }) {
   return (
     <span aria-hidden className={`flex gap-[10px] ${className ?? ""}`}>
@@ -122,7 +122,7 @@ function Stars({ className }: { className?: string }) {
  * de 16 — daí o `viewBox` deslocado, que centraliza o glifo na caixa em vez de
  * esticá-lo até as bordas.
  *
- * Fica inline (e não como arquivo) porque a cor vem do design em #00CB45 e um
+ * Fica inline (e não como arquivo) porque a cor vem do token `--brand-rating` e um
  * `<img>` não deixa recolorir; são cinco cópias na mesma pílula, mais duas do
  * brilho, então evitar sete requisições vale o path no código.
  */
@@ -134,7 +134,7 @@ function StarIcon() {
     <svg
       viewBox="-1.33335 -1.33335 16 16"
       className="size-[16px] shrink-0"
-      fill="#00cb45"
+      fill="var(--brand-rating)"
     >
       <path d={STAR_PATH} />
     </svg>

@@ -149,12 +149,15 @@ function BlogCard() {
       <span
         aria-hidden
         className="blog-glow blog-glow-a absolute top-[-52.41px] left-[-77.83px] h-[166.69px] w-[142.03px] rotate-[77deg] rounded-full blur-[54.14px]"
-        style={{ backgroundImage: "linear-gradient(262.85deg, #ff7300, #b24400)" }}
+        style={{
+          backgroundImage:
+            "linear-gradient(262.85deg, var(--brand-orange), var(--brand-orange-shade))",
+        }}
       />
       {/* Elipse 791:1602 — centro (128,38; 0,09), girada -110°. */}
       <span
         aria-hidden
-        className="blog-glow blog-glow-b absolute top-[-93.63px] left-[48.52px] h-[187.45px] w-[159.71px] -rotate-[110deg] rounded-full bg-[#ff4d00] blur-[75px]"
+        className="blog-glow blog-glow-b absolute top-[-93.63px] left-[48.52px] h-[187.45px] w-[159.71px] -rotate-[110deg] rounded-full bg-brand-orange-deep blur-[75px]"
       />
 
       <span className="absolute top-[129px] left-[26px] block font-poppins text-[18px] leading-[normal] font-semibold tracking-[0.09px] text-white">

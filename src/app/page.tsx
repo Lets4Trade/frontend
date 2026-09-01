@@ -51,23 +51,25 @@ export default function Home() {
       <SiteHeader />
 
       {/*
-        A moldura reproduz o frame de 1920 do arquivo, mas ela ENCOLHE até 1820 —
+        MOLDURA e CONTEÚDO são coisas separadas, e é isso que evita a barra de
+        rolagem horizontal.
+
+        A moldura reproduz o frame de 1920 do arquivo, mas ENCOLHE até 1820 —
         que é a largura real do conteúdo. Os 100px que sobram são as duas
         margens de 50, e são elas que cedem primeiro.
 
-        Sem isso a home tinha barra de rolagem horizontal em QUALQUER monitor de
-        1920: a barra vertical come ~18px, sobram 1902 de área útil, e uma faixa
-        rígida de 1920 não cabe. Agora a margem vira 41px nesse caso — diferença
-        que ninguém enxerga — e a barra some.
+        Sem isso a home tinha barra horizontal em QUALQUER monitor de 1920: a
+        barra vertical come ~25px, sobram ~1895 de área útil, e uma faixa rígida
+        de 1920 não cabe. Com a moldura elástica a margem vira ~37px nesse caso
+        — diferença que ninguém enxerga — e a barra some.
 
         `overflow-x: clip` (e não `hidden`) corta o que sangra para fora da
         moldura — o mapa-múndi e os brilhos, que no arquivo o próprio frame
         recorta — sem criar um container de rolagem, o que quebraria as
-        animações presas à rolagem.
+        animações presas à rolagem (`animation-timeline: view()`).
 
         Abaixo de 1820 o `min-w` segura e a rolagem volta: aí o conteúdo
-        realmente não cabe. Ver a pendência de layout para telas pequenas em
-        .claude/context/open-questions.md.
+        realmente não cabe, e cortar seria pior que rolar.
       */}
       <main className="flex-1 overflow-x-auto">
         <div className="relative mx-auto w-full max-w-[1920px] min-w-[1820px] overflow-x-clip">
@@ -111,7 +113,7 @@ export default function Home() {
 
 /**
  * Camada decorativa do frame (Figma 362:800 "Effect 2", 567:1710 "Ellipse 8",
- * 945:901 e 269:488). São filhos diretos do frame Home, não de uma seção: ficam
+ * 567:1712 "Ellipse 9", 945:901 e 269:488). São filhos diretos do frame Home, não de uma seção: ficam
  * atrás de tudo e atravessam os limites das seções, então moram aqui.
  *
  * As coordenadas do arquivo têm origem no topo do frame — que é o topo do

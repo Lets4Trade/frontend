@@ -16,8 +16,8 @@ export function GlowBar({ className }: { className?: string }) {
         className,
       )}
     >
-      <div className="h-[5px] w-full bg-gradient-to-r from-transparent via-brand-orange to-transparent blur-[7px]" />
-      <div className="-mt-[4px] h-[3px] w-full bg-gradient-to-r from-transparent via-brand-orange to-transparent" />
+      <div className="h-[5px] w-full bg-gradient-to-r from-transparent via-brand-orange to-transparent blur-[7px] absolute bottom-0 left-0" />
+      <div className="-mt-[4px] h-[3px] w-full bg-gradient-to-r from-transparent via-brand-orange to-transparent absolute bottom-0 left-0" />
     </div>
   );
 }

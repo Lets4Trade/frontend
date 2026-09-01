@@ -50,10 +50,18 @@ export const signupSchema = z.object({
       /^[a-zA-Z0-9._-]+$/,
       "Use apenas letras, números, ponto, hífen ou underline.",
     ),
+  // Espelha o `PASSWORD_REGEX` do backend (auth.dto.ts): 8+ caracteres com ao
+  // menos uma minúscula, uma maiúscula e um número. Não é validação de
+  // segurança — o servidor revalida e é ele quem decide. É para o usuário
+  // descobrir a regra ENQUANTO digita, em vez de levar um 400 genérico depois
+  // de preencher o formulário inteiro. Se a regra mudar lá, mude aqui junto.
   password: z
     .string()
     .min(8, "A senha precisa ter ao menos 8 caracteres.")
-    .max(128, "Senha muito longa."),
+    .max(128, "Senha muito longa.")
+    .regex(/[a-z]/, "Inclua ao menos uma letra minúscula.")
+    .regex(/[A-Z]/, "Inclua ao menos uma letra maiúscula.")
+    .regex(/\d/, "Inclua ao menos um número."),
   // Telefone guardado como veio; a normalização para E.164 é do servidor, que
   // é quem manda a mensagem. `libphonenumber-js` está no projeto se um dia for
   // preciso validar operadora/formato de verdade — hoje seria peso de bundle

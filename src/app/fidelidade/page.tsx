@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
-import { MOCK_PROFILE } from "@/features/account/profile";
 import { LoyaltySummary } from "@/features/loyalty/LoyaltySummary";
 import { TierCard } from "@/features/loyalty/TierCard";
 import { MOCK_LOYALTY, TIERS } from "@/features/loyalty/tiers";
@@ -28,9 +27,7 @@ export const metadata: Metadata = {
 export default function FidelidadePage() {
   return (
     <div className="flex min-h-dvh flex-col bg-brand-bg">
-      <SiteHeader
-        user={{ name: MOCK_PROFILE.name, avatar: MOCK_PROFILE.avatar, online: true }}
-      />
+      <SiteHeader />
 
       <main className="flex-1 overflow-x-auto">
         <div className="mx-auto w-max px-[154px] pt-[68px] pb-[100px]">

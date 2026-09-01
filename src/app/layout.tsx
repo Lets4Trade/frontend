@@ -2,9 +2,6 @@
 import type { Metadata } from "next";
 import { Manrope, DM_Sans } from "next/font/google";
 import localFont from "next/font/local";
-import { headers } from "next/headers";
-import Script from "next/script";
-import { Suspense } from "react";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -48,8 +45,9 @@ const helveticaNeue = localFont({
   variable: "--font-helvetica-neue",
   display: "swap",
   adjustFontFallback: false,
-  // A pilha de reserva vive aqui, junto da fonte, e não no CSS: o compilador
-  // de CSS remove um `var()` seguido de lista dentro de outra custom property.
+  // A pilha de reserva vive aqui, junto da fonte, e não repetida no CSS: assim
+  // o token `--font-helvetica` é um `var()` só e existe um único lugar para
+  // mudar a ordem de fallback.
   fallback: ["Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
   src: [
     { path: "../../public/fonts/helvetica-neue-400.woff2", weight: "400", style: "normal" },

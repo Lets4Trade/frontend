@@ -33,6 +33,8 @@ docker-compose.override.yml
 
 # env files (can opt-in for committing if needed)
 .env*
+# O exemplo é documentação do contrato com o backend — deve ser versionado.
+!.env.example
 
 # claude
 .claude
