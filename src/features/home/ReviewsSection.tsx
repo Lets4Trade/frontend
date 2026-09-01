@@ -1,5 +1,13 @@
 import Image from "next/image";
-import { REVIEWS, REVIEW_CARD_HEIGHT, REVIEW_CARD_WIDTH, REVIEW_COUNT, type Review } from "./reviews";
+import type { ComponentProps, CSSProperties } from "react";
+import {
+  REVIEWS,
+  REVIEW_CARD_HEIGHT,
+  REVIEW_CARD_WIDTH,
+  REVIEW_COUNT,
+  REVIEW_LOOP_WIDTH,
+  type Review,
+} from "./reviews";
 
 /**
  * Seção "NOSSAS REVIEWS" (Figma: título 537:1080, subtítulo 537:1105,
@@ -25,22 +33,22 @@ export function ReviewsSection() {
       {/* Prisma decorativo (Figma 567:1446). Fica ACIMA da origem da seção, no
           vão entre o bloco do vídeo e o título — daí o topo negativo. */}
       <Image
-        src="/images/home/deco-prisma.png"
+        src="/images/home/deco-prisma.webp"
         alt=""
         width={186}
         height={186}
         aria-hidden
-        className="pointer-events-none absolute -top-[223px] left-[444.95px] size-[186.12px] object-contain"
+        className="pointer-events-none absolute -top-[223px] left-[444.95px] size-[186.12px] object-cover"
       />
 
       {/* Render decorativo à direita do título (Figma 848:104). */}
       <Image
-        src="/images/home/deco-reviews.png"
+        src="/images/home/deco-reviews.webp"
         alt=""
         width={128}
         height={141}
         aria-hidden
-        className="pointer-events-none absolute top-[4.96px] left-[1692px] h-[140.97px] w-[128px] object-contain"
+        className="pointer-events-none absolute top-[4.96px] left-[1692px] h-[140.97px] w-[128px] object-cover"
       />
 
       <h2
@@ -84,14 +92,14 @@ function RatingPill() {
       <Stars className="absolute top-[17px] left-[84px] blur-[3px]" />
       <Stars className="absolute top-[15px] left-[84px]" />
 
-      {/* Risco de brilho que sai da borda direita da pílula (Figma 547:1318). */}
+      {/* Risco de brilho na borda de cima da pílula, derivado do "Linear Brilho"
+          do arquivo (547:1318). Mesmo desenho da `GlowBar`: some nas duas
+          pontas, com o verde das estrelas no meio.
+          Os 249px são a largura do nó no arquivo — sobra ~19px de cada lado da
+          pílula de 288, o que faz o risco morrer antes da curva da borda. */}
       <span
         aria-hidden
-        className="absolute top-0 left-[275px] h-[2px] w-[249px]"
-        style={{
-          backgroundImage:
-            "linear-gradient(90deg, rgba(255,255,255,0.25), rgba(255,255,255,0))",
-        }}
+        className="absolute -top-[2px] left-1/2 h-[2px] w-[249px] -translate-x-1/2 bg-linear-to-r from-transparent via-[#00cb45] to-transparent"
       />
     </div>
   );
@@ -109,35 +117,65 @@ function Stars({ className }: { className?: string }) {
 }
 
 /**
- * ⚠️ Estrela DESENHADA, não exportada do Figma — o export está bloqueado pelo
- * limite do plano. A cor (#00CB45) e a caixa (16×16) vieram do inspector; a
- * forma é uma estrela de 5 pontas genérica. Substituir pelo SVG do arquivo
- * quando houver export. Ver .claude/context/open-questions.md.
+ * Estrela exportada do arquivo (nó 537:1085): pontas arredondadas, não a
+ * estrela de cinco bicos afiados. O desenho ocupa 13,33px dentro de uma caixa
+ * de 16 — daí o `viewBox` deslocado, que centraliza o glifo na caixa em vez de
+ * esticá-lo até as bordas.
+ *
+ * Fica inline (e não como arquivo) porque a cor vem do design em #00CB45 e um
+ * `<img>` não deixa recolorir; são cinco cópias na mesma pílula, mais duas do
+ * brilho, então evitar sete requisições vale o path no código.
  */
+const STAR_PATH =
+  "M4.76878 2.27225C5.61321 0.757417 6.03543 0 6.66667 0C7.29791 0 7.72013 0.757416 8.56456 2.27225L8.78302 2.66416C9.02298 3.09462 9.14296 3.30986 9.33004 3.45187C9.51711 3.59389 9.7501 3.6466 10.2161 3.75203L10.6403 3.84802C12.2801 4.21904 13.1 4.40455 13.2951 5.03182C13.4901 5.6591 12.9312 6.31271 11.8133 7.61995L11.5241 7.95815C11.2064 8.32962 11.0475 8.51536 10.9761 8.74514C10.9046 8.97493 10.9286 9.22274 10.9767 9.71837L11.0204 10.1696C11.1894 11.9137 11.2739 12.7858 10.7632 13.1735C10.2525 13.5612 9.48488 13.2077 7.94955 12.5008L7.55234 12.3179C7.11605 12.117 6.8979 12.0166 6.66667 12.0166C6.43543 12.0166 6.21728 12.117 5.78099 12.3179L5.38378 12.5008C3.84845 13.2077 3.08078 13.5612 2.5701 13.1735C2.05941 12.7858 2.14392 11.9137 2.31293 10.1696L2.35666 9.71837C2.40468 9.22274 2.4287 8.97493 2.35724 8.74514C2.28579 8.51536 2.12695 8.32962 1.80928 7.95815L1.52007 7.61995C0.402166 6.31271 -0.156784 5.6591 0.0382807 5.03182C0.233345 4.40455 1.05324 4.21904 2.69302 3.84802L3.11726 3.75203C3.58323 3.6466 3.81622 3.59389 4.0033 3.45187C4.19037 3.30986 4.31035 3.09462 4.55031 2.66416L4.76878 2.27225Z";
+
 function StarIcon() {
   return (
-    <svg viewBox="0 0 16 16" className="size-[16px] shrink-0" fill="#00cb45">
-      <path d="M8 .8l2.2 4.46 4.92.72-3.56 3.47.84 4.9L8 12.03l-4.4 2.32.84-4.9L.88 5.98l4.92-.72L8 .8z" />
+    <svg
+      viewBox="-1.33335 -1.33335 16 16"
+      className="size-[16px] shrink-0"
+      fill="#00cb45"
+    >
+      <path d={STAR_PATH} />
     </svg>
   );
 }
 
 /**
- * Faixa de 1820×387 com os oito cards.
+ * Faixa de 1820×387 com os oito cards, correndo para a esquerda em laço.
  *
- * `overflow-hidden` + posição absoluta reproduz o arquivo tal como está: os
- * cards das pontas (VICC e LIKEZY) ficam cortados pelas bordas. O design não
- * traz setas nem indicadores para esta faixa, então ela é estática — mesmo
- * critério do carrossel do hero. Ver .claude/context/open-questions.md.
+ * A fila é desenhada DUAS vezes: a segunda passada fica deslocada em
+ * `REVIEW_LOOP_WIDTH`, exatamente o comprimento de um ciclo. Quando a animação
+ * termina o percurso, a cópia está no pixel em que a original começou — o
+ * quadro final é idêntico ao inicial e o laço reinicia sem emenda. É por isso
+ * que existe a duplicata: com uma fila só, sobraria um vão vazio atravessando a
+ * tela a cada volta.
+ *
+ * A cópia é `aria-hidden` — para quem usa leitor de tela são os mesmos oito
+ * depoimentos, não dezesseis.
+ *
+ * O movimento e a pausa no cursor moram em `globals.css` (`.reviews-strip`),
+ * junto do resto da linguagem de movimento da página.
  */
 function ReviewCarousel() {
   return (
-    <div className="absolute top-[248px] left-0 h-[387px] w-[1820px] overflow-hidden">
+    <div className="reviews-viewport absolute top-[248px] left-0 h-[387px] w-[1820px] overflow-hidden">
       {/* A `<ul>` precisa gerar caixa (e não `display: contents`) porque é ela
-          que a rolagem desloca — ver `.reviews-strip` em `globals.css`. */}
-      <ul className="reviews-strip absolute inset-0">
+          que a animação desloca. */}
+      <ul
+        className="reviews-strip absolute inset-0"
+        style={{ "--reviews-loop": `${REVIEW_LOOP_WIDTH}px` } as CSSProperties}
+      >
         {REVIEWS.map((review) => (
           <ReviewCard key={review.name} review={review} />
+        ))}
+        {REVIEWS.map((review) => (
+          <ReviewCard
+            key={`${review.name}-clone`}
+            review={review}
+            offset={REVIEW_LOOP_WIDTH}
+            aria-hidden
+          />
         ))}
       </ul>
     </div>
@@ -154,15 +192,28 @@ function ReviewCarousel() {
  * servem de referência; sem o limite, um depoimento longo passaria por cima do
  * ícone.
  *
- * ⚠️ Em Windows/Linux, onde a Helvetica Neue cai em Arial (~10% mais larga), o
- * depoimento mais longo perde a última linha. Com a fonte real ele cabe. É o
- * mesmo efeito colateral já registrado para as outras telas.
+ * Com a Helvetica Neue real os dois depoimentos mais longos (VICC e MARSH)
+ * passam 2px do recorte — invisível. Antes, no fallback para Arial, o mais
+ * longo perdia a última linha inteira.
  */
-function ReviewCard({ review }: { review: Review }) {
+function ReviewCard({
+  review,
+  offset = 0,
+  ...props
+}: {
+  review: Review;
+  /** Deslocamento da segunda passada da esteira. Zero na fila original. */
+  offset?: number;
+} & ComponentProps<"li">) {
   return (
     <li
+      {...props}
       className="review-card absolute top-0 rounded-[30px] border border-white/10 bg-black/10"
-      style={{ left: review.left, width: REVIEW_CARD_WIDTH, height: REVIEW_CARD_HEIGHT }}
+      style={{
+        left: review.left + offset,
+        width: REVIEW_CARD_WIDTH,
+        height: REVIEW_CARD_HEIGHT,
+      }}
     >
       <Image
         src={review.avatar}

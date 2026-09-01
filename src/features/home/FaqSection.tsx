@@ -4,8 +4,9 @@ import Image from "next/image";
  * Bloco "DÚVIDAS SOBRE A EMPRESA" (Figma 590:751 — "Frame 21", 1820×800).
  *
  * É um painel único de raio 30 com fundo preto a 10%, contorno branco a 20% e
- * desfoque de fundo (valores do "Rectangle 17", 590:743, lidos no inspector) —
- * repare que o contorno aqui é o DOBRO do usado nos cards das outras seções.
+ * `backdrop-blur` de 100px — os valores do "Rectangle 17" (590:743), lidos do
+ * SVG exportado. Repare que o contorno aqui é o DOBRO do usado nos cards das
+ * outras seções, e o desfoque é 2,5× o dos cards do hero.
  *
  * As perguntas não têm espaçamento regular entre si (168, 352, 482, 619): o vão
  * depende do tamanho da resposta anterior. Por isso cada bloco carrega o seu
@@ -51,34 +52,42 @@ export function FaqSection() {
   return (
     <section
       aria-labelledby="faq-title"
-      className="relative h-[800px] w-[1820px] overflow-hidden rounded-[30px] border border-white/20 bg-black/10 backdrop-blur-[40px]"
+      className="relative h-[800px] w-[1820px] overflow-hidden rounded-[30px] border border-white/20 bg-black/10 backdrop-blur-[100px]"
     >
-      {/* Arte à direita (Figma 617:830, "Big Image") e o render que a sobrepõe
-          (852:109). A ordem importa: o render vem depois para ficar por cima. */}
+      {/* Arte à direita (Figma 617:830 → "Image Container" 617:838) e o render
+          que a sobrepõe (852:109). A ordem importa: o render vem depois para
+          ficar por cima. */}
       <Image
-        src="/images/home/faq-arte.png"
+        src="/images/home/faq-arte.webp"
         alt=""
-        width={717}
-        height={439}
+        width={708}
+        height={428}
         aria-hidden
-        className="faq-art pointer-events-none absolute top-[180.4px] left-[1003px] h-[438.6px] w-[717px] rounded-[30px] object-cover"
+        className="faq-art pointer-events-none absolute top-[184.34px] left-[1005.63px] h-[428.1px] w-[707.81px] object-cover"
       />
-      <Image
-        src="/images/home/faq-personagens.png"
-        alt=""
-        width={206}
-        height={254}
+      {/* No arquivo o render é RECORTADO pela sua caixa: a imagem é maior que
+          ela e sobe 19,51%, cortando a parte de baixo. `object-contain` numa
+          caixa do tamanho da moldura mostraria a arte inteira, encolhida. */}
+      <span
         aria-hidden
-        className="pointer-events-none absolute top-[594px] left-[893px] h-[254px] w-[206.17px] object-contain"
-      />
+        className="pointer-events-none absolute top-[594px] left-[893px] block h-[254px] w-[206.17px] overflow-hidden"
+      >
+        <Image
+          src="/images/home/faq-personagens.webp"
+          alt=""
+          width={214}
+          height={321}
+          className="absolute top-[-19.51%] left-[-1.62%] h-[126.44%] w-[103.85%] max-w-none"
+        />
+      </span>
 
-      {/* `whitespace-nowrap`: no arquivo o título é UMA linha ocupando os 894px
-          da caixa. A Poppins do navegador renderiza alguns pixels mais larga e
-          quebrava em duas, jogando a segunda linha por cima da primeira
-          pergunta (que tem posição fixa em y=168). */}
+      {/* No arquivo o título é UMA linha ocupando os 894px da caixa; com a
+          Poppins SemiBold real ele mede 885 e cabe. O `whitespace-nowrap` fica
+          como seguro — a primeira pergunta tem posição fixa em y=168, então uma
+          quebra cairia por cima dela em vez de empurrá-la. */}
       <h2
         id="faq-title"
-        className="absolute top-[51px] left-[100px] w-[894px] font-poppins text-[65px] leading-[normal] font-semibold tracking-[0.325px] whitespace-nowrap text-white"
+        className="absolute top-[51px] left-[100px] w-[894px] text-center font-poppins text-[65px] leading-[normal] font-semibold tracking-[0.325px] whitespace-nowrap text-white"
       >
         DÚVIDAS SOBRE A EMPRESA
       </h2>

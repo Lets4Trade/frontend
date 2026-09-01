@@ -6,32 +6,48 @@ import { cn } from "@/lib/cn";
  * Faixa de navegação principal da home (Figma 796:1624), com os contadores nas
  * laterais.
  *
- * Medidas do design (frame de 1920): ladrilhos de 55px em y=928 nas posições
- * 729 / 834 / 955 / 1097, rótulos centrados abaixo em y=988. Os contadores
- * ficam em x≈309 (esquerda) e x≈1406 (direita), na mesma altura.
+ * Tudo fica em coordenada absoluta lida do arquivo, com a origem no topo da
+ * faixa (y=878 no frame de 1920) e o eixo X descontado dos 50px de margem da
+ * página. Os contadores NÃO estão nas bordas: no arquivo eles são blocos
+ * centrados em x=390 e x=1494,75, bem para dentro da margem. Distribuir a linha
+ * com `justify-between`, como estava antes, jogava o da direita 300px longe do
+ * lugar.
+ *
+ * Os quatro ladrilhos também não têm vão regular (729, 834, 955 e 1097): a
+ * distância entre eles varia de 105 a 142px no arquivo. Por isso cada um carrega
+ * o seu X em vez de sair de um `gap`.
  *
  * As setas de FIDELIDADE e VENDA PRA NÓS indicam submenu — ainda sem
  * comportamento, só o indicador visual do design.
  */
 const NAV_ITEMS = [
-  { label: "HOME", icon: "/icons/home/nav-home.svg", href: "/", active: true, dropdown: false },
-  { label: "GAMES", icon: "/icons/home/nav-games.svg", href: "/games", active: false, dropdown: false },
-  { label: "FIDELIDADE", icon: "/icons/home/nav-fidelidade.svg", href: "/fidelidade", active: false, dropdown: true },
-  { label: "VENDA PRA NÓS", icon: "/icons/home/nav-venda.svg", href: "/venda", active: false, dropdown: true },
+  { label: "HOME", icon: "/icons/home/nav-home.svg", href: "/", left: 679, active: true, dropdown: false },
+  { label: "GAMES", icon: "/icons/home/nav-games.svg", href: "/games", left: 784, active: false, dropdown: false },
+  { label: "FIDELIDADE", icon: "/icons/home/nav-fidelidade.svg", href: "/fidelidade", left: 905, active: false, dropdown: true },
+  { label: "VENDA PRA NÓS", icon: "/icons/home/nav-venda.svg", href: "/venda", left: 1047, active: false, dropdown: true },
+];
+
+/** Centro dos dois contadores, do arquivo (x=390 e x=1494,75 no frame). */
+const STATS = [
+  { center: 340, value: "+4000", label: "CLIENTES ATENDIDOS" },
+  { center: 1444.75, value: "+5", label: "ANOS DE EXPÊRIENCIA" },
 ];
 
 export function HomeNav() {
   return (
-    <section className="flex items-start justify-between pt-[50px]">
-      <Stat value="+4000" label="CLIENTES ATENDIDOS" />
+    <section className="relative h-[129px]">
+      {STATS.map((stat) => (
+        <Stat key={stat.label} {...stat} />
+      ))}
 
-      <nav aria-label="Seções principais" className="flex items-start gap-[50px]">
+      <nav aria-label="Seções principais" className="contents">
         {NAV_ITEMS.map((item) => (
           <Link
             key={item.label}
             href={item.href}
             aria-current={item.active ? "page" : undefined}
-            className="nav-item flex flex-col items-center"
+            className="nav-item absolute top-[50px]"
+            style={{ left: item.left }}
           >
             <span className="flex items-center gap-[15px]">
               <span className="relative block size-[55px]">
@@ -64,9 +80,11 @@ export function HomeNav() {
               ) : null}
             </span>
 
+            {/* Rótulo centrado no ladrilho (y=988 no frame), e não no item
+                inteiro: a seta de submenu não pode deslocar o texto. */}
             <span
               className={cn(
-                "nav-label mt-[5px] font-poppins text-[15px] leading-[19px] font-bold tracking-[0.15px]",
+                "nav-label absolute top-[60px] left-[27.5px] -translate-x-1/2 whitespace-nowrap font-poppins text-[15px] leading-[19px] font-bold tracking-[0.15px]",
                 item.active ? "text-white" : "text-white/80",
               )}
             >
@@ -75,20 +93,30 @@ export function HomeNav() {
           </Link>
         ))}
       </nav>
-
-      <Stat value="+5" label="ANOS DE EXPÊRIENCIA" />
     </section>
   );
 }
 
-/** Número em laranja sólido (#ff7300, Poppins SemiBold 40px) com rótulo abaixo. */
-function Stat({ value, label }: { value: string; label: string }) {
+/**
+ * Número em laranja sólido (#ff7300, Poppins SemiBold 40px) com rótulo abaixo.
+ *
+ * As duas linhas são posicionadas separadamente porque no arquivo elas se
+ * SOBREPÕEM: o número ocupa até y=991 e o rótulo começa em 988. Empilhadas em
+ * fluxo, o bloco ficaria 3px mais alto que o design.
+ */
+function Stat({ center, value, label }: { center: number; value: string; label: string }) {
   return (
-    <div className="flex flex-col items-center">
-      <p className="font-poppins text-[40px] leading-[55px] font-semibold text-brand-orange">
+    <div className="contents">
+      <p
+        className="absolute top-[58px] -translate-x-1/2 font-poppins text-[40px] leading-[55px] font-semibold text-brand-orange"
+        style={{ left: center }}
+      >
         {value}
       </p>
-      <p className="font-poppins text-[15px] leading-[23px] font-bold tracking-[0.15px] text-white/80">
+      <p
+        className="absolute top-[110px] -translate-x-1/2 whitespace-nowrap font-poppins text-[15px] leading-[23px] font-bold tracking-[0.15px] text-white/80"
+        style={{ left: center }}
+      >
         {label}
       </p>
     </div>

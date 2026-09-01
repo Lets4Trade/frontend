@@ -27,12 +27,12 @@ export function TeamSection() {
 
       {/* Render decorativo à esquerda do título (Figma 844:103). */}
       <Image
-        src="/images/home/deco-equipe.png"
+        src="/images/home/deco-equipe.webp"
         alt=""
         width={86}
         height={86}
         aria-hidden
-        className="pointer-events-none absolute -top-[12.68px] left-[533.88px] h-[85.56px] w-[86.42px] object-contain"
+        className="pointer-events-none absolute -top-[12.68px] left-[533.88px] h-[85.56px] w-[86.42px] object-cover"
       />
 
       <h2
@@ -42,11 +42,11 @@ export function TeamSection() {
         EQUIPE LETS 4 TRADE
       </h2>
 
-      {/* `whitespace-nowrap`: no arquivo o subtítulo ocupa EXATAMENTE os 601px
-          da caixa em uma linha. Com a Helvetica Neue substituída por Arial
-          (Windows/Linux) ele passa de 601 e quebra em duas — manter em uma
-          linha, ainda que transborde alguns pixels, fica mais perto do design
-          do que a quebra. */}
+      {/* No arquivo o subtítulo ocupa uma linha dentro dos 601px da caixa, e
+          com a Helvetica Neue real ele cabe (589px). O `whitespace-nowrap`
+          fica como seguro: as linhas abaixo têm posição absoluta, então uma
+          quebra inesperada — durante a troca de fonte, ou se ela falhar — não
+          empurraria nada, iria POR CIMA. */}
       <p className="absolute top-[104px] left-[581px] w-[601px] text-center font-helvetica text-[18px] leading-[normal] font-bold tracking-[0.18px] whitespace-nowrap text-white">
         Especialistas no que há de melhor no mercado relacionado a ARPGs
       </p>
@@ -77,17 +77,17 @@ export function TeamSection() {
 }
 
 /**
- * Mapa-múndi do fundo (Figma 567:1450), 1492,57×983,95 em x=959.
+ * Mapa-múndi do fundo (Figma 567:1450), em x=959 do frame de 1920.
  *
- * Ele SANGRA para fora da página (959 + 1493 = 2452, contra os 1920 do frame),
- * exatamente como no arquivo, onde o frame recorta o excesso. O invólucro tem a
- * largura da página inteira e `overflow-hidden` para reproduzir esse recorte —
- * sem ele o mapa aumentaria a largura de rolagem do documento.
+ * No arquivo o nó tem 1492,57 de largura e SANGRA para fora da página — o frame
+ * corta o excesso. O SVG exportado já vem cortado nesse limite (962×986), então
+ * ele é desenhado no tamanho natural: esticá-lo até os 1492,57 do nó deformaria
+ * o mapa em 1,55×, que foi o que aconteceu quando o arquivo entrou.
  *
- * A altura do invólucro acompanha o mapa (1281 = 297 + 984), maior que a seção,
- * então o rodapé do mapa avança sobre a área dos guias como no design. Ele é
- * decorativo e fica atrás: as seções seguintes são posicionadas e pintam por
- * cima.
+ * O invólucro mantém o `overflow-hidden` mesmo assim, para garantir que nada
+ * aumente a largura de rolagem do documento. A altura (1281 = 297 + 984) passa
+ * da seção de propósito: o rodapé do mapa avança sobre a área dos guias como no
+ * design. É decorativo e fica atrás — as seções seguintes pintam por cima.
  */
 function WorldMap() {
   return (
@@ -98,9 +98,9 @@ function WorldMap() {
       <Image
         src="/images/home/world-map.svg"
         alt=""
-        width={1493}
-        height={984}
-        className="map-drift absolute top-[297px] left-[959px] h-[983.95px] w-[1492.57px] max-w-none"
+        width={962}
+        height={986}
+        className="map-drift absolute top-[297px] left-[959px] h-[986px] w-[962px] max-w-none"
       />
     </div>
   );

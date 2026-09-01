@@ -86,17 +86,40 @@
   --color-blue-12: var(--blue-12);
 }
 
+/*
+ * Barra de rolagem do site, na laranja da marca.
+ *
+ * Estava na paleta LEGADA (polegar #203c25 verde, trilho #bbbbbb claro) — que
+ * veio do produto anterior e destoa do tema preto/laranja de todas as telas
+ * atuais.
+ *
+ * Precisa das duas famílias de propriedade: `scrollbar-color` atende Firefox,
+ * `::-webkit-scrollbar-*` atende Chrome/Edge/Safari. Não existe uma só que
+ * cubra os dois.
+ *
+ * `height` além de `width`: sem ela a barra HORIZONTAL (a que aparece abaixo
+ * de 1820px de largura) fica com a espessura padrão do sistema, destoando.
+ */
+html {
+  scrollbar-color: var(--brand-orange) rgba(255, 255, 255, 0.1);
+}
+
 ::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--gray-8);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--primary-12);
+  background: var(--brand-orange);
   border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--brand-orange-deep);
 }
 
 .scrollbar-hide {
@@ -918,38 +941,22 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   Famílias do design que NÃO estão no Google Fonts.
+   Famílias do design que não vêm do Google Fonts.
 
-   Helvetica Neue (título LOGIN, labels do card, placeholder da busca e o
-   parágrafo do footer): é licenciada e não pode ser servida por nós. A pilha
-   abaixo usa a real onde ela existe (macOS/iOS) e cai em Helvetica → Arial no
-   resto — que são metricamente próximas o bastante para não quebrar o layout.
+   Os arquivos são licenciados (Helvetica Neue; Korataki é da Typodermic) e
+   foram fornecidos para o projeto. Entram por `next/font/local` no
+   `layout.tsx`, que os serve com hash e faz o preload — aqui ficam só os
+   tokens que os componentes consomem.
 
-   Korataki (selo "+1000 REFERÊNCIAS"): fonte paga da Typodermic, sem
-   equivalente livre. Enquanto o arquivo não existir, a pilha cai na mesma
-   Helvetica. Para ativar de verdade, coloque o arquivo em `public/fonts/` e
-   descomente o @font-face abaixo — nenhuma outra mudança é necessária, o token
-   já está ligado aos componentes.
+   A pilha de reserva (Helvetica Neue do sistema → Helvetica → Arial) é
+   declarada no próprio `localFont`, no `layout.tsx`, e já vem embutida nestas
+   variáveis. Não repetir aqui: uma lista depois de `var()` dentro de outra
+   custom property é descartada pelo compilador de CSS.
    ────────────────────────────────────────────────────────────────────────── */
 :root {
-  --font-helvetica: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --font-korataki: "Korataki", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-helvetica: var(--font-helvetica-neue);
+  --font-korataki: var(--font-korataki-local);
 }
-
-/*
-@font-face {
-  font-family: "Korataki";
-  src: url("/fonts/korataki-regular.woff2") format("woff2");
-  font-weight: 400;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Korataki";
-  src: url("/fonts/korataki-bold.woff2") format("woff2");
-  font-weight: 700;
-  font-display: swap;
-}
-*/
 
 @theme {
   --font-family-helvetica: var(--font-helvetica);
@@ -1249,22 +1256,6 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
 
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
-    /*
-     * A faixa de depoimentos escorrega 160px para cada lado ao longo da
-     * passagem pela tela. No MEIO do percurso ela está exatamente na posição
-     * do arquivo — ou seja, o design é o estado de repouso quando a seção
-     * está centralizada. Nas pontas, o movimento revela o começo do primeiro
-     * card e o fim do último, que no arquivo ficam cortados.
-     */
-    .reviews-strip {
-      animation-name: reviews-drift;
-      animation-duration: auto;
-      animation-timing-function: linear;
-      animation-fill-mode: both;
-      animation-timeline: view();
-      animation-range: cover;
-    }
-
     .map-drift {
       animation-name: map-drift;
       animation-duration: auto;
@@ -1282,15 +1273,6 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
       animation-timeline: view();
       animation-range: cover;
     }
-  }
-}
-
-@keyframes reviews-drift {
-  from {
-    transform: translate3d(160px, 0, 0);
-  }
-  to {
-    transform: translate3d(-160px, 0, 0);
   }
 }
 
@@ -1322,6 +1304,54 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
    `scaleY` a partir do topo, não `height` — altura é layout, escala é
    compositor.
    -------------------------------------------------------------------------- */
+
+/* --------------------------------------------------------------------------
+   DEPOIMENTOS — esteira contínua
+
+   A faixa corre para a esquerda em laço e PARA sob o cursor.
+
+   Abre exceção à regra 1 da linguagem de movimento ("nada anima sozinho").
+   A justificativa é que aqui o movimento não é enfeite: no arquivo do Figma
+   os cards das pontas ficam cortados e não havia como chegar neles — sem
+   setas nem indicadores, metade dos depoimentos era inalcançável. A esteira
+   é o que torna os oito legíveis.
+
+   Anima só `transform`, que roda no compositor. É a única coisa em movimento
+   permanente na página, e ela não tem `backdrop-filter` — de propósito.
+
+   O percurso é `--reviews-loop`, injetado pelo componente com o comprimento
+   exato de um ciclo da fila. Ver `REVIEW_LOOP_WIDTH` em `reviews.ts`.
+   -------------------------------------------------------------------------- */
+
+@keyframes reviews-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(calc(var(--reviews-loop, 2504px) * -1), 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .reviews-strip {
+    animation: reviews-marquee var(--reviews-duration, 60s) linear infinite;
+    /* Nunca para de se mover: promover de vez evita o navegador criar e
+       destruir a camada a cada volta. */
+    will-change: transform;
+  }
+
+  /* O alvo do `:hover` é o RECORTE, não a faixa. A faixa se desloca até sair
+     inteira da área visível — a partir daí o cursor só a encontraria em cima
+     de um card, e a pausa falharia nos vãos entre eles.
+
+     Parar sob o cursor também é o que a WCAG 2.2.2 pede de conteúdo que se
+     move sozinho por mais de 5s. Quem pediu menos movimento no sistema não
+     recebe a animação (o `@media` acima), então a faixa fica no estado do
+     arquivo, parada. */
+  .reviews-viewport:hover .reviews-strip {
+    animation-play-state: paused;
+  }
+}
 
 .review-card {
   transition:

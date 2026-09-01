@@ -7,11 +7,7 @@
  * seção — o topo do título (y=2577 no frame de 1920) e os 50px de margem da
  * página descontados do eixo X. EDDMAX começa ACIMA do título, daí o topo
  * negativo.
- *
- * ⚠️ `photo` aponta para arquivos que ainda NÃO existem — o export do Figma
- * está bloqueado pelo limite mensal do plano Starter. Os slots estão com a
- * geometria certa (261×316,36 a 50px das bordas do card); basta soltar os PNGs
- * em `public/images/team/`. Ver .claude/context/open-questions.md.
+
  */
 export type TeamMember = {
   name: string;

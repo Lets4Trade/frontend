@@ -3,58 +3,72 @@ import { Button } from "@/components/ui/Button";
 
 /**
  * Bloco "CLIENTES 100% SATISFEITOS" com o vídeo de apresentação
- * (Figma 526:1064 e 507:423).
+ * (Figma: título 526:1064, texto 526:1065, botão 761:1430, vídeo 507:423).
  *
- * Layout do design: coluna de texto à esquerda (x=50, largura ~570) e o vídeo
- * de 1146×609 à direita, em x=724.
+ * Como as demais seções da home, é uma tela posicionada: cada filho fica na
+ * coordenada do arquivo, com a origem no topo do vídeo (y=1127 no frame de
+ * 1920) e o eixo X descontado dos 50px de margem da página. Altura: do vídeo
+ * (1127) ao fim dele (1736) = 609.
  *
- * ⚠️ APROXIMAÇÕES: os tamanhos de fonte do título, do parágrafo e do botão NÃO
- * foram lidos do arquivo — o limite mensal do MCP do Figma estourou antes. Os
- * valores abaixo foram deduzidos das caixas de texto da metadata (título 547×136
- * em duas linhas, parágrafo 570×132) e do padrão das outras telas. Conferir
- * quando houver chamadas disponíveis. Ver .claude/context/open-questions.md.
+ * A coluna da esquerda é CENTRADA, não alinhada à margem: no arquivo o botão
+ * fica em x=196, que é exatamente o centro dos 570px da caixa de texto
+ * (50 + (570-276)/2 = 197). Título e parágrafo seguem o mesmo eixo.
  */
 export function VideoSection() {
   return (
-    <section className="flex items-start gap-[104px] pt-[144px]">
-      <div className="w-[570px] shrink-0">
-        {/* APROXIMADO: 44px deduzido da caixa de 547×136 em duas linhas. */}
-        <h2 className="font-helvetica text-[44px] leading-[54px] font-bold text-white">
-          CLIENTES 100%
-          <br />
-          SATISFEITOS
-        </h2>
+    <section className="relative h-[609px]">
+      {/* Título: Poppins SemiBold 65 em duas linhas, caixa de 547 (526:1064). */}
+      <h2 className="absolute top-[93px] left-0 w-[547px] text-center font-poppins text-[65px] leading-none font-semibold text-white">
+        CLIENTES 100%
+        <br />
+        SATISFEITOS
+      </h2>
 
-        {/* APROXIMADO: 15px deduzido da caixa de 570×132 com ~6 linhas. */}
-        <p className="mt-[25px] font-helvetica text-[15px] leading-[22px] text-brand-placeholder">
-          Muito prazer, sou o Eddmax! Quer saber se pode confiar no nosso
-          trabalho? Dá uma olhada no nosso vídeo de apresentação no YouTube. Nos
-          comentários, nossos clientes contam um pouco sobre a experiência deles
-          conosco e a dedicação que colocamos em cada serviço prestado. ❤ Clique
-          aqui e veja com seus próprios olhos nossos feedbacks:
-        </p>
+      {/* No arquivo a primeira frase é Bold e branca, e o resto Regular em
+          #d8d8d8 — é um único bloco de texto com dois estilos, não dois
+          parágrafos. */}
+      <p className="absolute top-[254px] left-0 w-[570px] text-center font-helvetica text-[18px] leading-[normal] tracking-[0.18px] text-brand-placeholder">
+        <strong className="font-bold text-white">
+          Muito prazer, sou o Eddmax!{" "}
+        </strong>
+        Quer saber se pode confiar no nosso trabalho? Dá uma olhada no nosso
+        vídeo de apresentação no YouTube. Nos comentários, nossos clientes
+        contam um pouco sobre a experiência deles conosco e a dedicação que
+        colocamos em cada serviço prestado. ❤
+        <br />
+        <br />
+        Clique aqui e veja com seus próprios olhos nossos feedbacks:
+      </p>
 
-        <Button variant="primary" className="mt-[25px] w-[276px] px-0">
-          VER NO YOUTUBE
-        </Button>
+      {/* 276×50 em x=196. O `variant="primary"` já é o retângulo do arquivo
+          (#FF7300 chapado, contorno branco 15%, texto preto Poppins Bold 16);
+          a sombra vem do filtro do próprio nó: dy 16, blur 18,5, preto 25%. */}
+      <Button
+        variant="primary"
+        className="absolute top-[411px] left-[146px] w-[276px] px-0 shadow-[0_16px_18.5px_rgba(0,0,0,0.25)]"
+      >
+        VEJA NOSSAS REFERÊNCIAS
+      </Button>
 
-        <p className="mt-[25px] font-helvetica text-[14px] leading-[15px] text-brand-placeholder">
-          E fique a vontade para deixar seu feedback também!
-        </p>
+      <p className="absolute top-[486px] left-[2px] w-[568px] text-center font-helvetica text-[16px] leading-[normal] tracking-[0.16px] text-brand-placeholder">
+        E fique a vontade para deixar seu feedback também!
+      </p>
 
-        {/* Assinatura do CEO. */}
-        <div className="mt-[43px] flex items-center gap-[15px]">
-          <span className="block size-[60px] shrink-0 overflow-hidden rounded-full border border-white/10 bg-white/5" />
-          <span>
-            <span className="block font-poppins text-[18px] leading-[26px] font-bold text-white">
-              EDDMAX
-            </span>
-            <span className="block font-poppins text-[12px] leading-[13px] font-medium tracking-[0.12px] text-white/80">
-              CEO - LETS4TRADE
-            </span>
-          </span>
-        </div>
-      </div>
+      {/* Assinatura do CEO (avatar 529:1068, nome 529:1067, cargo 819:108). */}
+      <Image
+        src="/images/home/eddmax.png"
+        alt=""
+        width={60}
+        height={60}
+        aria-hidden
+        className="absolute top-[544px] left-0 size-[60px] rounded-full object-cover"
+      />
+      <p className="absolute top-[552px] left-[75px] font-poppins text-[18px] leading-[26px] font-bold text-white">
+        EDDMAX
+      </p>
+      <p className="absolute top-[580px] left-[75px] font-poppins text-[12px] leading-[13px] font-medium tracking-[0.12px] text-white/80">
+        CEO - LETS4TRADE
+      </p>
 
       <VideoPlayer />
     </section>
@@ -68,17 +82,13 @@ export function VideoSection() {
  * O anel gira só para quem não pediu menos movimento — `motion-safe`. Animação
  * contínua em loop é justamente o caso que `prefers-reduced-motion` existe para
  * cobrir.
- *
- * O `-mt-[94px]` não é ajuste fino: no arquivo o vídeo começa em y=1127 e o
- * título da coluna da esquerda em y=1220. Alinhados pelo topo do flex, o vídeo
- * descia 94px, esticava a seção e empurrava TODAS as seções seguintes da home.
  */
 function VideoPlayer() {
   return (
     <button
       type="button"
       aria-label="Assistir ao vídeo de apresentação"
-      className="play-button relative -mt-[94px] h-[609px] w-[1146px] shrink-0 overflow-hidden rounded-[30px]"
+      className="play-button absolute top-0 left-[674px] h-[609px] w-[1146px] overflow-hidden rounded-[30px]"
     >
       <Image
         src="/images/video-thumb.png"

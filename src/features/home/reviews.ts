@@ -11,10 +11,9 @@
  * daria o mesmo resultado só se eu somasse o deslocamento inicial em todo
  * lugar; guardar o valor lido do arquivo evita esse erro silencioso.
  *
- * ⚠️ `avatar` aponta para arquivos que ainda NÃO existem — o export do Figma
- * está bloqueado pelo limite mensal do plano Starter. Os slots estão com a
- * geometria certa (42×42, círculo); basta soltar os PNGs em
- * `public/images/reviews/`. Ver .claude/context/open-questions.md.
+ * Os avatares vieram do arquivo, casados nome a nome pelo código de referência
+ * do nó — a ordem em que o MCP devolve as imagens não acompanha a ordem visual
+ * dos cards, então casar por posição trocaria os rostos.
  */
 export type Review = {
   /** Posição no eixo X dentro do frame do carrossel, como no arquivo. */
@@ -27,6 +26,7 @@ export type Review = {
 /** Largura do card e passo entre eles (288 + 25 de vão), do design. */
 export const REVIEW_CARD_WIDTH = 288;
 export const REVIEW_CARD_HEIGHT = 387;
+export const REVIEW_CARD_STEP = 313;
 
 export const REVIEWS: Review[] = [
   {
@@ -81,3 +81,18 @@ export const REVIEWS: Review[] = [
 
 /** Total de avaliações exibido à esquerda da pílula de estrelas (Figma 617:821). */
 export const REVIEW_COUNT = 515;
+
+/**
+ * Distância de um ciclo da esteira: a fila inteira, do primeiro card ao vão
+ * depois do último.
+ *
+ * É esse valor exato que faz o laço não ter emenda. A faixa é desenhada DUAS
+ * vezes, a segunda deslocada em `REVIEW_LOOP_WIDTH`; quando a animação chega a
+ * `-REVIEW_LOOP_WIDTH`, a cópia está no pixel onde a original começou e o
+ * quadro é idêntico ao inicial. Qualquer outro valor produz um salto visível.
+ *
+ * Sai de `REVIEWS.length` (e não de um número escrito à mão) para continuar
+ * certo se um depoimento entrar ou sair — desde que os `left` sigam o passo
+ * regular de 313px do arquivo.
+ */
+export const REVIEW_LOOP_WIDTH = REVIEWS.length * REVIEW_CARD_STEP;
