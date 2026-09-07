@@ -1,0 +1,546 @@
+"use client";
+
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useState, type FormEvent } from "react";
+import { SelectField } from "@/components/ui/SelectField";
+import { TextField } from "@/components/ui/TextField";
+import {
+  formatCents,
+  subtotalCents,
+  useCart,
+  useCartHydrated,
+} from "@/features/cart/store";
+import { TIERS } from "@/features/loyalty/tiers";
+import {
+  OrderLineBlock,
+  TotalsBlock,
+} from "@/features/orders/OrderSummaryPieces";
+import {
+  CheckoutSidePanel,
+  ReferencesBadge,
+  ReferencesButton,
+} from "./CheckoutPanel";
+import { checkoutAction, type CheckoutLine } from "./actions";
+import { cardSchema, pixSchema } from "./schema";
+
+/** Uma Lets Coin vale R$ 0,10 — é o que o arquivo escreve no seletor. */
+const COIN_CENTS = 10;
+
+/** O design mostra "1x de …"; até 12x é o padrão do mercado brasileiro. */
+const MAX_INSTALLMENTS = 12;
+
+export type CheckoutProfile = {
+  letsCoins: number;
+  /** Total gasto em REAIS, para o card de cashback. */
+  totalSpent: number;
+};
+
+type Method = "card" | "pix";
+type FieldErrors = Record<string, string>;
+
+/**
+ * Checkout (Figma 2568:1505) — formulário à esquerda, resumo do pedido à
+ * direita.
+ *
+ * As duas colunas são um componente só porque compartilham estado: as Lets
+ * Coins escolhidas à esquerda mudam o desconto e o total à direita, e o total
+ * muda o rótulo do botão e as parcelas de volta à esquerda. Separá-las exigiria
+ * levantar esse estado para um contexto só para reuni-lo de novo.
+ *
+ * ⚠️ OS DADOS DO CARTÃO NÃO SAEM DO NAVEGADOR. Não há gateway integrado, e
+ * mandar PAN/CVV para um backend que não é PCI-DSS seria criar um passivo, não
+ * uma funcionalidade. Os campos são validados e descartados; o pedido é criado
+ * PENDENTE e fechado no WhatsApp, que é como a loja opera hoje (está no FAQ da
+ * página de jogo). Quando entrar a Braspag — que já é integração prevista do
+ * projeto —, o cartão vai TOKENIZADO direto para ela, sem passar por nós.
+ */
+export function CheckoutClient({ profile }: { profile: CheckoutProfile | null }) {
+  const router = useRouter();
+
+  const items = useCart((state) => state.items);
+  const clear = useCart((state) => state.clear);
+  const hydrated = useCartHydrated();
+
+  const [method, setMethod] = useState<Method>("card");
+  const [coins, setCoins] = useState(0);
+  const [installments, setInstallments] = useState(1);
+  const [couponNote, setCouponNote] = useState<string | null>(null);
+
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const subtotal = subtotalCents(items);
+  const maxCoins = profile
+    ? Math.min(profile.letsCoins, Math.floor(subtotal / COIN_CENTS))
+    : 0;
+  const discount = Math.min(coins, maxCoins) * COIN_CENTS;
+  const total = Math.max(subtotal - discount, 0);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (isSubmitting || items.length === 0) return;
+
+    const data = new FormData(event.currentTarget);
+    const read = (name: string) => String(data.get(name) ?? "");
+
+    const schema = method === "card" ? cardSchema : pixSchema;
+    const parsed = schema.safeParse({
+      holder: read("holder"),
+      number: read("number"),
+      expiry: read("expiry"),
+      cvv: read("cvv"),
+      installments: read("installments") || "1",
+      coins: read("coins") || "0",
+      notes: read("notes"),
+    });
+
+    if (!parsed.success) {
+      const next: FieldErrors = {};
+      for (const [key, messages] of Object.entries(parsed.error.flatten().fieldErrors)) {
+        const first = messages?.[0];
+        if (first) next[key] = first;
+      }
+      setFieldErrors(next);
+      setFormError(null);
+      return;
+    }
+
+    setFieldErrors({});
+    setFormError(null);
+    setIsSubmitting(true);
+
+    // Só ids e quantidade: o preço é recalculado no servidor (ver `actions.ts`).
+    const lines: CheckoutLine[] = items.map((item) => ({
+      gameSlug: item.gameSlug,
+      productId: item.productId,
+      platform: item.platform,
+      units: item.quantity,
+    }));
+
+    const result = await checkoutAction(lines);
+
+    if (result.ok) {
+      clear();
+      router.push("/conta/pedidos");
+      return;
+    }
+
+    setIsSubmitting(false);
+    if (result.reason === "unauthenticated") {
+      router.push("/login?redirect=/checkout");
+      return;
+    }
+    setFormError(
+      result.reason === "invalid"
+        ? "Algum item do carrinho não está mais disponível. Revise o carrinho."
+        : "Não conseguimos criar seu pedido agora. Tente novamente em instantes.",
+    );
+  }
+
+  return (
+    <div className="flex min-h-[1080px]">
+      {/* Coluna do formulário: 476px centrados na faixa da esquerda, como no
+          arquivo (302 de margem dos dois lados dentro dos 1079). */}
+      <div className="flex flex-1 justify-center px-[50px] pt-[97px] pb-[60px]">
+        <form noValidate onSubmit={handleSubmit} className="w-[476px]">
+          <h1 className="font-poppins text-[22px] leading-[28px] font-semibold tracking-[-0.44px] text-white">
+            Pagamento
+          </h1>
+          <div aria-hidden className="mt-[15px] h-px w-full bg-white/25" />
+
+          <fieldset className="mt-[23px] flex gap-[40px]">
+            <legend className="sr-only">Forma de pagamento</legend>
+            <MethodRadio
+              label="CARTÃO DE CRÉDITO"
+              value="card"
+              current={method}
+              onSelect={setMethod}
+            />
+            <MethodRadio label="PIX" value="pix" current={method} onSelect={setMethod} />
+          </fieldset>
+
+          {method === "card" ? (
+            <div className="mt-[28px] flex flex-col gap-[25px]">
+              <TextField
+                name="holder"
+                label="Nome do titular do cartão *"
+                type="text"
+                autoComplete="cc-name"
+                placeholder="Nome"
+                error={fieldErrors.holder}
+              />
+              <TextField
+                name="number"
+                label="Número do cartão *"
+                type="text"
+                inputMode="numeric"
+                autoComplete="cc-number"
+                maxLength={23}
+                placeholder="**** **** **** ****"
+                error={fieldErrors.number}
+              />
+              <div className="grid grid-cols-[225px_225px] gap-x-[26px]">
+                <TextField
+                  name="expiry"
+                  label="Validade (MM/AA) *"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="cc-exp"
+                  maxLength={5}
+                  placeholder="MM/AA"
+                  error={fieldErrors.expiry}
+                />
+                <TextField
+                  name="cvv"
+                  label="Código do cartão *"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="cc-csc"
+                  maxLength={4}
+                  placeholder="CVV"
+                  error={fieldErrors.cvv}
+                />
+              </div>
+              <SelectField
+                name="installments"
+                label="Número de parcelas"
+                placeholder="Escolha as parcelas"
+                value={String(installments)}
+                onValueChange={(value) => setInstallments(Number(value))}
+                options={installmentOptions(total)}
+              />
+            </div>
+          ) : (
+            <p className="mt-[28px] rounded-[15px] border border-white/10 bg-[image:var(--brand-surface-fill)] px-[25px] py-[20px] font-helvetica text-[16px] leading-[24px] text-brand-fg-muted">
+              No PIX o código de pagamento é enviado depois da confirmação do
+              pedido. Nenhum dado bancário é pedido aqui.
+            </p>
+          )}
+
+          <div className="mt-[25px] flex flex-col gap-[25px]">
+            <SelectField
+              name="coins"
+              label="Usar lets coins"
+              placeholder="Não usar Lets Coins"
+              value={String(coins)}
+              disabled={maxCoins === 0}
+              onValueChange={(value) => setCoins(Number(value))}
+              options={coinOptions(maxCoins)}
+            />
+
+            <TextField
+              name="notes"
+              label="Informações adicionais"
+              type="text"
+              maxLength={500}
+              placeholder="Adicionar informações"
+              error={fieldErrors.notes}
+            />
+          </div>
+
+          <div aria-hidden className="mt-[25px] h-px w-full bg-white/25" />
+
+          {formError ? (
+            <p
+              role="alert"
+              className="mt-[25px] rounded-2xl border border-red-9/40 bg-red-9/10 px-4 py-3 text-center font-helvetica text-[14px] text-red-9"
+            >
+              {formError}
+            </p>
+          ) : null}
+
+          <button
+            type="submit"
+            disabled={isSubmitting || !hydrated || items.length === 0}
+            className="mt-[26px] flex h-[50px] w-full items-center justify-center rounded-full border border-[var(--brand-stroke-soft)] bg-[image:var(--brand-orange-gradient)] font-poppins text-[16px] font-bold tracking-[0.16px] text-black transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isSubmitting ? "PROCESSANDO..." : `PAGAR ${formatCents(total)}`}
+          </button>
+
+          <p className="mt-[15px] text-center font-helvetica text-[14px] leading-[16px] tracking-[0.14px] text-brand-placeholder">
+            <strong className="font-bold text-white">É novo por aqui?</strong> Se
+            preferir pode fechar o pedido pelo nosso{" "}
+            <strong className="font-bold text-white">WhatsApp</strong>
+          </p>
+
+          <a
+            href="#"
+            className="brand-ring mt-[22px] flex h-[50px] w-full items-center justify-center gap-[12px] rounded-full bg-[image:var(--brand-surface-fill)] font-poppins text-[16px] font-bold tracking-[0.16px] text-white transition-opacity hover:opacity-90"
+          >
+            <Image
+              src="/icons/social/whatsapp.svg"
+              alt=""
+              width={21}
+              height={21}
+              aria-hidden
+              className="size-[21px]"
+            />
+            FALE COM UM ESPECIALISTA
+          </a>
+        </form>
+      </div>
+
+      {/* Painel do pedido: 841px fixos, encostado na direita. */}
+      <CheckoutSidePanel>
+        <div className="flex items-center justify-between gap-[25px]">
+          <ReferencesButton />
+          <ReferencesBadge />
+        </div>
+
+        <h2 className="mt-[38px] font-poppins text-[22px] leading-[28px] font-semibold tracking-[-0.44px] text-white">
+          Ordem
+        </h2>
+        <div aria-hidden className="mt-[15px] h-px w-full bg-white/25" />
+
+        {hydrated && items.length === 0 ? (
+          <p className="py-[40px] font-helvetica text-[16px] text-brand-fg-muted">
+            Seu carrinho está vazio.
+          </p>
+        ) : (
+          items.map((item) => (
+            <OrderLineBlock
+              key={item.id}
+              line={{
+                id: item.id,
+                name: item.name,
+                platform: item.platform,
+                quantity: `${item.quantity}x`,
+                price: formatCents(item.unitPriceCents * item.quantity),
+                gameLogo: item.gameLogo,
+                date: formatDate(item.addedAt),
+              }}
+            />
+          ))
+        )}
+
+        <div aria-hidden className="mt-[26px] h-px w-full bg-white/25" />
+
+        <p className="mt-[25px] font-helvetica text-[18px] leading-[18px] font-bold tracking-[0.18px] text-white">
+          Cupom
+        </p>
+        <div className="mt-[15px] flex gap-[25px]">
+          <input
+            type="text"
+            aria-label="Presente ou código de desconto"
+            placeholder="Presente ou código de desconto"
+            className="h-[50px] w-[476px] rounded-full border border-brand-border bg-[image:var(--brand-surface-fill)] px-[25px] font-poppins text-[16px] tracking-[0.16px] text-white outline-none placeholder:text-white/60 focus-visible:border-brand-orange"
+          />
+          <button
+            type="button"
+            onClick={() => setCouponNote("Cupons ainda não estão disponíveis.")}
+            className="h-[50px] w-[141px] shrink-0 rounded-full border border-[var(--brand-stroke-soft)] bg-[image:var(--brand-orange-gradient)] font-poppins text-[16px] font-bold tracking-[0.16px] text-black transition-opacity hover:opacity-90"
+          >
+            APLICAR
+          </button>
+        </div>
+        {couponNote ? (
+          <p role="status" className="mt-[10px] font-helvetica text-[14px] text-brand-placeholder">
+            {couponNote}
+          </p>
+        ) : null}
+
+        <div aria-hidden className="mt-[25px] h-px w-full bg-white/25" />
+
+        <TotalsBlock
+          price={formatCents(subtotal)}
+          discount={formatCents(discount)}
+          total={formatCents(total)}
+        />
+
+        <div aria-hidden className="mt-[26px] h-px w-full bg-white/25" />
+
+        <CashbackCard totalSpent={profile?.totalSpent ?? 0} />
+      </CheckoutSidePanel>
+    </div>
+  );
+}
+
+/**
+ * Rádio do arquivo (2568:1551/1554): círculo de 27px com o miolo laranja quando
+ * escolhido. É um `<input type="radio">` de verdade por baixo — o desenho é
+ * customizado, o comportamento (teclado, leitor de tela, agrupamento) não.
+ */
+function MethodRadio({
+  label,
+  value,
+  current,
+  onSelect,
+}: {
+  label: string;
+  value: Method;
+  current: Method;
+  onSelect: (value: Method) => void;
+}) {
+  const checked = current === value;
+  return (
+    <label className="flex cursor-pointer items-center gap-[13px]">
+      <input
+        type="radio"
+        name="method"
+        value={value}
+        checked={checked}
+        onChange={() => onSelect(value)}
+        className="peer sr-only"
+      />
+      <span
+        aria-hidden
+        className={`flex size-[27px] items-center justify-center rounded-full border-2 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-orange peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-brand-bg ${
+          checked ? "border-brand-orange" : "border-white/40"
+        }`}
+      >
+        {checked ? (
+          <span className="size-[13px] rounded-full bg-[image:var(--brand-orange-gradient)]" />
+        ) : null}
+      </span>
+      <span className="font-poppins text-[15px] leading-[19px] font-bold tracking-[0.15px] text-white">
+        {label}
+      </span>
+    </label>
+  );
+}
+
+/**
+ * Card de cashback (3779:1839).
+ *
+ * Nível, percentual e progresso vêm do `totalSpent` REAL da conta contra as
+ * faixas de `loyalty/tiers.ts`. Sem sessão, cai no primeiro nível — que é a
+ * verdade para quem ainda não comprou.
+ */
+function CashbackCard({ totalSpent }: { totalSpent: number }) {
+  const index = Math.max(
+    TIERS.findLastIndex((tier) => totalSpent >= tier.minSpend),
+    0,
+  );
+  const current = TIERS[index];
+  const next = TIERS[index + 1];
+
+  const progress = next
+    ? Math.min(
+        Math.max(
+          (totalSpent - current.minSpend) / (next.minSpend - current.minSpend),
+          0,
+        ),
+        1,
+      )
+    : 1;
+  const missing = next ? Math.max(next.minSpend - totalSpent, 0) : 0;
+
+  return (
+    <>
+      <p className="mt-[26px] font-helvetica text-[22px] leading-[24px] font-bold tracking-[0.22px] text-white">
+        {current.name}
+      </p>
+      <p className="mt-[5px] font-helvetica text-[16px] leading-[16px] tracking-[0.16px] text-brand-placeholder">
+        Seu nível de cashback atual
+      </p>
+
+      <div className="mt-[26px] rounded-[15px] border border-white/10 bg-black p-[24px]">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="font-helvetica text-[14px] leading-[13px] font-bold tracking-[0.14px] text-white/80">
+              Cashback
+            </p>
+            <p className="mt-[10px] bg-[image:var(--brand-orange-gradient)] bg-clip-text font-poppins text-[22px] leading-[27px] font-bold tracking-[0.22px] text-transparent">
+              {current.cashback}
+            </p>
+          </div>
+          <Image
+            src={current.icon}
+            alt=""
+            width={62}
+            height={62}
+            aria-hidden
+            className="size-[62px] object-contain"
+          />
+        </div>
+
+        {next ? (
+          <>
+            <div aria-hidden className="mt-[18px] h-px w-full bg-white/25" />
+
+            <div className="mt-[17px] flex items-baseline justify-between">
+              <span className="font-helvetica text-[14px] leading-[13px] font-bold tracking-[0.14px] text-white/80">
+                Progresso para o {next.name}
+              </span>
+              <span className="bg-[image:var(--brand-orange-gradient)] bg-clip-text font-helvetica text-[16px] font-bold tracking-[0.16px] text-transparent">
+                {Math.round(progress * 100)}%
+              </span>
+            </div>
+
+            <div
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(progress * 100)}
+              aria-label={`Progresso para o nível ${next.name}`}
+              className="mt-[10px] h-[9px] w-full overflow-hidden rounded-[44px] border-[0.8px] border-white/10 bg-[image:var(--brand-surface-fill)]"
+            >
+              <div
+                className="h-full rounded-[44px] bg-[image:var(--brand-orange-gradient)]"
+                style={{ width: `${progress * 100}%` }}
+              />
+            </div>
+
+            <p className="mt-[10px] font-helvetica text-[14px] leading-[16px] tracking-[0.14px] text-brand-placeholder">
+              Faltam{" "}
+              <strong className="font-bold">
+                {missing.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+              </strong>{" "}
+              para o próximo nível
+            </p>
+          </>
+        ) : (
+          <p className="mt-[17px] font-helvetica text-[14px] leading-[16px] tracking-[0.14px] text-brand-placeholder">
+            Você está no nível máximo.
+          </p>
+        )}
+      </div>
+    </>
+  );
+}
+
+/** "1x de R$ 500,00 (R$ 500,00)" — sem juros, que é o que o arquivo mostra. */
+function installmentOptions(totalCents: number) {
+  return Array.from({ length: MAX_INSTALLMENTS }, (_, index) => {
+    const times = index + 1;
+    return {
+      value: String(times),
+      label: `${times}x de ${formatCents(Math.round(totalCents / times))} (${formatCents(totalCents)})`,
+    };
+  });
+}
+
+/**
+ * Opções de Lets Coins. Em vez de listar moeda a moeda (o saldo pode ser
+ * milhares), oferece frações do máximo utilizável — que é o menor entre o saldo
+ * e o valor do carrinho.
+ */
+function coinOptions(maxCoins: number) {
+  if (maxCoins === 0) return [{ value: "0", label: "Nenhuma Lets Coin disponível" }];
+
+  const steps = [0.25, 0.5, 0.75, 1]
+    .map((fraction) => Math.floor(maxCoins * fraction))
+    .filter((coins, index, all) => coins > 0 && all.indexOf(coins) === index);
+
+  return [
+    { value: "0", label: "Não usar Lets Coins" },
+    ...steps.map((coins) => ({
+      value: String(coins),
+      label: `${coins.toLocaleString("pt-BR")} Lets Coins (${formatCents(coins * COIN_CENTS)})`,
+    })),
+  ];
+}
+
+const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "2-digit",
+  timeZone: "America/Sao_Paulo",
+});
+
+function formatDate(iso: string) {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? "" : dateFormatter.format(date);
+}

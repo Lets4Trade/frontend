@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { ProfileCard, type AccountTab } from "./ProfileCard";
-import { MOCK_PROFILE } from "./profile";
+import type { AccountProfile } from "./profile";
 
 /**
  * Moldura comum das abas do painel do usuário (Figma 2073:1612 e 2116:2031).
@@ -15,10 +15,13 @@ import { MOCK_PROFILE } from "./profile";
  * 50px e margens de 154px dos dois lados → conteúdo de 1612px centrado.
  */
 export function AccountShell({
+  profile,
   activeTab,
   title,
   children,
 }: {
+  /** Perfil real, lido do backend pela rota. */
+  profile: AccountProfile;
   activeTab: AccountTab;
   /** Título do painel da direita ("Meus Pedidos", "Minhas Informações"). */
   title: string;
@@ -30,7 +33,7 @@ export function AccountShell({
 
       <main className="flex-1 overflow-x-auto">
         <div className="mx-auto flex w-max gap-[50px] px-[50px] py-[68px]">
-          <ProfileCard profile={MOCK_PROFILE} activeTab={activeTab} />
+          <ProfileCard profile={profile} activeTab={activeTab} />
 
           <section
             aria-labelledby="painel-heading"

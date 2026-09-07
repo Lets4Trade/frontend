@@ -1025,6 +1025,64 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
 }
 
 /*
+ * Abertura do painel do `SelectField` (Radix Select).
+ *
+ * ANIMAÇÃO e não transição, de propósito: o painel é montado e desmontado do
+ * DOM a cada abertura, e transição não roda em elemento que acabou de nascer —
+ * não há estado anterior de onde sair. É também por isso que a lição do tema
+ * ("transição CSS congela em aba de segundo plano") não se aplica aqui: isto só
+ * dispara quando alguém abre a lista, o que exige a aba em primeiro plano.
+ *
+ * O deslocamento acompanha o lado em que o Radix decidiu abrir (`data-side`),
+ * senão o painel que vira para cima entraria descendo, contra o próprio gesto.
+ *
+ * Feito em CSS puro pelo mesmo motivo do `scrollbar-orange`: não há plugin de
+ * animação no projeto, e as `data-[state=…]` do Tailwind sozinhas não declaram
+ * keyframes.
+ */
+@keyframes brand-select-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--brand-select-offset, -4px)) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes brand-select-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(var(--brand-select-offset, -4px)) scale(0.98);
+  }
+}
+
+.brand-select-panel[data-side="top"] {
+  --brand-select-offset: 4px;
+}
+
+.brand-select-panel[data-state="open"] {
+  animation: brand-select-in 120ms ease-out;
+}
+
+.brand-select-panel[data-state="closed"] {
+  animation: brand-select-out 90ms ease-in;
+}
+
+/* Quem pediu menos movimento não recebe nenhum — só o painel aparecendo. */
+@media (prefers-reduced-motion: reduce) {
+  .brand-select-panel[data-state="open"],
+  .brand-select-panel[data-state="closed"] {
+    animation: none;
+  }
+}
+
+/*
  * Texto em degradê laranja — usado nos números de destaque (saldo, cashback,
  * percentual de progresso) das telas de fidelidade e do painel.
  * `bg-clip-text` + `text-transparent` recorta o degradê na forma das letras.
@@ -1082,25 +1140,21 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
   will-change: transform;
 }
 
-/* Abre espaço para o card sob o cursor empurrando só os que vêm DEPOIS dele.
-   Puxar os anteriores para a esquerda invadiria o banner, que está a 25px. */
-.hero-card:hover ~ .hero-card {
-  transform: translate3d(40px, 0, 0);
-}
-
 .hero-card:hover {
   transform: scale(1.03);
   border-color: rgba(255, 115, 0, 0.5);
   box-shadow: 0 24px 70px -24px rgba(255, 77, 0, 0.55);
-  /* Traz o card à frente dos que vêm depois dele no DOM. */
-  z-index: 1;
 }
 
 /* Parallax interno: o personagem sobe MAIS que o card, o que dá a impressão
-   de que a arte está saindo do cartão. Só `transform` — o `filter: blur()` da
-   cópia borrada atrás fica intocado de propósito, animar desfoque é caro. */
+   de que a arte está saindo do cartão. Só `transform` — o `filter` fica de
+   fora do hover de propósito, animar desfoque é caro. A transição de `filter`
+   existe por causa de OUTRA coisa: a saída do cinza ao abrir o baralho, que
+   acontece uma vez só. */
 .hero-art {
-  transition: transform 480ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    transform 480ms cubic-bezier(0.16, 1, 0.3, 1),
+    filter 560ms ease;
 }
 
 .hero-card:hover .hero-art {
@@ -1205,6 +1259,223 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
     opacity: 1;
     transform: none;
   }
+}
+
+/* ==========================================================================
+   Hero: baralho FECHADO → carrossel ABERTO (Figma 1075:4856 → 1075:4914)
+
+   O arquivo desenha os dois extremos. Fechado são cinco cards sobrepostos a
+   cada 150px ocupando exatos 936px; aberto são SEIS cards lado a lado a cada
+   361px, somando 2141px. A moeda "4" é o gatilho, e a abertura é de mão única.
+
+   COMO A TRANSIÇÃO FUNCIONA — cada card mora num `.hero-slot` posicionado na
+   coordenada ABERTA (`left: i * 361`), e o estado fechado é um `translateX`
+   NEGATIVO que o traz de volta para cima do anterior. Ou seja: a posição de
+   repouso no CSS é a do arranjo aberto, e o fechado é o desvio.
+
+   Está invertido de propósito. `left` não é animável no compositor — mudar
+   `left` refaz layout a cada frame, com `backdrop-filter: blur(40px)` em seis
+   cards sobrepostos. `transform` é. Deixando o arranjo aberto como valor de
+   repouso, abrir e fechar viram a mesma transição de `transform`, e o layout
+   nunca é recalculado.
+
+   O empilhamento também precisa de dois elementos: a escala do `:hover` já usa
+   o `transform` do card. Se o deslocamento do baralho morasse no mesmo
+   elemento, um sobrescreveria o outro. O slot carrega a POSIÇÃO, o card
+   carrega a REAÇÃO ao cursor.
+   ========================================================================== */
+
+/*
+ * DUAS variáveis, e não uma, por um motivo que custa tempo se for descoberto no
+ * navegador: `--hero-closed` vem do `style` inline do slot (é um valor por
+ * índice, calculado em JS), e ESTILO INLINE VENCE QUALQUER SELETOR — inclusive
+ * para custom properties. Uma regra `.hero-deck[data-open="true"] .hero-slot {
+ * --hero-closed: 0px }` seria simplesmente ignorada.
+ *
+ * Então o inline declara só o valor CRU (`--hero-closed`) e quem decide se ele
+ * vale é a folha de estilo, por `--hero-shift`.
+ */
+.hero-slot {
+  transform: translate3d(
+    calc(var(--hero-shift, 0px) + var(--hero-push, 0px)),
+    0,
+    0
+  );
+  transition:
+    transform 700ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 500ms ease;
+}
+
+/* Fechado: cada slot recua para cima do anterior. Aberto, `--hero-shift` some
+   e todos voltam para a própria coordenada do arquivo. */
+.hero-deck[data-open="false"] .hero-slot {
+  --hero-shift: var(--hero-closed, 0px);
+}
+
+/* Abre espaço para o card sob o cursor empurrando só os que vêm DEPOIS dele.
+   Puxar os anteriores para a esquerda invadiria o banner, que está a 25px.
+   Só vale FECHADO — aberto os cards já estão separados e não há o que abrir. */
+.hero-deck[data-open="false"] .hero-slot:hover ~ .hero-slot {
+  --hero-push: 40px;
+}
+
+/* Traz o card sob o cursor à frente dos que vêm depois dele no DOM. */
+.hero-slot:hover {
+  z-index: 1;
+}
+
+/* O recorte começa na borda DIREITA DO BANNER (859), e não no começo dos cards
+   (884): é o que faz o card sumir exatamente onde o banner acaba, como se
+   passasse por trás dele, em vez de ser cortado 25px adiante deixando uma faixa
+   vazia. O porquê de não deixar a esteira correr literalmente por baixo do
+   banner está em `HeroDeck.tsx`. `overflow-y: visible` é o par PERMITIDO com
+   `clip` — com
+   `hidden`/`auto` o navegador converteria o eixo visível em `auto` e criaria um
+   container de rolagem. É o que deixa a sombra do card sob o cursor sair por
+   baixo, e a moeda descer os 40px que ela desce no arquivo. */
+.hero-viewport {
+  overflow-x: clip;
+  overflow-y: visible;
+  /* Num toque, o gesto horizontal é nosso e o vertical continua rolando a
+     página. Sem isto o navegador ficaria com os dois. */
+  touch-action: pan-y;
+}
+
+/* FECHADO o recorte sai de cena. O empurrão de 40px do hover precisa poder
+   sangrar para a margem da página — é o orçamento que desenhou o baralho (ver
+   o bloco acima). Quem precisaria de recorte é só o card "EM BREVE", parado
+   fora da linha, e ele fica invisível de qualquer jeito. */
+.hero-deck[data-open="false"] .hero-viewport {
+  overflow: visible;
+}
+
+/* O último slot é o "EM BREVE": ele não existe no baralho fechado. */
+.hero-deck[data-open="false"] .hero-slot:last-child {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.hero-track {
+  transition: transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+  /* Arrastar seleciona texto por padrão, e a seleção azul aparece por cima dos
+     cards no meio do gesto. */
+  user-select: none;
+}
+
+/* Durante o arrasto a esteira segue o cursor 1:1 — qualquer transição aqui
+   viraria atraso. Ela volta ao soltar, para o encaixe na parada mais próxima. */
+.hero-deck[data-dragging] .hero-track {
+  transition: none;
+}
+
+.hero-deck[data-open="true"] .hero-viewport {
+  cursor: grab;
+}
+
+.hero-deck[data-dragging] .hero-viewport,
+.hero-deck[data-dragging] .hero-card {
+  cursor: grabbing;
+}
+
+/* `will-change` só existe enquanto algo está de fato se movendo — mesmo
+   critério do baralho. Seis camadas com `backdrop-filter` promovidas de forma
+   permanente é justamente o custo que este hero não pode pagar. */
+.hero-deck[data-animating] .hero-slot,
+.hero-deck[data-animating] .hero-track,
+.hero-deck[data-dragging] .hero-track {
+  will-change: transform;
+}
+
+/*
+ * FECHADO = DESSATURADO. O vidro do card já é preto translúcido, então quem
+ * carrega a cor é a arte: dessaturar personagem e logo é o que faz o baralho
+ * "ficar cinza" até a moeda ser clicada.
+ *
+ * O desfoque das cópias de trás vem por variável em vez de `filter` no `style`
+ * do componente, e não por gosto: `filter` é UMA propriedade. Se o blur ficasse
+ * inline, a regra do cinza o apagaria. Compondo os dois na mesma declaração o
+ * navegador consegue interpolar de `blur(9.5px)` para `blur(9.5px) grayscale(1)`
+ * — e é essa interpolação que dá a volta da cor na abertura.
+ */
+.hero-art,
+.hero-logo {
+  filter: blur(var(--hero-blur, 0px));
+}
+
+.hero-deck[data-open="false"] .hero-art,
+.hero-deck[data-open="false"] .hero-logo {
+  filter: blur(var(--hero-blur, 0px)) grayscale(1);
+}
+
+.hero-logo {
+  transition: filter 560ms ease;
+}
+
+/*
+ * Moeda "4" (945:901). Era decoração no fundo da home e virou o gatilho do
+ * carrossel — por isso saiu do `HomeBackdrop` e entrou no slot do hero. Duas
+ * consequências, as duas desejadas: ela fica NA FRENTE dos cards, e acompanha a
+ * faixa de conteúdo quando a moldura encolhe (o backdrop é posicionado contra o
+ * frame de 1920, o slot não).
+ *
+ * Em repouso ela não anima, que é a regra de movimento da home. A pista de que
+ * é clicável é a reação ao cursor.
+ */
+.hero-coin {
+  z-index: 2;
+  cursor: pointer;
+  transition:
+    transform 520ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 360ms ease,
+    filter 300ms ease;
+}
+
+.hero-coin:hover,
+.hero-coin:focus-visible {
+  transform: scale(1.08);
+  filter: drop-shadow(0 0 26px rgba(255, 115, 0, 0.55));
+}
+
+/* Ao abrir, a moeda estoura: cresce e some junto com o baralho se separando. */
+.hero-deck[data-open="true"] .hero-coin {
+  opacity: 0;
+  transform: scale(1.8);
+  pointer-events: none;
+}
+
+/*
+ * Setas do carrossel. Elas existem porque o arranjo aberto tem 2141px e o slot
+ * 936: sem elas metade dos cards seria inalcançável.
+ *
+ * Fundo CHAPADO, e não o vidro do resto da home: elas ficam paradas por cima de
+ * conteúdo que se move, e `backdrop-filter` nessa situação obriga o navegador a
+ * refazer o desfoque a cada frame da esteira.
+ */
+.hero-arrow {
+  z-index: 2;
+  cursor: pointer;
+  transition:
+    opacity 320ms ease,
+    transform 320ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 220ms ease;
+}
+
+.hero-arrow:hover:not(:disabled) {
+  transform: scale(1.08);
+  border-color: rgba(255, 115, 0, 0.55);
+}
+
+.hero-arrow:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* Depois do `:disabled` de propósito: as duas regras têm a mesma
+   especificidade, e fechado o botão precisa sumir mesmo estando desabilitado. */
+.hero-deck[data-open="false"] .hero-arrow {
+  opacity: 0;
+  transform: scale(0.85);
+  pointer-events: none;
 }
 
 /* ==========================================================================

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { optionalNewPasswordSchema } from "@/features/auth/password";
 
 /**
  * Edição do perfil (Figma 2116:2106).
@@ -34,11 +35,20 @@ export const editProfileSchema = z.object({
       },
       { message: "Número inválido. Inclua DDD." },
     ),
-  password: z
-    .string()
-    .refine((v) => v === "" || (v.length >= 8 && v.length <= 128), {
-      message: "A nova senha precisa ter entre 8 e 128 caracteres.",
-    }),
+  // MESMA regra do cadastro e do backend, importada de um lugar só. Antes aqui
+  // se cobrava só o comprimento: "12345678" passava na tela e voltava 400 do
+  // servidor, que é o pior dos dois mundos.
+  password: optionalNewPasswordSchema,
+  /**
+   * Senha ATUAL. Só é exigida quando o usuário mexe numa credencial — trocar o
+   * e-mail ou definir uma senha nova. O backend não aceita nenhuma das duas sem
+   * ela, e é isso que impede uma sessão sequestrada de tomar a conta.
+   *
+   * Vazia é válida aqui porque o formulário salva nome, Discord e WhatsApp sem
+   * confirmação nenhuma; quem cobra é a regra abaixo, que só dispara quando há
+   * credencial em jogo.
+   */
+  currentPassword: z.string(),
 });
 
 export type EditProfileValues = z.infer<typeof editProfileSchema>;

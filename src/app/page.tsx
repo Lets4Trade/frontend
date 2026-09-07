@@ -113,8 +113,12 @@ export default function Home() {
 
 /**
  * Camada decorativa do frame (Figma 362:800 "Effect 2", 567:1710 "Ellipse 8",
- * 567:1712 "Ellipse 9", 945:901 e 269:488). São filhos diretos do frame Home, não de uma seção: ficam
+ * 567:1712 "Ellipse 9" e 269:488). São filhos diretos do frame Home, não de uma seção: ficam
  * atrás de tudo e atravessam os limites das seções, então moram aqui.
+ *
+ * A moeda "4" (945:901) era daqui e SAIU: virou o gatilho que abre o carrossel
+ * do hero, então precisava ficar na frente dos cards em vez de atrás de tudo.
+ * Hoje mora em `features/home/HeroDeck.tsx`.
  *
  * As coordenadas do arquivo têm origem no topo do frame — que é o topo do
  * CABEÇALHO, 83px acima desta faixa. Daí o desconto de 83 em cada `top`.
@@ -159,15 +163,6 @@ function HomeBackdrop() {
         width={700}
         height={1663}
         className="absolute top-[2614.97px] left-[1220.5px] h-[1663px] w-[700px] max-w-none"
-      />
-
-      {/* Emblema "4" entre os cards do hero (945:901). */}
-      <Image
-        src="/images/home/emblema-4.png"
-        alt=""
-        width={150}
-        height={150}
-        className="absolute top-[685px] left-[1329px] size-[150px]"
       />
 
       {/* Botão de contato flutuante (269:488): mesmo vidro dos cards — preto a

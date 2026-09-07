@@ -16,6 +16,8 @@ export type OrderStatus = "pendente" | "aprovado" | "entregue" | "cancelado";
 
 export type Order = {
   id: string;
+  /** Código curto que o cliente vê e cita no suporte — é a chave da rota do pedido. */
+  reference: string;
   productName: string;
   /** Caminho da imagem do produto. */
   image: string;

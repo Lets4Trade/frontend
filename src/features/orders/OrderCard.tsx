@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { OrderStatusTracker } from "./OrderStatusTracker";
 import { ORDER_STATUS_STYLES, type Order } from "./types";
@@ -66,16 +67,20 @@ export function OrderCard({ order }: { order: Order }) {
         </div>
       ))}
 
-      {/* Chat: pílula com borda laranja e fundo em degradê escuro. */}
-      <button
-        type="button"
+      {/* Chat: pílula com borda laranja e fundo em degradê escuro. É a porta de
+          entrada da tela do pedido (2569:1682) — o desenho põe a conversa e a
+          trilha de progresso na mesma página, e a rota é a referência do
+          pedido. */}
+      <Link
+        href={`/conta/pedidos/${encodeURIComponent(order.reference)}`}
+        aria-label={`Abrir o pedido ${order.productName}`}
         className="absolute top-[36px] left-[582px] flex h-[24px] w-[74px] items-center justify-center gap-[6px] rounded-[66px] border border-brand-orange bg-gradient-to-b from-[#222] to-[#1d1d1d] transition-opacity hover:opacity-80"
       >
         <Image src="/icons/order/chat.svg" alt="" width={16} height={16} aria-hidden />
         <span className="font-helvetica text-[14px] leading-[15px] text-white">
           Chat
         </span>
-      </button>
+      </Link>
 
       <span
         className={cn(

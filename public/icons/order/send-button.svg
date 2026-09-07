@@ -1,0 +1,18 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="50" height="50" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Group 8389">
+<circle id="Ellipse 18" cx="25" cy="25" r="24" fill="url(#paint0_linear_0_12)" stroke="url(#paint1_linear_0_12)" stroke-width="2"/>
+<g id="Bold / Messages, Conversation / Plain">
+<path id="Vector" d="M31.0827 28.3643L32.6561 23.6441C34.0306 19.5205 34.7179 17.4588 33.6295 16.3705C32.5412 15.2821 30.4795 15.9694 26.3559 17.3439L21.6357 18.9173C18.3076 20.0267 16.6436 20.5813 16.1707 21.3947C15.7209 22.1685 15.7209 23.1242 16.1707 23.898C16.6436 24.7114 18.3076 25.2661 21.6357 26.3755C22.0482 26.5129 22.5122 26.4148 22.821 26.1088L27.8679 21.1087C28.1518 20.8274 28.61 20.8295 28.8913 21.1135C29.1726 21.3974 29.1705 21.8556 28.8865 22.1369L23.9212 27.0562C23.5808 27.3935 23.473 27.9097 23.6245 28.3643C24.7339 31.6924 25.2886 33.3564 26.102 33.8293C26.8758 34.2791 27.8315 34.2791 28.6053 33.8293C29.4187 33.3564 29.9733 31.6924 31.0827 28.3643Z" fill="white"/>
+</g>
+</g>
+<defs>
+<linearGradient id="paint0_linear_0_12" x1="4.16699" y1="10" x2="44.167" y2="45.5" gradientUnits="userSpaceOnUse">
+<stop stop-color="#FF7300"/>
+<stop offset="0.995192" stop-color="#FF4D00"/>
+</linearGradient>
+<linearGradient id="paint1_linear_0_12" x1="4.16699" y1="10" x2="44.167" y2="45.5" gradientUnits="userSpaceOnUse">
+<stop stop-color="#FF7300"/>
+<stop offset="0.995192" stop-color="#FF4D00"/>
+</linearGradient>
+</defs>
+</svg>

@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import { Manrope, DM_Sans } from "next/font/google";
 import localFont from "next/font/local";
+import { PageViewTracker } from "@/features/admin/PageViewTracker";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -124,6 +125,11 @@ export default async function RootLayout({
       </head>
 
       <body suppressHydrationWarning className="scroll-smooth antialiased">
+        {/* Registra cada TELA aberta na loja — navegação, não clique. Fica no
+            layout raiz para cobrir toda rota sem que cada página precise
+            lembrar. O painel tem o seu, declarando `surface="admin"`; quem
+            decide a categoria é o backend, pela sessão. */}
+        <PageViewTracker surface="store" />
         {children}
       </body>
     </html>

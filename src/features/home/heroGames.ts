@@ -1,9 +1,10 @@
 /**
- * Cards do carrossel do hero (Figma 1075:4856).
+ * Cards do carrossel do hero (Figma 1075:4856 fechado, 1075:4914 aberto).
  *
- * Cada card tem 336×758 e eles ficam SOBREPOSTOS — posicionados a cada 150px
- * numa faixa de 936px, o que produz o efeito de baralho aberto. Não é um
- * carrossel de itens lado a lado.
+ * Cada card tem 336×758 e eles ficam SOBREPOSTOS no estado fechado —
+ * posicionados a cada 150px numa faixa de 936px, o que produz o efeito de
+ * baralho aberto. Não é um carrossel de itens lado a lado enquanto está
+ * fechado; vira um quando a moeda é clicada.
  *
  * A geometria do personagem e do logo muda em cada card (posição, tamanho e
  * raio do blur), então mora aqui em vez de no componente. Os valores vêm do
@@ -74,7 +75,43 @@ export const HERO_GAMES: HeroGame[] = [
   },
 ];
 
-/** Largura de cada card e o passo horizontal entre eles, do design. */
+/**
+ * Geometria do slot do hero, do arquivo.
+ *
+ * Os cards têm 336×758 e o arquivo desenha DOIS arranjos deles, que são os
+ * dois extremos da animação:
+ *
+ *   fechado (1075:4856) — passo de 150px, cinco cards sobrepostos ocupando
+ *                         exatamente os 936px do slot;
+ *   aberto  (1075:4914) — passo de 361px (336 do card + 25 de gap), SEIS cards
+ *                         lado a lado somando 2141px. É mais largo que o slot,
+ *                         e é por isso que o estado aberto rola.
+ */
 export const HERO_CARD_WIDTH = 336;
-export const HERO_CARD_STEP = 150;
+export const HERO_CLOSED_STEP = 150;
+export const HERO_OPEN_STEP = 361;
+/** Faixa VISÍVEL dos cards: o que sobra da linha de 1820 depois do banner. */
+export const HERO_DECK_WIDTH = 936;
 export const HERO_HEIGHT = 758;
+
+/**
+ * O banner e o vão até os cards. `HERO_DECK_LEFT` é onde a esteira começa
+ * dentro da linha de 1820 — e também até onde ela pode correr para a esquerda
+ * antes de ficar escondida atrás do banner, que é fixo e fica por cima.
+ */
+export const HERO_BANNER_WIDTH = 859;
+export const HERO_GAP = 25;
+export const HERO_DECK_LEFT = HERO_BANNER_WIDTH + HERO_GAP;
+export const HERO_ROW_WIDTH = HERO_DECK_LEFT + HERO_DECK_WIDTH;
+
+/**
+ * Moeda "4" (Figma 945:901), 150×150 — o gatilho que abre o carrossel.
+ *
+ * As coordenadas são as do arquivo trazidas para a origem do slot: o frame põe
+ * a moeda em x=1329 e o slot começa em x=934 (395 de diferença); no eixo Y a
+ * moeda está em 768 e o slot começa em 120 (648). Ela nasce praticamente
+ * centrada no slot (395 + 75 = 470, contra os 468 do meio) e desce 40px abaixo
+ * da borda de baixo dos cards — daí o recorte do slot precisar ficar aberto no
+ * eixo vertical.
+ */
+export const HERO_COIN = { left: 395, top: 648, size: 150 };

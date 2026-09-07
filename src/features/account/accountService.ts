@@ -1,14 +1,15 @@
+import { PASSWORD_RULE_TEXT } from "@/features/auth/password";
 import type { EditProfileValues } from "./schema";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 
-/** Mesmo gate fail-secure do `authService`: mock só fora de produção e sem API. */
-const USE_MOCK = process.env.NODE_ENV !== "production" && API_URL === "";
-
 export type AccountErrorCode =
   | "email_taken"
   | "name_taken"
-  | "unauthorized"
+  | "wrong_password"
+  | "weak_password"
+  | "invalid_code"
+  | "no_api"
   | "network"
   | "unknown";
 
@@ -25,57 +26,105 @@ export class AccountError extends Error {
 export const ACCOUNT_ERROR_MESSAGES: Record<AccountErrorCode, string> = {
   email_taken: "Este e-mail já está em uso por outra conta.",
   name_taken: "Este nome de usuário já está em uso.",
-  unauthorized: "Sua sessão expirou. Entre novamente.",
+  wrong_password: "Senha atual incorreta.",
+  weak_password: PASSWORD_RULE_TEXT,
+  invalid_code: "Código inválido ou expirado. Peça um novo.",
+  no_api: "Serviço indisponível no momento.",
   network: "Não foi possível conectar. Verifique sua internet.",
   unknown: "Não conseguimos salvar agora. Tente novamente em instantes.",
 };
 
 /**
- * ⚠️ PONTO DE TROCA — atualização do perfil.
+ * Salvamento do painel "Minhas Informações".
  *
- * Contrato esperado em `PATCH /me`:
- *   request  → { name, email, discord, whatsapp, password? }
- *   200      → { user: { id, name, email } }
- *   401      → sessão inválida/expirada
- *   409      → { field: "email" | "name" }
+ * São TRÊS chamadas diferentes, e não uma, porque o backend trata perfil e
+ * credencial de formas diferentes — de propósito:
  *
- * `password` só vai no corpo quando o usuário digitou algo — mandar string
- * vazia faria o servidor reescrever o hash com uma senha em branco caso a
- * validação de lá fosse permissiva.
+ *   PATCH /me                  → nome, Discord, WhatsApp. Não são credenciais,
+ *                                então salvam direto.
+ *   POST  /auth/change-password → exige a SENHA ATUAL.
+ *   PATCH /auth/change-email    → exige a senha atual E manda um código de 6
+ *                                dígitos para o e-mail ATUAL, confirmado depois
+ *                                em POST /auth/verify-email-change.
  *
- * PENDÊNCIAS do lado do servidor:
- *  - exigir a senha ATUAL para confirmar troca de senha ou de e-mail; sem isso,
- *    uma sessão sequestrada muda as credenciais e expulsa o dono da conta;
- *  - reemitir a sessão após troca de senha e invalidar as demais;
- *  - confirmar o novo e-mail por link antes de passar a usá-lo para login.
+ * A confirmação por senha atual não é burocracia nossa: sem ela, uma sessão
+ * sequestrada trocaria e-mail e senha e expulsaria o dono da conta. Era
+ * exatamente a pendência anotada aqui quando este arquivo era mock.
+ *
+ * A ordem importa: os campos de perfil salvam primeiro. Se a troca de e-mail
+ * falhar depois, o que já era seguro salvar ficou salvo.
  */
-export async function updateProfile(
+export type SaveProfileResult = {
+  /** `true` quando o backend mandou o código e falta o usuário confirmar. */
+  emailChangePending: boolean;
+};
+
+export async function saveProfile(
   values: EditProfileValues,
+  currentEmail: string,
   signal?: AbortSignal,
-): Promise<void> {
-  const payload: Record<string, string> = {
+): Promise<SaveProfileResult> {
+  requireApi();
+
+  await request("/me", "PATCH", {
     name: values.name,
-    email: values.email,
     discord: values.discord,
     whatsapp: values.whatsapp,
-  };
-  if (values.password !== "") payload.password = values.password;
+  }, signal);
 
-  if (USE_MOCK) {
-    await delay(700, signal);
-    if (values.email.includes("usado")) {
-      throw new AccountError("email_taken", "E-mail em uso (mock).");
-    }
-    return;
+  if (values.password !== "") {
+    await request(
+      "/auth/change-password",
+      "POST",
+      { currentPassword: values.currentPassword, newPassword: values.password },
+      signal,
+    );
   }
 
+  const emailChanged =
+    values.email.trim().toLowerCase() !== currentEmail.trim().toLowerCase();
+
+  if (emailChanged) {
+    await request(
+      "/auth/change-email",
+      "PATCH",
+      { newEmail: values.email, currentPassword: values.currentPassword },
+      signal,
+    );
+  }
+
+  return { emailChangePending: emailChanged };
+}
+
+/** Confirma a troca de e-mail com o código de 6 dígitos enviado ao e-mail atual. */
+export async function confirmEmailChange(code: string, signal?: AbortSignal) {
+  requireApi();
+  await request("/auth/verify-email-change", "POST", { code }, signal);
+}
+
+function requireApi() {
+  // Sem backend configurado NÃO existe caminho de mock: um "salvo com sucesso"
+  // que não salvou nada é pior que um erro honesto. Era assim antes e é a
+  // diferença entre a tela mentir e a tela avisar.
+  if (API_URL === "") {
+    throw new AccountError("no_api", "NEXT_PUBLIC_API_URL não configurada.");
+  }
+}
+
+async function request(
+  path: string,
+  method: "PATCH" | "POST",
+  body: Record<string, unknown>,
+  signal?: AbortSignal,
+) {
   let response: Response;
   try {
-    response = await fetch(`${API_URL}/me`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+    response = await fetch(`${API_URL}${path}`, {
+      method,
+      headers: { "Content-Type": "application/json", "x-pt-surface": "client" },
+      // O token é cookie httpOnly: `include` é o que o manda junto.
       credentials: "include",
-      body: JSON.stringify(payload),
+      body: JSON.stringify(body),
       signal,
     });
   } catch (cause) {
@@ -83,35 +132,77 @@ export async function updateProfile(
     throw new AccountError("network", "Falha de rede ao salvar.");
   }
 
-  if (!response.ok) {
-    throw new AccountError(await codeFromResponse(response), "Falha ao salvar.");
-  }
+  if (!response.ok) throw await toAccountError(response, path);
 }
 
-async function codeFromResponse(response: Response): Promise<AccountErrorCode> {
-  if (response.status === 401) return "unauthorized";
+/**
+ * Traduz a resposta do backend.
+ *
+ * O 401 aqui é lido como SENHA ATUAL ERRADA, e não como sessão expirada: as
+ * rotas de credencial só são alcançadas com sessão válida (o guard rejeita
+ * antes), então quem chega ao handler e leva 401 errou a senha. Se a sessão
+ * tiver mesmo caído, o próximo carregamento da página manda para o login.
+ */
+async function toAccountError(response: Response, path: string) {
+  const body = await readJson(response);
+  const message = messageOf(body);
+
+  if (response.status === 401) {
+    return new AccountError("wrong_password", message || "Senha incorreta.");
+  }
+
   if (response.status === 409) {
-    try {
-      const body = (await response.json()) as { field?: string };
-      if (body.field === "email") return "email_taken";
-      if (body.field === "name") return "name_taken";
-    } catch {
-      /* corpo ausente ou inválido — cai no genérico */
+    if (fieldOf(body) === "name") return new AccountError("name_taken", message);
+    return new AccountError("email_taken", message);
+  }
+
+  if (response.status === 400) {
+    if (path.includes("verify-email-change")) {
+      return new AccountError("invalid_code", message);
+    }
+    if (/e-?mail/i.test(message) && /uso/i.test(message)) {
+      return new AccountError("email_taken", message);
+    }
+    if (path.includes("change-password")) {
+      return new AccountError("weak_password", message);
     }
   }
-  return "unknown";
+
+  return new AccountError("unknown", message || "Falha ao salvar.");
 }
 
-function delay(ms: number, signal?: AbortSignal) {
-  return new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(resolve, ms);
-    signal?.addEventListener(
-      "abort",
-      () => {
-        clearTimeout(timer);
-        reject(new DOMException("Aborted", "AbortError"));
-      },
-      { once: true },
-    );
-  });
+async function readJson(response: Response): Promise<Record<string, unknown> | null> {
+  try {
+    const parsed: unknown = await response.json();
+    return typeof parsed === "object" && parsed !== null
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function messageOf(body: Record<string, unknown> | null): string {
+  if (!body) return "";
+  const raw = body.message;
+  if (typeof raw === "string") return raw;
+  if (Array.isArray(raw) && typeof raw[0] === "string") return raw[0];
+  // O ConflictException do backend manda `{ field, message }` dentro de
+  // `message` quando o corpo é um objeto.
+  if (typeof raw === "object" && raw !== null) {
+    const nested = (raw as { message?: unknown }).message;
+    if (typeof nested === "string") return nested;
+  }
+  return "";
+}
+
+function fieldOf(body: Record<string, unknown> | null): string | null {
+  if (!body) return null;
+  if (typeof body.field === "string") return body.field;
+  const raw = body.message;
+  if (typeof raw === "object" && raw !== null) {
+    const field = (raw as { field?: unknown }).field;
+    if (typeof field === "string") return field;
+  }
+  return null;
 }

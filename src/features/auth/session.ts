@@ -63,26 +63,31 @@ function safeAvatar(avatarUrl: unknown): string {
 
 /** Nome de exibição. Cai no trecho antes do @ quando o cadastro não tem nome. */
 function displayName(profile: Record<string, unknown>): string {
-  const partes = [profile.firstName, profile.lastName]
+  const parts = [profile.firstName, profile.lastName]
     .filter((p): p is string => typeof p === "string" && p.trim() !== "")
     .join(" ")
     .trim();
-  if (partes !== "") return partes;
+  if (parts !== "") return parts;
   const email = typeof profile.email === "string" ? profile.email : "";
   return email.split("@")[0] || "Minha conta";
 }
 
 /**
- * Usuário da sessão atual, ou `null` se não houver.
+ * Perfil cru da sessão, como o backend devolve, ou `null` se não houver sessão.
  *
- * `cache()` do React memoriza por REQUISIÇÃO: o cabeçalho e qualquer outro
- * componente que peça a sessão na mesma renderização compartilham uma única
- * chamada ao backend, em vez de uma por chamador.
+ * `cache()` do React memoriza por REQUISIÇÃO: o cabeçalho, a guarda do painel
+ * administrativo e qualquer outro componente que precise da sessão na mesma
+ * renderização compartilham UMA chamada ao backend, em vez de uma por chamador.
+ *
+ * Interno de propósito. Quem consome escolhe entre `getSessionUser()` (o que a
+ * tela mostra) e `getSessionRole()` (o que a tela autoriza) — devolver o objeto
+ * inteiro por aí espalharia e-mail e papel por componentes que não precisam
+ * deles, e é assim que um dado sensível acaba num log de client component.
  *
  * FAIL SECURE: qualquer imprevisto — sem API configurada, timeout, 401, corpo
  * inesperado — resolve para `null`, isto é, "deslogado". Nunca o contrário.
  */
-export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
+const fetchProfile = cache(async (): Promise<Record<string, unknown> | null> => {
   // Sem backend configurado não existe sessão. Fingir uma aqui deixaria o
   // cabeçalho mentindo sobre estar logado — e um estado de login que não
   // depende do servidor é exatamente o que não pode existir.
@@ -126,12 +131,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
         : null;
     if (typeof profile !== "object" || profile === null) return null;
 
-    const perfil = profile as Record<string, unknown>;
-    return {
-      name: displayName(perfil),
-      avatar: safeAvatar(perfil.avatarUrl),
-      online: true,
-    };
+    return profile as Record<string, unknown>;
   } catch {
     // Rede fora, timeout ou JSON inválido. Não logamos o erro com o objeto da
     // requisição junto: ele carrega o cookie de sessão no header.
@@ -139,4 +139,38 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   } finally {
     clearTimeout(timer);
   }
+});
+
+/** Usuário da sessão atual, ou `null` se não houver. */
+export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
+  const profile = await fetchProfile();
+  if (profile === null) return null;
+
+  return {
+    name: displayName(profile),
+    avatar: safeAvatar(profile.avatarUrl),
+    online: true,
+  };
+});
+
+/** Espelha o enum `UserRole` do backend (prisma/schema.prisma). */
+export type SessionRole = "ADMIN" | "USER";
+
+/**
+ * Papel da sessão atual, ou `null` sem sessão.
+ *
+ * Só "é ADMIN" ou "não é": qualquer valor que não seja exatamente `"ADMIN"` —
+ * inclusive um papel novo que o backend passe a devolver e este código ainda
+ * não conheça — cai em `USER`. Um papel desconhecido tratado como privilegiado
+ * é como uma mudança no servidor abre o painel sem ninguém perceber.
+ *
+ * Isto NÃO é a autorização, é o que a interface usa para não desenhar uma tela
+ * que a pessoa não pode usar. Quem autoriza de verdade é o `RolesGuard` do
+ * backend, em cada rota: o painel inteiro poderia ser aberto no navegador sem
+ * que uma única chamada administrativa passasse.
+ */
+export const getSessionRole = cache(async (): Promise<SessionRole | null> => {
+  const profile = await fetchProfile();
+  if (profile === null) return null;
+  return profile.role === "ADMIN" ? "ADMIN" : "USER";
 });

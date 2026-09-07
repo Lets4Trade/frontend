@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/Button";
 import { getSessionUser, type SessionUser } from "@/features/auth/session";
+import { CartButton } from "@/features/cart/CartButton";
 import { cn } from "@/lib/cn";
 import { GlowBar } from "./GlowBar";
 import { UserMenu } from "./UserMenu";
@@ -126,23 +127,9 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
             </>
           )}
 
-          {/* O asset exportado (nó 1946:1074) já É o botão inteiro: 50×50 com o
-              círculo de borda e gradiente embutidos no SVG. Envolver numa borda
-              própria duplicaria o contorno e encolheria o glifo. */}
-          <button
-            type="button"
-            aria-label="Carrinho"
-            className="shrink-0 rounded-full transition-opacity hover:opacity-80"
-          >
-            <Image
-              src="/icons/cart.svg"
-              alt=""
-              width={50}
-              height={50}
-              aria-hidden
-              className="size-[50px]"
-            />
-          </button>
+          {/* O botão e a gaveta do carrinho vivem juntos em `CartButton`, que é
+              client component — o cabeçalho continua no servidor. */}
+          <CartButton />
 
           {/* Estado logado: avatar + seta, que abre o menu da conta. Os vãos
               do design são 25px (carrinho→avatar) e 15px (avatar→seta). */}
