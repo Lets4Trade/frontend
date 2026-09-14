@@ -1,5 +1,74 @@
 import type { NextConfig } from "next";
 
+/**
+ * Content Security Policy — de onde a página pode carregar o quê.
+ *
+ * ── Por que ficou assim (2026-09-14) ──────────────────────────────────────
+ * Até esta data a CSP tinha só `frame-ancestors 'none'`: protegia contra ser
+ * embutida em iframe, mas deixava a página carregar script, iframe e conexão de
+ * QUALQUER origem. Um XSS que conseguisse injetar `<script src=…>` rodaria
+ * código de fora sem obstáculo.
+ *
+ * A lista abaixo é o que o site usa DE FATO, e nada mais:
+ *   - o próprio domínio;
+ *   - a API (`NEXT_PUBLIC_API_URL`): chamadas, WebSocket do chat, imagens;
+ *   - Cloudflare Turnstile (anti-robô no login e no cadastro): script + iframe;
+ *   - YouTube sem cookies: o iframe do vídeo da home.
+ * Não há tracker, CDN de fonte nem mapa carregados hoje. Entrou coisa nova de
+ * fora? Ela precisa entrar aqui — senão o navegador bloqueia e o console diz
+ * exatamente o quê.
+ *
+ * ── O trade-off do `'unsafe-inline'` em script ────────────────────────────
+ * O Next injeta scripts inline para hidratar a página. Tirar o
+ * `'unsafe-inline'` exige nonce por requisição, o que torna TODA página
+ * dinâmica e desliga o cache estático do Next. Aceito conscientemente: a
+ * política continua impedindo script de OUTRA origem, `<object>`/`<embed>`,
+ * troca de `<base>` e envio de formulário para fora — que é o grosso do que um
+ * XSS faz com a página. O React já escapa todo texto, e o projeto não usa
+ * `dangerouslySetInnerHTML`.
+ *
+ * `'unsafe-eval'` e `ws:` só em desenvolvimento: são do recarregamento a quente.
+ */
+function contentSecurityPolicy(): string {
+  const isDev = process.env.NODE_ENV !== "production";
+
+  let apiOrigin = "";
+  let apiSocket = "";
+  try {
+    const api = new URL(process.env.NEXT_PUBLIC_API_URL ?? "");
+    apiOrigin = api.origin;
+    apiSocket = api.origin.replace(/^http/, "ws");
+  } catch {
+    // Sem API configurada a loja não funciona de qualquer forma; a CSP só não
+    // libera origem nenhuma além da própria.
+  }
+
+  const turnstile = "https://challenges.cloudflare.com";
+  const youtube = "https://www.youtube-nocookie.com";
+
+  const directives: Record<string, string[]> = {
+    "default-src": ["'self'"],
+    "script-src": ["'self'", "'unsafe-inline'", turnstile, ...(isDev ? ["'unsafe-eval'"] : [])],
+    "style-src": ["'self'", "'unsafe-inline'"],
+    "img-src": ["'self'", "data:", "blob:", apiOrigin],
+    "font-src": ["'self'", "data:"],
+    "connect-src": ["'self'", apiOrigin, apiSocket, turnstile, ...(isDev ? ["ws:"] : [])],
+    "frame-src": [turnstile, youtube],
+    "media-src": ["'self'"],
+    "worker-src": ["'self'", "blob:"],
+    "object-src": ["'none'"],
+    "base-uri": ["'self'"],
+    "form-action": ["'self'"],
+    "frame-ancestors": ["'none'"],
+  };
+
+  const policy = Object.entries(directives)
+    .map(([name, sources]) => `${name} ${sources.filter(Boolean).join(" ")}`)
+    .join("; ");
+
+  // Em produção, qualquer `http://` que escape vira `https://` em vez de quebrar.
+  return isDev ? policy : `${policy}; upgrade-insecure-requests`;
+}
 
 const securityHeaders = [
   {
@@ -8,22 +77,25 @@ const securityHeaders = [
   },
   // Anti-clickjacking: as PÁGINAS HTML do app (checkout, exclusão de conta,
   // dashboard) não podiam ser enquadradas. `X-Frame-Options` cobre navegadores
-  // legados; `frame-ancestors 'none'` é o equivalente moderno via CSP.
+  // legados; `frame-ancestors 'none'` (dentro da CSP) é o equivalente moderno.
   {
     key: "X-Frame-Options",
     value: "DENY",
   },
   {
     key: "Content-Security-Policy",
-    value: "frame-ancestors 'none'",
+    value: contentSecurityPolicy(),
   },
   {
     key: "Referrer-Policy",
     value: "strict-origin-when-cross-origin",
   },
+  // `0`, e não `1; mode=block`: o filtro de XSS dos navegadores antigos foi
+  // removido dos atuais e, onde ainda existia, podia ser explorado para
+  // vazar dado entre origens. A proteção de verdade é a CSP acima.
   {
     key: "X-XSS-Protection",
-    value: "1; mode=block",
+    value: "0",
   },
   {
     key: "Strict-Transport-Security",

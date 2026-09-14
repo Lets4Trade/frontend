@@ -81,10 +81,28 @@ export async function login(
   }
 
   if (!response.ok) {
-    throw new AuthError(codeFromStatus(response.status), "Falha ao autenticar.");
+    const code =
+      response.status === 400 && (await isBotCheckFailure(response))
+        ? "bot_check"
+        : codeFromStatus(response.status);
+    throw new AuthError(code, "Falha ao autenticar.");
   }
 
   return (await response.json()) as LoginResult;
+}
+
+/**
+ * O `TurnstileGuard` do backend recusa com 400 e esta mensagem. Distinguir do
+ * 400 de validação importa: "confirme a verificação" pede uma ação diferente
+ * de "e-mail inválido".
+ */
+async function isBotCheckFailure(response: Response): Promise<boolean> {
+  try {
+    const body = (await response.clone().json()) as { message?: unknown };
+    return typeof body.message === "string" && body.message.includes("Verificação de segurança");
+  } catch {
+    return false;
+  }
 }
 
 function codeFromStatus(status: number): AuthErrorCode {
@@ -187,6 +205,7 @@ async function signupCodeFromResponse(
   response: Response,
 ): Promise<SignupErrorCode> {
   if (response.status === 429) return "rate_limited";
+  if (response.status === 400 && (await isBotCheckFailure(response))) return "bot_check";
   if (response.status === 409) {
     // O backend responde `ConflictException` do Nest — corpo
     // { statusCode, message, error }, SEM um campo `field`. E o único conflito

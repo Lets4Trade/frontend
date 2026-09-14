@@ -2,3 +2,8 @@ allowBuilds:
   msw: false
   sharp: false
   unrs-resolver: false
+
+# Versões mínimas de dependências INDIRETAS com vulnerabilidade conhecida
+# (auditoria de 2026-09-14). `browserslist` vem do Next (styled-jsx → babel).
+overrides:
+  browserslist: '>=4.28.7'

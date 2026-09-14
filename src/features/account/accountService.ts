@@ -1,4 +1,5 @@
 import { PASSWORD_RULE_TEXT } from "@/features/auth/password";
+import { fetchWithSession } from "@/lib/browserSession";
 import type { EditProfileValues } from "./schema";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
@@ -119,11 +120,13 @@ async function request(
 ) {
   let response: Response;
   try {
-    response = await fetch(`${API_URL}${path}`, {
+    // `fetchWithSession`: com o access de 15 minutos, uma página aberta há mais
+    // tempo que isso mandaria um token vencido — e o 401 abaixo seria lido
+    // como "senha atual incorreta". Ele renova uma vez e repete; só o 401 que
+    // sobrevive à renovação chega a `toAccountError`.
+    response = await fetchWithSession(`${API_URL}${path}`, {
       method,
       headers: { "Content-Type": "application/json", "x-pt-surface": "client" },
-      // O token é cookie httpOnly: `include` é o que o manda junto.
-      credentials: "include",
       body: JSON.stringify(body),
       signal,
     });

@@ -88,7 +88,12 @@ export async function SiteFooter() {
                         width={ICON_BOX}
                         height={ICON_BOX}
                         aria-hidden
-                        className="h-auto max-h-[21px] w-auto max-w-[21px] object-contain"
+                        // Caixa FIXA de 21×21 + `object-contain`: a arte cabe
+                        // inteira e mantém a proporção dentro dela. Não usar
+                        // `width/height: auto` — imagem com carregamento
+                        // preguiçoso fica com caixa 0×0 e o navegador nunca a
+                        // baixa (reproduzido em 2026-09-14).
+                        className="size-[21px] object-contain"
                       />
                     ) : (
                       // Rede cadastrada sem ícone mostra a inicial em vez de um

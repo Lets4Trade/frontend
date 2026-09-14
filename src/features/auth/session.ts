@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { cache } from "react";
+import { internalHeaders } from "@/lib/internalKey";
 
 /**
  * Leitura da sessão no SERVIDOR. É a única fonte de verdade sobre "está
@@ -115,6 +116,7 @@ const fetchProfile = cache(async (): Promise<Record<string, unknown> | null> => 
         cookie: cookieHeader,
         "x-pt-surface": SURFACE,
         accept: "application/json",
+        ...internalHeaders(),
       },
       // Sessão nunca entra em cache compartilhado: o HTML de um usuário logado
       // não pode ser servido a outro.

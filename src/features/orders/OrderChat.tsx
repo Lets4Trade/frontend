@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { io, type Socket } from "socket.io-client";
+import { refreshSession } from "@/lib/browserSession";
 import { toMessage, type ApiMessage, type OrderMessage } from "./messages";
 
 /**
@@ -85,7 +86,19 @@ export function OrderChat({
     });
 
     socket.on("disconnect", () => setStatus("offline"));
+
+    // Uma tentativa de renovação por montagem. O access dura 15 minutos: com a
+    // página do pedido aberta há mais tempo, a reconexão do socket leva um
+    // token vencido e o servidor recusa com "unauthenticated". Renova e
+    // reconecta UMA vez — se ainda falhar, a sessão acabou de verdade.
+    let retriedAfterRefresh = false;
     socket.on("connect_error", (error) => {
+      if (error.message === "unauthenticated" && !retriedAfterRefresh) {
+        retriedAfterRefresh = true;
+        void refreshSession().then((renewed) => {
+          if (renewed && socketRef.current === socket) socket.connect();
+        });
+      }
       setStatus("offline");
       // Só em desenvolvimento: "sem conexão" na tela não diz POR QUE, e sem
       // isto a única forma de descobrir é abrir a aba de rede.

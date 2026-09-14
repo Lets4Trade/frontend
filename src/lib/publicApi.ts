@@ -1,3 +1,5 @@
+import { internalHeaders } from "./internalKey";
+
 /**
  * Leitura PÚBLICA do backend a partir do servidor.
  *
@@ -85,7 +87,7 @@ export async function publicApiGet<T>(
   try {
     const response = await fetch(`${API_URL}${path}`, {
       method: "GET",
-      headers: { accept: "application/json" },
+      headers: { accept: "application/json", ...internalHeaders() },
       ...(options?.revalidate
         ? {
             next: {

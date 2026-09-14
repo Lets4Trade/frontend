@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { internalHeaders } from "./internalKey";
 
 /**
  * Leitura autenticada do backend a partir do SERVIDOR.
@@ -186,6 +187,7 @@ async function request<T>(
       headers: {
         cookie: cookieHeader,
         "x-pt-surface": SURFACE,
+        ...internalHeaders(),
         accept: "application/json",
         // Só o corpo JSON declara o tipo. Com `FormData`, o `fetch` monta o
         // `content-type` sozinho — junto do boundary, que é o que separa os
