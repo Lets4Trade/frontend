@@ -38,6 +38,12 @@ export const createProductSchema = z.object({
 
   /** Vazio é válido: um jogo pode não ter servidores cadastrados. */
   serverId: z.string().optional().default(""),
+
+  /**
+   * Vazio é válido: a categoria é opcional, e um jogo que ainda não passou pelo
+   * Builder de Páginas não tem nenhuma para escolher.
+   */
+  categoryId: z.string().optional().default(""),
 });
 
 export type CreateProductValues = z.infer<typeof createProductSchema>;

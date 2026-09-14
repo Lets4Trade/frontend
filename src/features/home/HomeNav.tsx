@@ -1,4 +1,5 @@
 import Image from "next/image";
+import type { SectionItemView } from "@/features/site/content";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 
@@ -27,17 +28,29 @@ const NAV_ITEMS = [
   { label: "VENDA PRA NÓS", icon: "/icons/home/nav-venda.svg", href: "/venda", left: 1047, active: false, dropdown: true },
 ];
 
-/** Centro dos dois contadores, do arquivo (x=390 e x=1494,75 no frame). */
-const STATS = [
-  { center: 340, value: "+4000", label: "CLIENTES ATENDIDOS" },
-  { center: 1444.75, value: "+5", label: "ANOS DE EXPÊRIENCIA" },
-];
+/**
+ * O CENTRO de cada contador, do arquivo (x=390 e x=1494,75 no frame).
+ *
+ * Só a posição fica aqui — o número e a legenda vêm do banco, editados em
+ * "Edição de sessões" → Home → Contadores. Eram fixos no código, com
+ * "EXPÊRIENCIA" escrito errado no ar desde sempre; agora se corrige sem deploy.
+ *
+ * Dois centros para dois contadores: um terceiro não teria onde ficar, então a
+ * lista é cortada em dois. É o mesmo compromisso do hero — conteúdo editável,
+ * apresentação do arquivo.
+ */
+const STAT_CENTERS = [340, 1444.75];
 
-export function HomeNav() {
+export function HomeNav({ stats = [] }: { stats?: SectionItemView[] }) {
   return (
     <section className="relative h-[129px]">
-      {STATS.map((stat) => (
-        <Stat key={stat.label} {...stat} />
+      {stats.slice(0, STAT_CENTERS.length).map((stat, index) => (
+        <Stat
+          key={stat.id}
+          center={STAT_CENTERS[index]}
+          value={stat.title}
+          label={stat.body}
+        />
       ))}
 
       <nav aria-label="Seções principais" className="contents">

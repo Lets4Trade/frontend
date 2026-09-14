@@ -1,6 +1,6 @@
 import { Pagination } from "@/components/ui/Pagination";
-import Link from "next/link";
-import { buildHref, selectProducts, type CatalogQuery } from "./catalog";
+import { buildHref, type CatalogQuery } from "./catalog";
+import { getCatalog } from "./content";
 import { ProductCard } from "./ProductCard";
 import type { GamePage } from "./types";
 
@@ -11,23 +11,30 @@ import type { GamePage } from "./types";
  * `auto-fill` em vez de seis colunas fixas porque o número de produtos por
  * página é editável — com `grid-cols-6` uma página de 4 itens deixaria dois
  * buracos e uma de 30 estouraria a faixa.
+ *
+ * É `async` desde 2026-09-10: os produtos vêm do BANCO, já filtrados e
+ * paginados, em vez de serem recortados em memória de um catálogo semente. O
+ * componente é server component, então a espera acontece na renderização e o
+ * navegador recebe a página pronta — sem estado de carregamento e sem o
+ * catálogo inteiro viajando pela rede.
  */
-export function ProductGrid({
+export async function ProductGrid({
   page,
   query,
 }: {
   page: GamePage;
   query: CatalogQuery;
 }) {
-  const result = selectProducts(page, query);
+  const result = await getCatalog(page, query);
 
-  // O carrinho mostra o NOME do servidor e o logo do jogo; o produto guarda só
-  // o id do servidor. A página tem os dois, então a tradução acontece aqui.
-  const server = page.servers.items.find((item) => item.id === query.server);
+  // O carrinho mostra o NOME do servidor e o logo do jogo. O produto já traz o
+  // rótulo do seu próprio servidor; o do filtro entra como reserva para o
+  // produto que não tem servidor cadastrado.
+  const server = page.servers.items.find((item) => item.slug === query.server);
   const context = {
     gameSlug: page.slug,
     platform: server?.label ?? page.name,
-    gameLogo: page.identity.logo.src,
+    gameLogo: page.identity.logo?.src,
   };
 
   if (result.items.length === 0) {

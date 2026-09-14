@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { getAccountProfile } from "@/features/account/profile";
 import { CheckoutClient } from "@/features/checkout/CheckoutClient";
 import { CheckoutShell } from "@/features/checkout/CheckoutShell";
+import { getLoyalty } from "@/features/loyalty/data";
+import { getContacts } from "@/features/site/contacts";
 
 export const metadata: Metadata = {
   title: "Checkout | Lets4Trade",
@@ -23,22 +24,27 @@ export const metadata: Metadata = {
  * de sessão só aparece no momento de criar o pedido, e aí manda para o login
  * com retorno.
  *
- * O perfil é lido no SERVIDOR quando existe sessão: é ele que torna reais o
+ * A FIDELIDADE é lida no SERVIDOR quando existe sessão: é ela que torna reais o
  * saldo de Lets Coins e o card de cashback. Sem sessão, os dois caem no estado
  * de quem ainda não comprou — que é a verdade, não um marcador.
+ *
+ * Vem de `GET /me/loyalty` e não mais de `/me`: o card precisa do nível, do
+ * percentual, do progresso e do que falta para o próximo, e até 2026-09-10 a
+ * tela CALCULAVA tudo isso a partir do total gasto contra uma tabela que só
+ * existia no frontend. A tabela agora é do backend, e o cálculo também.
  */
 export default async function CheckoutPage() {
-  const result = await getAccountProfile();
-  const profile = result.ok
-    ? {
-        letsCoins: result.profile.coins,
-        totalSpent: Number(result.profile.totalSpent) || 0,
-      }
-    : null;
+  // Em paralelo: o contato é leitura pública e cacheada, e não pode somar
+  // latência à tela de pagamento.
+  const [result, contacts] = await Promise.all([getLoyalty(), getContacts()]);
 
   return (
     <CheckoutShell>
-      <CheckoutClient profile={profile} />
+      <CheckoutClient
+        loyalty={result.ok ? result.summary : null}
+        // Só o LINK montado viaja para o cliente — ver `features/site/contacts.ts`.
+        whatsappHref={contacts.whatsapp?.href}
+      />
     </CheckoutShell>
   );
 }

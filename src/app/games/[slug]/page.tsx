@@ -4,20 +4,8 @@ import { notFound } from "next/navigation";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { parseCatalogQuery } from "@/features/game/catalog";
-import {
-  CatalogToolbar,
-  CategoryPanel,
-  ServerPicker,
-} from "@/features/game/CatalogFilters";
-import { getGamePage } from "@/features/game/content";
-import { GameIdentity } from "@/features/game/GameIdentity";
-import {
-  BannerSection,
-  GameFaqSection,
-  NewsSection,
-  ReferencesSection,
-} from "@/features/game/GameSections";
-import { ProductGrid } from "@/features/game/ProductGrid";
+import { getGamePage, withActiveTab } from "@/features/game/content";
+import { GamePageSections } from "@/features/game/GamePageSections";
 
 type RouteParams = { slug: string };
 type RouteSearch = Record<string, string | string[] | undefined>;
@@ -57,8 +45,12 @@ export async function generateMetadata({
  * 100% editável pelo admin:
  *
  * 1. NADA de texto ou imagem está escrito aqui. Tudo vem de `getGamePage()`,
- *    que devolve um `GamePage` (ver `features/game/types.ts`). Trocar o
- *    conteúdo semente por uma chamada de API não mexe em nenhum componente.
+ *    que devolve um `GamePage` (ver `features/game/types.ts`).
+ *
+ *    A promessa que essa regra fazia — "trocar o conteúdo semente por uma
+ *    chamada de API não mexe em nenhum componente" — foi cobrada em 2026-09-10
+ *    e se cumpriu: a virada para o banco mudou `content.ts` e mais nada aqui,
+ *    além de a grade de produtos ter virado `async`.
  *
  * 2. A página é montada em FLUXO, e não em coordenada absoluta como a home.
  *    Aqui os textos são escritos por outra pessoa e vão ter comprimentos que o
@@ -78,18 +70,23 @@ export async function generateMetadata({
  *      4256  dúvidas
  *      5338  rodapé
  *
+ *    Esses vãos continuam valendo para a ordem PADRÃO. Desde 2026-09-10 o
+ *    builder reordena e esconde qualquer um dos nove blocos, e aí eles se
+ *    espaçam de forma regular — ver `features/game/sections.ts`.
+ *
  * O catálogo (filtro, ordenação, busca, paginação) roda no SERVIDOR, com o
  * estado na URL — ver `features/game/catalog.ts`.
  */
 export default async function GamePage({ params, searchParams }: PageProps) {
   const { slug } = await params;
-  const page = await getGamePage(slug);
-  if (!page) notFound();
+  const base = await getGamePage(slug);
+  if (!base) notFound();
 
-  const query = parseCatalogQuery(await searchParams, page);
-
-  const showBanner = page.sections.includes("banner");
-  const rest = page.sections.filter((section) => section !== "banner");
+  // A query é validada CONTRA a página (abas e servidores deste jogo), e a
+  // página só sabe qual aba está ativa depois disso. Daí a ordem: lê, valida,
+  // e então aplica a escolha — ver `withActiveTab`.
+  const query = parseCatalogQuery(await searchParams, base);
+  const page = withActiveTab(base, query.tab);
 
   return (
     <div className="flex min-h-dvh flex-col bg-brand-bg">
@@ -115,37 +112,9 @@ export default async function GamePage({ params, searchParams }: PageProps) {
           />
 
           <div className="relative mx-auto w-[1714px] pt-[50px] pb-[100px]">
-            {showBanner ? <BannerSection banners={page.banners} /> : null}
-
-            <div className={showBanner ? "mt-[42px]" : undefined}>
-              <GameIdentity page={page} />
-            </div>
-
-            <div className="mt-[44px]">
-              <ServerPicker page={page} query={query} />
-            </div>
-
-            <div className="mt-[25px]">
-              <CategoryPanel page={page} query={query} />
-            </div>
-
-            <div className="mt-[47px]">
-              <CatalogToolbar page={page} query={query} />
-            </div>
-
-            <div className="mt-[25px]">
-              <ProductGrid page={page} query={query} />
-            </div>
-
-            {rest.map((section) => (
-              <div key={section} className="mt-[50px]">
-                {section === "references" ? (
-                  <ReferencesSection references={page.references} />
-                ) : null}
-                {section === "news" ? <NewsSection news={page.news} /> : null}
-                {section === "faq" ? <GameFaqSection groups={page.faq} /> : null}
-              </div>
-            ))}
+            {/* A ORDEM dos blocos é do builder (etapa 10), não deste arquivo.
+                Ver `features/game/GamePageSections.tsx`. */}
+            <GamePageSections page={page} query={query} />
           </div>
         </div>
       </main>

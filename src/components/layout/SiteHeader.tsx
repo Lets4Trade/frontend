@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/Button";
 import { getSessionUser, type SessionUser } from "@/features/auth/session";
 import { CartButton } from "@/features/cart/CartButton";
+import { getLoyaltyTiers } from "@/features/loyalty/publicTiers";
+import { getLayoutContent } from "@/features/site/layoutContent";
 import { cn } from "@/lib/cn";
 import { GlowBar } from "./GlowBar";
 import { UserMenu } from "./UserMenu";
@@ -15,9 +17,20 @@ import { UserMenu } from "./UserMenu";
  *   logo   x=50   138×65      GAMES  x=212  159×50
  *   busca  x=396  219×50      CRIAR  x=1376 197×50
  *   ACESSAR x=1598 197×50     carrinho x=1820 50×50
- * Os vãos são de 25px e as larguras são FIXAS — não derivadas do padding. Com
- * padding, a largura passaria a depender do texto e qualquer tradução ou
- * mudança de cópia deslocaria a barra inteira.
+ * Os vãos são de 25px. As larguras eram FIXAS pelo motivo acima: derivadas de
+ * padding, elas passariam a depender do texto e qualquer mudança de cópia
+ * deslocaria a barra. Desde que os rótulos viraram conteúdo de banco
+ * (2026-09-14) elas são MÍNIMAS: o padrão desenha os mesmos 159 e 197px, porque
+ * o texto é menor que a caixa, mas um rótulo maior cresce em vez de ser cortado
+ * no meio da palavra. O selo do centro não se move — está ancorado ao header,
+ * não ao espaço que sobra.
+ *
+ * ── O que é editável, e onde ──────────────────────────────────────────────
+ * Logo, rótulos dos três botões, texto de exemplo da busca e o selo saem da
+ * página "Cabeçalho e rodapé" em `/admin/sessoes`. A leitura é cacheada com
+ * invalidação por etiqueta (`features/site/layoutContent.ts`): o cabeçalho
+ * renderiza em TODA requisição do site e não pode custar uma ida ao backend por
+ * página.
  *
  * `max-w-[1920px]` + `px-[50px]` reproduz a margem de 50px dos dois lados: o
  * header do arquivo tem 1904px (16px a menos, sobra de barra de rolagem), mas
@@ -42,7 +55,26 @@ import { UserMenu } from "./UserMenu";
  * vazio em qualquer tela real.
  */
 export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
-  const sessao = user ?? (await getSessionUser());
+  /**
+   * Sessão e níveis em PARALELO.
+   *
+   * A tabela de níveis é pública e cacheada por uma hora — na prática esta
+   * chamada quase nunca sai da máquina. Em série, o cabeçalho de TODA página
+   * pagaria a soma das duas latências na primeira renderização de cada hora.
+   */
+  const [sessao, { tiers }, layout] = await Promise.all([
+    user ? Promise.resolve(user) : getSessionUser(),
+    getLoyaltyTiers(),
+    getLayoutContent(),
+  ]);
+
+  // Os rótulos e a marca vêm do painel ("Cabeçalho e rodapé" em
+  // `/admin/sessoes`). A leitura é cacheada com invalidação por etiqueta — ver
+  // `features/site/layoutContent.ts`.
+  const brand = layout.text("marca");
+  const badge = layout.text("header-selo");
+  const search = layout.text("header-busca");
+  const actions = layout.text("header-acoes");
   return (
     <header className="relative z-20 h-[83px] w-full bg-black/50 backdrop-blur-[9px]">
       <GlowBar className="-top-[2px]" />
@@ -50,7 +82,7 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
       <div className="relative mx-auto flex h-full max-w-[1920px] items-center gap-[25px] px-4 sm:px-6 lg:px-[50px]">
         <Link href="/" aria-label="Lets4Trade — página inicial" className="shrink-0">
           <Image
-            src="/images/lets4trade-logo.png"
+            src={brand.imageUrl ?? "/images/lets4trade-logo.png"}
             alt="Lets4Trade"
             width={138}
             height={65}
@@ -61,8 +93,20 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
           />
         </Link>
 
-        <Button variant="outline" className="hidden w-[159px] shrink-0 px-0 md:inline-flex">
-          GAMES
+        {/* As larguras dos botões deixaram de ser FIXAS e viraram MÍNIMAS
+            quando os rótulos passaram a ser editáveis pelo painel. Com
+            `w-[159px]` + `px-0`, um rótulo maior que a caixa era simplesmente
+            cortado no meio da palavra. Com `min-w` + recuo, o padrão continua
+            desenhando exatamente os 159px do arquivo (o texto é menor que a
+            caixa) e um rótulo longo cresce em vez de sumir.
+
+            Crescer é seguro aqui: o selo do centro é posicionado em relação ao
+            header inteiro, não ao espaço que sobra, então ele não se move. */}
+        <Button
+          variant="outline"
+          className="hidden min-w-[159px] shrink-0 px-[20px] md:inline-flex"
+        >
+          {actions.title}
         </Button>
 
         <div className="relative hidden w-[219px] shrink-0 lg:block">
@@ -77,7 +121,7 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
           <input
             type="search"
             aria-label="Buscar"
-            placeholder="O que você busca?"
+            placeholder={search.title}
             // Placeholder da busca em Helvetica Neue Regular no design.
             className="h-[50px] w-full rounded-full border-2 border-[var(--brand-stroke-soft)] bg-[image:var(--brand-surface-fill)] pr-4 pl-[60px] font-helvetica text-[15px] tracking-[0.15px] text-white outline-none transition-colors placeholder:text-brand-placeholder focus:border-brand-orange"
           />
@@ -94,12 +138,12 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
         <div className="pointer-events-none absolute top-1/2 left-1/2 hidden -translate-x-1/2 -translate-y-1/2 flex-col items-center leading-none xl:flex">
           <div className="flex items-center gap-2">
             <span className="bg-gradient-to-b from-brand-orange to-brand-orange-deep bg-clip-text font-korataki text-[20px] font-bold tracking-[0.2px] text-transparent">
-              +1000
+              {badge.title}
             </span>
             <Image src="/icons/youtube-color.svg" alt="" width={19} height={19} aria-hidden />
           </div>
           <span className="mt-1 font-korataki text-[13px] tracking-[0.13px] text-white">
-            REFERÊNCIAS
+            {badge.subtitle}
           </span>
         </div>
 
@@ -113,23 +157,26 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
                 href="/criar-conta"
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "hidden w-[197px] px-0 sm:inline-flex",
+                  "hidden min-w-[197px] px-[20px] sm:inline-flex",
                 )}
               >
-                CRIAR CONTA
+                {actions.subtitle}
               </Link>
               <Link
                 href="/login"
-                className={cn(buttonVariants({ variant: "cta" }), "w-[197px] px-0")}
+                className={cn(
+                  buttonVariants({ variant: "cta" }),
+                  "min-w-[197px] px-[20px]",
+                )}
               >
-                ACESSAR CONTA
+                {actions.footnote}
               </Link>
             </>
           )}
 
           {/* O botão e a gaveta do carrinho vivem juntos em `CartButton`, que é
               client component — o cabeçalho continua no servidor. */}
-          <CartButton />
+          <CartButton tiers={tiers} />
 
           {/* Estado logado: avatar + seta, que abre o menu da conta. Os vãos
               do design são 25px (carrinho→avatar) e 15px (avatar→seta). */}

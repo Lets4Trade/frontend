@@ -1,5 +1,8 @@
 import Image from "next/image";
-import { Button } from "@/components/ui/Button";
+import { buttonVariants } from "@/components/ui/Button";
+import { cn } from "@/lib/cn";
+import { VideoPlayer } from "./VideoPlayer";
+import { youtubeId, youtubeWatchUrl } from "./youtube";
 
 /**
  * Bloco "CLIENTES 100% SATISFEITOS" com o vídeo de apresentação
@@ -14,14 +17,32 @@ import { Button } from "@/components/ui/Button";
  * fica em x=196, que é exatamente o centro dos 570px da caixa de texto
  * (50 + (570-276)/2 = 197). Título e parágrafo seguem o mesmo eixo.
  */
-export function VideoSection() {
+/** A miniatura padrão do vídeo, quando o admin não subiu outra. */
+const VIDEO_THUMB = "/images/video-thumb.png";
+
+export function VideoSection({
+  title = "CLIENTES 100%\nSATISFEITOS",
+  image = VIDEO_THUMB,
+  videoUrl,
+}: {
+  title?: string;
+  image?: string;
+  /**
+   * O link do YouTube, digitado no painel ("Home - Vídeo"). Só o ID é
+   * aproveitado — ver `youtube.ts`. Link inválido conta como ausente.
+   */
+  videoUrl?: string;
+}) {
+  const videoId = youtubeId(videoUrl);
+
   return (
     <section className="relative h-[609px]">
       {/* Título: Poppins SemiBold 65 em duas linhas, caixa de 547 (526:1064). */}
-      <h2 className="absolute top-[93px] left-0 w-[547px] text-center font-poppins text-[65px] leading-none font-semibold text-white">
-        CLIENTES 100%
-        <br />
-        SATISFEITOS
+      {/* `whitespace-pre-line`: o título vem da tela "Edição de sessões" e a
+          quebra dele é uma quebra de linha de verdade no campo, não um `<br>`
+          que o admin teria que digitar. O padrão do arquivo tem duas linhas. */}
+      <h2 className="absolute top-[93px] left-0 w-[547px] text-center font-poppins text-[65px] leading-none font-semibold whitespace-pre-line text-white">
+        {title}
       </h2>
 
       {/* No arquivo a primeira frase é Bold e branca, e o resto Regular em
@@ -43,12 +64,20 @@ export function VideoSection() {
       {/* 276×50 em x=196. O `variant="primary"` já é o retângulo do arquivo
           (#FF7300 chapado, contorno branco 15%, texto preto Poppins Bold 16);
           a sombra vem do filtro do próprio nó: dy 16, blur 18,5, preto 25%. */}
-      <Button
-        variant="primary"
-        className="absolute top-[411px] left-[146px] w-[276px] px-0 shadow-[0_16px_18.5px_rgba(0,0,0,0.25)]"
+      {/* Era um `<Button>` sem ação nenhuma. O texto logo acima diz que os
+          feedbacks estão nos comentários do vídeo, então é para lá que ele
+          leva — em nova aba, porque sai da loja. Sem vídeo, desce até as
+          reviews da própria home, que é a outra prova que a página tem. */}
+      <a
+        href={videoId ? youtubeWatchUrl(videoId) : "#reviews"}
+        {...(videoId ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+        className={cn(
+          buttonVariants({ variant: "primary" }),
+          "absolute top-[411px] left-[146px] w-[276px] px-0 shadow-[0_16px_18.5px_rgba(0,0,0,0.25)]",
+        )}
       >
         VEJA NOSSAS REFERÊNCIAS
-      </Button>
+      </a>
 
       <p className="absolute top-[486px] left-[2px] w-[568px] text-center font-helvetica text-[16px] leading-[normal] tracking-[0.16px] text-brand-placeholder">
         E fique a vontade para deixar seu feedback também!
@@ -70,68 +99,7 @@ export function VideoSection() {
         CEO - LETS4TRADE
       </p>
 
-      <VideoPlayer />
+      <VideoPlayer image={image} videoId={videoId} />
     </section>
-  );
-}
-
-/**
- * Player: thumbnail com o botão de play centralizado. O botão é uma pílula de
- * vidro (`backdrop-blur` 46.8px) com o anel de texto girando em volta do ícone.
- *
- * O anel gira só para quem não pediu menos movimento — `motion-safe`. Animação
- * contínua em loop é justamente o caso que `prefers-reduced-motion` existe para
- * cobrir.
- */
-function VideoPlayer() {
-  return (
-    <button
-      type="button"
-      aria-label="Assistir ao vídeo de apresentação"
-      className="play-button absolute top-0 left-[674px] h-[609px] w-[1146px] overflow-hidden rounded-[30px]"
-    >
-      <Image
-        src="/images/video-thumb.png"
-        alt=""
-        width={1146}
-        height={609}
-        aria-hidden
-        className="play-thumb size-full object-cover"
-      />
-
-      <span
-        className="play-pill absolute inset-0 m-auto flex size-[191.56px] items-center justify-center rounded-full backdrop-blur-[46.8px]"
-        style={{
-          backgroundImage:
-            "linear-gradient(142.13deg, rgba(254,248,255,0.189) 1.8%, rgba(254,248,255,0) 99.75%)",
-        }}
-      >
-        <Image
-          src="/icons/home/circle-text.svg"
-          alt=""
-          width={128}
-          height={128}
-          aria-hidden
-          className="size-[127.7px] motion-safe:animate-[spin_12s_linear_infinite]"
-        />
-
-        <span
-          className="play-core absolute flex size-[68px] items-center justify-center rounded-full"
-          style={{
-            backgroundImage:
-              "linear-gradient(131.59deg, #ff7300 13.819%, #ff4d00 89.223%)",
-          }}
-        >
-          <Image
-            src="/icons/home/media-video.svg"
-            alt=""
-            width={15}
-            height={16}
-            aria-hidden
-            className="h-[16px] w-[15px]"
-          />
-        </span>
-      </span>
-    </button>
   );
 }

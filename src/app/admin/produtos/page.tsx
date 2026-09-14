@@ -14,6 +14,7 @@ import {
 } from "@/features/admin/products/catalog";
 import { getAdminProducts } from "@/features/admin/products/list";
 import { cn } from "@/lib/cn";
+import { ADMIN_SHELL } from "@/features/admin/layout";
 
 export const metadata: Metadata = {
   title: "Produtos | Lets4Trade",
@@ -50,7 +51,7 @@ export default async function AdminProductsPage({
   const page = await getAdminProducts(query);
 
   return (
-    <div className="mx-auto w-full max-w-[1920px] px-[50px] pt-[34px] pb-[120px]">
+    <div className={`${ADMIN_SHELL} pb-[120px]`}>
         <ProductFilters games={games} query={query} />
 
         <div className="mt-[51px]">

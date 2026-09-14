@@ -10,28 +10,14 @@ import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { CopyRow } from "@/components/ui/CopyRow";
 import { SellForm } from "@/features/sell/SellForm";
+import { getContacts } from "@/features/site/contacts";
+import { getSectionItemsFor, getSectionsFor } from "@/features/site/content";
 
 export const metadata: Metadata = {
   title: "Venda pra nós | Lets4Trade",
   description:
     "Venda suas gamecoins, contas e itens para a Lets4Trade. Envie seus dados e entramos em contato.",
 };
-
-/** Contatos do card lateral. Trocar pelos canais reais quando definidos. */
-const CONTATOS = [
-  {
-    icon: "/icons/social/whatsapp.svg",
-    iconSize: 20,
-    label: "WhatsApp",
-    value: "+55 11 90000-0000",
-  },
-  {
-    icon: "/icons/social/discord.svg",
-    iconSize: 20,
-    label: "Discord",
-    value: "lets4trade",
-  },
-] as const;
 
 const SECTION_HEADING =
   "font-helvetica text-[30px] leading-[26px] font-bold tracking-[0.3px] text-white";
@@ -50,14 +36,58 @@ const SECTION_HEADING =
  * Diferença de borda em relação aos cards de autenticação: aqui é branco a
  * **10%**, lá é 15%.
  */
-export default function VendaPage() {
+export default async function VendaPage() {
+  // O título vem da tela "Edição de sessões"; vazio devolve o do arquivo.
+  const [section, items, contacts] = await Promise.all([
+    getSectionsFor("venda"),
+    getSectionItemsFor("venda"),
+    getContacts(),
+  ]);
+
+  /**
+   * Os canais do card "Contato Rápido" vêm de "Cabeçalho e rodapé → Contato e
+   * atendimento". Eram uma constante com o placeholder `+55 11 90000-0000` —
+   * número inventado no ar, na tela de quem quer vender para a loja. Canal não
+   * preenchido não aparece.
+   */
+  const channels = [
+    contacts.whatsapp && {
+      icon: "/icons/social/whatsapp.svg",
+      label: "WhatsApp",
+      value: contacts.whatsapp.value,
+    },
+    contacts.discord && {
+      icon: "/icons/social/discord.svg",
+      label: "Discord",
+      value: contacts.discord.value,
+    },
+  ].filter((channel) => Boolean(channel)) as {
+    icon: string;
+    label: string;
+    value: string;
+  }[];
+
+  /**
+   * Os dois subtítulos das colunas, editados como LISTA em "Edição de sessões".
+   *
+   * Lista e não dois campos fixos porque são o mesmo tipo de texto repetido — e
+   * porque uma terceira coluna, se aparecer, não exige coluna nova no banco.
+   * A posição na lista é a coluna: o primeiro item titula o formulário, o
+   * segundo o contato.
+   */
+  const blocos = items("blocos");
+  const tituloFormulario = blocos[0]?.title || "Suas Informações";
+  const tituloContato = blocos[1]?.title || "Contato Rápido";
+
   return (
     <div className="flex min-h-dvh flex-col bg-brand-bg">
       <SiteHeader />
 
       <main className="flex-1">
         <div className="mx-auto max-w-[1295px] px-4 py-[50px] lg:px-[50px]">
-          <h1 className={SECTION_HEADING}>VENDA PRA NÓS</h1>
+          <h1 className={SECTION_HEADING}>
+            {section("formulario").title || "VENDA PRA NÓS"}
+          </h1>
 
           <hr className="mt-[25px] border-0 border-t border-brand-hairline" />
 
@@ -65,7 +95,7 @@ export default function VendaPage() {
               títulos em 165). É o único vão da tela que foge dos 25px. */}
           <div className="mt-[63px] grid items-stretch gap-[50px] lg:grid-cols-[780px_365px]">
             <section className="flex flex-col">
-              <h2 className={SECTION_HEADING}>Suas Informações</h2>
+              <h2 className={SECTION_HEADING}>{tituloFormulario}</h2>
 
               <div className="mt-[25px] flex-1 rounded-[30px] border border-white/10 bg-brand-surface p-[25px] sm:p-[50px]">
                 <SellForm />
@@ -73,19 +103,29 @@ export default function VendaPage() {
             </section>
 
             <section className="flex flex-col">
-              <h2 className={SECTION_HEADING}>Contato Rápido</h2>
+              <h2 className={SECTION_HEADING}>{tituloContato}</h2>
 
               <div className="relative mt-[25px] flex-1 overflow-hidden rounded-[30px] border border-white/10 bg-brand-surface px-[25px] pt-[50px] pb-[303px]">
                 <div className="flex flex-col gap-[25px]">
-                  {CONTATOS.map((contato) => (
+                  {channels.map((channel) => (
                     <CopyRow
-                      key={contato.label}
-                      icon={contato.icon}
-                      iconSize={contato.iconSize}
-                      label={contato.label}
-                      value={contato.value}
+                      key={channel.label}
+                      icon={channel.icon}
+                      iconSize={20}
+                      label={channel.label}
+                      value={channel.value}
                     />
                   ))}
+
+                  {/* Sem canal cadastrado o card diz isso, em vez de ficar vazio
+                      sob o título "Contato Rápido". */}
+                  {channels.length === 0 ? (
+                    <p className="font-poppins text-[14px] leading-[22px] text-brand-fg-subtle">
+                      Nossos canais de atendimento aparecem aqui em breve.
+                      Enquanto isso, envie o formulário ao lado que entramos em
+                      contato.
+                    </p>
+                  ) : null}
                 </div>
 
                 {/* Mascote ancorado no rodapé do card. `pb-[303px]` acima

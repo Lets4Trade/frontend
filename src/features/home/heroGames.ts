@@ -21,17 +21,66 @@
  * 379×439): os originais somavam ~14 MB para aparecer com menos de 400px de
  * largura.
  */
+/**
+ * A geometria de UMA arte dentro do card de 336×758.
+ *
+ * `contain` só existe para arte nova, subida pelo painel: a geometria dela não
+ * foi medida contra o arquivo, então a imagem entra INTEIRA na caixa em vez de
+ * ser esticada para a proporção de outra arte.
+ */
+export type CharacterBox = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  blur: number;
+  contain?: boolean;
+};
+export type LogoBox = {
+  offsetX: number;
+  top: number;
+  width: number;
+  height: number;
+  blur?: number;
+};
+
+/**
+ * Um card do carrossel, JÁ RESOLVIDO: o que o `HeroDeck` desenha.
+ *
+ * Desde 2026-09-14 os cards vêm do BANCO (`home:hero`, editado em "Edição de
+ * sessões → Home - Hero"). Até então o painel gravava cinco slides que nada
+ * lia — o carrossel desenhava `HERO_GAMES`, e editar um slide não mudava a
+ * home. Ver `buildHeroSlides` abaixo.
+ */
+export type HeroSlide = {
+  id: string;
+  name: string;
+  character: string;
+  char: CharacterBox;
+  logo?: string;
+  logoBox: LogoBox;
+  /** Sem link, o card não é clicável — não inventamos destino. */
+  href?: string;
+};
+
 export type HeroGame = {
   key: string;
   name: string;
   character: string;
   /** Posição/tamanho do personagem dentro do card de 336×758. */
-  char: { left: number; top: number; width: number; height: number; blur: number };
+  char: CharacterBox;
   logo: string;
   /** `centered` posiciona o logo pelo centro do card, com deslocamento fino. */
-  logoBox: { offsetX: number; top: number; width: number; height: number; blur?: number };
+  logoBox: LogoBox;
 };
 
+/**
+ * As cinco artes do arquivo, com a geometria MEDIDA de cada uma.
+ *
+ * Deixou de ser a lista de cards: hoje é a BIBLIOTECA de geometrias que
+ * `buildHeroSlides` consulta para reconhecer as artes originais quando elas
+ * chegam do banco. Ver lá.
+ */
 export const HERO_GAMES: HeroGame[] = [
   {
     key: "diablo",
@@ -47,7 +96,13 @@ export const HERO_GAMES: HeroGame[] = [
     character: "/images/games/char-2.webp",
     char: { left: -27.69, top: 120, width: 379.384, height: 435, blur: 12.083 },
     logo: "/images/games/logo-2.png",
-    logoBox: { offsetX: -0.02, top: 590, width: 142.436, height: 117, blur: 4.228 },
+    logoBox: {
+      offsetX: -0.02,
+      top: 590,
+      width: 142.436,
+      height: 117,
+      blur: 4.228,
+    },
   },
   {
     key: "path-of-exile",
@@ -115,3 +170,95 @@ export const HERO_ROW_WIDTH = HERO_DECK_LEFT + HERO_DECK_WIDTH;
  * eixo vertical.
  */
 export const HERO_COIN = { left: 395, top: 648, size: 150 };
+
+/**
+ * Geometria para arte NOVA, subida pelo painel.
+ *
+ * O personagem ocupa a faixa que as cinco artes do arquivo ocupam em média
+ * (topo ~125, ~430 de altura) e entra por `contain`, encostado embaixo. O logo
+ * fica na mesma linha de base que os do arquivo (~600). Não é tão bonito quanto
+ * um recorte feito à mão — nenhuma regra geral é —, mas não deforma nem corta a
+ * arte de ninguém.
+ */
+const GENERIC_CHAR: CharacterBox = {
+  left: 0,
+  top: 110,
+  width: 336,
+  height: 439,
+  blur: 10,
+  contain: true,
+};
+const GENERIC_LOGO: LogoBox = { offsetX: 0, top: 596, width: 200, height: 100 };
+
+/**
+ * O nome que a SEMENTE dá ao copiar uma arte do `public/` para o backend.
+ *
+ * ⚠️ Tem que ser idêntico a `copyArt` em `backend/prisma/seed-site-content.ts`.
+ * É o que permite reconhecer "esta é a arte original do Diablo" e devolver a
+ * geometria medida dela: `/images/games/char-1.webp` vira
+ * `seed-images-games-char-1-webp.webp`. Se um lado mudar e o outro não, as
+ * artes originais caem na geometria genérica — ficam piores, não quebram.
+ */
+function seededName(source: string) {
+  return `seed-${source.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "")}.webp`;
+}
+
+const CHAR_BY_FILE = new Map(
+  HERO_GAMES.map((game) => [seededName(game.character), game]),
+);
+const LOGO_BY_FILE = new Map(
+  HERO_GAMES.map((game) => [seededName(game.logo), game]),
+);
+
+function fileName(url: string) {
+  return url.split("?")[0].split("/").pop() ?? "";
+}
+
+/**
+ * Os slides do banco → os cards do carrossel.
+ *
+ * ── Por que a geometria é procurada por ARTE, e não por posição ou nome ─────
+ * O recorte medido no arquivo pertence à IMAGEM: o personagem do Diablo foi
+ * posicionado a (10,130) com 315,7×419,2 porque aquela arte tem aquelas
+ * margens. Casar pela posição quebraria ao reordenar; casar pelo nome
+ * quebraria ao trocar a arte mantendo o nome. Pela arte, o admin pode
+ * reordenar, renomear e trocar só o logo — cada imagem original continua com a
+ * geometria dela, e só a imagem NOVA cai na genérica.
+ *
+ * Personagem e logo são procurados SEPARADAMENTE pelo mesmo motivo: trocar o
+ * logo não pode estragar o recorte do personagem.
+ *
+ * ── Lista vazia é vazia ────────────────────────────────────────────────────
+ * Mesma regra das outras listas da home. Slide sem personagem é descartado —
+ * um card de vidro sem arte nenhuma parece defeito, não escolha.
+ */
+export function buildHeroSlides(
+  items: {
+    id: string;
+    title: string;
+    image?: string;
+    secondaryImage?: string;
+    href?: string;
+  }[],
+): HeroSlide[] {
+  return items.flatMap((item) => {
+    if (!item.image) return [];
+
+    const charMatch = CHAR_BY_FILE.get(fileName(item.image));
+    const logoMatch = item.secondaryImage
+      ? LOGO_BY_FILE.get(fileName(item.secondaryImage))
+      : undefined;
+
+    return [
+      {
+        id: item.id,
+        name: item.title || charMatch?.name || "Jogo",
+        character: item.image,
+        char: charMatch?.char ?? GENERIC_CHAR,
+        logo: item.secondaryImage,
+        logoBox: logoMatch?.logoBox ?? GENERIC_LOGO,
+        href: item.href,
+      },
+    ];
+  });
+}

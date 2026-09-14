@@ -12,9 +12,15 @@
  * comprimento. Coordenada fixa quebraria na primeira edição, então esta página
  * é montada em FLUXO, com os espaçamentos do arquivo.
  *
- * Este arquivo é também o contrato que o backend vai ter que devolver. Ver
- * `content.ts`.
+ * ── O que já vem do BANCO e o que ainda não ────────────────────────────────
+ * Desde 2026-09-10 a identidade (nome, arte), as abas e os servidores são LIDOS
+ * do backend, e o catálogo vem de uma chamada própria e paginada. O que
+ * continua vindo do conteúdo semente é o material editorial — banners,
+ * referências, notícias e FAQ —, porque não existe model nem tela de edição
+ * para ele. Ver `content.ts`, que é a única fronteira de dados desta página.
  */
+
+import type { GameSectionKey } from "./sections";
 
 /** Imagem editável. `width`/`height` são as do arquivo original, para o `next/image`. */
 export type ImageRef = {
@@ -46,9 +52,15 @@ export type GameTab = {
   href: string;
 };
 
-/** Servidor / liga do jogo. */
+/**
+ * Servidor / liga do jogo.
+ *
+ * A identidade é o SLUG, e não o id do banco: o servidor escolhido viaja na URL
+ * pública (`?servidor=fate-of-the-vaal-sc`), que é compartilhada, entra no
+ * histórico do navegador e é indexada. Um cuid ali não serviria a ninguém.
+ */
 export type GameServer = {
-  id: string;
+  slug: string;
   label: string;
 };
 
@@ -64,9 +76,13 @@ export type GameProduct = {
   /** Em centavos: dinheiro não passa por `float`. */
   priceCents: number;
   image?: ImageRef;
-  serverId: string;
-  categoryId: string;
-  /** A aba em que o produto aparece. */
+  /** Ausente quando o produto não tem servidor cadastrado. */
+  serverSlug?: string;
+  serverLabel?: string;
+  /** Ausente enquanto o produto não foi classificado numa categoria. */
+  categorySlug?: string;
+  categoryLabel?: string;
+  /** A aba em que o produto aparece — derivada do `productType` do backend. */
   tabId: string;
 };
 
@@ -97,10 +113,15 @@ export type FaqGroup = {
 };
 
 /**
- * As seções que o admin pode reordenar ou esconder. A identidade (logo, título,
- * abas) e o catálogo não entram: sem eles não existe página de jogo.
+ * As seções da página. TODAS reordenam e todas podem ser escondidas — ver
+ * `sections.ts`, que é onde elas ganham rótulo, ordem padrão e espaçamento.
+ *
+ * Até 2026-09-10 só quatro entravam aqui, com a justificativa de que "sem a
+ * identidade e o catálogo não existe página de jogo". Isso confundia "não pode
+ * SUMIR" com "não pode MUDAR DE LUGAR": quem monta a página pode querer a grade
+ * de produtos acima do banner, e nada nisso ameaça a página.
  */
-export type GameSectionKey = "banner" | "references" | "news" | "faq";
+export type { GameSectionKey };
 
 export type GamePage = {
   slug: string;
@@ -111,9 +132,28 @@ export type GamePage = {
   banners: GameBanner[];
 
   identity: {
-    logo: ImageRef;
-    /** "Compre Moedas De Path Of Exile 2" — o admin escreve inteiro. */
+    /**
+     * Arte do jogo. Opcional: o cadastro do painel permite criar o jogo antes
+     * de ter a arte pronta, e a página não pode depender dela para existir.
+     *
+     * Sem `width`/`height` de propósito — a arte é subida pelo admin e não tem
+     * proporção conhecida. A caixa é fixa (199,435 × 163,82 no arquivo) e a
+     * imagem entra dentro dela por `object-contain`, que é o que impede um logo
+     * largo de sair esticado.
+     */
+    logo?: { src: string; alt?: string };
+    /** "Compre Moedas De Path Of Exile 2" — já resolvido, custom ou derivado. */
     heading: string;
+    /**
+     * O que o ADMIN escreveu no builder, quando escreveu algo.
+     *
+     * Existe separado do `heading` porque os dois se comportam diferente ao
+     * trocar de aba: o derivado acompanha a aba ("Compre Gold De…" vira "Compre
+     * Itens De…"), e o escrito à mão NÃO — ele é o título da página, não o da
+     * aba. Sem esta distinção, `withActiveTab` apagava o título personalizado no
+     * primeiro clique numa aba.
+     */
+    customHeading?: string;
     /** A moeda "4" à direita das abas. Opcional: nem todo jogo precisa dela. */
     coin?: ImageRef & { href?: string };
   };
@@ -125,11 +165,22 @@ export type GamePage = {
   servers: { label: string; items: GameServer[] };
   categories: { label: string; items: GameCategory[] };
 
-  catalog: {
-    /** Quantos cards por página. O arquivo desenha 6×4. */
-    pageSize: number;
-    products: GameProduct[];
-  };
+  /**
+   * Quantos cards por página. O arquivo desenha 6×4.
+   *
+   * Os PRODUTOS não moram mais aqui: eles vêm de `getCatalog()`, numa chamada
+   * própria que já chega filtrada, ordenada e paginada pelo banco. Carregá-los
+   * junto da página obrigaria a refazer a identidade inteira a cada clique de
+   * filtro — e, antes disso, a trazer o catálogo completo para a memória do
+   * servidor só para descartar quase tudo.
+   */
+  catalog: { pageSize: number };
+
+  /**
+   * Texto do pé da página, escrito no builder (etapa 9). Ausente = o admin não
+   * escreveu nenhum, e a seção não aparece.
+   */
+  description?: string;
 
   references: {
     title: string;
@@ -141,6 +192,6 @@ export type GamePage = {
   news: { title: string; items: GameNewsItem[] };
   faq: FaqGroup[];
 
-  /** Ordem e visibilidade das seções opcionais. */
+  /** Os blocos VISÍVEIS, do topo para o rodapé. Ausente da lista = escondido. */
   sections: GameSectionKey[];
 };

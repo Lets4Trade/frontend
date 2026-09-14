@@ -28,71 +28,12 @@ export const REVIEW_CARD_WIDTH = 288;
 export const REVIEW_CARD_HEIGHT = 387;
 export const REVIEW_CARD_STEP = 313;
 
-export const REVIEWS: Review[] = [
-  {
-    left: -329,
-    name: "VICC",
-    avatar: "/images/reviews/vicc.png",
-    body: "Fiquei realmente impressionado com a qualidade do serviço da LETS4TRADE. Comprei moedas para Diablo e todo o processo foi extremamente rápido e transparente. A entrega aconteceu em poucos minutos, exatamente como prometido. Além disso, o suporte foi muito educado e tirou todas as minhas dúvidas antes de finalizar a compra. É muito bom encontrar uma loja que passa confiança assim. Recomendo demais!",
-  },
-  {
-    left: -16,
-    name: "MIKEEZ",
-    avatar: "/images/reviews/mikeez.png",
-    body: "Era minha primeira vez comprando moedas online e eu estava com receio, mas a equipe da LETS4TRADE deixou tudo muito simples. O atendimento foi rápido, direto e super atencioso. Comprei moedas de Path of Exile 2 e chegou tudo certinho, sem qualquer problema. A loja é organizada, o processo é claro e a entrega é realmente imediata. Experiência excelente, com certeza volto a comprar.",
-  },
-  {
-    left: 297,
-    name: "MARSH",
-    avatar: "/images/reviews/marsh.png",
-    body: "LETS4TRADE me surpreendeu muito pela eficiência! Fiz o pedido, paguei e em questão de minutos minhas moedas já estavam na minha conta. Achei muito profissional o jeito que eles conduzem tudo, desde a comunicação até a confirmação da entrega. É ótimo quando encontramos um serviço que funciona exatamente como deveria. Loja rápida, confiável e com preços muito bons. Recomendo sem pensar duas vezes.",
-  },
-  {
-    left: 610,
-    name: "NUKETOWN",
-    avatar: "/images/reviews/nuketown.png",
-    body: "Já comprei moedas em outras lojas, mas nenhuma chegou perto da experiência que tive com a LETS4TRADE. A plataforma é simples, a compra é rápida e a entrega foi instantânea. O suporte também merece elogios — educados, prestativos e totalmente dispostos a ajudar. Dá pra ver que é um serviço sério, feito com foco no cliente. Continuarei comprando com eles sem dúvida.",
-  },
-  {
-    left: 923,
-    name: "ALICE3K",
-    avatar: "/images/reviews/alice3k.png",
-    body: "Serviço impecável! Precisei de moedas para Diablo e a LETS4TRADE entregou muito acima das minhas expectativas. A transação foi rápida, segura e sem nenhuma complicação. Gostei também da transparência: tudo é explicado de forma clara, desde o processo até o tempo de entrega. Experiência excelente do início ao fim. Loja totalmente confiável.",
-  },
-  {
-    left: 1236,
-    name: "MACHIDA",
-    avatar: "/images/reviews/machida.png",
-    body: "Eu gosto de testar várias lojas para ver qual é realmente boa, e posso dizer que a LETS4TRADE entrou no meu top 1. O atendimento foi rápido e educado, o processo de compra foi fácil e a entrega aconteceu em minutos. Fiquei impressionado com a eficiência e profissionalismo. As moedas chegaram certinho e sem qualquer risco. Muito satisfeito!",
-  },
-  {
-    left: 1549,
-    name: "ANINHA",
-    avatar: "/images/reviews/aninha.png",
-    body: "A LETS4TRADE definitivamente ganhou minha confiança. Fiz uma compra de moedas para Path of Exile e tudo aconteceu de maneira muito ágil. O suporte acompanhou a transação e deixou tudo bem seguro. Foi uma experiência tranquila, rápida e sem qualquer dor de cabeça. O tipo de loja que você compra uma vez e já vira cliente fiel.",
-  },
-  {
-    left: 1862,
-    name: "LIKEZY",
-    avatar: "/images/reviews/likezy.png",
-    body: "Experiência perfeita do começo ao fim. A LETS4TRADE tem um sistema extremamente simples e eficiente. Paguei e em menos de cinco minutos minhas moedas já estavam disponíveis. O atendimento é excelente e a equipe sempre responde com clareza e rapidez. Dá pra ver que é uma loja séria e comprometida com o cliente. Recomendo para qualquer jogador que precisa de moedas de forma segura.",
-  },
-];
-
-/** Total de avaliações exibido à esquerda da pílula de estrelas (Figma 617:821). */
-export const REVIEW_COUNT = 515;
-
 /**
- * Distância de um ciclo da esteira: a fila inteira, do primeiro card ao vão
- * depois do último.
+ * O X do PRIMEIRO card. Os demais saem daí, somando o passo.
  *
- * É esse valor exato que faz o laço não ter emenda. A faixa é desenhada DUAS
- * vezes, a segunda deslocada em `REVIEW_LOOP_WIDTH`; quando a animação chega a
- * `-REVIEW_LOOP_WIDTH`, a cópia está no pixel onde a original começou e o
- * quadro é idêntico ao inicial. Qualquer outro valor produz um salto visível.
- *
- * Sai de `REVIEWS.length` (e não de um número escrito à mão) para continuar
- * certo se um depoimento entrar ou sair — desde que os `left` sigam o passo
- * regular de 313px do arquivo.
+ * O arquivo escreve as oito posições uma a uma (-329, -16, 297...), mas elas
+ * formam uma progressão exata de 313px. Guardar o início e o passo é o que faz
+ * a esteira funcionar com QUALQUER quantidade de depoimentos — e a lista agora
+ * vem do banco, onde o admin adiciona e remove.
  */
-export const REVIEW_LOOP_WIDTH = REVIEWS.length * REVIEW_CARD_STEP;
+export const REVIEW_FIRST_LEFT = -329;

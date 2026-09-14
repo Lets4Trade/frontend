@@ -12,7 +12,12 @@ export const ORDER_STEPS = [
 export type OrderStepKey = (typeof ORDER_STEPS)[number]["key"];
 
 /** Situação exibida na pílula colorida ao lado do botão de chat. */
-export type OrderStatus = "pendente" | "aprovado" | "entregue" | "cancelado";
+export type OrderStatus =
+  | "pendente"
+  | "aprovado"
+  | "em_andamento"
+  | "entregue"
+  | "cancelado";
 
 export type Order = {
   id: string;
@@ -25,6 +30,18 @@ export type Order = {
   quantity: string;
   /** Já formatado em BRL pelo servidor ou por `Intl.NumberFormat` na borda. */
   price: string;
+  /**
+   * Abatimento pago com Lets Coins, já formatado. `null` quando não houve.
+   *
+   * Separado de `price` porque `price` é o preço CONGELADO do produto: o que a
+   * pessoa pagou é a diferença dos dois, e juntá-los faria o histórico dizer
+   * que o produto custava menos do que custava.
+   */
+  discount: string | null;
+  /** Quantas coins pagaram esse abatimento. Zero quando não houve. */
+  coinsSpent: number;
+  /** `price - discount`, já formatado: o que a pessoa de fato pagou. */
+  paid: string;
   /** Data já formatada (dd/mm/aa), como no design. */
   date: string;
   status: OrderStatus;
@@ -33,9 +50,18 @@ export type Order = {
 };
 
 /**
- * Cores da pílula de situação. O design só mostra "Pendente" (#ffd400 sobre
- * #424111); as outras seguem a mesma fórmula — texto saturado sobre um fundo
- * que é a mesma matiz bem escurecida.
+ * Cores da pílula de situação — as do arquivo do painel (2546:1136).
+ *
+ * Esta tabela é a ÚNICA fonte, usada tanto pelo card do cliente quanto pela
+ * tabela de "Vendas e pedidos".
+ *
+ * ⚠️ Eu tinha aproximado estes valores, anotando que a diferença "ninguém
+ * enxerga". Enxerga: #00cb45 contra o #00f55f do arquivo é um verde visivelmente
+ * mais apagado, e o vermelho idem. Agora são os do arquivo, dígito por dígito.
+ *
+ * "Entregue" é a única que o arquivo NÃO desenha — ele mostra Aprovado,
+ * Pendente, Em andamento e Cancelado. Segue a fórmula das outras: texto saturado
+ * sobre a mesma matiz bem escurecida.
  */
 export const ORDER_STATUS_STYLES: Record<
   OrderStatus,
@@ -47,7 +73,12 @@ export const ORDER_STATUS_STYLES: Record<
   },
   aprovado: {
     label: "Aprovado",
-    className: "bg-[#0f3d1c] text-[#00cb45]",
+    className: "bg-[#0f361e] text-[#00f55f]",
+  },
+  // Acrescentado com o painel de vendas (2026-09-10).
+  em_andamento: {
+    label: "Em andamento",
+    className: "bg-[#00214d] text-[#06b4ff]",
   },
   entregue: {
     label: "Entregue",
@@ -55,6 +86,6 @@ export const ORDER_STATUS_STYLES: Record<
   },
   cancelado: {
     label: "Cancelado",
-    className: "bg-[#3d1214] text-[#e0434a]",
+    className: "bg-[#350507] text-[#ff2828]",
   },
 };

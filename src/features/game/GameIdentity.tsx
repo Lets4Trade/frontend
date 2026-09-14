@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { GamePage, GameTab, ImageRef } from "./types";
+import type { GamePage, GameTab } from "./types";
 
 /**
  * Identidade do jogo (Figma 1524:517 + 1524:401): logo, título e as abas de
@@ -16,7 +16,7 @@ export function GameIdentity({ page }: { page: GamePage }) {
 
   return (
     <div className="relative flex items-start gap-[30px]">
-      <GameLogo logo={logo} />
+      <GameLogo logo={logo} name={page.name} />
 
       <div className="flex-1 pt-[8px]">
         <h1 className="font-helvetica text-[30px] leading-none font-bold tracking-[0.3px] text-white">
@@ -53,30 +53,48 @@ export function GameIdentity({ page }: { page: GamePage }) {
   );
 }
 
+/** A caixa do logo no arquivo. A arte entra DENTRO dela, nunca a estica. */
+const LOGO_BOX = { width: 199.435, height: 163.82 };
+
 /**
  * O logo tem uma cópia borrada atrás fazendo o halo — mesmo tratamento que os
  * cards do hero da home.
+ *
+ * A arte vem do painel e NÃO tem proporção conhecida: antes as medidas de cada
+ * um dos cinco jogos estavam escritas no conteúdo semente, e o primeiro jogo
+ * cadastrado pelo admin sairia esticado. Agora a caixa é fixa e a imagem se
+ * encaixa por `object-contain`, que funciona para qualquer arte.
+ *
+ * `fill` em vez de `width`/`height` pelo mesmo motivo: sem dimensão de origem,
+ * é a caixa que reserva o espaço. O `sizes` declara a largura real para o
+ * otimizador não servir uma variante grande demais.
+ *
+ * Sem arte, a caixa some. Reservar 199px de vazio ao lado do título deixaria um
+ * buraco que ninguém entende — e o cadastro permite criar o jogo antes de a
+ * arte existir.
  */
-function GameLogo({ logo }: { logo: ImageRef }) {
+function GameLogo({ logo, name }: { logo?: { src: string; alt?: string }; name: string }) {
+  if (!logo) return null;
+
   return (
-    <div
-      className="relative shrink-0"
-      style={{ width: 199.435, height: 163.82 }}
-    >
+    <div className="relative shrink-0" style={LOGO_BOX}>
       {[true, false].map((blurred) => (
         <Image
           key={String(blurred)}
           src={logo.src}
-          alt={blurred ? "" : (logo.alt ?? "")}
-          width={Math.round(logo.width)}
-          height={Math.round(logo.height)}
+          // A cópia borrada é decoração: só a de cima descreve o jogo, e
+          // duplicar o texto alternativo faria o leitor de tela repetir.
+          alt={blurred ? "" : (logo.alt || name)}
+          fill
+          sizes="200px"
+          // Acima da dobra em TODA página de jogo, e é a arte que identifica a
+          // página. Com o `lazy` padrão a caixa fica vazia até o carregamento
+          // preguiçoso disparar — medido no navegador: `naturalWidth` era 0 na
+          // primeira leitura, e o topo da página aparecia sem o logo.
+          priority
           aria-hidden={blurred || undefined}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 object-contain"
-          style={{
-            width: logo.width,
-            height: logo.height,
-            filter: blurred ? "blur(5.92px)" : undefined,
-          }}
+          className="object-contain"
+          style={{ filter: blurred ? "blur(5.92px)" : undefined }}
         />
       ))}
     </div>

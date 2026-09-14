@@ -9,6 +9,8 @@ import { HomeNav } from "@/features/home/HomeNav";
 import { ReviewsSection } from "@/features/home/ReviewsSection";
 import { TeamSection } from "@/features/home/TeamSection";
 import { VideoSection } from "@/features/home/VideoSection";
+import { buildHeroSlides } from "@/features/home/heroGames";
+import { getSectionItemsFor, getSectionsFor } from "@/features/site/content";
 
 const OG_TITLE = "Lets4Trade";
 const OG_DESCRIPTION = "Sua loja de gamecoins.";
@@ -45,7 +47,19 @@ export const metadata: Metadata = {
  *   4316  "DÚVIDAS SOBRE A EMPRESA"         → fim em 5116
  *   5216  rodapé
  */
-export default function Home() {
+export default async function Home() {
+  // Os títulos das seções vêm da tela "Edição de sessões". Uma leitura só para
+  // a página inteira; o que não foi personalizado devolve o padrão do código.
+  /**
+   * Duas leituras: o que cada sessão É (título, subtítulo, arte) e o que ela
+   * CONTÉM (reviews, equipe, guias, dúvidas). Em PARALELO — a home é a página
+   * mais aberta da loja e não pode somar as duas latências.
+   */
+  const [section, items] = await Promise.all([
+    getSectionsFor("home"),
+    getSectionItemsFor("home"),
+  ]);
+
   return (
     <div className="flex min-h-dvh flex-col bg-brand-bg">
       <SiteHeader />
@@ -76,31 +90,58 @@ export default function Home() {
           <HomeBackdrop />
 
           <div className="mx-auto w-[1820px] pt-[37px] pb-[100px]">
-            <HeroSection />
-            <HomeNav />
+            <HeroSection
+              image={section("hero").imageUrl}
+              caption={section("hero").title}
+              // Os cards do carrossel vêm de "Edição de sessões → Home - Hero".
+              // A geometria medida das artes originais é reconhecida pela
+              // própria arte — ver `buildHeroSlides`.
+              slides={buildHeroSlides(items("hero"))}
+            />
+            <HomeNav stats={items("navegacao")} />
 
             {/* Divisor em y=1076 no design. A faixa de navegação acima ocupa até
               1007 (a caixa do grupo 796:1624), então 69px fecham a diferença. */}
             <hr className="mt-[69px] border-0 border-t border-brand-hairline" />
 
             <div className="mt-[50px]">
-              <VideoSection />
+              <VideoSection
+                title={section("video").title}
+                image={section("video").imageUrl}
+                videoUrl={section("video").footnote}
+              />
             </div>
 
             <div className="mt-[99px]">
-              <ReviewsSection />
+              <ReviewsSection
+                title={section("reviews").title}
+                subtitle={section("reviews").subtitle}
+                counter={section("reviews").footnote}
+                items={items("reviews")}
+              />
             </div>
 
             <div className="mt-[107px]">
-              <TeamSection />
+              <TeamSection
+                title={section("equipe").title}
+                subtitle={section("equipe").subtitle}
+                // `|| undefined` e não o valor cru: passar `""` sobrescreveria o
+                // padrão do componente com vazio, e o parágrafo sumiria da home
+                // para quem nunca editou a seção.
+                body={section("equipe").body || undefined}
+                items={items("equipe")}
+              />
             </div>
 
             <div className="mt-[100px]">
-              <GuidesSection />
+              <GuidesSection
+                title={section("guias").title}
+                items={items("guias")}
+              />
             </div>
 
             <div className="mt-[100px]">
-              <FaqSection />
+              <FaqSection title={section("faq").title} items={items("faq")} />
             </div>
           </div>
         </div>

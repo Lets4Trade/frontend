@@ -26,6 +26,10 @@ export type ApiOrder = {
   quantity: string;
   totalPrice: string;
   currency: string;
+  /** Desconto pago com Lets Coins. Ausente quando não houve resgate — o
+   *  backend apaga campos zerados da resposta. */
+  coinsSpent?: number;
+  discountCents?: number;
   status: string;
   step: string;
   createdAt: string;
@@ -97,6 +101,18 @@ export function toOrder(api: ApiOrder): Order {
     platform: api.platform,
     quantity: api.quantity,
     price: formatPrice(api.totalPrice, api.currency),
+    // O card mostra o preço do PRODUTO; o abatimento vai numa linha própria,
+    // como no comprovante. Um preço já líquido faria o histórico mentir sobre
+    // quanto o produto custava no dia.
+    discount:
+      api.discountCents && api.discountCents > 0
+        ? formatPrice((api.discountCents / 100).toFixed(2), api.currency)
+        : null,
+    coinsSpent: api.coinsSpent || 0,
+    paid: formatPrice(
+      (Math.max(0, Math.round(Number(api.totalPrice) * 100) - (api.discountCents || 0)) / 100).toFixed(2),
+      api.currency,
+    ),
     date: formatDate(api.createdAt),
     status: toStatus(api.status),
     currentStep: toStep(api.step),
@@ -125,6 +141,7 @@ function formatDate(iso: string) {
 const STATUS_MAP: Record<string, OrderStatus> = {
   PENDENTE: "pendente",
   APROVADO: "aprovado",
+  EM_ANDAMENTO: "em_andamento",
   ENTREGUE: "entregue",
   CANCELADO: "cancelado",
 };

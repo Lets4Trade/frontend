@@ -1,6 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
-import { BLOG_CARD, GUIDES, type Guide } from "./guides";
+import type { SectionItemView } from "@/features/site/content";
+import { BLOG_CARD } from "./guides";
+
+/** Card do arquivo: 417×438, com vão de 40px entre colunas (457 − 417). */
+const GUIDE_CARD_WIDTH = 417;
+const GUIDE_CARD_HEIGHT = 438;
 
 /**
  * Seção "GUIAS POPULARES" (Figma: título 791:1611, faixa 791:1610).
@@ -12,9 +17,15 @@ import { BLOG_CARD, GUIDES, type Guide } from "./guides";
  * que NÃO usa Poppins 65: no arquivo ele fica alinhado à margem esquerda, e não
  * centralizado como "NOSSAS REVIEWS" e "EQUIPE LETS 4 TRADE".
  */
-export function GuidesSection() {
+export function GuidesSection({
+  title = "GUIAS POPULARES",
+  items = [],
+}: {
+  title?: string;
+  items?: SectionItemView[];
+}) {
   return (
-    <section aria-labelledby="guides-title" className="relative h-[520px]">
+    <section aria-labelledby="guides-title" className="relative">
       {/* Render decorativo acima da faixa, à direita (Figma 860:103). */}
       <Image
         src="/images/home/deco-guias.webp"
@@ -29,17 +40,34 @@ export function GuidesSection() {
         id="guides-title"
         className="absolute top-0 left-0 w-[601px] font-helvetica text-[30px] leading-[normal] font-bold tracking-[0.3px] text-white"
       >
-        GUIAS POPULARES
+        {title}
       </h2>
 
-      <div className="absolute top-[80px] left-[6px] h-[440px] w-[1808px]">
-        <ul className="contents">
-          {GUIDES.map((guide) => (
-            <GuideCard key={guide.key} guide={guide} />
-          ))}
-        </ul>
+      {/*
+        ── A faixa deixou de ser posicionada ──────────────────────────────────
+        No arquivo os quatro cards têm x/y próprios (0, 457, 924, 1391) e o
+        último é mais baixo, para o card do blog caber embaixo dele. Com os guias
+        vindo do banco, o quinto não teria coordenada e apagar o segundo abriria
+        um buraco.
 
-        <BlogCard />
+        Agora é uma fileira que QUEBRA sozinha, com o mesmo card de 417×438 e o
+        vão de 40px do arquivo (457 − 417). O card do blog entra como ÚLTIMO da
+        mesma fileira, em vez de flutuar sob o quarto guia — é o que mantém as
+        colunas alinhadas em qualquer quantidade.
+
+        Decidido com o usuário em 2026-09-10: CRUD completo vale a perda das
+        posições do arquivo.
+      */}
+      <div className="mt-[80px] ml-[6px] w-[1808px]">
+        <ul className="flex flex-wrap gap-[40px]">
+          {items.map((guide) => (
+            <GuideCard key={guide.id} guide={guide} />
+          ))}
+
+          <li className="relative shrink-0" style={{ width: GUIDE_CARD_WIDTH }}>
+            <BlogCard />
+          </li>
+        </ul>
       </div>
     </section>
   );
@@ -55,54 +83,56 @@ export function GuidesSection() {
  * contraste ao logo, e outro do rodapé para cima, que trava em preto opaco a
  * 55,769% da sua altura e é o que sustenta título e resumo.
  */
-function GuideCard({ guide }: { guide: Guide }) {
+function GuideCard({ guide }: { guide: SectionItemView }) {
   return (
     <li
-      className="guide-card absolute overflow-hidden rounded-[30px] border border-white/10"
-      style={{ left: guide.left, top: guide.top, width: guide.width, height: guide.height }}
+      className="guide-card relative shrink-0 overflow-hidden rounded-[30px] border border-white/10"
+      style={{ width: GUIDE_CARD_WIDTH, height: GUIDE_CARD_HEIGHT }}
     >
-      <Image
-        src={guide.art}
-        alt=""
-        width={guide.width}
-        height={guide.height}
+      {/* Sem arte, o card fica no preto do tema em vez de transparente — os
+          degradês por cima só fazem sentido sobre alguma coisa. */}
+      {guide.image ? (
+        <Image
+          src={guide.image}
+          alt=""
+          width={GUIDE_CARD_WIDTH}
+          height={GUIDE_CARD_HEIGHT}
+          aria-hidden
+          className="guide-art absolute inset-0 size-full object-cover"
+        />
+      ) : (
+        <span aria-hidden className="absolute inset-0 bg-brand-surface" />
+      )}
+
+      {/* Os dois degradês do arquivo, agora com medidas FIXAS: eram do dado
+          (`guide.scrim`) porque o card curto do arquivo tinha valores próprios,
+          e com a fileira uniforme todos os cards têm a mesma altura. */}
+      <span
         aria-hidden
-        className="guide-art absolute inset-0 size-full object-cover"
+        className="absolute inset-x-0 top-0 h-[147px]"
+        style={{ backgroundImage: "linear-gradient(180deg, #000 0%, rgba(0,0,0,0) 100%)" }}
       />
 
       <span
         aria-hidden
-        className="absolute inset-x-0 top-0"
-        style={{
-          height: guide.scrim.topHeight,
-          backgroundImage: "linear-gradient(180deg, #000 0%, rgba(0,0,0,0) 100%)",
-        }}
+        className="guide-scrim absolute inset-x-0 top-[240px] h-[198px]"
+        style={{ backgroundImage: "linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 60%)" }}
       />
 
-      <span
-        aria-hidden
-        className="guide-scrim absolute inset-x-0"
-        style={{
-          top: guide.scrim.bottomTop,
-          height: guide.scrim.bottomHeight,
-          backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 ${guide.scrim.bottomStop})`,
-        }}
-      />
-
-      <Image
-        src={guide.logo}
-        alt=""
-        width={Math.round(guide.logoBox.width)}
-        height={Math.round(guide.logoBox.height)}
-        aria-hidden
-        className="guide-logo absolute object-contain"
-        style={{
-          left: guide.logoBox.left,
-          top: guide.logoBox.top,
-          width: guide.logoBox.width,
-          height: guide.logoBox.height,
-        }}
-      />
+      {/* O logo tem tamanho próprio por jogo no arquivo (86×44, 66×50, 71×58...).
+          Com a arte vindo do painel não dá para saber a proporção de antemão:
+          a caixa é fixa e o `object-contain` encaixa qualquer uma dentro dela
+          sem deformar. */}
+      {guide.secondaryImage ? (
+        <Image
+          src={guide.secondaryImage}
+          alt=""
+          width={90}
+          height={58}
+          aria-hidden
+          className="guide-logo absolute top-[25px] left-[25px] h-[58px] w-[90px] object-contain object-left"
+        />
+      ) : null}
 
       {guide.title ? (
         <h3 className="guide-text absolute top-[308px] left-[26px] font-poppins text-[18px] leading-[normal] font-semibold tracking-[0.09px] text-white">
@@ -137,13 +167,10 @@ function BlogCard() {
   return (
     <Link
       href={BLOG_CARD.href}
-      className="blog-card absolute overflow-hidden rounded-[30px] border border-white/10 bg-black"
-      style={{
-        left: BLOG_CARD.left,
-        top: BLOG_CARD.top,
-        width: BLOG_CARD.width,
-        height: BLOG_CARD.height,
-      }}
+      // `block` e não `absolute`: o card agora é o último item da fileira que
+      // flui, e não mais um elemento solto sob o quarto guia.
+      className="blog-card block overflow-hidden rounded-[30px] border border-white/10 bg-black"
+      style={{ width: BLOG_CARD.width, height: BLOG_CARD.height }}
     >
       {/* Elipse 791:1600 — centro (-6,81; 30,94), girada 77°. */}
       <span

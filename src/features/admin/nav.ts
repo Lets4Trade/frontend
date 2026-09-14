@@ -19,7 +19,11 @@ export type AdminNavItem = {
 };
 
 export const ADMIN_NAV: readonly AdminNavItem[] = [
-  { label: "Vendas e pedidos", href: null },
+  {
+    label: "Vendas e pedidos",
+    href: "/admin/pedidos",
+    match: ["/admin/pedidos"],
+  },
   {
     // Aponta para a LISTAGEM, não para o cadastro: é dali que se vê o que
     // existe, e os dois botões de cadastrar ("Cadastrar Produto" e "Cadastrar
@@ -29,9 +33,17 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
     href: "/admin/produtos",
     match: ["/admin/produtos", "/admin/jogos"],
   },
-  { label: "Edição de sessões", href: null },
+  {
+    label: "Edição de sessões",
+    href: "/admin/sessoes",
+    match: ["/admin/sessoes"],
+  },
   { label: "Usuários", href: "/admin/usuarios", match: ["/admin/usuarios"] },
-  { label: "Builder de Page", href: null },
+  {
+    label: "Builder de Page",
+    href: "/admin/builder",
+    match: ["/admin/builder"],
+  },
   // NÃO está no arquivo do Figma: as cinco abas desenhadas não incluem logs. A
   // tela foi pedida depois, e sem item de menu ela seria inalcançável.
   { label: "Logs", href: "/admin/logs", match: ["/admin/logs"] },

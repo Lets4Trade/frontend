@@ -45,6 +45,7 @@ export async function createProductAction(
     platform: form.get("platform"),
     productType: form.get("productType"),
     serverId: form.get("serverId") ?? "",
+    categoryId: form.get("categoryId") ?? "",
   });
 
   if (!parsed.success) {
@@ -66,6 +67,9 @@ export async function createProductAction(
   // Só manda se houver: o DTO trata ausente e vazio da mesma forma, mas mandar
   // string vazia deixaria o campo parecer preenchido em qualquer log.
   if (parsed.data.serverId !== "") payload.set("serverId", parsed.data.serverId);
+  if (parsed.data.categoryId !== "") {
+    payload.set("categoryId", parsed.data.categoryId);
+  }
 
   const image = form.get("image");
   if (image instanceof File && image.size > 0) {
@@ -169,6 +173,7 @@ export async function updateProductAction(
       platform: form.get("platform"),
       productType: form.get("productType"),
       serverId: form.get("serverId") ?? "",
+      categoryId: form.get("categoryId") ?? "",
     });
 
   if (!parsed.success) {
@@ -181,6 +186,9 @@ export async function updateProductAction(
   payload.set("platform", parsed.data.platform);
   payload.set("productType", parsed.data.productType);
   if (parsed.data.serverId !== "") payload.set("serverId", parsed.data.serverId);
+  if (parsed.data.categoryId !== "") {
+    payload.set("categoryId", parsed.data.categoryId);
+  }
 
   const image = form.get("image");
   if (image instanceof File && image.size > 0) {

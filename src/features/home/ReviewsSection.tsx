@@ -1,12 +1,11 @@
 import Image from "next/image";
 import type { ComponentProps, CSSProperties } from "react";
+import type { SectionItemView } from "@/features/site/content";
 import {
-  REVIEWS,
   REVIEW_CARD_HEIGHT,
+  REVIEW_CARD_STEP,
   REVIEW_CARD_WIDTH,
-  REVIEW_COUNT,
-  REVIEW_LOOP_WIDTH,
-  type Review,
+  REVIEW_FIRST_LEFT,
 } from "./reviews";
 
 /**
@@ -27,9 +26,29 @@ import {
  * do Figma, que é a métrica da própria fonte — fixar um valor em px erraria,
  * porque as caixas de texto do arquivo têm altura manual e não batem entre si.
  */
-export function ReviewsSection() {
+export function ReviewsSection({
+  title = "NOSSAS REVIEWS",
+  subtitle = "O que nossos clientes falam de nós?",
+  counter = "515 Reviews",
+  items = [],
+}: {
+  title?: string;
+  subtitle?: string;
+  /** O contador acima do carrossel. Texto, e não `items.length`: no arquivo ele
+   *  é uma afirmação de marketing (515), não a quantidade de cards. */
+  counter?: string;
+  items?: SectionItemView[];
+}) {
   return (
-    <section aria-labelledby="reviews-title" className="relative h-[635px]">
+    // `id="reviews"`: é o destino de "VEJA NOSSAS REFERÊNCIAS" (no bloco do
+    // vídeo e na página de jogo, `/#reviews`). Os dois links já existiam e
+    // não levavam a lugar nenhum — a âncora não existia. `scroll-mt` desconta
+    // o cabeçalho, que é fixo por cima do conteúdo.
+    <section
+      id="reviews"
+      aria-labelledby="reviews-title"
+      className="relative h-[635px] scroll-mt-[100px]"
+    >
       {/* Prisma decorativo (Figma 567:1446). Fica ACIMA da origem da seção, no
           vão entre o bloco do vídeo e o título — daí o topo negativo. */}
       <Image
@@ -55,11 +74,11 @@ export function ReviewsSection() {
         id="reviews-title"
         className="absolute top-0 left-[542px] w-[736px] text-center font-poppins text-[65px] leading-[normal] font-semibold tracking-[0.325px] text-white"
       >
-        NOSSAS REVIEWS
+        {title}
       </h2>
 
       <p className="absolute top-[104px] left-[687px] w-[446px] text-center font-helvetica text-[18px] leading-[normal] font-bold tracking-[0.18px] text-white">
-        O que nossos clientes falam de nós?
+        {subtitle}
       </p>
 
       <RatingPill />
@@ -70,11 +89,18 @@ export function ReviewsSection() {
         aria-hidden
         className="absolute top-[173px] -left-px size-[5px] rounded-full bg-brand-orange"
       />
+      {/* O número em negrito e a palavra em regular ("Mixed" no inspector). O
+          texto inteiro é editável, então a divisão é no primeiro espaço — e um
+          texto sem espaço simplesmente sai todo em negrito, que é o padrão
+          razoável para um contador. */}
       <p className="absolute top-[161px] left-[14px] font-poppins text-[20px] leading-[normal] text-white">
-        <strong className="font-bold">{REVIEW_COUNT}</strong> Reviews
+        <strong className="font-bold">{counter.split(" ")[0]}</strong>
+        {counter.includes(" ")
+          ? ` ${counter.slice(counter.indexOf(" ") + 1)}`
+          : ""}
       </p>
 
-      <ReviewCarousel />
+      <ReviewCarousel items={items} />
     </section>
   );
 }
@@ -157,23 +183,39 @@ function StarIcon() {
  * O movimento e a pausa no cursor moram em `globals.css` (`.reviews-strip`),
  * junto do resto da linguagem de movimento da página.
  */
-function ReviewCarousel() {
+function ReviewCarousel({ items }: { items: SectionItemView[] }) {
+  // Sem depoimento no banco, o carrossel inteiro some — uma faixa de 387px
+  // vazia atravessando a home é pior que uma seção mais curta.
+  if (items.length === 0) return null;
+
+  /**
+   * O ciclo da esteira é CALCULADO da quantidade.
+   *
+   * Antes as posições vinham escritas item a item (`left: -329`, `-16`, ...) e o
+   * ciclo era `REVIEWS.length * STEP`. Com a lista vindo do banco não há `left`
+   * nenhum: a posição sai do ÍNDICE, no mesmo passo de 313px do arquivo. Oito
+   * depoimentos desenham exatamente o mesmo quadro de antes, e qualquer outra
+   * quantidade também fecha o laço sem emenda.
+   */
+  const loopWidth = items.length * REVIEW_CARD_STEP;
+
   return (
     <div className="reviews-viewport absolute top-[248px] left-0 h-[387px] w-[1820px] overflow-hidden">
       {/* A `<ul>` precisa gerar caixa (e não `display: contents`) porque é ela
           que a animação desloca. */}
       <ul
         className="reviews-strip absolute inset-0"
-        style={{ "--reviews-loop": `${REVIEW_LOOP_WIDTH}px` } as CSSProperties}
+        style={{ "--reviews-loop": `${loopWidth}px` } as CSSProperties}
       >
-        {REVIEWS.map((review) => (
-          <ReviewCard key={review.name} review={review} />
+        {items.map((review, index) => (
+          <ReviewCard key={review.id} review={review} index={index} />
         ))}
-        {REVIEWS.map((review) => (
+        {items.map((review, index) => (
           <ReviewCard
-            key={`${review.name}-clone`}
+            key={`${review.id}-clone`}
             review={review}
-            offset={REVIEW_LOOP_WIDTH}
+            index={index}
+            offset={loopWidth}
             aria-hidden
           />
         ))}
@@ -198,10 +240,13 @@ function ReviewCarousel() {
  */
 function ReviewCard({
   review,
+  index,
   offset = 0,
   ...props
 }: {
-  review: Review;
+  review: SectionItemView;
+  /** Posição na fila — é dela que sai o `left`, no passo do arquivo. */
+  index: number;
   /** Deslocamento da segunda passada da esteira. Zero na fila original. */
   offset?: number;
 } & ComponentProps<"li">) {
@@ -210,22 +255,31 @@ function ReviewCard({
       {...props}
       className="review-card absolute top-0 rounded-[30px] border border-white/10 bg-black/10"
       style={{
-        left: review.left + offset,
+        left: REVIEW_FIRST_LEFT + index * REVIEW_CARD_STEP + offset,
         width: REVIEW_CARD_WIDTH,
         height: REVIEW_CARD_HEIGHT,
       }}
     >
-      <Image
-        src={review.avatar}
-        alt=""
-        width={42}
-        height={42}
-        aria-hidden
-        className="review-avatar absolute top-[25px] left-[25px] size-[42px] rounded-full object-cover"
-      />
+      {/* Depoimento sem avatar mostra um círculo vazio no lugar: o nome fica em
+          x=82 no arquivo, e sem a reserva ele encostaria na borda do card. */}
+      {review.image ? (
+        <Image
+          src={review.image}
+          alt=""
+          width={42}
+          height={42}
+          aria-hidden
+          className="review-avatar absolute top-[25px] left-[25px] size-[42px] rounded-full object-cover"
+        />
+      ) : (
+        <span
+          aria-hidden
+          className="absolute top-[25px] left-[25px] size-[42px] rounded-full border border-white/10 bg-white/5"
+        />
+      )}
 
       <p className="absolute top-[32px] left-[82px] font-poppins text-[18px] leading-[normal] font-bold tracking-[0.36px] text-white">
-        {review.name}
+        {review.title}
       </p>
 
       <p className="review-body absolute top-[91px] left-[25px] h-[253px] w-[238px] overflow-hidden font-helvetica text-[16px] leading-[normal] tracking-[0.16px] text-brand-placeholder">

@@ -11,7 +11,8 @@ import {
   useCart,
   useCartHydrated,
 } from "@/features/cart/store";
-import { TIERS } from "@/features/loyalty/tiers";
+import type { LoyaltySummary } from "@/features/loyalty/data";
+import { formatBps, tierArt } from "@/features/loyalty/tiers";
 import {
   OrderLineBlock,
   TotalsBlock,
@@ -24,17 +25,18 @@ import {
 import { checkoutAction, type CheckoutLine } from "./actions";
 import { cardSchema, pixSchema } from "./schema";
 
-/** Uma Lets Coin vale R$ 0,10 — é o que o arquivo escreve no seletor. */
-const COIN_CENTS = 10;
+/**
+ * Cotação de reserva da Lets Coin, em centavos.
+ *
+ * O valor REAL vem do backend (`loyalty.coinCents`), que é quem define o
+ * programa. Este só entra quando não há sessão — e aí o saldo é zero e a
+ * cotação não chega a ser usada para nada. Manter os dois evita um `?? 10`
+ * espalhado por quatro contas.
+ */
+const FALLBACK_COIN_CENTS = 10;
 
 /** O design mostra "1x de …"; até 12x é o padrão do mercado brasileiro. */
 const MAX_INSTALLMENTS = 12;
-
-export type CheckoutProfile = {
-  letsCoins: number;
-  /** Total gasto em REAIS, para o card de cashback. */
-  totalSpent: number;
-};
 
 type Method = "card" | "pix";
 type FieldErrors = Record<string, string>;
@@ -55,7 +57,18 @@ type FieldErrors = Record<string, string>;
  * página de jogo). Quando entrar a Braspag — que já é integração prevista do
  * projeto —, o cartão vai TOKENIZADO direto para ela, sem passar por nós.
  */
-export function CheckoutClient({ profile }: { profile: CheckoutProfile | null }) {
+export function CheckoutClient({
+  loyalty,
+  whatsappHref,
+}: {
+  loyalty: LoyaltySummary | null;
+  /**
+   * `https://wa.me/<dígitos>` do canal oficial, ou nada. Ausente, o convite
+   * "fechar pelo WhatsApp" não aparece — ele apontava para `#` e não fazia
+   * nada, justo no momento da compra.
+   */
+  whatsappHref?: string;
+}) {
   const router = useRouter();
 
   const items = useCart((state) => state.items);
@@ -72,10 +85,20 @@ export function CheckoutClient({ profile }: { profile: CheckoutProfile | null })
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const subtotal = subtotalCents(items);
-  const maxCoins = profile
-    ? Math.min(profile.letsCoins, Math.floor(subtotal / COIN_CENTS))
+  const coinCents = loyalty?.coinCents || FALLBACK_COIN_CENTS;
+
+  /**
+   * O teto do desconto é o MENOR entre o saldo e o valor do carrinho.
+   *
+   * O mesmo teto existe no backend (`maxRedeemableCoins`), e é lá que ele vale:
+   * este aqui serve para a tela não oferecer uma opção que seria recusada. Sem
+   * o limite do carrinho, um pedido de R$ 10,00 aceitaria 500 coins e o total
+   * ficaria negativo.
+   */
+  const maxCoins = loyalty
+    ? Math.min(loyalty.coins, Math.floor(subtotal / coinCents))
     : 0;
-  const discount = Math.min(coins, maxCoins) * COIN_CENTS;
+  const discount = Math.min(coins, maxCoins) * coinCents;
   const total = Math.max(subtotal - discount, 0);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -98,7 +121,9 @@ export function CheckoutClient({ profile }: { profile: CheckoutProfile | null })
 
     if (!parsed.success) {
       const next: FieldErrors = {};
-      for (const [key, messages] of Object.entries(parsed.error.flatten().fieldErrors)) {
+      for (const [key, messages] of Object.entries(
+        parsed.error.flatten().fieldErrors,
+      )) {
         const first = messages?.[0];
         if (first) next[key] = first;
       }
@@ -111,15 +136,23 @@ export function CheckoutClient({ profile }: { profile: CheckoutProfile | null })
     setFormError(null);
     setIsSubmitting(true);
 
-    // Só ids e quantidade: o preço é recalculado no servidor (ver `actions.ts`).
+    // Só id e quantidade: nome, arte, servidor e PREÇO são lidos do catálogo
+    // no backend (ver `actions.ts`). O que o carrinho guarda no `localStorage`
+    // serve para desenhar a tela — nada dali vira valor de pedido.
     const lines: CheckoutLine[] = items.map((item) => ({
-      gameSlug: item.gameSlug,
       productId: item.productId,
-      platform: item.platform,
       units: item.quantity,
     }));
 
-    const result = await checkoutAction(lines);
+    /**
+     * As coins vão JUNTO com o carrinho.
+     *
+     * Até 2026-09-10 não iam: a tela calculava o desconto, mostrava o total
+     * reduzido e mandava só os itens. O pedido nascia com o valor cheio e
+     * nenhuma coin era debitada — a pessoa via R$ 20 a menos e pagava R$ 20 a
+     * mais. Não dava prejuízo só porque nenhum saldo era creditado ainda.
+     */
+    const result = await checkoutAction(lines, Math.min(coins, maxCoins));
 
     if (result.ok) {
       clear();
@@ -132,6 +165,17 @@ export function CheckoutClient({ profile }: { profile: CheckoutProfile | null })
       router.push("/login?redirect=/checkout");
       return;
     }
+    if (result.reason === "coins") {
+      // O saldo mudou entre a escolha e o envio (outra aba, outro aparelho). É
+      // o único erro deste fluxo que a pessoa resolve sozinha, então a tela
+      // desfaz a escolha em vez de só reclamar.
+      setCoins(0);
+      setFormError(
+        "Seu saldo de Lets Coins mudou. Escolha o desconto de novo e reenvie.",
+      );
+      return;
+    }
+
     setFormError(
       result.reason === "invalid"
         ? "Algum item do carrinho não está mais disponível. Revise o carrinho."
@@ -158,7 +202,12 @@ export function CheckoutClient({ profile }: { profile: CheckoutProfile | null })
               current={method}
               onSelect={setMethod}
             />
-            <MethodRadio label="PIX" value="pix" current={method} onSelect={setMethod} />
+            <MethodRadio
+              label="PIX"
+              value="pix"
+              current={method}
+              onSelect={setMethod}
+            />
           </fieldset>
 
           {method === "card" ? (
@@ -227,7 +276,7 @@ export function CheckoutClient({ profile }: { profile: CheckoutProfile | null })
               value={String(coins)}
               disabled={maxCoins === 0}
               onValueChange={(value) => setCoins(Number(value))}
-              options={coinOptions(maxCoins)}
+              options={coinOptions(maxCoins, coinCents)}
             />
 
             <TextField
@@ -259,26 +308,35 @@ export function CheckoutClient({ profile }: { profile: CheckoutProfile | null })
             {isSubmitting ? "PROCESSANDO..." : `PAGAR ${formatCents(total)}`}
           </button>
 
-          <p className="mt-[15px] text-center font-helvetica text-[14px] leading-[16px] tracking-[0.14px] text-brand-placeholder">
-            <strong className="font-bold text-white">É novo por aqui?</strong> Se
-            preferir pode fechar o pedido pelo nosso{" "}
-            <strong className="font-bold text-white">WhatsApp</strong>
-          </p>
+          {whatsappHref ? (
+            <>
+              <p className="mt-[15px] text-center font-helvetica text-[14px] leading-[16px] tracking-[0.14px] text-brand-placeholder">
+                <strong className="font-bold text-white">
+                  É novo por aqui?
+                </strong>{" "}
+                Se preferir pode fechar o pedido pelo nosso{" "}
+                <strong className="font-bold text-white">WhatsApp</strong>
+              </p>
 
-          <a
-            href="#"
-            className="brand-ring mt-[22px] flex h-[50px] w-full items-center justify-center gap-[12px] rounded-full bg-[image:var(--brand-surface-fill)] font-poppins text-[16px] font-bold tracking-[0.16px] text-white transition-opacity hover:opacity-90"
-          >
-            <Image
-              src="/icons/social/whatsapp.svg"
-              alt=""
-              width={21}
-              height={21}
-              aria-hidden
-              className="size-[21px]"
-            />
-            FALE COM UM ESPECIALISTA
-          </a>
+              <a
+                href={whatsappHref}
+                // Sai do site: nova aba, e sem `window.opener` para a página de fora.
+                target="_blank"
+                rel="noopener noreferrer"
+                className="brand-ring mt-[22px] flex h-[50px] w-full items-center justify-center gap-[12px] rounded-full bg-[image:var(--brand-surface-fill)] font-poppins text-[16px] font-bold tracking-[0.16px] text-white transition-opacity hover:opacity-90"
+              >
+                <Image
+                  src="/icons/social/whatsapp.svg"
+                  alt=""
+                  width={21}
+                  height={21}
+                  aria-hidden
+                  className="size-[21px]"
+                />
+                FALE COM UM ESPECIALISTA
+              </a>
+            </>
+          ) : null}
         </form>
       </div>
 
@@ -336,7 +394,10 @@ export function CheckoutClient({ profile }: { profile: CheckoutProfile | null })
           </button>
         </div>
         {couponNote ? (
-          <p role="status" className="mt-[10px] font-helvetica text-[14px] text-brand-placeholder">
+          <p
+            role="status"
+            className="mt-[10px] font-helvetica text-[14px] text-brand-placeholder"
+          >
             {couponNote}
           </p>
         ) : null}
@@ -351,7 +412,7 @@ export function CheckoutClient({ profile }: { profile: CheckoutProfile | null })
 
         <div aria-hidden className="mt-[26px] h-px w-full bg-white/25" />
 
-        <CashbackCard totalSpent={profile?.totalSpent ?? 0} />
+        <CashbackCard loyalty={loyalty} />
       </CheckoutSidePanel>
     </div>
   );
@@ -404,33 +465,26 @@ function MethodRadio({
 /**
  * Card de cashback (3779:1839).
  *
- * Nível, percentual e progresso vêm do `totalSpent` REAL da conta contra as
- * faixas de `loyalty/tiers.ts`. Sem sessão, cai no primeiro nível — que é a
- * verdade para quem ainda não comprou.
+ * Nível, percentual, progresso e o que falta vêm PRONTOS do backend
+ * (`GET /me/loyalty`). Até 2026-09-10 a tela recalculava tudo a partir do total
+ * gasto contra uma tabela de níveis que só existia no frontend — e o backend
+ * não sabia que Prata começa em R$ 500 nem que rende 1,5%.
+ *
+ * Sem sessão cai no primeiro nível, com o que o backend declara como primeiro:
+ * é a verdade para quem ainda não comprou, e continua sem tabela local.
  */
-function CashbackCard({ totalSpent }: { totalSpent: number }) {
-  const index = Math.max(
-    TIERS.findLastIndex((tier) => totalSpent >= tier.minSpend),
-    0,
-  );
-  const current = TIERS[index];
-  const next = TIERS[index + 1];
-
-  const progress = next
-    ? Math.min(
-        Math.max(
-          (totalSpent - current.minSpend) / (next.minSpend - current.minSpend),
-          0,
-        ),
-        1,
-      )
-    : 1;
-  const missing = next ? Math.max(next.minSpend - totalSpent, 0) : 0;
+function CashbackCard({ loyalty }: { loyalty: LoyaltySummary | null }) {
+  const art = tierArt(loyalty?.tier ?? "BRONZE");
+  const name = loyalty?.tierName ?? "Bronze";
+  const cashback = formatBps(loyalty?.cashbackBps ?? 100);
+  const progress = loyalty?.progress ?? 0;
+  const nextName = loyalty?.nextTierName ?? null;
+  const missingCents = loyalty?.missingToNextCents ?? 0;
 
   return (
     <>
       <p className="mt-[26px] font-helvetica text-[22px] leading-[24px] font-bold tracking-[0.22px] text-white">
-        {current.name}
+        {name}
       </p>
       <p className="mt-[5px] font-helvetica text-[16px] leading-[16px] tracking-[0.16px] text-brand-placeholder">
         Seu nível de cashback atual
@@ -443,11 +497,11 @@ function CashbackCard({ totalSpent }: { totalSpent: number }) {
               Cashback
             </p>
             <p className="mt-[10px] bg-[image:var(--brand-orange-gradient)] bg-clip-text font-poppins text-[22px] leading-[27px] font-bold tracking-[0.22px] text-transparent">
-              {current.cashback}
+              {cashback}
             </p>
           </div>
           <Image
-            src={current.icon}
+            src={art.icon}
             alt=""
             width={62}
             height={62}
@@ -456,16 +510,16 @@ function CashbackCard({ totalSpent }: { totalSpent: number }) {
           />
         </div>
 
-        {next ? (
+        {nextName ? (
           <>
             <div aria-hidden className="mt-[18px] h-px w-full bg-white/25" />
 
             <div className="mt-[17px] flex items-baseline justify-between">
               <span className="font-helvetica text-[14px] leading-[13px] font-bold tracking-[0.14px] text-white/80">
-                Progresso para o {next.name}
+                Progresso para o {nextName}
               </span>
               <span className="bg-[image:var(--brand-orange-gradient)] bg-clip-text font-helvetica text-[16px] font-bold tracking-[0.16px] text-transparent">
-                {Math.round(progress * 100)}%
+                {progress}%
               </span>
             </div>
 
@@ -473,21 +527,19 @@ function CashbackCard({ totalSpent }: { totalSpent: number }) {
               role="progressbar"
               aria-valuemin={0}
               aria-valuemax={100}
-              aria-valuenow={Math.round(progress * 100)}
-              aria-label={`Progresso para o nível ${next.name}`}
+              aria-valuenow={progress}
+              aria-label={`Progresso para o nível ${nextName}`}
               className="mt-[10px] h-[9px] w-full overflow-hidden rounded-[44px] border-[0.8px] border-white/10 bg-[image:var(--brand-surface-fill)]"
             >
               <div
                 className="h-full rounded-[44px] bg-[image:var(--brand-orange-gradient)]"
-                style={{ width: `${progress * 100}%` }}
+                style={{ width: `${progress}%` }}
               />
             </div>
 
             <p className="mt-[10px] font-helvetica text-[14px] leading-[16px] tracking-[0.14px] text-brand-placeholder">
               Faltam{" "}
-              <strong className="font-bold">
-                {missing.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-              </strong>{" "}
+              <strong className="font-bold">{formatCents(missingCents)}</strong>{" "}
               para o próximo nível
             </p>
           </>
@@ -517,8 +569,9 @@ function installmentOptions(totalCents: number) {
  * milhares), oferece frações do máximo utilizável — que é o menor entre o saldo
  * e o valor do carrinho.
  */
-function coinOptions(maxCoins: number) {
-  if (maxCoins === 0) return [{ value: "0", label: "Nenhuma Lets Coin disponível" }];
+function coinOptions(maxCoins: number, coinCents: number) {
+  if (maxCoins === 0)
+    return [{ value: "0", label: "Nenhuma Lets Coin disponível" }];
 
   const steps = [0.25, 0.5, 0.75, 1]
     .map((fraction) => Math.floor(maxCoins * fraction))
@@ -528,7 +581,7 @@ function coinOptions(maxCoins: number) {
     { value: "0", label: "Não usar Lets Coins" },
     ...steps.map((coins) => ({
       value: String(coins),
-      label: `${coins.toLocaleString("pt-BR")} Lets Coins (${formatCents(coins * COIN_CENTS)})`,
+      label: `${coins.toLocaleString("pt-BR")} Lets Coins (${formatCents(coins * coinCents)})`,
     })),
   ];
 }

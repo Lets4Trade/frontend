@@ -1,6 +1,12 @@
 import Image from "next/image";
 import { StatBox, StatValue } from "@/components/ui/StatBox";
-import { TIER_ACCENT_GRADIENT, formatBRL, type Tier } from "./tiers";
+import type { LoyaltyTierRule } from "./data";
+import {
+  TIER_ACCENT_GRADIENT,
+  formatBps,
+  formatCents,
+  tierArt,
+} from "./tiers";
 
 /**
  * Card de nível (Figma 2312:1085 e irmãos) — 302×450, raio 30.
@@ -18,9 +24,13 @@ export function TierCard({
   tier,
   isCurrent,
 }: {
-  tier: Tier;
+  tier: LoyaltyTierRule;
   isCurrent: boolean;
 }) {
+  // A faixa e o cashback vêm do backend; a arte é a única coisa que a tela
+  // decide sozinha. Ver `tiers.ts`.
+  const art = tierArt(tier.tier);
+
   return (
     <article className="relative h-[450px] w-[302px] shrink-0 overflow-hidden rounded-[30px] border border-white/10 bg-brand-surface">
       {/* Barra de destaque: a de baixo é nítida (2px), a de cima é a mesma com
@@ -41,40 +51,40 @@ export function TierCard({
       </h3>
 
       <p className="absolute top-[79px] left-[25px] font-helvetica text-[16px] leading-[16px] tracking-[0.16px] text-brand-placeholder">
-        A partir de {formatBRL(tier.minSpend)}
+        A partir de {formatCents(tier.minSpentCents)}
       </p>
 
       {/* Emblema — cada nível tem tamanho e posição próprios (ver `tiers.ts`).
           Os níveis altos ganham uma cópia borrada atrás, como no design. */}
-      {tier.glow ? (
+      {art.glow ? (
         <Image
-          src={tier.icon}
+          src={art.icon}
           alt=""
-          width={tier.iconSize}
-          height={tier.iconSize}
+          width={art.iconSize}
+          height={art.iconSize}
           aria-hidden
           className="absolute object-contain blur-[13.5px]"
           style={{
-            left: tier.iconLeft,
-            top: tier.iconTop,
-            width: tier.iconSize,
-            height: tier.iconSize,
+            left: art.iconLeft,
+            top: art.iconTop,
+            width: art.iconSize,
+            height: art.iconSize,
           }}
         />
       ) : null}
 
       <Image
-        src={tier.icon}
+        src={art.icon}
         alt=""
-        width={tier.iconSize}
-        height={tier.iconSize}
+        width={art.iconSize}
+        height={art.iconSize}
         aria-hidden
         className="absolute object-contain"
         style={{
-          left: tier.iconLeft,
-          top: tier.iconTop,
-          width: tier.iconSize,
-          height: tier.iconSize,
+          left: art.iconLeft,
+          top: art.iconTop,
+          width: art.iconSize,
+          height: art.iconSize,
         }}
       />
 
@@ -85,7 +95,7 @@ export function TierCard({
       >
         {/* 22px aqui, contra 24px no painel-resumo. */}
         <StatValue className="text-[22px] tracking-[0.22px]">
-          {tier.cashback}
+          {formatBps(tier.cashbackBps)}
         </StatValue>
       </StatBox>
 

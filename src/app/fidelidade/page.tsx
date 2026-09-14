@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
+import { LoyaltyStatement } from "@/features/loyalty/LoyaltyStatement";
 import { LoyaltySummary } from "@/features/loyalty/LoyaltySummary";
 import { TierCard } from "@/features/loyalty/TierCard";
-import { MOCK_LOYALTY, TIERS } from "@/features/loyalty/tiers";
+import { getLoyalty } from "@/features/loyalty/data";
+import { getSectionsFor } from "@/features/site/content";
 
 export const metadata: Metadata = {
   title: "Fidelidade | Lets4Trade",
@@ -22,30 +25,60 @@ export const metadata: Metadata = {
  * Vãos verticais do design: resumo termina em 700, título em 750 (50), cards
  * em 801 (25 após o título).
  *
- * ⚠️ Dados MOCK e rota sem guarda. Ver .claude/context/open-questions.md.
+ * ── O que mudou em 2026-09-10 ──────────────────────────────────────────────
+ * Era a última tela do projeto presa em mock: desenhava `MOCK_LOYALTY`, uma
+ * constante com os números do arquivo do Figma (1750 coins, 88% de progresso),
+ * e a rota abria para qualquer visitante. Agora lê `GET /me/loyalty` e EXIGE
+ * sessão — saldo é dado de conta, e uma tela de saldo sem dono não tem o que
+ * mostrar.
+ *
+ * A guarda é `redirect` para o login com retorno, e não 404: diferente do
+ * painel admin, aqui não há nada a esconder de quem não está logado — a pessoa
+ * só precisa entrar. É o mesmo tratamento de `/conta/pedidos`.
  */
-export default function FidelidadePage() {
+export default async function FidelidadePage() {
+  const [section, loyalty] = await Promise.all([
+    getSectionsFor("fidelidade"),
+    getLoyalty(),
+  ]);
+
+  if (!loyalty.ok) {
+    if (loyalty.reason === "unauthenticated") {
+      redirect("/login?redirect=/fidelidade");
+    }
+    // Backend fora do ar: a tela inteira depende dele. Mostrar o esqueleto com
+    // zeros seria informar um saldo que ninguém leu.
+    throw new Error("Não foi possível carregar o programa de fidelidade");
+  }
+
+  const { summary, entries } = loyalty;
+
   return (
     <div className="flex min-h-dvh flex-col bg-brand-bg">
       <SiteHeader />
 
       <main className="flex-1 overflow-x-auto">
         <div className="mx-auto w-max px-[154px] pt-[68px] pb-[100px]">
-          <LoyaltySummary data={MOCK_LOYALTY} />
+          <LoyaltySummary
+            data={summary}
+            caption={section("resumo").title || undefined}
+          />
 
           <h2 className="mt-[50px] font-helvetica text-[25px] leading-[26px] font-bold tracking-[0.25px] text-white">
-            Todos os Níveis
+            {section("niveis").title || "Todos os Níveis"}
           </h2>
 
           <div className="mt-[25px] flex gap-[25px]">
-            {TIERS.map((tier) => (
+            {summary.tiers.map((tier) => (
               <TierCard
-                key={tier.key}
+                key={tier.tier}
                 tier={tier}
-                isCurrent={tier.key === MOCK_LOYALTY.tier}
+                isCurrent={tier.tier === summary.tier}
               />
             ))}
           </div>
+
+          <LoyaltyStatement entries={entries} coinCents={summary.coinCents} />
         </div>
       </main>
 
@@ -53,4 +86,3 @@ export default function FidelidadePage() {
     </div>
   );
 }
-

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { GlowBar } from "@/components/layout/GlowBar";
 import { cn } from "@/lib/cn";
+import { ADMIN_SHELL } from "@/features/admin/layout";
 
 /**
  * Moldura das telas de cadastro do painel — "CADASTRO DE JOGO" (Figma
@@ -37,7 +38,7 @@ export function AdminFormCard({
   children: ReactNode;
 }) {
   return (
-    <div className="mx-auto w-full max-w-[1920px] px-[50px] pt-[184px] pb-[207px]">
+    <div className={`${ADMIN_SHELL} pb-[207px]`}>
       <section
         aria-labelledby={headingId}
         className="relative mx-auto w-full max-w-[1510px] rounded-[30px] border border-white/20 bg-[#0a0a0a]/10 py-[50px]"

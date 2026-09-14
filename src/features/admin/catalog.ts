@@ -15,6 +15,12 @@ export type AdminGame = {
   /** Nomes do enum `GameProductType` do backend. */
   productTypes: string[];
   servers: { id: string; label: string }[];
+  /**
+   * Categorias criadas no Builder de Páginas (etapa 7). Lista vazia é o normal
+   * de um jogo que ainda não passou pelo builder — o select some nesse caso, em
+   * vez de aparecer sem nenhuma opção.
+   */
+  categories: { id: string; label: string }[];
 };
 
 /**

@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { HeroDeck } from "./HeroDeck";
-import { HERO_BANNER_WIDTH, HERO_HEIGHT } from "./heroGames";
+import { HERO_BANNER_WIDTH, HERO_HEIGHT, type HeroSlide } from "./heroGames";
 
 /**
  * Hero da home (Figma 131:1504) — banner de 859×758 à esquerda e o slot de
@@ -15,11 +15,30 @@ import { HERO_BANNER_WIDTH, HERO_HEIGHT } from "./heroGames";
  * banner vem DEPOIS no DOM e com `z-10` — a esteira some na borda dele, mas o
  * card sob o cursor sobe para `z-index: 1` e sem isso poderia passar na frente.
  */
-export function HeroSection() {
+/** A arte padrão do topo, quando o admin não subiu outra. */
+const HERO_ART = "/images/hero-banner.svg";
+
+export function HeroSection({
+  image = HERO_ART,
+  caption = "Sua Loja de Gamecoins",
+  slides,
+}: {
+  image?: string;
+  /** Os cards do carrossel, já resolvidos por `buildHeroSlides`. */
+  slides: HeroSlide[];
+  /**
+   * A legenda sob o banner.
+   *
+   * Era texto fixo, e a seção "Home - Hero" da tela de edição salvava um título
+   * que NADA desenhava — o campo prometia um efeito que não acontecia. Agora é
+   * esta linha.
+   */
+  caption?: string;
+}) {
   return (
     <section className="relative" style={{ height: HERO_HEIGHT }}>
-      <HeroDeck />
-      <HeroBanner />
+      <HeroDeck slides={slides} />
+      <HeroBanner image={image} caption={caption} />
     </section>
   );
 }
@@ -29,20 +48,20 @@ export function HeroSection() {
  * exportado do Figma — só os pontinhos e a legenda ficam por cima, porque são
  * estado de interface e precisam reagir ao slide ativo.
  */
-function HeroBanner() {
+function HeroBanner({ image, caption }: { image: string; caption: string }) {
   return (
     <div
       className="absolute top-0 left-0 z-10 rounded-[30px]"
       style={{ width: HERO_BANNER_WIDTH, height: HERO_HEIGHT }}
     >
       <Image
-        src="/images/hero-banner.svg"
+        src={image}
         alt=""
         width={859}
         height={758}
         aria-hidden
         priority
-        className="absolute inset-0 size-full"
+        className="absolute inset-0 size-full overflow-hidden rounded-[30px]"
       />
 
       {/* Indicadores: 3 barras de 40×3 a cada 50px. A ativa tem o degradê
@@ -76,7 +95,7 @@ function HeroBanner() {
       </div>
 
       <p className="absolute top-[691px] left-[50px] font-helvetica text-[18px] leading-[17px] font-bold tracking-[0.18px] text-white">
-        Sua Loja de Gamecoins
+        {caption}
       </p>
     </div>
   );

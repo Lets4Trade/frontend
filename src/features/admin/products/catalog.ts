@@ -11,6 +11,8 @@
  * esconder a maior parte), o estado sobrevive ao voltar do navegador, e o
  * objeto de query já é a query string da API.
  */
+import { PRODUCT_TABS } from "@/features/game/tabs";
+
 export type AdminProduct = {
   id: string;
   name: string;
@@ -21,9 +23,11 @@ export type AdminProduct = {
   /** Caminho servido pelo BACKEND (`/uploads/products/…`), não pelo Next. */
   imageUrl: string | null;
   serverId: string | null;
+  categoryId: string | null;
   createdAt: string;
   game: { id: string; slug: string; name: string };
   server: { id: string; label: string } | null;
+  category: { id: string; label: string } | null;
 };
 
 export type AdminProductPage = {
@@ -62,30 +66,21 @@ const SORTS = new Set<string>([
 /**
  * As abas de tipo do arquivo são NOVE, mas duas delas — "VENDA PRA NÓS" e
  * "FIDELIDADE" — não são tipos de produto: na vitrine elas são links para
- * `/venda` e `/fidelidade` (ver `features/game/seed.ts`). Como filtro de
- * produto nunca casariam com nada, então aqui ficam as SETE que existem no
- * enum `GameProductType` do backend.
+ * `/venda` e `/fidelidade`. Como filtro de produto nunca casariam com nada,
+ * então aqui ficam as SETE que existem no enum `GameProductType` do backend.
  *
- * A ordem é a do arquivo. Os ícones são os mesmos da vitrine.
+ * DERIVADAS de `features/game/tabs.ts`, e não escritas de novo. Esta lista era
+ * uma segunda cópia da mesma coisa, com outro formato — e uma aba nova entraria
+ * num dos dois lugares antes do outro, deixando o painel cadastrar um tipo que
+ * a loja não sabe desenhar. `tabs.ts` é dado puro, então importá-lo aqui não
+ * arrasta nada de servidor para o bundle do navegador.
  */
-export const TYPE_TABS = [
-  { value: "MOEDAS", label: "MOEDAS", icon: "/icons/game/tab-moedas.svg" },
-  {
-    value: "ITENS",
-    label: "ITENS",
-    icon: "/icons/game/tab-itens-base.svg",
-    // O arquivo compõe o ícone de ITENS com dois desenhos sobrepostos.
-    overlay: {
-      src: "/icons/game/tab-itens-mark.svg",
-      inset: "21.21% 41.49% 48.48% 40.77%",
-    },
-  },
-  { value: "GOLD", label: "GOLD", icon: "/icons/game/tab-gold.svg" },
-  { value: "BUILDS", label: "BUILDS", icon: "/icons/game/tab-builds.svg" },
-  { value: "BOOSTING", label: "BOOSTING", icon: "/icons/game/tab-boosting.svg" },
-  { value: "CARRY", label: "CARRY", icon: "/icons/game/tab-carry.svg" },
-  { value: "MENTORIA", label: "MENTORIA", icon: "/icons/game/tab-mentoria.svg" },
-] as const;
+export const TYPE_TABS = PRODUCT_TABS.map((tab) => ({
+  value: tab.productType,
+  label: tab.label,
+  icon: tab.icon,
+  overlay: tab.overlay,
+}));
 
 const TYPES = new Set<string>(TYPE_TABS.map((t) => t.value));
 

@@ -14,8 +14,10 @@ import type { GamePage } from "./types";
  *
  * TODOS são links, não botões com estado: o filtro mora na URL (ver
  * `catalog.ts`), então trocar de servidor é navegar. Isso é o que mantém a
- * filtragem no servidor e a página compartilhável — e é o que vai virar query
- * de API sem tocar nestes componentes.
+ * filtragem no servidor e a página compartilhável.
+ *
+ * Foi essa decisão que fez a virada para o banco (2026-09-10) não tocar em
+ * nenhum destes componentes: o objeto de query já era a query string da API.
  *
  * A busca é um `<form method="get">` de verdade: funciona sem JavaScript e não
  * precisa de client component.
@@ -39,11 +41,11 @@ export function ServerPicker({
 
       <div className="mt-[25px] flex flex-wrap gap-[25px]">
         {page.servers.items.map((server) => {
-          const active = server.id === query.server;
+          const active = server.slug === query.server;
           return (
             <Link
-              key={server.id}
-              href={buildHref(page.slug, query, { server: server.id })}
+              key={server.slug}
+              href={buildHref(page.slug, query, { server: server.slug })}
               aria-current={active ? "true" : undefined}
               className={`inline-flex h-[50px] min-w-[197px] items-center justify-center rounded-full px-6 font-poppins text-[16px] font-bold tracking-[0.16px] transition-opacity hover:opacity-90 ${
                 active
@@ -134,7 +136,7 @@ export function CatalogToolbar({
   page: GamePage;
   query: CatalogQuery;
 }) {
-  const server = page.servers.items.find((item) => item.id === query.server);
+  const server = page.servers.items.find((item) => item.slug === query.server);
 
   return (
     <div className="flex items-center justify-between gap-[25px]">

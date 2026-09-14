@@ -30,7 +30,8 @@ type ErrorField =
   | "priceCents"
   | "platform"
   | "productType"
-  | "serverId";
+  | "serverId"
+  | "categoryId";
 type FieldErrors = Partial<Record<ErrorField, string>>;
 
 type FailureReason = Extract<CreateProductResult, { ok: false }>["reason"];
@@ -126,6 +127,12 @@ export function ProductForm({
   const serverOptions =
     selectedGame?.servers.map((server) => ({ value: server.id, label: server.label })) ?? [];
 
+  // Categorias vêm do Builder de Páginas. Jogo que nunca passou por lá tem a
+  // lista vazia, e aí o select aparece desabilitado com a explicação — em vez
+  // de sumir e deixar a pessoa sem saber por que não dá para classificar.
+  const categoryOptions =
+    selectedGame?.categories.map((c) => ({ value: c.id, label: c.label })) ?? [];
+
   /** Uma opção só já vem escolhida; várias abrem com o placeholder. */
   const onlyOption = (options: { value: string }[]) =>
     options.length === 1 ? options[0].value : undefined;
@@ -144,6 +151,7 @@ export function ProductForm({
       platform: data.get("platform") ?? "",
       productType: data.get("productType") ?? "",
       serverId: data.get("serverId") ?? "",
+      categoryId: data.get("categoryId") ?? "",
     });
 
     if (!parsed.success) {
@@ -241,6 +249,24 @@ export function ProductForm({
           defaultValue={product?.serverId ?? onlyOption(serverOptions)}
           disabled={selectedGame === null || serverOptions.length === 0}
           error={fieldErrors.serverId}
+        />
+
+        <SelectField
+          key={`category-${gameId}`}
+          label="Categoria:"
+          name="categoryId"
+          // Placeholder diferente quando o jogo não tem categoria nenhuma —
+          // mesma razão do servidor: campo vazio e desabilitado sem explicação
+          // parece defeito. Aqui o texto ainda diz ONDE se cria uma.
+          placeholder={
+            selectedGame !== null && categoryOptions.length === 0
+              ? "Nenhuma — crie no Builder de Páginas"
+              : "Categoria (opcional)"
+          }
+          options={categoryOptions}
+          defaultValue={product?.categoryId ?? undefined}
+          disabled={selectedGame === null || categoryOptions.length === 0}
+          error={fieldErrors.categoryId}
         />
 
         <SelectField

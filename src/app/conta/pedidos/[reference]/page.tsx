@@ -107,12 +107,14 @@ export default async function PedidoPage({ params }: PageProps) {
               <div aria-hidden className="mt-[26px] h-px w-full bg-white/25" />
 
               {/* Um pedido tem um produto, então o preço da linha É o subtotal.
-                  O desconto do checkout não é gravado no pedido — ver
-                  open-questions.md. */}
+                  O desconto é o que as Lets Coins abateram DESTA linha — gravado
+                  no próprio pedido desde 2026-09-10 (`Order.discountCents`).
+                  Antes disso era sempre "R$ 0,00" fixo, porque o resgate não
+                  saía do navegador. */}
               <TotalsBlock
                 price={order.price}
-                discount={"R$ 0,00"}
-                total={order.price}
+                discount={order.discount ?? "R$ 0,00"}
+                total={order.paid}
               />
 
               {/* O comprovante ainda não existe. O botão fica desabilitado em

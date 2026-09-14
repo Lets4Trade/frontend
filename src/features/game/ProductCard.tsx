@@ -9,12 +9,15 @@ import type { GameProduct } from "./types";
 
 /**
  * O que o carrinho precisa saber e o produto sozinho não diz: em que jogo ele
- * está e o NOME do servidor (o produto guarda só o id). Vem da página, que já
- * tem os dois.
+ * está e a arte desse jogo. Vem da página.
+ *
+ * `platform` é RESERVA, não a fonte: o produto já traz o rótulo do próprio
+ * servidor, e é ele que vale. O do filtro só entra para o produto cadastrado
+ * sem servidor — que existe, porque a coluna é opcional no banco.
  */
 export type ProductContext = {
   gameSlug: string;
-  /** Rótulo do servidor, como aparece no carrinho ("Eternal Softcore"). */
+  /** Rótulo do servidor do filtro, para o produto que não tem um. */
   platform: string;
   gameLogo?: string;
 };
@@ -82,7 +85,7 @@ export function ProductCard({
                 name: product.name,
                 image: product.image?.src,
                 gameLogo: context.gameLogo,
-                platform: context.platform,
+                platform: product.serverLabel ?? context.platform,
                 unitPriceCents: product.priceCents,
               },
               quantity,

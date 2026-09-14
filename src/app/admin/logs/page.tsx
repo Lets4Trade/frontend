@@ -12,6 +12,7 @@ import {
 } from "@/features/admin/logs/list";
 import { CATEGORY_OPTIONS } from "@/features/admin/logs/types";
 import { cn } from "@/lib/cn";
+import { ADMIN_SHELL } from "@/features/admin/layout";
 
 export const metadata: Metadata = {
   title: "Logs | Lets4Trade",
@@ -54,7 +55,7 @@ export default async function AdminLogsPage({
   const current = CATEGORY_OPTIONS.find((option) => option.value === query.category);
 
   return (
-    <div className="mx-auto w-full max-w-[1920px] px-[50px] pt-[37px] pb-[110px]">
+    <div className={`${ADMIN_SHELL} pb-[110px]`}>
       <div className="flex w-full max-w-[1820px] flex-wrap items-center justify-between gap-[25px] pl-[30px]">
         <div>
           <h1 className="font-helvetica text-[25px] leading-[24px] font-bold tracking-[0.25px] text-white">

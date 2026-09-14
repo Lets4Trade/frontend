@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import type { LoyaltyTierRule } from "@/features/loyalty/data";
 import { CartDrawer } from "./CartDrawer";
 import { itemCount, useCart, useCartHydrated } from "./store";
 
@@ -15,7 +16,7 @@ import { itemCount, useCart, useCartHydrated } from "./store";
  * `localStorage` do visitante, e pintar o número na primeira renderização do
  * cliente acusaria divergência. Ver `useCartHydrated`.
  */
-export function CartButton() {
+export function CartButton({ tiers }: { tiers: LoyaltyTierRule[] }) {
   const items = useCart((state) => state.items);
   const open = useCart((state) => state.open);
   const hydrated = useCartHydrated();
@@ -54,7 +55,7 @@ export function CartButton() {
         ) : null}
       </button>
 
-      <CartDrawer />
+      <CartDrawer tiers={tiers} />
     </>
   );
 }

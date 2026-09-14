@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { SiteFooter } from "@/components/layout/SiteFooter";
+import { AdminToaster } from "@/components/ui/Toasts";
 import { AdminHeader } from "@/features/admin/AdminHeader";
 import { PageViewTracker } from "@/features/admin/PageViewTracker";
 import { getSessionRole, getSessionUser } from "@/features/auth/session";
@@ -46,6 +47,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       <AdminHeader user={user} />
       <main className="flex-1">{children}</main>
       <SiteFooter />
+
+      {/* Área dos avisos efêmeros. Uma vez só, no layout: cada tela do painel
+          chama `toastOk`/`toastError` e não precisa montar nada. */}
+      <AdminToaster />
     </div>
   );
 }

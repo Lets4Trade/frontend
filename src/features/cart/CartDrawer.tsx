@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Drawer } from "vaul";
-import { TIERS } from "@/features/loyalty/tiers";
+import type { LoyaltyTierRule } from "@/features/loyalty/data";
+import { tierArt } from "@/features/loyalty/tiers";
 import {
   formatCents,
   subtotalCents,
@@ -23,7 +24,7 @@ import {
  * mão: prender o foco dentro da gaveta, fechar no Esc, travar a rolagem do
  * fundo e devolver o foco ao botão do cabeçalho ao fechar.
  */
-export function CartDrawer() {
+export function CartDrawer({ tiers }: { tiers: LoyaltyTierRule[] }) {
   const items = useCart((state) => state.items);
   const isOpen = useCart((state) => state.isOpen);
   const open = useCart((state) => state.open);
@@ -113,7 +114,7 @@ export function CartDrawer() {
 
               <div aria-hidden className="mt-[25px] h-px w-full bg-white/25" />
 
-              <NextTier totalCents={total} />
+              <NextTier totalCents={total} tiers={tiers} />
             </footer>
           ) : null}
         </Drawer.Content>
@@ -324,15 +325,26 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 /**
  * "Prata — Ao comprar vai atingir este nível de Cashback".
  *
- * O nível sai do VALOR DO CARRINHO contra as faixas de `loyalty/tiers.ts`, que
- * já existiam. Ficaria exato somando o `totalSpent` da conta — é uma prop de
- * distância, mas exigiria o cabeçalho buscar o perfil em toda página, e ele
- * hoje só busca a sessão. Ver open-questions.md.
+ * As faixas chegam do BACKEND, via cabeçalho (`GET /api/v1/loyalty/tiers`, uma
+ * leitura pública e cacheada por uma hora). Até 2026-09-10 vinham de uma tabela
+ * que só existia no frontend.
+ *
+ * O nível sai do VALOR DO CARRINHO, e não do total já gasto pela conta: ficaria
+ * exato somando o `totalSpent`, mas isso exigiria o cabeçalho buscar a
+ * fidelidade em TODA página, e ele hoje só busca a sessão. Ver
+ * open-questions.md.
  */
-function NextTier({ totalCents }: { totalCents: number }) {
-  const reais = totalCents / 100;
+function NextTier({
+  totalCents,
+  tiers,
+}: {
+  totalCents: number;
+  tiers: LoyaltyTierRule[];
+}) {
   const tier =
-    [...TIERS].reverse().find((candidate) => reais >= candidate.minSpend) ?? TIERS[0];
+    [...tiers].reverse().find((candidate) => totalCents >= candidate.minSpentCents) ??
+    tiers[0];
+  const art = tierArt(tier.tier);
 
   return (
     <div className="mt-[26px] flex items-center justify-between gap-[25px]">
@@ -345,7 +357,7 @@ function NextTier({ totalCents }: { totalCents: number }) {
         </p>
       </div>
       <Image
-        src={tier.icon}
+        src={art.icon}
         alt=""
         width={75}
         height={75}

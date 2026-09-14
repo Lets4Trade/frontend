@@ -12,6 +12,7 @@ import {
 } from "@/features/admin/users/list";
 import { ROLE_OPTIONS } from "@/features/admin/users/types";
 import { cn } from "@/lib/cn";
+import { ADMIN_SHELL } from "@/features/admin/layout";
 
 export const metadata: Metadata = {
   title: "Painel de usuário | Lets4Trade",
@@ -47,7 +48,7 @@ export default async function AdminUsersPage({
   const currentRole = ROLE_OPTIONS.find((option) => option.value === query.role);
 
   return (
-    <div className="mx-auto w-full max-w-[1920px] px-[50px] pt-[37px] pb-[110px]">
+    <div className={`${ADMIN_SHELL} pb-[110px]`}>
         {/* Cabeçalho da página: título à esquerda, filtros à direita, alinhados
             pelo centro do bloco de duas linhas — como no arquivo. */}
         {/* `flex-wrap`: abaixo de ~1200px o título e os filtros passam a

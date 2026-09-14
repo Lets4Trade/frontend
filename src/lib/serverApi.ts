@@ -27,7 +27,22 @@ const TIMEOUT_MS = 4000;
 
 export type ApiResult<T> =
   | { ok: true; data: T }
-  | { ok: false; status: number; reason: "unauthenticated" | "error" };
+  | {
+      ok: false;
+      status: number;
+      reason: "unauthenticated" | "error";
+      /**
+       * A mensagem que o BACKEND escreveu, quando ele escreveu uma.
+       *
+       * Existe porque algumas recusas só são acionáveis com o texto original:
+       * "120 produtos ainda estão ligados a servidores que você tirou da lista"
+       * diz o que fazer, e um "não foi possível salvar" genérico não diz nada.
+       *
+       * Quem exibe decide se confia: é texto vindo de outro serviço, então vai
+       * para a tela como TEXTO (nunca como HTML), e só em telas administrativas.
+       */
+      message?: string;
+    };
 
 /**
  * POST autenticado a partir do servidor. Mesmas regras do `apiGet`.
@@ -58,6 +73,28 @@ export async function apiPostFormData<T>(
   form: FormData,
 ): Promise<ApiResult<T>> {
   return request<T>(path, { method: "POST", body: form });
+}
+
+/**
+ * PUT com corpo JSON — substituição do recurso inteiro.
+ *
+ * Existe para o "SALVAR E PUBLICAR PAGE" do builder: o corpo dali é o estado
+ * COMPLETO da página, e não um remendo. `PATCH` diria "mude só estes campos",
+ * que é o oposto do que aquele botão faz.
+ */
+export async function apiPut<T>(
+  path: string,
+  body: unknown,
+): Promise<ApiResult<T>> {
+  return request<T>(path, { method: "PUT", body: JSON.stringify(body) });
+}
+
+/** Mesmo caso do `apiPostFormData`, para substituição com arquivo. */
+export async function apiPutFormData<T>(
+  path: string,
+  form: FormData,
+): Promise<ApiResult<T>> {
+  return request<T>(path, { method: "PUT", body: form });
 }
 
 /** PATCH com corpo JSON — edição parcial sem arquivo. */
@@ -97,9 +134,38 @@ export async function apiGet<T>(path: string): Promise<ApiResult<T>> {
   return request<T>(path, { method: "GET" });
 }
 
+/**
+ * Lê o `message` do corpo de erro do backend, se houver um legível.
+ *
+ * Tudo aqui é defensivo de propósito: o corpo pode não ser JSON (um proxy no
+ * meio do caminho devolve HTML), pode não ter `message`, e o `message` do
+ * class-validator às vezes é um ARRAY de problemas. Qualquer coisa fora do
+ * esperado vira `undefined`, e quem exibe cai no texto genérico.
+ *
+ * O teto de 300 caracteres é para uma mensagem enorme não virar um parágrafo na
+ * tela — e para o corpo de erro não ser um jeito de despejar texto no painel.
+ */
+async function readErrorMessage(response: Response): Promise<string | undefined> {
+  try {
+    const body: unknown = await response.json();
+    if (typeof body !== "object" || body === null) return undefined;
+
+    const raw = (body as { message?: unknown }).message;
+    const text = Array.isArray(raw) ? raw.filter((v) => typeof v === "string")[0] : raw;
+
+    if (typeof text !== "string" || text.trim() === "") return undefined;
+    return text.trim().slice(0, 300);
+  } catch {
+    return undefined;
+  }
+}
+
 async function request<T>(
   path: string,
-  init: { method: "GET" | "POST" | "PATCH" | "DELETE"; body?: string | FormData },
+  init: {
+    method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+    body?: string | FormData;
+  },
 ): Promise<ApiResult<T>> {
   if (API_URL === "") return { ok: false, status: 0, reason: "error" };
 
@@ -139,6 +205,7 @@ async function request<T>(
         ok: false,
         status: response.status,
         reason: response.status === 401 ? "unauthenticated" : "error",
+        message: await readErrorMessage(response),
       };
     }
 

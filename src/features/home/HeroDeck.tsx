@@ -14,26 +14,47 @@ import {
 import {
   HERO_BANNER_WIDTH,
   HERO_CARD_WIDTH,
-  HERO_CLOSED_STEP,
   HERO_COIN,
   HERO_DECK_LEFT,
   HERO_DECK_WIDTH,
-  HERO_GAMES,
   HERO_GAP,
   HERO_HEIGHT,
   HERO_OPEN_STEP,
-  type HeroGame,
+  type HeroSlide,
 } from "./heroGames";
 
-/** Seis slots: os cinco jogos do arquivo mais o card "EM BREVE". */
-const SLOT_COUNT = HERO_GAMES.length + 1;
-const COMING_SOON_INDEX = SLOT_COUNT - 1;
+/**
+ * A geometria do baralho, derivada do NÚMERO de cards.
+ *
+ * Era constante (cinco jogos + "EM BREVE") porque a lista era constante. Com os
+ * slides vindo do banco, o admin pode ter três ou oito:
+ *
+ *   - aberto: o passo continua o do arquivo (361), e a esteira só fica mais
+ *     longa ou mais curta;
+ *   - fechado: o passo é o que faz os N cards ocuparem EXATAMENTE os 936px da
+ *     faixa — com cinco, dá os 150px do arquivo. Nunca passa do passo aberto,
+ *     senão o baralho "fechado" com dois cards ficaria mais espaçado que o
+ *     aberto.
+ */
+function deckGeometry(gameCount: number) {
+  const slotCount = gameCount + 1;
+  const trackWidth = (slotCount - 1) * HERO_OPEN_STEP + HERO_CARD_WIDTH;
+  const closedStep =
+    gameCount > 1
+      ? Math.min(
+          (HERO_DECK_WIDTH - HERO_CARD_WIDTH) / (gameCount - 1),
+          HERO_OPEN_STEP,
+        )
+      : 0;
 
-/** 5 × 361 + 336 = 2141px, a largura do arranjo aberto. */
-const TRACK_WIDTH = (SLOT_COUNT - 1) * HERO_OPEN_STEP + HERO_CARD_WIDTH;
-
-/** O quanto a esteira anda até a borda direita do último card encostar no fim da linha. */
-const MAX_OFFSET = TRACK_WIDTH - HERO_DECK_WIDTH;
+  return {
+    comingSoonIndex: slotCount - 1,
+    trackWidth,
+    closedStep,
+    /** Quanto a esteira anda até o último card encostar no fim da linha. */
+    maxOffset: Math.max(trackWidth - HERO_DECK_WIDTH, 0),
+  };
+}
 
 /** Precisa bater com a duração declarada em `.hero-slot` / `.hero-track`. */
 const TRANSITION_MS = 700;
@@ -70,7 +91,14 @@ const DRAG_SLOP = 6;
  * apareceria através do vidro junto com o brilho; e tapar o banner com preto
  * para resolver isso apagaria o brilho.
  */
-export function HeroDeck() {
+export function HeroDeck({ slides }: { slides: HeroSlide[] }) {
+  const {
+    comingSoonIndex: COMING_SOON_INDEX,
+    trackWidth: TRACK_WIDTH,
+    closedStep,
+    maxOffset: MAX_OFFSET,
+  } = deckGeometry(slides.length);
+
   const [open, setOpen] = useState(false);
   /**
    * Quanto a esteira já andou, em pixels. É um número LIVRE, não um índice de
@@ -90,9 +118,12 @@ export function HeroDeck() {
   const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /** Gesto em curso. Vive em `ref` porque muda a cada `pointermove`. */
-  const drag = useRef<{ id: number; x: number; base: number; moved: number } | null>(
-    null,
-  );
+  const drag = useRef<{
+    id: number;
+    x: number;
+    base: number;
+    moved: number;
+  } | null>(null);
   /** Um arrasto termina em `click`. Sem isto, soltar sobre um card navegaria. */
   const swallowClick = useRef(false);
 
@@ -144,7 +175,12 @@ export function HeroDeck() {
   function onPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     if (!open || event.button !== 0) return;
     swallowClick.current = false;
-    drag.current = { id: event.pointerId, x: event.clientX, base: offset, moved: 0 };
+    drag.current = {
+      id: event.pointerId,
+      x: event.clientX,
+      base: offset,
+      moved: 0,
+    };
     event.currentTarget.setPointerCapture(event.pointerId);
     setDragging(true);
   }
@@ -202,13 +238,24 @@ export function HeroDeck() {
           // no vão de 25px — que é o `HERO_DECK_LEFT` visto de dentro.
           style={{ left: HERO_GAP, width: TRACK_WIDTH }}
         >
-          {HERO_GAMES.map((game, index) => (
-            <HeroSlot key={game.key} index={index}>
-              <GameCard game={game} index={index} />
+          {slides.map((slide, index) => (
+            <HeroSlot
+              key={slide.id}
+              index={index}
+              closedShift={closedShift(index, COMING_SOON_INDEX, closedStep)}
+            >
+              <GameCard game={slide} index={index} />
             </HeroSlot>
           ))}
 
-          <HeroSlot index={COMING_SOON_INDEX}>
+          <HeroSlot
+            index={COMING_SOON_INDEX}
+            closedShift={closedShift(
+              COMING_SOON_INDEX,
+              COMING_SOON_INDEX,
+              closedStep,
+            )}
+          >
             <ComingSoonCard index={COMING_SOON_INDEX} />
           </HeroSlot>
         </div>
@@ -274,11 +321,15 @@ function clamp(value: number, min: number, max: number) {
  * O card "EM BREVE" não existe no baralho fechado: ele descansa encostado na
  * borda direita da linha, e entra deslizando na abertura.
  */
-function closedShift(index: number) {
-  if (index === COMING_SOON_INDEX) {
+function closedShift(
+  index: number,
+  comingSoonIndex: number,
+  closedStep: number,
+) {
+  if (index === comingSoonIndex) {
     return HERO_DECK_WIDTH - index * HERO_OPEN_STEP;
   }
-  return index * (HERO_CLOSED_STEP - HERO_OPEN_STEP);
+  return index * (closedStep - HERO_OPEN_STEP);
 }
 
 /**
@@ -287,7 +338,15 @@ function closedShift(index: number) {
  * deslocamento do baralho e a escala do `:hover` morassem no mesmo elemento, um
  * sobrescreveria o outro.
  */
-function HeroSlot({ index, children }: { index: number; children: ReactNode }) {
+function HeroSlot({
+  index,
+  closedShift,
+  children,
+}: {
+  index: number;
+  closedShift: number;
+  children: ReactNode;
+}) {
   return (
     <div
       className="hero-slot absolute top-0"
@@ -296,7 +355,7 @@ function HeroSlot({ index, children }: { index: number; children: ReactNode }) {
           left: index * HERO_OPEN_STEP,
           width: HERO_CARD_WIDTH,
           height: HERO_HEIGHT,
-          "--hero-closed": `${closedShift(index)}px`,
+          "--hero-closed": `${closedShift}px`,
         } as CSSProperties
       }
     >
@@ -311,10 +370,15 @@ function HeroSlot({ index, children }: { index: number; children: ReactNode }) {
  * para que o tempo do escalonamento (90ms) fique junto do resto da animação,
  * em `globals.css`, e não dividido entre dois arquivos.
  */
-function GameCard({ game, index }: { game: HeroGame; index: number }) {
+function GameCard({ game, index }: { game: HeroSlide; index: number }) {
+  // O destino é o link do slide, cadastrado no painel. Antes era montado como
+  // `/games/${key}` — um slug que só existia porque a lista era escrita à mão.
+  // Sem link o card é só vitrine: `div`, não um `<a>` que leva a lugar nenhum.
+  const Tag = game.href ? "a" : "div";
+
   return (
-    <a
-      href={`/games/${game.key}`}
+    <Tag
+      {...(game.href ? { href: game.href } : {})}
       aria-label={game.name}
       className="hero-card absolute inset-0 block overflow-hidden rounded-[30px] border border-white/10 bg-black/10 backdrop-blur-[40px]"
       style={{ "--hero-i": index } as CSSProperties}
@@ -325,8 +389,8 @@ function GameCard({ game, index }: { game: HeroGame; index: number }) {
 
       <div className="hero-rule absolute top-[549px] left-[25px] h-px w-[286px] bg-white/5" />
 
-      {game.logoBox.blur ? <LogoArt game={game} blurred /> : null}
-      <LogoArt game={game} />
+      {game.logo && game.logoBox.blur ? <LogoArt game={game} blurred /> : null}
+      {game.logo ? <LogoArt game={game} /> : null}
 
       <Image
         src="/icons/home/maximize.svg"
@@ -336,7 +400,7 @@ function GameCard({ game, index }: { game: HeroGame; index: number }) {
         aria-hidden
         className="hero-zoom absolute top-[715px] left-[calc(50%+125px)] size-[18px]"
       />
-    </a>
+    </Tag>
   );
 }
 
@@ -345,7 +409,13 @@ function GameCard({ game, index }: { game: HeroGame; index: number }) {
  * propriedade só, e o estado fechado precisa somar `grayscale(1)` a ela. Se o
  * blur ficasse inline, a regra do cinza o apagaria. Ver `globals.css`.
  */
-function CharacterArt({ game, blurred }: { game: HeroGame; blurred?: boolean }) {
+function CharacterArt({
+  game,
+  blurred,
+}: {
+  game: HeroSlide;
+  blurred?: boolean;
+}) {
   return (
     <Image
       src={game.character}
@@ -353,7 +423,9 @@ function CharacterArt({ game, blurred }: { game: HeroGame; blurred?: boolean }) 
       width={Math.round(game.char.width)}
       height={Math.round(game.char.height)}
       aria-hidden
-      className="hero-art absolute object-bottom"
+      // `object-contain` só na arte nova: a original tem geometria medida para
+      // a proporção dela e deve preencher a caixa exatamente como no arquivo.
+      className={`hero-art absolute object-bottom${game.char.contain ? " object-contain" : ""}`}
       style={
         {
           left: game.char.left,
@@ -367,11 +439,11 @@ function CharacterArt({ game, blurred }: { game: HeroGame; blurred?: boolean }) 
   );
 }
 
-function LogoArt({ game, blurred }: { game: HeroGame; blurred?: boolean }) {
+function LogoArt({ game, blurred }: { game: HeroSlide; blurred?: boolean }) {
   const { offsetX, top, width, height, blur } = game.logoBox;
   return (
     <Image
-      src={game.logo}
+      src={game.logo ?? ""}
       alt=""
       width={Math.round(width)}
       height={Math.round(height)}
