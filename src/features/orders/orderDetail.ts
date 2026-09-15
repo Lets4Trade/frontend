@@ -1,5 +1,10 @@
 import { apiGet } from "@/lib/serverApi";
-import { toMessage, type ApiMessage, type OrderMessage } from "./messages";
+import {
+  toChatMessage,
+  type ApiChatMessage,
+  type ChatMessage,
+  type ConversationSummary,
+} from "@/features/support/types";
 import type { Order } from "./types";
 import { toOrder, type ApiOrder } from "./ordersService";
 
@@ -37,21 +42,26 @@ export async function getOrderDetail(reference: string): Promise<OrderDetailResu
 }
 
 /**
- * HISTÓRICO da conversa do pedido.
+ * A conversa de atendimento MAIS RECENTE do pedido, com o histórico.
  *
- *   GET /orders/:reference/messages → { data: { items: [...] } }
+ *   GET /support/orders/:reference → { data: { conversation?, messages? } }
  *
- * O tempo real é SOCKET (ver `OrderChat`), mas o histórico vem por HTTP e no
- * servidor: é o que a pessoa vê já pintado ao abrir a página, sem esperar o
- * socket conectar. O socket cuida do que acontece dali em diante.
+ * Desde 2026-09-15 a conversa do pedido é uma conversa de atendimento como as
+ * do popup (ver `features/support`). Pedido sem conversa devolve `null` — a tela
+ * abre uma no primeiro envio.
  *
- * Falhar aqui não derruba a tela — a conversa aparece vazia e o socket ainda
- * entrega o que chegar.
+ * Falhar aqui não derruba a tela: a conversa aparece vazia.
  */
-export async function getOrderMessages(reference: string): Promise<OrderMessage[]> {
-  const result = await apiGet<{ items: ApiMessage[] }>(
-    `/orders/${encodeURIComponent(reference)}/messages`,
+export async function getOrderConversation(
+  reference: string,
+): Promise<{ conversation: ConversationSummary | null; messages: ChatMessage[] }> {
+  const result = await apiGet<{ conversation?: ConversationSummary; messages?: ApiChatMessage[] }>(
+    `/support/orders/${encodeURIComponent(reference)}`,
   );
-  if (!result.ok || !Array.isArray(result.data.items)) return [];
-  return result.data.items.map(toMessage);
+  if (!result.ok) return { conversation: null, messages: [] };
+  return {
+    // Falsy, não `=== null`: o backend apaga o campo nulo da resposta.
+    conversation: result.data.conversation || null,
+    messages: Array.isArray(result.data.messages) ? result.data.messages.map(toChatMessage) : [],
+  };
 }

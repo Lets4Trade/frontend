@@ -9,7 +9,7 @@ import {
 } from "@/features/checkout/CheckoutPanel";
 import { OrderChat } from "@/features/orders/OrderChat";
 import { getAccountProfile } from "@/features/account/profile";
-import { getOrderDetail, getOrderMessages } from "@/features/orders/orderDetail";
+import { getOrderConversation, getOrderDetail } from "@/features/orders/orderDetail";
 import { OrderStatusTracker } from "@/features/orders/OrderStatusTracker";
 import {
   OrderLineBlock,
@@ -45,9 +45,9 @@ type PageProps = { params: Promise<{ reference: string }> };
 export default async function PedidoPage({ params }: PageProps) {
   const { reference } = await params;
 
-  const [result, messages, profile] = await Promise.all([
+  const [result, chat, profile] = await Promise.all([
     getOrderDetail(reference),
-    getOrderMessages(reference),
+    getOrderConversation(reference),
     getAccountProfile(),
   ]);
 
@@ -69,7 +69,8 @@ export default async function PedidoPage({ params }: PageProps) {
         <div className="flex flex-1 justify-center px-[50px] pt-[192px] pb-[60px]">
           <OrderChat
             reference={reference}
-            initialMessages={messages}
+            initialConversationId={chat.conversation?.id ?? null}
+            initialMessages={chat.messages}
             userAvatar={profile.ok ? profile.profile.avatar : undefined}
           />
         </div>

@@ -33,6 +33,9 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
     href: "/admin/produtos",
     match: ["/admin/produtos", "/admin/jogos"],
   },
+  // NÃO está no arquivo do Figma: o atendimento (popup de contato + Discord) foi
+  // pedido em 2026-09-15. Ao lado de pedidos porque é o mesmo trabalho.
+  { label: "Chats", href: "/admin/chats", match: ["/admin/chats"] },
   {
     label: "Edição de sessões",
     href: "/admin/sessoes",

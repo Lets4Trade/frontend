@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { Manrope, DM_Sans } from "next/font/google";
 import localFont from "next/font/local";
 import { PageViewTracker } from "@/features/admin/PageViewTracker";
+import { getContacts } from "@/features/site/contacts";
+import { ContactBubble } from "@/features/support/ContactBubble";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -115,6 +117,10 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Leitura cacheada (1h, invalidada pelo painel) — a mesma que o cabeçalho e o
+  // rodapé já fazem; não soma ida ao backend.
+  const contacts = await getContacts();
+
   return (
     <html
       lang="pt-BR"
@@ -131,6 +137,9 @@ export default async function RootLayout({
             decide a categoria é o backend, pela sessão. */}
         <PageViewTracker surface="store" />
         {children}
+        {/* Contato flutuante em toda a loja; ele mesmo some no checkout e no
+            painel. Ver `features/support/ContactBubble.tsx`. */}
+        <ContactBubble whatsappHref={contacts.whatsapp?.href} />
       </body>
     </html>
   );

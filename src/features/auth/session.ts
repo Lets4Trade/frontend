@@ -155,6 +155,15 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   };
 });
 
+/**
+ * Só o ID da conta da sessão, ou `null`. Existe para o painel de atendimento
+ * saber quem é "eu" ao assumir uma conversa — sem expor o resto do perfil.
+ */
+export const getSessionUserId = cache(async (): Promise<string | null> => {
+  const profile = await fetchProfile();
+  return profile && typeof profile.id === "string" ? profile.id : null;
+});
+
 /** Espelha o enum `UserRole` do backend (prisma/schema.prisma). */
 export type SessionRole = "ADMIN" | "USER";
 

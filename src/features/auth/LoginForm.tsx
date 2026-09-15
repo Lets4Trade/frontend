@@ -8,9 +8,19 @@ import { TextField } from "@/components/ui/TextField";
 import { login } from "./authService";
 import { loginSchema } from "./schema";
 import { AUTH_ERROR_MESSAGES, AuthError } from "./types";
+import { safeRedirectPath } from "@/lib/safeRedirect";
 
-/** Para onde mandar o usuário depois de autenticar. */
-const REDIRECT_AFTER_LOGIN = "/";
+/**
+ * Para onde mandar o usuário depois de autenticar: o `?redirect=` da URL, se for
+ * caminho interno, senão a home. Até 2026-09-15 era sempre `/` — a tela do
+ * pedido já mandava `?redirect=` e a pessoa perdia o lugar mesmo assim.
+ *
+ * Lido na hora do envio (`window.location`) em vez de `useSearchParams`, que
+ * obrigaria a página de login a ter um Suspense só por isso.
+ */
+function redirectAfterLogin(): string {
+  return safeRedirectPath(new URLSearchParams(window.location.search).get("redirect"));
+}
 
 type FieldErrors = Partial<Record<"email" | "password", string>>;
 
@@ -65,7 +75,7 @@ export function LoginForm() {
       await login(parsed.data, controller.signal);
       // A sessão vive no cookie httpOnly devolvido pelo servidor. `refresh()`
       // força os server components a rebuscarem os dados já autenticados.
-      router.replace(REDIRECT_AFTER_LOGIN);
+      router.replace(redirectAfterLogin());
       router.refresh();
     } catch (cause) {
       if (cause instanceof DOMException && cause.name === "AbortError") return;

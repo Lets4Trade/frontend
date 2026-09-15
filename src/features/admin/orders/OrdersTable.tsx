@@ -324,11 +324,13 @@ export function OrdersTable({
                         (`Outline / Messages, Conversation / Chat Round Dots`,
                         16px) — já estava em `public/`, vindo da tela de pedido do
                         cliente.
+
+                        Leva ao ATENDIMENTO filtrado pelo pedido (2026-09-15).
+                        Antes abria a tela do cliente, onde o admin escrevia como
+                        se fosse o dono do pedido.
                       */}
                       <a
-                        href={`/conta/pedidos/${encodeURIComponent(order.reference)}`}
-                        target="_blank"
-                        rel="noreferrer"
+                        href={`/admin/chats?situacao=&busca=${encodeURIComponent(order.reference)}`}
                         className="inline-flex h-[24px] w-[74px] items-center justify-center gap-[6px] rounded-full border border-brand-orange bg-[image:var(--brand-surface-fill)] font-helvetica text-[14px] tracking-[0.14px] text-white transition-opacity hover:opacity-80"
                       >
                         <Image

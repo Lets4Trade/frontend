@@ -154,7 +154,7 @@ export default async function Home() {
 
 /**
  * Camada decorativa do frame (Figma 362:800 "Effect 2", 567:1710 "Ellipse 8",
- * 567:1712 "Ellipse 9" e 269:488). São filhos diretos do frame Home, não de uma seção: ficam
+ * 567:1712 "Ellipse 9"). São filhos diretos do frame Home, não de uma seção: ficam
  * atrás de tudo e atravessam os limites das seções, então moram aqui.
  *
  * A moeda "4" (945:901) era daqui e SAIU: virou o gatilho que abre o carrossel
@@ -206,19 +206,9 @@ function HomeBackdrop() {
         className="absolute top-[2614.97px] left-[1220.5px] h-[1663px] w-[700px] max-w-none"
       />
 
-      {/* Botão de contato flutuante (269:488): mesmo vidro dos cards — preto a
-          10%, contorno branco a 10% —, mas com desfoque de 10,8px em vez de 40.
-          Entra como ARTE, sem ação: o design não diz para onde ele leva.
-          Ver .claude/context/open-questions.md. */}
-      <span className="absolute top-[847px] left-[1798px] flex size-[72px] items-center justify-center rounded-full border border-white/10 bg-black/10 backdrop-blur-[10.8px]">
-        <Image
-          src="/icons/home/chat-dialog.svg"
-          alt=""
-          width={24}
-          height={24}
-          className="size-[24px]"
-        />
-      </span>
+      {/* O botão de contato flutuante (269:488) SAIU daqui em 2026-09-15: virou
+          a bolinha de atendimento de toda a loja, fixa no canto da tela —
+          `features/support/ContactBubble.tsx`, montada no layout raiz. */}
     </div>
   );
 }

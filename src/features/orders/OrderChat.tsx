@@ -2,123 +2,48 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { io, type Socket } from "socket.io-client";
-import { refreshSession } from "@/lib/browserSession";
-import { toMessage, type ApiMessage, type OrderMessage } from "./messages";
+import { createConversation } from "@/features/support/api";
+import type { SocketStatus } from "@/features/support/socket";
+import type { ChatMessage } from "@/features/support/types";
+import { useConversation } from "@/features/support/useConversation";
 
 /**
  * Chat do pedido (Figma 2569:1776) — painel de 555×696.
  *
- * TEMPO REAL POR SOCKET, sem polling. A resposta do suporte chega quando chega:
- * com polling, ou a pessoa espera o intervalo inteiro para ver o recado, ou o
- * intervalo encolhe e cada aba aberta vira uma consulta por segundo num
- * atendimento que passa a maior parte do tempo em silêncio.
+ * Desde 2026-09-15 é uma CONVERSA DE ATENDIMENTO ligada ao pedido — a mesma que
+ * aparece no popup de contato, no painel `/admin/chats` e no Discord. Os dados
+ * vêm de `features/support`; este arquivo cuida só do desenho do arquivo.
  *
- * `transports: ["websocket"]` é deliberado. O socket.io abre em long-polling e
- * só depois promove; forçar o transporte tira o polling do caminho inteiro — que
- * era a decisão.
- *
- * O HISTÓRICO vem pronto do servidor (`initialMessages`) e o socket cuida do que
- * acontece dali em diante. Assim a conversa aparece já pintada, sem esperar a
- * conexão, e uma queda do socket não apaga o que já foi dito.
+ * O histórico chega pronto do servidor; o socket (`/ws/support`) entrega o que
+ * acontece dali em diante. Pedido sem conversa ainda: a PRIMEIRA mensagem abre
+ * uma, com o assunto "Pedido <referência>".
  *
  * Os dois botões do rodapé são ASSETS INTEIROS (2571:1806 e 2571:1814): o SVG
- * exportado já traz o círculo, o preenchimento e o glifo. Montar o círculo por
- * fora duplicaria a borda — é o mesmo caso do botão de carrinho do cabeçalho.
+ * exportado já traz o círculo, o preenchimento e o glifo.
  */
-export type { OrderMessage } from "./messages";
-
-/** A origem do backend (o socket não vive sob `/api/v1`). */
-const API_ORIGIN = (() => {
-  const raw = process.env.NEXT_PUBLIC_API_URL ?? "";
-  try {
-    return new URL(raw).origin;
-  } catch {
-    return "";
-  }
-})();
-
-type Status = "conectando" | "online" | "offline";
-
 export function OrderChat({
   reference,
+  initialConversationId,
   initialMessages,
   userAvatar,
 }: {
   reference: string;
-  initialMessages: OrderMessage[];
+  initialConversationId: string | null;
+  initialMessages: ChatMessage[];
   userAvatar?: string;
 }) {
-  const [messages, setMessages] = useState<OrderMessage[]>(initialMessages);
-  const [status, setStatus] = useState<Status>(API_ORIGIN ? "conectando" : "offline");
+  const [conversationId, setConversationId] = useState(initialConversationId);
+  const { messages, status, send, append, error } = useConversation(conversationId, {
+    initialMessages,
+    // O histórico já veio do servidor; e a conversa criada aqui nasce com a
+    // mensagem que acabou de ser enviada.
+    loadHistory: false,
+  });
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
-  const socketRef = useRef<Socket | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (API_ORIGIN === "") return;
-
-    const socket = io(`${API_ORIGIN}/ws/orders`, {
-      // `withCredentials` é o que faz o navegador mandar o cookie httpOnly no
-      // handshake. Sem ele não há como autenticar sem expor o token ao JS.
-      withCredentials: true,
-      transports: ["websocket"],
-    });
-    socketRef.current = socket;
-
-    socket.on("connect", () => {
-      // Entrar na sala é um passo próprio: o servidor confere ali que o pedido
-      // é desta pessoa antes de deixar ouvir qualquer coisa.
-      socket.emit("entrar", { reference }, (ack: { ok?: boolean } | undefined) => {
-        setStatus(ack?.ok ? "online" : "offline");
-      });
-    });
-
-    socket.on("mensagem", (raw: ApiMessage) => {
-      const message = toMessage(raw);
-      // O servidor emite para a SALA, e quem mandou também está nela: sem esta
-      // checagem a própria mensagem apareceria duas vezes.
-      setMessages((current) =>
-        current.some((item) => item.id === message.id) ? current : [...current, message],
-      );
-    });
-
-    socket.on("disconnect", () => setStatus("offline"));
-
-    // Uma tentativa de renovação por montagem. O access dura 15 minutos: com a
-    // página do pedido aberta há mais tempo, a reconexão do socket leva um
-    // token vencido e o servidor recusa com "unauthenticated". Renova e
-    // reconecta UMA vez — se ainda falhar, a sessão acabou de verdade.
-    let retriedAfterRefresh = false;
-    socket.on("connect_error", (error) => {
-      if (error.message === "unauthenticated" && !retriedAfterRefresh) {
-        retriedAfterRefresh = true;
-        void refreshSession().then((renewed) => {
-          if (renewed && socketRef.current === socket) socket.connect();
-        });
-      }
-      setStatus("offline");
-      // Só em desenvolvimento: "sem conexão" na tela não diz POR QUE, e sem
-      // isto a única forma de descobrir é abrir a aba de rede.
-      if (process.env.NODE_ENV !== "production") {
-        console.warn("[chat] socket não conectou:", error.message);
-      }
-    });
-
-    return () => {
-      // `off()` ANTES do `disconnect()`, e isso não é zelo — é o conserto de um
-      // bug real. Em desenvolvimento o React monta o efeito duas vezes
-      // (StrictMode): cria o socket A, limpa, cria o socket B. O `disconnect` do
-      // A chega de forma assíncrona e caía DEPOIS do `connect` do B, jogando o
-      // estado de volta para "offline" com a conexão viva. Sem os ouvintes, o
-      // socket antigo morre calado.
-      socket.off();
-      socket.disconnect();
-      socketRef.current = null;
-    };
-  }, [reference]);
 
   // Toda mensagem nova rola a lista para o fim — numa conversa, o que importa é
   // sempre a última linha.
@@ -127,33 +52,36 @@ export function OrderChat({
     if (list) list.scrollTop = list.scrollHeight;
   }, [messages]);
 
-  function handleSend(event: FormEvent<HTMLFormElement>) {
+  async function handleSend(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const text = draft.trim();
-    const socket = socketRef.current;
-    if (text === "" || sending || status !== "online" || !socket) return;
+    if (text === "" || sending) return;
 
     setSending(true);
-    socket.emit(
-      "enviar",
-      { reference, body: text },
-      (ack: { ok?: boolean; message?: ApiMessage } | undefined) => {
-        setSending(false);
-        if (!ack?.ok) return;
-        // Limpa só depois da confirmação do servidor: se falhar, o texto
-        // continua no campo em vez de sumir sem ter sido enviado.
+    setCreateError(null);
+    try {
+      if (!conversationId) {
+        const created = await createConversation({
+          subject: `Pedido ${reference}`,
+          body: text,
+          orderReference: reference,
+        });
+        setConversationId(created.conversation.id);
+        append(created.message);
         setDraft("");
-        if (ack.message) {
-          const message = toMessage(ack.message);
-          setMessages((current) =>
-            current.some((item) => item.id === message.id) ? current : [...current, message],
-          );
-        }
-      },
-    );
+      } else if (await send(text)) {
+        // Limpa só depois da confirmação: se falhar, o texto fica no campo.
+        setDraft("");
+      }
+    } catch (cause) {
+      setCreateError(cause instanceof Error ? cause.message : "Mensagem não enviada.");
+    } finally {
+      setSending(false);
+    }
   }
 
-  const disabled = status !== "online" || sending;
+  const disabled = sending;
+  const noteStatus: SocketStatus | "sem-conversa" = conversationId ? status : "sem-conversa";
   // O rótulo de data só aparece quando o dia MUDA — é como o arquivo mostra:
   // uma pílula acima do primeiro recado de cada dia.
   let lastDay = "";
@@ -211,7 +139,13 @@ export function OrderChat({
           />
         </div>
 
-        <ConnectionNote status={status} />
+        {createError || error ? (
+          <p role="alert" className="mt-[12px] font-helvetica text-[13px] leading-[18px] text-red-9">
+            {createError ?? error}
+          </p>
+        ) : (
+          <ConnectionNote status={noteStatus} />
+        )}
       </form>
     </section>
   );
@@ -221,10 +155,10 @@ export function OrderChat({
  * Estado da conexão, logo abaixo do campo.
  *
  * Só aparece quando NÃO está online: com a conversa funcionando, dizer "online"
- * é ruído. Quando cai, o campo fica desabilitado — e um campo desabilitado sem
- * explicação parece defeito da tela, não falta de conexão.
+ * é ruído. Sem socket o envio continua funcionando pelo HTTP — o aviso diz só
+ * que as respostas não chegam sozinhas.
  */
-function ConnectionNote({ status }: { status: Status }) {
+function ConnectionNote({ status }: { status: SocketStatus | "sem-conversa" }) {
   if (status === "online") return null;
 
   return (
@@ -232,9 +166,11 @@ function ConnectionNote({ status }: { status: Status }) {
       role="status"
       className="mt-[12px] font-helvetica text-[13px] leading-[18px] text-brand-fg-subtle"
     >
-      {status === "conectando"
-        ? "Conectando à conversa…"
-        : "Sem conexão com a conversa. As mensagens voltam sozinhas quando ela retornar."}
+      {status === "sem-conversa"
+        ? "Escreva para falar com a equipe sobre este pedido."
+        : status === "conectando"
+          ? "Conectando à conversa…"
+          : "Sem conexão em tempo real. Você ainda pode enviar; recarregue para ver respostas novas."}
     </p>
   );
 }
@@ -261,9 +197,19 @@ function Bubble({
   message,
   userAvatar,
 }: {
-  message: OrderMessage;
+  message: ChatMessage;
   userAvatar?: string;
 }) {
+  // Aviso da própria loja ("Conversa encerrada pela equipe"): linha centrada,
+  // sem avatar — não é ninguém falando.
+  if (message.from === "sistema") {
+    return (
+      <p className="mb-[15px] text-center font-helvetica text-[13px] leading-[18px] text-brand-fg-subtle">
+        {message.body}
+      </p>
+    );
+  }
+
   const mine = message.from === "cliente";
 
   return (
