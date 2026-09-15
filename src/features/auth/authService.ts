@@ -34,16 +34,16 @@ const USE_MOCK = process.env.NODE_ENV !== "production" && API_URL === "";
 /**
  * Contrato REAL do backend (../backend/src/app/auth/auth.controller.ts,
  * conferido em 2026-09-01):
- *   POST /auth/login  → body { email, password }, guardas Turnstile + Local
+ *   POST /auth/login  → body { email, password }, guarda Local
  *   200               → grava os cookies `pt_at_client`/`pt_rt_client`
  *                       (httpOnly) e `pt_authed_client` (dica, sem segredo)
  *   401               → credenciais inválidas
  *   429               → rate limit
  *
- * O Turnstile só é EXIGIDO quando `CLOUDFLARE_TURNSTILE_SECRET_KEY` existe no
- * backend; sem a chave, e fora de produção, o guard deixa passar. Em produção
- * a chave é obrigatória — aí o formulário precisará mandar `turnstileToken`
- * (o `@marsidev/react-turnstile` já está instalado). Ainda NÃO manda.
+ * ANTI-ROBÔ NÃO É DAQUI (2026-09-15): o formulário não mostra captcha, por
+ * decisão de produto. A verificação é o Challenge do Vercel Firewall na BORDA,
+ * antes de a página abrir — ver `backend/DEPLOY.md` seção 12B. O backend soma
+ * throttle por IP e bloqueio por conta.
  *
  * SESSÃO: o servidor deve responder com `Set-Cookie` httpOnly + Secure +
  * SameSite=Lax carregando o token. NÃO devolva o token no corpo e NÃO o guarde
@@ -55,8 +55,7 @@ const USE_MOCK = process.env.NODE_ENV !== "production" && API_URL === "";
  *  - rate limiting por IP + por conta (brute-force / credential stuffing);
  *  - resposta e tempo idênticos para e-mail inexistente e senha errada;
  *  - hash Argon2id (ou bcrypt custo ≥ 12);
- *  - CSRF token se a sessão for por cookie e houver form POST cross-site;
- *  - Turnstile (`@marsidev/react-turnstile` já está instalado) após N falhas.
+ *  - CSRF token se a sessão for por cookie e houver form POST cross-site.
  */
 export async function login(
   credentials: LoginCredentials,
@@ -81,28 +80,10 @@ export async function login(
   }
 
   if (!response.ok) {
-    const code =
-      response.status === 400 && (await isBotCheckFailure(response))
-        ? "bot_check"
-        : codeFromStatus(response.status);
-    throw new AuthError(code, "Falha ao autenticar.");
+    throw new AuthError(codeFromStatus(response.status), "Falha ao autenticar.");
   }
 
   return (await response.json()) as LoginResult;
-}
-
-/**
- * O `TurnstileGuard` do backend recusa com 400 e esta mensagem. Distinguir do
- * 400 de validação importa: "confirme a verificação" pede uma ação diferente
- * de "e-mail inválido".
- */
-async function isBotCheckFailure(response: Response): Promise<boolean> {
-  try {
-    const body = (await response.clone().json()) as { message?: unknown };
-    return typeof body.message === "string" && body.message.includes("Verificação de segurança");
-  } catch {
-    return false;
-  }
 }
 
 function codeFromStatus(status: number): AuthErrorCode {
@@ -163,8 +144,7 @@ function delay(ms: number, signal?: AbortSignal) {
  *
  * PENDÊNCIAS do lado do servidor:
  *  - hash Argon2id (ou bcrypt custo ≥ 12) antes de persistir;
- *  - rate limiting por IP (cadastro em massa) e Turnstile — `@marsidev/react-turnstile`
- *    já está instalado;
+ *  - rate limiting por IP (cadastro em massa) — o anti-robô é da borda, ver `login`;
  *  - verificação de e-mail e/ou do WhatsApp antes de liberar a conta;
  *  - normalizar o telefone para E.164 no servidor (é quem envia a mensagem).
  */
@@ -205,7 +185,6 @@ async function signupCodeFromResponse(
   response: Response,
 ): Promise<SignupErrorCode> {
   if (response.status === 429) return "rate_limited";
-  if (response.status === 400 && (await isBotCheckFailure(response))) return "bot_check";
   if (response.status === 409) {
     // O backend responde `ConflictException` do Nest — corpo
     // { statusCode, message, error }, SEM um campo `field`. E o único conflito

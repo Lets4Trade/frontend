@@ -6,7 +6,6 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { login } from "./authService";
-import { BOT_CHECK_PENDING_MESSAGE, useBotCheck } from "./BotCheck";
 import { loginSchema } from "./schema";
 import { AUTH_ERROR_MESSAGES, AuthError } from "./types";
 
@@ -28,7 +27,6 @@ export function LoginForm() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const botCheck = useBotCheck();
 
   // Cancela a requisição em voo se o componente desmontar (usuário navegou
   // antes da resposta) — evita setState em componente morto e request órfã.
@@ -56,10 +54,6 @@ export function LoginForm() {
     }
 
     setFieldErrors({});
-    if (botCheck.pending) {
-      setFormError(BOT_CHECK_PENDING_MESSAGE);
-      return;
-    }
     setFormError(null);
     setIsSubmitting(true);
 
@@ -68,7 +62,7 @@ export function LoginForm() {
     abortRef.current = controller;
 
     try {
-      await login({ ...parsed.data, turnstileToken: botCheck.token }, controller.signal);
+      await login(parsed.data, controller.signal);
       // A sessão vive no cookie httpOnly devolvido pelo servidor. `refresh()`
       // força os server components a rebuscarem os dados já autenticados.
       router.replace(REDIRECT_AFTER_LOGIN);
@@ -81,8 +75,6 @@ export function LoginForm() {
           ? AUTH_ERROR_MESSAGES[cause.code]
           : AUTH_ERROR_MESSAGES.unknown,
       );
-      // O token do Turnstile já foi gasto nesta tentativa.
-      botCheck.reset();
       setIsSubmitting(false);
     }
   }
@@ -119,8 +111,6 @@ export function LoginForm() {
           error={fieldErrors.password}
         />
       </div>
-
-      {botCheck.widget}
 
       <hr className="mt-[25px] border-0 border-t border-brand-hairline" />
 

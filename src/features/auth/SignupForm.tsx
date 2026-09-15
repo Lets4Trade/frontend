@@ -6,7 +6,6 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { signup } from "./authService";
-import { BOT_CHECK_PENDING_MESSAGE, useBotCheck } from "./BotCheck";
 import { signupSchema } from "./schema";
 import { SIGNUP_ERROR_MESSAGES, SignupError } from "./types";
 
@@ -28,7 +27,6 @@ export function SignupForm() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const botCheck = useBotCheck();
 
   const abortRef = useRef<AbortController | null>(null);
   useEffect(() => () => abortRef.current?.abort(), []);
@@ -58,10 +56,6 @@ export function SignupForm() {
     }
 
     setFieldErrors({});
-    if (botCheck.pending) {
-      setFormError(BOT_CHECK_PENDING_MESSAGE);
-      return;
-    }
     setFormError(null);
     setIsSubmitting(true);
 
@@ -70,7 +64,7 @@ export function SignupForm() {
     abortRef.current = controller;
 
     try {
-      await signup({ ...parsed.data, turnstileToken: botCheck.token }, controller.signal);
+      await signup(parsed.data, controller.signal);
       router.replace(REDIRECT_AFTER_SIGNUP);
       router.refresh();
     } catch (cause) {
@@ -89,8 +83,6 @@ export function SignupForm() {
       } else {
         setFormError(SIGNUP_ERROR_MESSAGES.unknown);
       }
-      // O token do Turnstile já foi gasto nesta tentativa.
-      botCheck.reset();
       setIsSubmitting(false);
     }
   }
@@ -147,8 +139,6 @@ export function SignupForm() {
           error={fieldErrors.whatsapp}
         />
       </div>
-
-      {botCheck.widget}
 
       <hr className="mt-[25px] border-0 border-t border-brand-hairline" />
 

@@ -2,8 +2,6 @@
 export type LoginCredentials = {
   email: string;
   password: string;
-  /** Token do Turnstile — exigido pelo backend em produção. Ver `BotCheck.tsx`. */
-  turnstileToken?: string;
 };
 
 /** Usuário autenticado. Só campos não sensíveis — sem token, sem hash. */
@@ -27,7 +25,6 @@ export type LoginResult = {
  */
 export type AuthErrorCode =
   | "invalid_credentials"
-  | "bot_check"
   | "rate_limited"
   | "network"
   | "unknown";
@@ -45,7 +42,6 @@ export class AuthError extends Error {
 /** Mensagens exibidas ao usuário. Genéricas por design (ver acima). */
 export const AUTH_ERROR_MESSAGES: Record<AuthErrorCode, string> = {
   invalid_credentials: "E-mail ou senha incorretos.",
-  bot_check: "Não conseguimos confirmar a verificação de segurança. Tente de novo.",
   rate_limited: "Muitas tentativas. Aguarde alguns minutos e tente de novo.",
   network: "Não foi possível conectar. Verifique sua internet.",
   unknown: "Algo deu errado. Tente novamente em instantes.",
@@ -57,8 +53,6 @@ export type SignupCredentials = {
   name: string;
   password: string;
   whatsapp: string;
-  /** Token do Turnstile — exigido pelo backend em produção. Ver `BotCheck.tsx`. */
-  turnstileToken?: string;
 };
 
 export type SignupResult = {
@@ -77,7 +71,6 @@ export type SignupResult = {
 export type SignupErrorCode =
   | "email_taken"
   | "name_taken"
-  | "bot_check"
   | "rate_limited"
   | "network"
   | "unknown";
@@ -94,7 +87,6 @@ export class SignupError extends Error {
 
 export const SIGNUP_ERROR_MESSAGES: Record<SignupErrorCode, string> = {
   email_taken: "Este e-mail já está cadastrado.",
-  bot_check: "Não conseguimos confirmar a verificação de segurança. Tente de novo.",
   name_taken: "Este nome de usuário já está em uso.",
   rate_limited: "Muitas tentativas. Aguarde alguns minutos e tente de novo.",
   network: "Não foi possível conectar. Verifique sua internet.",

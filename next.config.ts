@@ -12,8 +12,11 @@ import type { NextConfig } from "next";
  * A lista abaixo é o que o site usa DE FATO, e nada mais:
  *   - o próprio domínio;
  *   - a API (`NEXT_PUBLIC_API_URL`): chamadas, WebSocket do chat, imagens;
- *   - Cloudflare Turnstile (anti-robô no login e no cadastro): script + iframe;
  *   - YouTube sem cookies: o iframe do vídeo da home.
+ *
+ * O anti-robô NÃO precisa de entrada aqui (2026-09-15): é o Challenge do Vercel
+ * Firewall, e a tela de verificação é servida pela própria Vercel ANTES de a
+ * página (e esta CSP) chegar ao navegador.
  * Não há tracker, CDN de fonte nem mapa carregados hoje. Entrou coisa nova de
  * fora? Ela precisa entrar aqui — senão o navegador bloqueia e o console diz
  * exatamente o quê.
@@ -43,17 +46,16 @@ function contentSecurityPolicy(): string {
     // libera origem nenhuma além da própria.
   }
 
-  const turnstile = "https://challenges.cloudflare.com";
   const youtube = "https://www.youtube-nocookie.com";
 
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
-    "script-src": ["'self'", "'unsafe-inline'", turnstile, ...(isDev ? ["'unsafe-eval'"] : [])],
+    "script-src": ["'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : [])],
     "style-src": ["'self'", "'unsafe-inline'"],
     "img-src": ["'self'", "data:", "blob:", apiOrigin],
     "font-src": ["'self'", "data:"],
-    "connect-src": ["'self'", apiOrigin, apiSocket, turnstile, ...(isDev ? ["ws:"] : [])],
-    "frame-src": [turnstile, youtube],
+    "connect-src": ["'self'", apiOrigin, apiSocket, ...(isDev ? ["ws:"] : [])],
+    "frame-src": [youtube],
     "media-src": ["'self'"],
     "worker-src": ["'self'", "blob:"],
     "object-src": ["'none'"],
@@ -103,7 +105,7 @@ const securityHeaders = [
   },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(self), payment=(), xr-spatial-tracking=(self \"https://challenges.cloudflare.com\")",
+    value: "camera=(), microphone=(), geolocation=(self), payment=(), xr-spatial-tracking=()",
   },
 ];
 
