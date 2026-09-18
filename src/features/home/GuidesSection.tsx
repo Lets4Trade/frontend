@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { editItem } from "@/features/site/editing/attrs";
 import Link from "next/link";
 import type { SectionItemView } from "@/features/site/content";
 import { BLOG_CARD } from "./guides";
@@ -6,6 +7,11 @@ import { BLOG_CARD } from "./guides";
 /** Card do arquivo: 417×438, com vão de 40px entre colunas (457 − 417). */
 const GUIDE_CARD_WIDTH = 417;
 const GUIDE_CARD_HEIGHT = 438;
+/** Card BAIXO da quarta coluna (417×206), com 26px até o do blog (232 − 206). */
+const COMPACT_HEIGHT = 206;
+const COMPACT_GAP = 26;
+/** Três colunas altas + a quarta, que empilha um guia baixo e o blog. */
+const TALL_GUIDES = 3;
 
 /**
  * Seção "GUIAS POPULARES" (Figma: título 791:1611, faixa 791:1610).
@@ -24,6 +30,9 @@ export function GuidesSection({
   title?: string;
   items?: SectionItemView[];
 }) {
+  const tall = items.slice(0, TALL_GUIDES);
+  const compact = items[TALL_GUIDES];
+
   return (
     <section aria-labelledby="guides-title" className="relative">
       {/* Render decorativo acima da faixa, à direita (Figma 860:103). */}
@@ -38,33 +47,44 @@ export function GuidesSection({
 
       <h2
         id="guides-title"
+
+        data-edit-field="home:guias:title"
         className="absolute top-0 left-0 w-[601px] font-helvetica text-[30px] leading-[normal] font-bold tracking-[0.3px] text-white"
       >
         {title}
       </h2>
 
       {/*
-        ── A faixa deixou de ser posicionada ──────────────────────────────────
-        No arquivo os quatro cards têm x/y próprios (0, 457, 924, 1391) e o
-        último é mais baixo, para o card do blog caber embaixo dele. Com os guias
-        vindo do banco, o quinto não teria coordenada e apagar o segundo abriria
+        ── Quatro colunas, como no arquivo (pedido em 2026-09-17) ─────────────
+        Colunas 1–3: os três primeiros guias, altos (417×438). Coluna 4: o
+        quarto guia BAIXO (417×206) com o card "VISITAR BLOG" embaixo — as duas
+        linhas da última coluna. Guias além do quarto não aparecem: a faixa tem
+        lugar para quatro.
+
+        A fileira ainda FLUI (não voltou às coordenadas absolutas do arquivo):
+        apagar o segundo guia puxa os seguintes para a esquerda em vez de abrir
         um buraco.
-
-        Agora é uma fileira que QUEBRA sozinha, com o mesmo card de 417×438 e o
-        vão de 40px do arquivo (457 − 417). O card do blog entra como ÚLTIMO da
-        mesma fileira, em vez de flutuar sob o quarto guia — é o que mantém as
-        colunas alinhadas em qualquer quantidade.
-
-        Decidido com o usuário em 2026-09-10: CRUD completo vale a perda das
-        posições do arquivo.
       */}
-      <div className="mt-[80px] ml-[6px] w-[1808px]">
-        <ul className="flex flex-wrap gap-[40px]">
-          {items.map((guide) => (
+      {/* `pt` e NÃO `mt`: o título desta seção é ABSOLUTO (top 0), então o
+          espaço abaixo dele tem que vir de dentro. Com margem, os 80px
+          COLAPSAVAM para fora da `<section>` (ela não tem borda nem padding) e
+          empurravam a seção inteira — os cards subiam para cima do título.
+          Defeito real, visível na home publicada; achado em 2026-09-15. */}
+      <div className="ml-[6px] w-[1808px] pt-[80px]">
+        <ul className="flex gap-[40px]">
+          {tall.map((guide) => (
             <GuideCard key={guide.id} guide={guide} />
           ))}
 
-          <li className="relative shrink-0" style={{ width: GUIDE_CARD_WIDTH }}>
+          <li
+            className="flex shrink-0 flex-col"
+            style={{ width: GUIDE_CARD_WIDTH, gap: COMPACT_GAP }}
+          >
+            {compact ? (
+              <ul>
+                <GuideCard guide={compact} compact />
+              </ul>
+            ) : null}
             <BlogCard />
           </li>
         </ul>
@@ -83,25 +103,43 @@ export function GuidesSection({
  * contraste ao logo, e outro do rodapé para cima, que trava em preto opaco a
  * 55,769% da sua altura e é o que sustenta título e resumo.
  */
-function GuideCard({ guide }: { guide: SectionItemView }) {
+function GuideCard({
+  guide,
+  compact = false,
+}: {
+  guide: SectionItemView;
+  /** O card BAIXO da quarta coluna (417×206), com as medidas do arquivo. */
+  compact?: boolean;
+}) {
+  const height = compact ? COMPACT_HEIGHT : GUIDE_CARD_HEIGHT;
+  // Card baixo: sem título no arquivo, resumo a 147px. Se o admin der um
+  // título, ele entra acima do resumo e os dois sobem juntos.
+  const titleTop = compact ? 105 : 308;
+  const bodyTop = compact ? (guide.title ? 135 : 147) : guide.title ? 345 : 147;
+
   return (
     <li
       className="guide-card relative shrink-0 overflow-hidden rounded-[30px] border border-white/10"
-      style={{ width: GUIDE_CARD_WIDTH, height: GUIDE_CARD_HEIGHT }}
+      style={{ width: GUIDE_CARD_WIDTH, height }}
     >
       {/* Sem arte, o card fica no preto do tema em vez de transparente — os
           degradês por cima só fazem sentido sobre alguma coisa. */}
       {guide.image ? (
         <Image
+          {...editItem("home:guias", guide.id, "image")}
           src={guide.image}
           alt=""
           width={GUIDE_CARD_WIDTH}
-          height={GUIDE_CARD_HEIGHT}
+          height={height}
           aria-hidden
           className="guide-art absolute inset-0 size-full object-cover"
         />
       ) : (
-        <span aria-hidden className="absolute inset-0 bg-brand-surface" />
+        <span
+          {...editItem("home:guias", guide.id, "image")}
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-brand-surface"
+        />
       )}
 
       {/* Os dois degradês do arquivo, agora com medidas FIXAS: eram do dado
@@ -109,14 +147,30 @@ function GuideCard({ guide }: { guide: SectionItemView }) {
           e com a fileira uniforme todos os cards têm a mesma altura. */}
       <span
         aria-hidden
-        className="absolute inset-x-0 top-0 h-[147px]"
-        style={{ backgroundImage: "linear-gradient(180deg, #000 0%, rgba(0,0,0,0) 100%)" }}
+        className="absolute inset-x-0 top-0"
+        style={{
+          height: compact ? 68 : 147,
+          backgroundImage: "linear-gradient(180deg, #000 0%, rgba(0,0,0,0) 100%)",
+        }}
       />
 
+      {/* No card baixo o degradê do rodapé só fecha em preto no fim (arquivo). */}
       <span
         aria-hidden
-        className="guide-scrim absolute inset-x-0 top-[240px] h-[198px]"
-        style={{ backgroundImage: "linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 60%)" }}
+        className="guide-scrim absolute inset-x-0"
+        style={
+          compact
+            ? {
+                top: 83,
+                height: 123,
+                backgroundImage: "linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 100%)",
+              }
+            : {
+                top: 240,
+                height: 198,
+                backgroundImage: "linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 60%)",
+              }
+        }
       />
 
       {/* O logo tem tamanho próprio por jogo no arquivo (86×44, 66×50, 71×58...).
@@ -125,6 +179,7 @@ function GuideCard({ guide }: { guide: SectionItemView }) {
           sem deformar. */}
       {guide.secondaryImage ? (
         <Image
+          {...editItem("home:guias", guide.id, "secondaryImage")}
           src={guide.secondaryImage}
           alt=""
           width={90}
@@ -132,17 +187,31 @@ function GuideCard({ guide }: { guide: SectionItemView }) {
           aria-hidden
           className="guide-logo absolute top-[25px] left-[25px] h-[58px] w-[90px] object-contain object-left"
         />
-      ) : null}
+      ) : (
+        // Sem logo, um espaço marcado no mesmo lugar: na loja ele é invisível e
+        // não recebe clique; no editor é onde se arrasta a arte do jogo.
+        <span
+          {...editItem("home:guias", guide.id, "secondaryImage")}
+          aria-hidden
+          className="pointer-events-none absolute top-[25px] left-[25px] h-[58px] w-[90px]"
+        />
+      )}
 
       {guide.title ? (
-        <h3 className="guide-text absolute top-[308px] left-[26px] font-poppins text-[18px] leading-[normal] font-semibold tracking-[0.09px] text-white">
+        <h3
+          {...editItem("home:guias", guide.id, "title")}
+          style={{ top: titleTop }}
+          className="guide-text absolute left-[26px] font-poppins text-[18px] leading-[normal] font-semibold tracking-[0.09px] text-white"
+        >
           {guide.title}
         </h3>
       ) : null}
 
       <p
-        className="guide-text absolute left-[26px] w-[365px] font-helvetica text-[16px] leading-[normal] tracking-[0.16px] text-brand-placeholder"
-        style={{ top: guide.title ? 345 : 147 }}
+        {...editItem("home:guias", guide.id, "body")}
+        // No card baixo o resumo corta em duas linhas: não há altura para mais.
+        className={`guide-text absolute left-[26px] w-[365px] font-helvetica text-[16px] leading-[normal] tracking-[0.16px] text-brand-placeholder ${compact ? "line-clamp-2" : ""}`}
+        style={{ top: bodyTop }}
       >
         {guide.body}
       </p>
@@ -169,7 +238,7 @@ function BlogCard() {
       href={BLOG_CARD.href}
       // `block` e não `absolute`: o card agora é o último item da fileira que
       // flui, e não mais um elemento solto sob o quarto guia.
-      className="blog-card block overflow-hidden rounded-[30px] border border-white/10 bg-black"
+      className="blog-card relative block overflow-hidden rounded-[30px] border border-white/10 bg-black"
       style={{ width: BLOG_CARD.width, height: BLOG_CARD.height }}
     >
       {/* Elipse 791:1600 — centro (-6,81; 30,94), girada 77°. */}

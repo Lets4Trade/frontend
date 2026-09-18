@@ -1,5 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
+import {
+  formatCnpj,
+  parseEmail,
+  parsePhone,
+  resolveCopyright,
+  type ContactChannel,
+} from "@/features/site/contacts";
 import { getLayoutContent } from "@/features/site/layoutContent";
 import { GlowBar } from "./GlowBar";
 
@@ -51,6 +58,16 @@ export async function SiteFooter() {
   const brand = text("marca");
   const social = items("footer-redes");
   const about = text("footer-sobre").body;
+
+  // Dados da empresa: cada linha só aparece se foi preenchida no painel.
+  // Telefone e e-mail viram link MONTADO (`tel:`/`mailto:`), nunca o texto do
+  // campo — ver `contacts.ts`.
+  const company = text("footer-empresa");
+  const cnpj = formatCnpj(company.title);
+  const phone = parsePhone(company.subtitle);
+  const email = parseEmail(company.footnote);
+  const copyright = resolveCopyright(company.body, new Date().getFullYear());
+  const hasCompany = Boolean(cnpj || phone || email || copyright);
 
   const columns = LINK_COLUMNS.map((key) => ({
     key,
@@ -153,9 +170,48 @@ export async function SiteFooter() {
             </p>
           </>
         ) : null}
+
+        {hasCompany ? (
+          <>
+            <hr className="mt-11 border-0 border-t border-brand-hairline" />
+
+            <div className="mt-8 flex flex-col gap-4 font-poppins text-[14px] tracking-[0.14px] text-brand-fg-subtle lg:flex-row lg:items-center lg:justify-between">
+              {copyright ? <p>{copyright}</p> : <span />}
+
+              <ul className="flex flex-wrap items-center gap-x-[25px] gap-y-2">
+                {cnpj ? <li>CNPJ {cnpj}</li> : null}
+                {phone ? (
+                  <li>
+                    <CompanyContact channel={phone} label="Telefone" />
+                  </li>
+                ) : null}
+                {email ? (
+                  <li>
+                    <CompanyContact channel={email} label="E-mail" />
+                  </li>
+                ) : null}
+              </ul>
+            </div>
+          </>
+        ) : null}
       </div>
 
       <GlowBar className="bottom-0" />
     </footer>
+  );
+}
+
+/** Telefone ou e-mail: link quando o valor é válido, texto quando não. */
+function CompanyContact({ channel, label }: { channel: ContactChannel; label: string }) {
+  return channel.href ? (
+    <a
+      href={channel.href}
+      aria-label={`${label}: ${channel.value}`}
+      className="transition-colors hover:text-white"
+    >
+      {channel.value}
+    </a>
+  ) : (
+    <span>{channel.value}</span>
   );
 }

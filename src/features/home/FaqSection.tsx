@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { editItem } from "@/features/site/editing/attrs";
 import type { SectionItemView } from "@/features/site/content";
 
 export function FaqSection({
@@ -70,6 +71,8 @@ export function FaqSection({
             Poppins SemiBold real ele mede 885 e cabe. */}
         <h2
           id="faq-title"
+
+          data-edit-field="home:faq:title"
           className="w-[894px] text-center font-poppins text-[65px] leading-[normal] font-semibold tracking-[0.325px] whitespace-nowrap text-white"
         >
           {title}
@@ -92,10 +95,16 @@ export function FaqSection({
         <dl className="mt-[18px] w-[796px]">
           {items.map((item, index) => (
             <div key={item.id} className={index > 0 ? "mt-[27px]" : undefined}>
-              <dt className="w-[601px] font-helvetica text-[20px] leading-[normal] font-bold tracking-[0.2px] text-white">
+              <dt
+                {...editItem("home:faq", item.id, "title")}
+                className="w-[601px] font-helvetica text-[20px] leading-[normal] font-bold tracking-[0.2px] text-white"
+              >
                 {item.title}
               </dt>
-              <dd className="mt-[25px] font-helvetica text-[18px] leading-[normal] tracking-[0.18px] text-brand-placeholder">
+              <dd
+                {...editItem("home:faq", item.id, "body")}
+                className="mt-[25px] font-helvetica text-[18px] leading-[normal] tracking-[0.18px] text-brand-placeholder"
+              >
                 {/* Linha em branco separa parágrafos — é como a resposta foi
                   importada e como o campo do painel a mostra. */}
                 {item.body.split(/\n\s*\n/).map((paragraph, i) => (

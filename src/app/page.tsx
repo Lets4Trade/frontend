@@ -2,15 +2,13 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
-import { FaqSection } from "@/features/home/FaqSection";
-import { GuidesSection } from "@/features/home/GuidesSection";
-import { HeroSection } from "@/features/home/HeroSection";
-import { HomeNav } from "@/features/home/HomeNav";
-import { ReviewsSection } from "@/features/home/ReviewsSection";
-import { TeamSection } from "@/features/home/TeamSection";
-import { VideoSection } from "@/features/home/VideoSection";
-import { buildHeroSlides } from "@/features/home/heroGames";
-import { getSectionItemsFor, getSectionsFor } from "@/features/site/content";
+import {
+  getSectionItemsFor,
+  getSectionLayout,
+  getSectionsFor,
+} from "@/features/site/content";
+import { buildHomeBlocks, orderBlocks } from "@/features/home/homeBlocks";
+import { buildMobileHomeBlocks } from "@/features/home/mobile/MobileHome";
 
 const OG_TITLE = "Lets4Trade";
 const OG_DESCRIPTION = "Sua loja de gamecoins.";
@@ -55,10 +53,21 @@ export default async function Home() {
    * CONTÉM (reviews, equipe, guias, dúvidas). Em PARALELO — a home é a página
    * mais aberta da loja e não pode somar as duas latências.
    */
-  const [section, items] = await Promise.all([
+  const [section, items, layout] = await Promise.all([
     getSectionsFor("home"),
     getSectionItemsFor("home"),
+    // A ordem (e o que está escondido) vem do banco desde 2026-09-15 — é o que
+    // a tela `/admin/paginas` arrasta. Sem personalização, a ordem é a do código.
+    getSectionLayout("home"),
   ]);
+
+  const blocks = orderBlocks(buildHomeBlocks(section, items), layout.visible);
+  // A versão de CELULAR (Figma 2667:1864): mesmos dados, mesma ordem e mesma
+  // visibilidade do editor — só o desenho muda. Ver `mobile/MobileHome.tsx`.
+  const mobileBlocks = orderBlocks(
+    buildMobileHomeBlocks(section, items),
+    layout.visible,
+  );
 
   return (
     <div className="flex min-h-dvh flex-col bg-brand-bg">
@@ -85,63 +94,39 @@ export default async function Home() {
         Abaixo de 1820 o `min-w` segura e a rolagem volta: aí o conteúdo
         realmente não cabe, e cortar seria pior que rolar.
       */}
-      <main className="flex-1 overflow-x-auto">
-        <div className="relative mx-auto w-full max-w-[1920px] min-w-[1820px] overflow-x-clip">
-          <HomeBackdrop />
+      {/* Celular e tablet em pé (< 1024px): o desenho mobile. As duas versões
+          vêm no HTML e o CSS escolhe — sem detectar aparelho no servidor, o que
+          quebraria o cache da página e erraria em tela girada. */}
+      <main className="flex flex-1 flex-col">
+        <div className="flex-1 overflow-x-clip px-[25px] pt-[20px] pb-[60px] lg:hidden">
+          <div className="mx-auto max-w-[560px]">
+            {mobileBlocks.map((block, index) => (
+              <div
+                key={block.key}
+                style={index === 0 ? undefined : { marginTop: block.gap }}
+              >
+                {block.node}
+              </div>
+            ))}
+          </div>
+        </div>
 
-          <div className="mx-auto w-[1820px] pt-[37px] pb-[100px]">
-            <HeroSection
-              image={section("hero").imageUrl}
-              caption={section("hero").title}
-              // Os cards do carrossel vêm de "Edição de sessões → Home - Hero".
-              // A geometria medida das artes originais é reconhecida pela
-              // própria arte — ver `buildHeroSlides`.
-              slides={buildHeroSlides(items("hero"))}
-            />
-            <HomeNav stats={items("navegacao")} />
+        <div className="hidden flex-1 overflow-x-auto lg:block">
+          <div className="relative mx-auto w-full max-w-[1920px] min-w-[1820px] overflow-x-clip">
+            <HomeBackdrop />
 
-            {/* Divisor em y=1076 no design. A faixa de navegação acima ocupa até
-              1007 (a caixa do grupo 796:1624), então 69px fecham a diferença. */}
-            <hr className="mt-[69px] border-0 border-t border-brand-hairline" />
-
-            <div className="mt-[50px]">
-              <VideoSection
-                title={section("video").title}
-                image={section("video").imageUrl}
-                videoUrl={section("video").footnote}
-              />
-            </div>
-
-            <div className="mt-[99px]">
-              <ReviewsSection
-                title={section("reviews").title}
-                subtitle={section("reviews").subtitle}
-                counter={section("reviews").footnote}
-                items={items("reviews")}
-              />
-            </div>
-
-            <div className="mt-[107px]">
-              <TeamSection
-                title={section("equipe").title}
-                subtitle={section("equipe").subtitle}
-                // `|| undefined` e não o valor cru: passar `""` sobrescreveria o
-                // padrão do componente com vazio, e o parágrafo sumiria da home
-                // para quem nunca editou a seção.
-                body={section("equipe").body || undefined}
-                items={items("equipe")}
-              />
-            </div>
-
-            <div className="mt-[100px]">
-              <GuidesSection
-                title={section("guias").title}
-                items={items("guias")}
-              />
-            </div>
-
-            <div className="mt-[100px]">
-              <FaqSection title={section("faq").title} items={items("faq")} />
+            <div className="mx-auto w-[1820px] pt-[37px] pb-[100px]">
+              {/* Os blocos vêm de `homeBlocks`, na ordem do banco. O vão acompanha
+                o bloco que vem DEPOIS (medido do arquivo), então reordenar não
+                inventa espaçamento. */}
+              {blocks.map((block, index) => (
+                <div
+                  key={block.key}
+                  style={index === 0 ? undefined : { marginTop: block.gap }}
+                >
+                  {block.node}
+                </div>
+              ))}
             </div>
           </div>
         </div>

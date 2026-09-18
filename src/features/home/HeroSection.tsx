@@ -1,5 +1,6 @@
-import Image from "next/image";
+import { HeroBannerSlides } from "./HeroBannerSlides";
 import { HeroDeck } from "./HeroDeck";
+import type { SectionItemView } from "@/features/site/content";
 import { HERO_BANNER_WIDTH, HERO_HEIGHT, type HeroSlide } from "./heroGames";
 
 /**
@@ -22,8 +23,14 @@ export function HeroSection({
   image = HERO_ART,
   caption = "Sua Loja de Gamecoins",
   slides,
+  bannerImages = [],
 }: {
   image?: string;
+  /**
+   * As artes do BANNER (as três barrinhas do arquivo). Lista própria
+   * (`home:hero-banner`), separada dos cards do carrossel ao lado.
+   */
+  bannerImages?: SectionItemView[];
   /** Os cards do carrossel, já resolvidos por `buildHeroSlides`. */
   slides: HeroSlide[];
   /**
@@ -38,7 +45,7 @@ export function HeroSection({
   return (
     <section className="relative" style={{ height: HERO_HEIGHT }}>
       <HeroDeck slides={slides} />
-      <HeroBanner image={image} caption={caption} />
+      <HeroBanner image={image} caption={caption} bannerImages={bannerImages} />
     </section>
   );
 }
@@ -48,53 +55,23 @@ export function HeroSection({
  * exportado do Figma — só os pontinhos e a legenda ficam por cima, porque são
  * estado de interface e precisam reagir ao slide ativo.
  */
-function HeroBanner({ image, caption }: { image: string; caption: string }) {
+function HeroBanner({
+  image,
+  caption,
+  bannerImages,
+}: {
+  image: string;
+  caption: string;
+  bannerImages: SectionItemView[];
+}) {
   return (
     <div
       className="absolute top-0 left-0 z-10 rounded-[30px]"
       style={{ width: HERO_BANNER_WIDTH, height: HERO_HEIGHT }}
     >
-      <Image
-        src={image}
-        alt=""
-        width={859}
-        height={758}
-        aria-hidden
-        priority
-        className="absolute inset-0 size-full overflow-hidden rounded-[30px]"
-      />
+      <HeroBannerSlides fallbackImage={image} items={bannerImages} />
 
-      {/* Indicadores: 3 barras de 40×3 a cada 50px. A ativa tem o degradê
-          laranja com uma cópia borrada atrás fazendo o brilho. */}
-      <div className="absolute top-[663px] left-[50px] flex gap-[10px]">
-        {[0, 1, 2].map((i) => (
-          <span key={i} className="relative block h-[3px] w-[40px]">
-            {i === 0 ? (
-              <>
-                <span
-                  aria-hidden
-                  className="absolute inset-0 blur-[1.55px]"
-                  style={{
-                    backgroundImage:
-                      "linear-gradient(175.17deg, #ff7300 13.819%, #ff4d00 89.223%)",
-                  }}
-                />
-                <span
-                  className="absolute inset-0"
-                  style={{
-                    backgroundImage:
-                      "linear-gradient(175.17deg, #ff7300 13.819%, #ff4d00 89.223%)",
-                  }}
-                />
-              </>
-            ) : (
-              <span className="absolute inset-0 bg-[#3b3b3b]" />
-            )}
-          </span>
-        ))}
-      </div>
-
-      <p className="absolute top-[691px] left-[50px] font-helvetica text-[18px] leading-[17px] font-bold tracking-[0.18px] text-white">
+      <p data-edit-field="home:hero:title" className="absolute top-[691px] left-[50px] font-helvetica text-[18px] leading-[17px] font-bold tracking-[0.18px] text-white">
         {caption}
       </p>
     </div>

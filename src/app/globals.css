@@ -1879,3 +1879,100 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
 .play-button:hover .play-core {
   transform: scale(1.12);
 }
+
+/* ───────────────────────── edição inline de página ─────────────────────────
+   Só vale dentro do editor do painel (`/admin/paginas`): a loja carrega o
+   atributo `data-edit-field` no HTML e MAIS NADA — nem este CSS, que está
+   escopado pela classe da área de edição.
+
+   O realce é contorno e fundo, que NÃO ocupam espaço: um `padding` ou uma
+   `border` aqui deslocariam o texto e a maquete deixaria de ser fiel à
+   página (mesma regra da afordância de hover do painel de pedidos). */
+.site-edit-stage [data-edit-field],
+.site-edit-stage [data-edit-item],
+.site-edit-stage [data-edit-image],
+.site-edit-stage [data-edit-video] {
+  cursor: text;
+  outline: 1px dashed rgba(255, 115, 0, 0.35);
+  outline-offset: 2px;
+  transition: outline-color var(--dur-micro, 160ms) var(--ease-snap, ease);
+}
+
+.site-edit-stage [data-edit-image],
+.site-edit-stage [data-edit-video],
+.site-edit-stage [data-edit-item$="|image"],
+.site-edit-stage [data-edit-item$="|secondaryImage"] {
+  cursor: pointer;
+}
+
+/* Espaço reservado de arte (item ainda sem imagem): na LOJA ele é invisível e
+   inerte (`pointer-events-none`); aqui volta a receber clique, para existir
+   onde colocar a primeira imagem. */
+.site-edit-stage [data-edit-item].pointer-events-none {
+  pointer-events: auto;
+}
+
+.site-edit-stage [data-edit-field]:hover,
+.site-edit-stage [data-edit-item]:hover,
+.site-edit-stage [data-edit-image]:hover,
+.site-edit-stage [data-edit-video]:hover {
+  outline: 2px solid var(--brand-orange);
+  background-color: rgba(255, 115, 0, 0.08);
+}
+
+.site-edit-stage [data-editing="true"] {
+  outline: 2px solid var(--brand-orange);
+  background-color: rgba(255, 115, 0, 0.12);
+}
+
+/* Dentro do editor nada navega: o clique edita. */
+.site-edit-stage a {
+  pointer-events: none;
+}
+
+/* Texto que a LOJA não mostra (o nome do card do hero, que quem identifica é o
+   logo) precisa existir para ser editado. `sr-only` some da tela; aqui ele
+   volta, como uma etiqueta sobre o card. */
+.site-edit-stage [data-edit-item].sr-only {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: auto;
+  height: auto;
+  clip: auto;
+  clip-path: none;
+  overflow: visible;
+  white-space: nowrap;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.7);
+  font-family: var(--font-poppins), sans-serif;
+  font-size: 12px;
+  color: #fff;
+  z-index: 5;
+}
+
+/* O baralho do hero abre no editor: fechado, os cards ficam empilhados e só o
+   da frente seria clicável — não daria para personalizar os outros. As setas do
+   carrossel continuam funcionando para alcançar os que passam do recorte. */
+.site-edit-stage .hero-deck[data-open="false"] .hero-slot {
+  --hero-shift: 0px;
+}
+
+/* ...e o recorte VOLTA junto. Na loja o baralho fechado dispensa recorte (o
+   empurrão do hover sangra de propósito); aberto sem recorte, a esteira de
+   2109px estourava a área do editor e criava rolagem horizontal. */
+.site-edit-stage .hero-deck[data-open="false"] .hero-viewport {
+  overflow: hidden;
+}
+
+/* O último slot é o "EM BREVE", invisível no baralho fechado — no editor ele
+   ocuparia um lugar vazio na fileira aberta. */
+.site-edit-stage .hero-deck[data-open="false"] .hero-slot:last-child {
+  display: none;
+}
+
+.site-edit-stage .hero-deck[data-open="false"] .hero-art,
+.site-edit-stage .hero-deck[data-open="false"] .hero-logo {
+  filter: blur(var(--hero-blur, 0px));
+}

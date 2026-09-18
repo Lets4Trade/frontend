@@ -1,6 +1,8 @@
 "use server";
 
+import { updateTag } from "next/cache";
 import { getSessionRole } from "@/features/auth/session";
+import { GAMES_MENU_TAG } from "@/features/game/menuGames";
 import { apiPostFormData } from "@/lib/serverApi";
 import { MAX_IMAGE_BYTES } from "./options";
 import { createGameSchema } from "./schema";
@@ -98,5 +100,7 @@ export async function createGameAction(form: FormData): Promise<CreateGameResult
     return { ok: false, reason: "error" };
   }
 
+  // Jogo novo entra no menu GAMES do cabeçalho na hora (`menuGames.ts`).
+  updateTag(GAMES_MENU_TAG);
   return { ok: true, slug: response.data.slug, name: response.data.name };
 }

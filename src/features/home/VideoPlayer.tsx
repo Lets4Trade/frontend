@@ -23,12 +23,28 @@ import { youtubeEmbedUrl } from "./youtube";
 export function VideoPlayer({
   image,
   videoId,
+  videoFile,
+  frameClassName,
+  compact = false,
 }: {
   image: string;
   /** Já validado por `youtubeId` — nunca a URL crua do painel. */
   videoId?: string;
+  /**
+   * Vídeo ENVIADO pelo painel (MP4/WebM servido pelo backend). O painel só
+   * deixa uma fonte por vez; se as duas existirem, o arquivo vale.
+   */
+  videoFile?: string;
+  /**
+   * Moldura do player. Padrão = a do desktop (1146×609 na coordenada do
+   * arquivo); a home MOBILE passa uma fluida.
+   */
+  frameClassName?: string;
+  /** Pílula de play menor, para a moldura estreita do celular. */
+  compact?: boolean;
 }) {
   const frame =
+    frameClassName ??
     "absolute top-0 left-[674px] h-[609px] w-[1146px] overflow-hidden rounded-[30px]";
 
   const thumb = (
@@ -42,7 +58,7 @@ export function VideoPlayer({
     />
   );
 
-  if (!videoId) {
+  if (!videoId && !videoFile) {
     return <div className={frame}>{thumb}</div>;
   }
 
@@ -53,7 +69,13 @@ export function VideoPlayer({
         className={`play-button ${frame}`}
       >
         {thumb}
-        <PlayPill />
+        {compact ? (
+          <span className="absolute inset-0 flex scale-[0.55] items-center justify-center">
+            <PlayPill />
+          </span>
+        ) : (
+          <PlayPill />
+        )}
       </Dialog.Trigger>
 
       <Dialog.Portal>
@@ -62,20 +84,37 @@ export function VideoPlayer({
         <Dialog.Content className="fixed top-1/2 left-1/2 z-50 w-[1146px] max-w-[calc(100vw-40px)] -translate-x-1/2 -translate-y-1/2 outline-none">
           <Dialog.Title className="sr-only">Vídeo de apresentação</Dialog.Title>
           <Dialog.Description className="sr-only">
-            Vídeo do YouTube. Pressione Esc para fechar.
+            {videoFile ? "Vídeo" : "Vídeo do YouTube"}. Pressione Esc para
+            fechar.
           </Dialog.Description>
 
           <div className="relative aspect-video w-full overflow-hidden rounded-[20px] border border-white/10 bg-black">
-            <iframe
-              src={youtubeEmbedUrl(videoId)}
-              title="Vídeo de apresentação da Lets4Trade"
-              // Só o que o player precisa. Sem `allow-same-origin` explícito
-              // aqui não há `sandbox` — o YouTube recusa tocar dentro de um.
-              allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-              allowFullScreen
-              referrerPolicy="strict-origin-when-cross-origin"
-              className="absolute inset-0 size-full"
-            />
+            {videoFile ? (
+              // Nasce no clique e morre ao fechar, como o iframe: o download só
+              // começa para quem pediu, e fechar para o som. `preload=metadata`
+              // + Range (206) do backend = começa a tocar antes do fim.
+              <video
+                src={videoFile}
+                controls
+                autoPlay
+                playsInline
+                preload="metadata"
+                className="absolute inset-0 size-full"
+              >
+                Seu navegador não conseguiu tocar este vídeo.
+              </video>
+            ) : (
+              <iframe
+                src={youtubeEmbedUrl(videoId as string)}
+                title="Vídeo de apresentação da Lets4Trade"
+                // Só o que o player precisa. Sem `allow-same-origin` explícito
+                // aqui não há `sandbox` — o YouTube recusa tocar dentro de um.
+                allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
+                className="absolute inset-0 size-full"
+              />
+            )}
           </div>
 
           <Dialog.Close className="absolute -top-[56px] right-0 flex h-[44px] items-center rounded-full border border-brand-border bg-[image:var(--brand-surface-fill)] px-[22px] font-poppins text-[14px] font-bold text-white transition-opacity hover:opacity-90">

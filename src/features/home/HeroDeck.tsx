@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { editItem } from "@/features/site/editing/attrs";
 import {
   useCallback,
   useEffect,
@@ -390,7 +391,22 @@ function GameCard({ game, index }: { game: HeroSlide; index: number }) {
       <div className="hero-rule absolute top-[549px] left-[25px] h-px w-[286px] bg-white/5" />
 
       {game.logo && game.logoBox.blur ? <LogoArt game={game} blurred /> : null}
-      {game.logo ? <LogoArt game={game} /> : null}
+      {game.logo ? (
+        <LogoArt game={game} />
+      ) : (
+        <span
+          {...editItem("home:hero", game.id, "secondaryImage")}
+          aria-hidden
+          className="pointer-events-none absolute top-[590px] left-1/2 h-[100px] w-[200px] -translate-x-1/2"
+        />
+      )}
+
+      {/* O NOME do card não aparece na loja (o logo é que identifica o jogo),
+          mas precisa de um lugar para ser editado. `sr-only` o mantém fora da
+          tela e disponível para leitores; o editor o revela. */}
+      <span {...editItem("home:hero", game.id, "title")} className="sr-only">
+        {game.name}
+      </span>
 
       <Image
         src="/icons/home/maximize.svg"
@@ -418,6 +434,7 @@ function CharacterArt({
 }) {
   return (
     <Image
+      {...(blurred ? {} : editItem("home:hero", game.id, "image"))}
       src={game.character}
       alt=""
       width={Math.round(game.char.width)}
@@ -443,6 +460,7 @@ function LogoArt({ game, blurred }: { game: HeroSlide; blurred?: boolean }) {
   const { offsetX, top, width, height, blur } = game.logoBox;
   return (
     <Image
+      {...(blurred ? {} : editItem("home:hero", game.id, "secondaryImage"))}
       src={game.logo ?? ""}
       alt=""
       width={Math.round(width)}

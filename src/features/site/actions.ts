@@ -4,7 +4,7 @@ import { revalidatePath, updateTag } from "next/cache";
 import { getSessionRole } from "@/features/auth/session";
 import { backendAsset } from "@/lib/publicApi";
 import { LAYOUT_TAG } from "./layoutContent";
-import { apiDelete, apiGet, apiPost, apiPutFormData } from "@/lib/serverApi";
+import { apiDelete, apiGet, apiPost, apiPut, apiPutFormData } from "@/lib/serverApi";
 import type { SectionContent, SectionItem } from "./list";
 import type { NavTabOverride } from "@/features/game/tabs";
 
@@ -302,4 +302,249 @@ export async function loadSectionItemsAction(
   if (!result.ok) return failure(result);
 
   return { ok: true, data: result.data.map(withAssets) };
+}
+
+/* ───────────────────────── edição inline da página ───────────────────────── */
+
+/**
+ * Publica o RASCUNHO de uma página: os textos que mudaram e a ordem das sessões
+ * (2026-09-15, tela `/admin/paginas`).
+ *
+ * Uma chamada por sessão alterada mais uma para a ordem. Não é lote no backend
+ * de propósito: a rota de sessão já existe, aceita `multipart` (por causa da
+ * arte) e é auditada — criar uma segunda porta de escrita para o mesmo dado
+ * seria duplicar regra de validação.
+ *
+ * Erro no meio PARA e informa qual sessão falhou, em vez de seguir e deixar a
+ * página metade nova, metade velha sem ninguém saber onde.
+ */
+export async function publishPageAction(input: {
+  page: string;
+  texts: Record<string, Record<string, string>>;
+  /** Campos de ITENS de lista que mudaram (reviews, equipe, guias, dúvidas...). */
+  items?: { sectionKey: string; id: string; fields: Record<string, string> }[];
+  order: { key: string; hidden: boolean }[];
+}): Promise<SectionsResult<{ sections: number; items: number }>> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
+  const entries = Object.entries(input.texts);
+
+  for (const [key, fields] of entries) {
+    // A chave da sessão tem que ser da página que está sendo editada: sem isso,
+    // um campo forjado na página editaria a sessão de outra.
+    if (!key.startsWith(`${input.page}:`)) {
+      return { ok: false, reason: "invalid", message: `Sessão fora da página: ${key}` };
+    }
+
+    const payload = new FormData();
+    payload.set("key", key);
+    // Só os campos que o editor mandou. Um `set` vazio nos outros apagaria
+    // título ou legenda que ninguém tocou.
+    for (const field of ["title", "subtitle", "footnote", "body"] as const) {
+      const value = fields[field];
+      if (typeof value === "string") payload.set(field, value);
+    }
+
+    // Os textos EXTRAS chegam como `extra.<nome>` e viajam num JSON só — o
+    // backend os MESCLA com os que já existem (ver `SectionsService.mergeExtras`).
+    const extras: Record<string, string> = {};
+    for (const [field, value] of Object.entries(fields)) {
+      if (field.startsWith("extra.")) extras[field.slice("extra.".length)] = value;
+    }
+    if (Object.keys(extras).length > 0) payload.set("extras", JSON.stringify(extras));
+
+    const result = await apiPutFormData<SectionContent>("/admin/sections", payload);
+    if (!result.ok) return failure(result);
+  }
+
+  for (const item of input.items ?? []) {
+    if (!item.sectionKey.startsWith(`${input.page}:`)) {
+      return { ok: false, reason: "invalid", message: `Item fora da página: ${item.sectionKey}` };
+    }
+    const saved = await saveItemFieldsAction(item);
+    if (!saved.ok) return saved;
+  }
+
+  const layout = await apiPut<{ page: string; count: number }>("/admin/sections/layout", {
+    page: input.page,
+    items: input.order,
+  });
+  if (!layout.ok) return failure(layout);
+
+  revalidateStore();
+  return { ok: true, data: { sections: entries.length, items: input.items?.length ?? 0 } };
+}
+
+/**
+ * Troca a ARTE de uma sessão. Sobe na hora, fora do rascunho: binário não cabe
+ * num rascunho de memória — mesma regra do Builder de Páginas.
+ */
+export async function uploadSectionImageAction(
+  form: FormData,
+): Promise<SectionsResult<SectionContent>> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
+  const key = form.get("key");
+  const image = form.get("image");
+  if (typeof key !== "string" || !(image instanceof File) || image.size === 0) {
+    return { ok: false, reason: "invalid", message: "Escolha uma imagem." };
+  }
+
+  // "secondary" = a segunda arte da sessão; qualquer outro valor é a principal.
+  const field = form.get("slot") === "secondary" ? "secondaryImage" : "image";
+
+  const payload = new FormData();
+  payload.set("key", key);
+  payload.set(field, image, image.name);
+
+  const result = await apiPutFormData<SectionContent>("/admin/sections", payload);
+  if (!result.ok) return failure(result);
+
+  revalidateStore();
+  return {
+    ok: true,
+    data: { ...result.data, imageUrl: backendAsset(result.data.imageUrl) },
+  };
+}
+
+/**
+ * Salva UM campo de um item de lista, vindo da edição inline.
+ *
+ * Separada de `saveSectionItemAction` porque aquela é do FORMULÁRIO, que manda
+ * o item inteiro: ela grava `""` nos campos ausentes, que é como o formulário
+ * apaga um texto. Aqui o editor manda só o que a pessoa mexeu — mandar o resto
+ * vazio apagaria o que ela não tocou.
+ */
+export async function saveItemFieldsAction(input: {
+  sectionKey: string;
+  id: string;
+  fields: Record<string, string>;
+}): Promise<SectionsResult<SectionItem>> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
+  if (!input.sectionKey || !input.id) {
+    return { ok: false, reason: "invalid", message: "Item inválido." };
+  }
+
+  const payload = new FormData();
+  payload.set("sectionKey", input.sectionKey);
+  payload.set("id", input.id);
+  for (const field of ["title", "body", "href"] as const) {
+    const value = input.fields[field];
+    if (typeof value === "string") payload.set(field, value);
+  }
+
+  const result = await apiPutFormData<SectionItem>("/admin/section-items", payload);
+  if (!result.ok) return failure(result);
+
+  revalidateStore();
+  return { ok: true, data: withAssets(result.data) };
+}
+
+/** Troca a arte de um item (principal ou secundária). Sobe na hora. */
+export async function uploadItemImageAction(
+  form: FormData,
+): Promise<SectionsResult<SectionItem>> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
+  const sectionKey = form.get("sectionKey");
+  const id = form.get("id");
+  const field = form.get("field");
+  const image = form.get("image");
+
+  const slot = field === "secondaryImage" ? "secondaryImage" : "image";
+  if (
+    typeof sectionKey !== "string" ||
+    typeof id !== "string" ||
+    !(image instanceof File) ||
+    image.size === 0
+  ) {
+    return { ok: false, reason: "invalid", message: "Escolha uma imagem." };
+  }
+
+  const payload = new FormData();
+  payload.set("sectionKey", sectionKey);
+  payload.set("id", id);
+  payload.set(slot, image, image.name);
+
+  const result = await apiPutFormData<SectionItem>("/admin/section-items", payload);
+  if (!result.ok) return failure(result);
+
+  revalidateStore();
+  return { ok: true, data: withAssets(result.data) };
+}
+
+/**
+ * Cria um item VAZIO no fim da lista, a partir da edição inline.
+ *
+ * O texto vem depois, clicando nele na própria página. Nasce com um rótulo
+ * genérico em vez de em branco: um item sem nenhum texto é invisível na página,
+ * e quem acabou de clicar em "+ novo" precisa ver onde ele caiu.
+ */
+export async function addSectionItemAction(
+  sectionKey: string,
+  label: string,
+): Promise<SectionsResult<SectionItem>> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
+  if (!sectionKey) {
+    return { ok: false, reason: "invalid", message: "Sessão inválida." };
+  }
+
+  const payload = new FormData();
+  payload.set("sectionKey", sectionKey);
+  payload.set("title", `Novo ${label}`.slice(0, 120));
+
+  const result = await apiPutFormData<SectionItem>("/admin/section-items", payload);
+  if (!result.ok) return failure(result);
+
+  revalidateStore();
+  return { ok: true, data: withAssets(result.data) };
+}
+
+/**
+ * VÍDEO da sessão (2026-09-17) — link do YouTube OU arquivo enviado; gravar um
+ * apaga o outro no backend.
+ *
+ * O UPLOAD do arquivo não passa por aqui: até 100 MB atravessando um server
+ * action seria o vídeo inteiro na memória do servidor do Next (e acima do teto
+ * de corpo dele). O navegador envia direto à API (`editing/videoUpload.ts`) e
+ * depois chama `videoUploadedAction` só para a loja reler.
+ */
+export async function saveVideoLinkAction(
+  key: string,
+  url: string,
+): Promise<SectionsResult<null>> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
+  const result = await apiPut<unknown>("/admin/sections/video-link", { key, url: url.trim() });
+  if (!result.ok) return failure(result);
+  revalidateStore();
+  return { ok: true, data: null };
+}
+
+export async function removeVideoAction(key: string): Promise<SectionsResult<null>> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
+  const result = await apiDelete<unknown>(
+    `/admin/sections/video?key=${encodeURIComponent(key)}`,
+  );
+  if (!result.ok) return failure(result);
+  revalidateStore();
+  return { ok: true, data: null };
+}
+
+/** Depois do upload direto à API: a loja relê a sessão. */
+export async function videoUploadedAction(): Promise<SectionsResult<null>> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+  revalidateStore();
+  return { ok: true, data: null };
 }

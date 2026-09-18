@@ -1,12 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Button, buttonVariants } from "@/components/ui/Button";
+import { buttonVariants } from "@/components/ui/Button";
 import { getSessionUser, type SessionUser } from "@/features/auth/session";
 import { CartButton } from "@/features/cart/CartButton";
+import { getMenuGames } from "@/features/game/menuGames";
 import { getLoyaltyTiers } from "@/features/loyalty/publicTiers";
 import { getLayoutContent } from "@/features/site/layoutContent";
 import { cn } from "@/lib/cn";
+import { GamesMenu } from "./GamesMenu";
 import { GlowBar } from "./GlowBar";
+import { HeaderSearch } from "./HeaderSearch";
+import { MobileMenu } from "./MobileMenu";
 import { UserMenu } from "./UserMenu";
 
 /**
@@ -62,10 +66,12 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
    * chamada quase nunca sai da máquina. Em série, o cabeçalho de TODA página
    * pagaria a soma das duas latências na primeira renderização de cada hora.
    */
-  const [sessao, { tiers }, layout] = await Promise.all([
+  const [sessao, { tiers }, layout, games] = await Promise.all([
     user ? Promise.resolve(user) : getSessionUser(),
     getLoyaltyTiers(),
     getLayoutContent(),
+    // Jogos do menu GAMES — cacheada como o layout, ver `menuGames.ts`.
+    getMenuGames(),
   ]);
 
   // Os rótulos e a marca vêm do painel ("Cabeçalho e rodapé" em
@@ -79,7 +85,7 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
     <header className="relative z-20 h-[83px] w-full bg-black/50 backdrop-blur-[9px]">
       <GlowBar className="-top-[2px]" />
 
-      <div className="relative mx-auto flex h-full max-w-[1920px] items-center gap-[25px] px-4 sm:px-6 lg:px-[50px]">
+      <div className="relative mx-auto flex h-full max-w-[1920px] items-center gap-[12px] px-[25px] md:gap-[25px] md:px-6 lg:px-[50px]">
         <Link href="/" aria-label="Lets4Trade — página inicial" className="shrink-0">
           <Image
             src={brand.imageUrl ?? "/images/lets4trade-logo.png"}
@@ -89,7 +95,9 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
             priority
             // O PNG é 1000×1000 com margens transparentes; `object-cover` na
             // caixa 138×65 recorta exatamente essas margens (igual ao Figma).
-            className="h-[65px] w-[138px] object-cover"
+            // Mobile (Figma 2667:1864): logo menor, para caber selo, carrinho e
+            // menu na mesma linha de ~400px.
+            className="h-[41px] w-[88px] object-cover md:h-[65px] md:w-[138px]"
           />
         </Link>
 
@@ -102,30 +110,12 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
 
             Crescer é seguro aqui: o selo do centro é posicionado em relação ao
             header inteiro, não ao espaço que sobra, então ele não se move. */}
-        <Button
-          variant="outline"
-          className="hidden min-w-[159px] shrink-0 px-[20px] md:inline-flex"
-        >
-          {actions.title}
-        </Button>
+        {/* GAMES abre a lista de todos os jogos ativos. É o único pedaço
+            client desta metade do header — ver `GamesMenu`. */}
+        <GamesMenu label={actions.title} games={games} />
 
-        <div className="relative hidden w-[219px] shrink-0 lg:block">
-          <Image
-            src="/icons/search.svg"
-            alt=""
-            width={20}
-            height={20}
-            aria-hidden
-            className="pointer-events-none absolute top-1/2 left-[25px] -translate-y-1/2"
-          />
-          <input
-            type="search"
-            aria-label="Buscar"
-            placeholder={search.title}
-            // Placeholder da busca em Helvetica Neue Regular no design.
-            className="h-[50px] w-full rounded-full border-2 border-[var(--brand-stroke-soft)] bg-[image:var(--brand-surface-fill)] pr-4 pl-[60px] font-helvetica text-[15px] tracking-[0.15px] text-white outline-none transition-colors placeholder:text-brand-placeholder focus:border-brand-orange"
-          />
-        </div>
+        {/* Busca com sugestões de jogos e produtos — client, ver `HeaderSearch`. */}
+        <HeaderSearch placeholder={search.title} />
 
         {/* Selo "+1000 REFERÊNCIAS" — o número usa o degradê laranja recortado
             no texto (bg-clip-text), como no design.
@@ -135,19 +125,21 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
             que sobra entre os vizinhos — bastaria o texto de um botão mudar
             para o selo sair do lugar. Ancorado assim, ele cai no centro exato
             do header e não se move, seja qual for a largura dos lados. */}
-        <div className="pointer-events-none absolute top-1/2 left-1/2 hidden -translate-x-1/2 -translate-y-1/2 flex-col items-center leading-none xl:flex">
+        {/* No celular o selo volta (o desenho mobile o tem no centro, menor); só
+            some na faixa md–xl, onde os botões do desktop ocupam o meio. */}
+        <div className="pointer-events-none absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center leading-none md:hidden xl:flex">
           <div className="flex items-center gap-2">
-            <span className="bg-gradient-to-b from-brand-orange to-brand-orange-deep bg-clip-text font-korataki text-[20px] font-bold tracking-[0.2px] text-transparent">
+            <span className="bg-gradient-to-b from-brand-orange to-brand-orange-deep bg-clip-text font-korataki text-[15px] font-bold tracking-[0.2px] text-transparent md:text-[20px]">
               {badge.title}
             </span>
             <Image src="/icons/youtube-color.svg" alt="" width={19} height={19} aria-hidden />
           </div>
-          <span className="mt-1 font-korataki text-[13px] tracking-[0.13px] text-white">
+          <span className="mt-1 font-korataki text-[10px] tracking-[0.13px] text-white md:text-[13px]">
             {badge.subtitle}
           </span>
         </div>
 
-        <div className="ml-auto flex shrink-0 items-center gap-[25px]">
+        <div className="ml-auto flex shrink-0 items-center gap-[10px] md:gap-[25px]">
           {sessao ? null : (
             <>
               {/* `Link` com as classes do botão, e não `Button`: eles PRECISAM
@@ -157,7 +149,7 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
                 href="/criar-conta"
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "hidden min-w-[197px] px-[20px] sm:inline-flex",
+                  "hidden min-w-[197px] px-[20px] lg:inline-flex",
                 )}
               >
                 {actions.subtitle}
@@ -166,7 +158,8 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
                 href="/login"
                 className={cn(
                   buttonVariants({ variant: "cta" }),
-                  "min-w-[197px] px-[20px]",
+                  // No celular o login vai para dentro do menu (`MobileMenu`).
+                  "hidden min-w-[197px] px-[20px] md:inline-flex",
                 )}
               >
                 {actions.footnote}
@@ -180,7 +173,20 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
 
           {/* Estado logado: avatar + seta, que abre o menu da conta. Os vãos
               do design são 25px (carrinho→avatar) e 15px (avatar→seta). */}
-          {sessao ? <UserMenu user={sessao} /> : null}
+          {sessao ? (
+            <div className="hidden md:block">
+              <UserMenu user={sessao} />
+            </div>
+          ) : null}
+
+          {/* Celular: busca, jogos, links e conta ficam dentro do menu. */}
+          <MobileMenu
+            games={games}
+            loggedIn={Boolean(sessao)}
+            searchPlaceholder={search.title}
+            signupLabel={actions.subtitle}
+            loginLabel={actions.footnote}
+          />
         </div>
       </div>
     </header>

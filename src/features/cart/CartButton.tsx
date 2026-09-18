@@ -42,7 +42,7 @@ export function CartButton({ tiers }: { tiers: LoyaltyTierRule[] }) {
           width={50}
           height={50}
           aria-hidden
-          className="size-[50px]"
+          className="size-[42px] md:size-[50px]"
         />
 
         {count > 0 ? (

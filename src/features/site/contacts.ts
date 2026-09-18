@@ -1,3 +1,4 @@
+import { formatCnpj as maskCnpj, formatPhone } from "@/lib/masks";
 import { getLayoutContent } from "./layoutContent";
 
 /**
@@ -49,9 +50,11 @@ export function parseWhatsApp(raw: string): ContactChannel | undefined {
   const value = raw.trim();
   if (!value) return undefined;
 
+  // Número válido é EXIBIDO com a máscara do site (dado antigo pode estar só em
+  // dígitos); inválido aparece como foi digitado, para o erro ficar visível.
   const digits = value.replace(/\D/g, "");
   return PHONE_DIGITS.test(digits)
-    ? { value, href: `https://wa.me/${digits}` }
+    ? { value: formatPhone(value), href: `https://wa.me/${digits}` }
     : { value };
 }
 
@@ -60,6 +63,55 @@ export function parseDiscord(raw: string): ContactChannel | undefined {
   if (!value) return undefined;
 
   return DISCORD_INVITE.test(value) ? { value, href: value } : { value };
+}
+
+/**
+ * Telefone da empresa → `tel:+dígitos`. Mesma regra do WhatsApp: o link é
+ * montado só com os dígitos, e número fora de 10–15 dígitos aparece sem link.
+ */
+export function parsePhone(raw: string): ContactChannel | undefined {
+  const value = raw.trim();
+  if (!value) return undefined;
+
+  const digits = value.replace(/\D/g, "");
+  return PHONE_DIGITS.test(digits)
+    ? { value: formatPhone(value), href: `tel:+${digits}` }
+    : { value };
+}
+
+/**
+ * Formato de e-mail aceito para virar `mailto:`. Estreito de propósito: sem
+ * espaço, sem `?`/`&` (que injetariam assunto, cópia ou corpo no `mailto`),
+ * sem `%` (que o cliente de e-mail decodificaria em `?`), sem `<>`/aspas. Fora disso o texto aparece, mas não vira link.
+ */
+const EMAIL = /^[A-Za-z0-9._+-]{1,64}@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/;
+
+export function parseEmail(raw: string): ContactChannel | undefined {
+  const value = raw.trim();
+  if (!value) return undefined;
+
+  return EMAIL.test(value) && value.length <= 254
+    ? { value, href: `mailto:${value}` }
+    : { value };
+}
+
+/**
+ * CNPJ para exibição: com as 14 posições completas (numérico ou o novo
+ * alfanumérico) ganha a máscara oficial; qualquer outra coisa aparece como veio
+ * — reescrever um valor incompleto seria adivinhar.
+ */
+export function formatCnpj(raw: string): string {
+  const value = raw.trim();
+  const chars = value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (!/^[A-Z0-9]{12}\d{2}$/.test(chars) || !/^[A-Za-z0-9.\/\s-]+$/.test(value)) {
+    return value;
+  }
+  return maskCnpj(chars);
+}
+
+/** `{ano}` no copyright vira o ano corrente. */
+export function resolveCopyright(raw: string, year: number): string {
+  return raw.trim().replaceAll("{ano}", String(year));
 }
 
 export async function getContacts(): Promise<Contacts> {

@@ -1,6 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
+import { GAMES_MENU_TAG } from "@/features/game/menuGames";
 import { backendAsset } from "@/lib/publicApi";
 import { getSessionRole } from "@/features/auth/session";
 import {
@@ -208,6 +209,8 @@ function cleanList(items: { id?: string; label: string }[]) {
 function revalidate(slug: string) {
   revalidatePath(`/games/${slug}`);
   revalidatePath("/admin/builder", "layout");
+  // Nome e logo do jogo aparecem no menu GAMES do cabeçalho (`menuGames.ts`).
+  updateTag(GAMES_MENU_TAG);
 }
 
 /**

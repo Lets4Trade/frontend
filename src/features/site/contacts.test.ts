@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { parseDiscord, parseWhatsApp } from "./contacts";
+import {
+  formatCnpj,
+  parseDiscord,
+  parseEmail,
+  parsePhone,
+  parseWhatsApp,
+  resolveCopyright,
+} from "./contacts";
 
 /**
  * Os canais vêm de um campo do painel e viram `href` no checkout. O texto do
@@ -50,5 +57,39 @@ describe("parseDiscord", () => {
     "https://discord.gg/lets4trade?next=https://evil.example",
   ])("não vira link: %s", (raw) => {
     expect(parseDiscord(raw)?.href).toBeUndefined();
+  });
+});
+
+describe("dados da empresa no rodapé", () => {
+  it("telefone vira tel: só com dígitos", () => {
+    expect(parsePhone("+55 (11) 3456-7890")).toEqual({
+      value: "+55 (11) 3456-7890",
+      href: "tel:+551134567890",
+    });
+    expect(parsePhone("123")).toEqual({ value: "123" });
+    expect(parsePhone("  ")).toBeUndefined();
+  });
+
+  it("e-mail válido vira mailto:, o resto só aparece", () => {
+    expect(parseEmail("contato@lets4trade.com.br")?.href).toBe(
+      "mailto:contato@lets4trade.com.br",
+    );
+    // Parâmetros de mailto (cópia, corpo) e percent-encoding não passam.
+    expect(parseEmail("a@b.com?bcc=x@y.com")?.href).toBeUndefined();
+    expect(parseEmail("a%3Fbcc@b.com")?.href).toBeUndefined();
+    expect(parseEmail("javascript:alert(1)")?.href).toBeUndefined();
+  });
+
+  it("CNPJ de 14 dígitos ganha a máscara; texto livre fica como veio", () => {
+    expect(formatCnpj("12345678000190")).toBe("12.345.678/0001-90");
+    expect(formatCnpj("12.345.678/0001-90")).toBe("12.345.678/0001-90");
+    expect(formatCnpj("Lets4Trade LTDA 12345678000190")).toBe(
+      "Lets4Trade LTDA 12345678000190",
+    );
+    expect(formatCnpj("")).toBe("");
+  });
+
+  it("{ano} no copyright vira o ano corrente", () => {
+    expect(resolveCopyright("© {ano} Lets4Trade.", 2026)).toBe("© 2026 Lets4Trade.");
   });
 });

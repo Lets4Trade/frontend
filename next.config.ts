@@ -56,7 +56,8 @@ function contentSecurityPolicy(): string {
     "font-src": ["'self'", "data:"],
     "connect-src": ["'self'", apiOrigin, apiSocket, ...(isDev ? ["ws:"] : [])],
     "frame-src": [youtube],
-    "media-src": ["'self'"],
+    // O vídeo enviado pelo painel é servido pelo backend (`/uploads/videos`).
+    "media-src": ["'self'", apiOrigin],
     "worker-src": ["'self'", "blob:"],
     "object-src": ["'none'"],
     "base-uri": ["'self'"],

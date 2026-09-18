@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { editItem } from "@/features/site/editing/attrs";
 import type { ComponentProps, CSSProperties } from "react";
 import type { SectionItemView } from "@/features/site/content";
 import {
@@ -72,12 +73,13 @@ export function ReviewsSection({
 
       <h2
         id="reviews-title"
+        data-edit-field="home:reviews:title"
         className="absolute top-0 left-[542px] w-[736px] text-center font-poppins text-[65px] leading-[normal] font-semibold tracking-[0.325px] text-white"
       >
         {title}
       </h2>
 
-      <p className="absolute top-[104px] left-[687px] w-[446px] text-center font-helvetica text-[18px] leading-[normal] font-bold tracking-[0.18px] text-white">
+      <p data-edit-field="home:reviews:subtitle" className="absolute top-[104px] left-[687px] w-[446px] text-center font-helvetica text-[18px] leading-[normal] font-bold tracking-[0.18px] text-white">
         {subtitle}
       </p>
 
@@ -93,7 +95,7 @@ export function ReviewsSection({
           texto inteiro é editável, então a divisão é no primeiro espaço — e um
           texto sem espaço simplesmente sai todo em negrito, que é o padrão
           razoável para um contador. */}
-      <p className="absolute top-[161px] left-[14px] font-poppins text-[20px] leading-[normal] text-white">
+      <p data-edit-field="home:reviews:footnote" className="absolute top-[161px] left-[14px] font-poppins text-[20px] leading-[normal] text-white">
         <strong className="font-bold">{counter.split(" ")[0]}</strong>
         {counter.includes(" ")
           ? ` ${counter.slice(counter.indexOf(" ") + 1)}`
@@ -132,7 +134,7 @@ function RatingPill() {
 }
 
 /** Cinco estrelas de 16px com 10px de vão, no verde de avaliação do arquivo. */
-function Stars({ className }: { className?: string }) {
+export function Stars({ className }: { className?: string }) {
   return (
     <span aria-hidden className={`flex gap-[10px] ${className ?? ""}`}>
       {Array.from({ length: 5 }, (_, i) => (
@@ -264,6 +266,7 @@ function ReviewCard({
           x=82 no arquivo, e sem a reserva ele encostaria na borda do card. */}
       {review.image ? (
         <Image
+          {...editItem("home:reviews", review.id, "image")}
           src={review.image}
           alt=""
           width={42}
@@ -273,16 +276,22 @@ function ReviewCard({
         />
       ) : (
         <span
+          {...editItem("home:reviews", review.id, "image")}
           aria-hidden
-          className="absolute top-[25px] left-[25px] size-[42px] rounded-full border border-white/10 bg-white/5"
+          className="pointer-events-none absolute top-[25px] left-[25px] size-[42px] rounded-full border border-white/10 bg-white/5"
         />
       )}
 
-      <p className="absolute top-[32px] left-[82px] font-poppins text-[18px] leading-[normal] font-bold tracking-[0.36px] text-white">
+      <p
+        {...editItem("home:reviews", review.id, "title")}
+        className="absolute top-[32px] left-[82px] font-poppins text-[18px] leading-[normal] font-bold tracking-[0.36px] text-white"
+      >
         {review.title}
       </p>
 
-      <p className="review-body absolute top-[91px] left-[25px] h-[253px] w-[238px] overflow-hidden font-helvetica text-[16px] leading-[normal] tracking-[0.16px] text-brand-placeholder">
+      <p
+        {...editItem("home:reviews", review.id, "body")}
+        className="review-body absolute top-[91px] left-[25px] h-[253px] w-[238px] overflow-hidden font-helvetica text-[16px] leading-[normal] tracking-[0.16px] text-brand-placeholder">
         {review.body}
       </p>
 

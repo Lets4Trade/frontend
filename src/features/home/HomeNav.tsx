@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { editItem } from "@/features/site/editing/attrs";
 import type { SectionItemView } from "@/features/site/content";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
@@ -21,7 +22,7 @@ import { cn } from "@/lib/cn";
  * As setas de FIDELIDADE e VENDA PRA NÓS indicam submenu — ainda sem
  * comportamento, só o indicador visual do design.
  */
-const NAV_ITEMS = [
+export const NAV_ITEMS = [
   { label: "HOME", icon: "/icons/home/nav-home.svg", href: "/", left: 679, active: true, dropdown: false },
   { label: "GAMES", icon: "/icons/home/nav-games.svg", href: "/games", left: 784, active: false, dropdown: false },
   { label: "FIDELIDADE", icon: "/icons/home/nav-fidelidade.svg", href: "/fidelidade", left: 905, active: false, dropdown: true },
@@ -47,6 +48,7 @@ export function HomeNav({ stats = [] }: { stats?: SectionItemView[] }) {
       {stats.slice(0, STAT_CENTERS.length).map((stat, index) => (
         <Stat
           key={stat.id}
+          id={stat.id}
           center={STAT_CENTERS[index]}
           value={stat.title}
           label={stat.body}
@@ -117,16 +119,29 @@ export function HomeNav({ stats = [] }: { stats?: SectionItemView[] }) {
  * SOBREPÕEM: o número ocupa até y=991 e o rótulo começa em 988. Empilhadas em
  * fluxo, o bloco ficaria 3px mais alto que o design.
  */
-function Stat({ center, value, label }: { center: number; value: string; label: string }) {
+function Stat({
+  id,
+  center,
+  value,
+  label,
+}: {
+  /** Id do item da lista "Home - Contadores" — é o que o editor grava. */
+  id: string;
+  center: number;
+  value: string;
+  label: string;
+}) {
   return (
     <div className="contents">
       <p
+        {...editItem("home:navegacao", id, "title")}
         className="absolute top-[58px] -translate-x-1/2 font-poppins text-[40px] leading-[55px] font-semibold text-brand-orange"
         style={{ left: center }}
       >
         {value}
       </p>
       <p
+        {...editItem("home:navegacao", id, "body")}
         className="absolute top-[110px] -translate-x-1/2 whitespace-nowrap font-poppins text-[15px] leading-[23px] font-bold tracking-[0.15px] text-white/80"
         style={{ left: center }}
       >

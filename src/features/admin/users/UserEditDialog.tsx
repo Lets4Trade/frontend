@@ -185,6 +185,8 @@ export function UserEditDialog({ user }: { user: AdminUser }) {
                 <TextField
                   label="WhatsApp"
                   name="whatsapp"
+                  type="tel"
+                  mask="phone"
                   defaultValue={detail.whatsapp ?? ""}
                   placeholder="Sem telefone"
                   autoComplete="off"

@@ -37,9 +37,12 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
   // pedido em 2026-09-15. Ao lado de pedidos porque é o mesmo trabalho.
   { label: "Chats", href: "/admin/chats", match: ["/admin/chats"] },
   {
-    label: "Edição de sessões",
-    href: "/admin/sessoes",
-    match: ["/admin/sessoes"],
+    // Desde 2026-09-15 a edição é NA PRÓPRIA PÁGINA (`/admin/paginas`). O
+    // formulário antigo (`/admin/sessoes`) continua alcançável a partir dela,
+    // para as páginas que ainda não foram migradas.
+    label: "Páginas",
+    href: "/admin/paginas",
+    match: ["/admin/paginas", "/admin/sessoes"],
   },
   { label: "Usuários", href: "/admin/usuarios", match: ["/admin/usuarios"] },
   {

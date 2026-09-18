@@ -1,3 +1,5 @@
+import { formatPhone } from "@/lib/masks";
+
 /**
  * Tipos puros da área de usuários do painel.
  *
@@ -129,7 +131,8 @@ export function formatDateTime(iso: string | null | undefined): string {
  * que o dado está errado.
  */
 export function phoneOrDash(whatsapp: string | null | undefined): string {
-  return whatsapp && whatsapp.trim() !== "" ? whatsapp : "—";
+  // Cadastros anteriores à máscara estão só em dígitos: exibe formatado.
+  return whatsapp && whatsapp.trim() !== "" ? formatPhone(whatsapp) : "—";
 }
 
 /** Centavos → "R$ 1.234,56". Inteiros: dividir dinheiro em float erra centavo. */

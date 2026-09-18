@@ -1,6 +1,14 @@
 import { backendAsset, publicApiGet } from "@/lib/publicApi";
 import { sectionKey, sitePage, type SiteSectionDef } from "./sections";
 
+/** Espelha `VIDEO_PATH` do backend (`video-storage.ts`). */
+const VIDEO_PATH = /^\/uploads\/videos\/[a-f0-9-]{36}\.(mp4|webm)$/;
+import {
+  resolveSectionLayout,
+  type SectionLayout,
+  type SectionLayoutRow,
+} from "./pageLayout";
+
 /**
  * A leitura das SESSÕES para as páginas públicas do site.
  *
@@ -24,6 +32,10 @@ type RawSection = {
   footnote?: string | null;
   body?: string | null;
   imageUrl?: string | null;
+  secondaryImageUrl?: string | null;
+  videoUrl?: string | null;
+  /** Textos extras por nome — ver `SiteSectionContent.extras` no backend. */
+  extras?: Record<string, string> | null;
 };
 
 export type SectionView = {
@@ -41,6 +53,22 @@ export type SectionView = {
   body: string;
   /** Só quando o admin subiu uma; o componente decide o que fazer sem ela. */
   imageUrl?: string;
+  /** A segunda arte da sessão (foto do CEO no bloco do vídeo), quando subida. */
+  secondaryImageUrl?: string;
+  /**
+   * Vídeo ENVIADO pelo painel (URL absoluta no backend), só quando o caminho é
+   * de um vídeo nosso (`/uploads/videos/<uuid>.mp4|webm`). Alternativa ao link
+   * do YouTube do bloco do vídeo.
+   */
+  videoUrl?: string;
+  /**
+   * Um texto EXTRA da sessão, pelo nome, com o padrão do código como reserva.
+   *
+   * Existe porque várias seções têm mais frases do que as quatro colunas do
+   * model comportam — o bloco do vídeo tem a apresentação do CEO, o rótulo do
+   * botão e a assinatura. O padrão fica junto do componente que o desenha.
+   */
+  extra: (name: string, fallback: string) => string;
 };
 
 /**
@@ -76,6 +104,19 @@ export async function getSectionsFor(
       footnote: row?.footnote?.trim() || def?.defaultFootnote || "",
       body: row?.body?.trim() || def?.defaultBody || "",
       imageUrl: backendAsset(row?.imageUrl) ?? undefined,
+      secondaryImageUrl: backendAsset(row?.secondaryImageUrl) ?? undefined,
+      // Só caminho de vídeo NOSSO vira `src` de <video>: o campo vem do banco, e
+      // um valor fora do formato não deve apontar o player para outro lugar.
+      videoUrl:
+        row?.videoUrl && VIDEO_PATH.test(row.videoUrl)
+          ? (backendAsset(row.videoUrl) ?? undefined)
+          : undefined,
+      // Falsy e não `!== undefined`: texto extra em branco também cai no padrão
+      // do código — é como o admin desfaz uma personalização.
+      extra: (name: string, fallback: string) => {
+        const value = row?.extras?.[name];
+        return (typeof value === "string" ? value.trim() : "") || fallback;
+      },
     };
   };
 }
@@ -145,4 +186,22 @@ export async function getSectionItemsFor(
       createdAt: row.createdAt ?? undefined,
     }));
   };
+}
+
+/**
+ * A ORDEM e a visibilidade das sessões de uma página (2026-09-15).
+ *
+ * Mesma leitura de `getSectionsFor` — o `fetch` do Next memoriza a chamada
+ * dentro da mesma renderização, então pedir as duas coisas não custa duas idas
+ * ao backend.
+ *
+ * Falha de rede vira a ordem do CÓDIGO, com tudo visível: a página tem que
+ * carregar mesmo sem a personalização.
+ */
+export async function getSectionLayout(pageKey: string): Promise<SectionLayout> {
+  const page = sitePage(pageKey);
+  const catalogKeys = page?.sections.map((section) => section.key) ?? [];
+  const rows = (await publicApiGet<SectionLayoutRow[]>("/site-sections")) ?? [];
+
+  return resolveSectionLayout(catalogKeys, Array.isArray(rows) ? rows : [], pageKey);
 }

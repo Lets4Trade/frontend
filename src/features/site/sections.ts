@@ -1,3 +1,5 @@
+import type { MaskKind } from "@/lib/masks";
+
 /**
  * O catálogo de PÁGINAS e SESSÕES do site — a tela "Edição de sessões"
  * (Figma 3806:7081).
@@ -78,6 +80,12 @@ export type SiteSectionDef = {
   titleLabel?: string;
   subtitleLabel?: string;
   footnoteLabel?: string;
+  /**
+   * Máscara de entrada de cada texto curto no painel (ver `lib/masks.ts`) —
+   * telefone e CNPJ digitados já formatados, como no resto do site.
+   */
+  titleMask?: MaskKind;
+  subtitleMask?: MaskKind;
   bodyLabel?: string;
   /**
    * As duas linhas curtas extras, quando o bloco as tem — subtítulo e uma
@@ -441,6 +449,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         defaultTitle: "",
         // Curto: a coluna do título tem 315px e o rótulo longo vazava do card.
         titleLabel: "WhatsApp (DDI + DDD)",
+        titleMask: "phone",
         defaultSubtitle: "",
         subtitleLabel: "Discord (usuário ou link de convite)",
         hasImage: false,
@@ -527,6 +536,31 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         titleLabel: "Título da coluna",
         hasImage: false,
         list: { itemLabel: "link", title: "Rótulo", href: "Destino" },
+      },
+      {
+        // Identificação da empresa no pé do rodapé (pedido em 2026-09-17).
+        // Quatro dados, os quatro textos da sessão — cada um com rótulo
+        // próprio, como nos botões do cabeçalho.
+        //
+        // CNPJ, telefone e e-mail SEM padrão: dado de empresa inventado no ar é
+        // pior que ausente (mesma regra de "Contato e atendimento"). Vazio, a
+        // linha não aparece. O copyright tem padrão, com `{ano}` trocado pelo
+        // ano corrente na renderização — ninguém precisa lembrar de editar em
+        // janeiro.
+        key: "footer-empresa",
+        label: "Rodapé · Dados da empresa",
+        defaultTitle: "",
+        titleLabel: "CNPJ",
+        titleMask: "cnpj",
+        defaultSubtitle: "",
+        subtitleLabel: "Telefone (DDI + DDD)",
+        subtitleMask: "phone",
+        defaultFootnote: "",
+        footnoteLabel: "E-mail de contato",
+        hasBody: true,
+        defaultBody: "© {ano} Lets4Trade. Todos os direitos reservados.",
+        bodyLabel: "Copyright (use {ano} para o ano atual)",
+        hasImage: false,
       },
       {
         key: "footer-sobre",

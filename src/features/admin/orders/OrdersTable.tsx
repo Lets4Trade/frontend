@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState, useTransition } from "react";
 import { toastError } from "@/components/ui/Toasts";
 import { cn } from "@/lib/cn";
+import { formatPhone } from "@/lib/masks";
 import { backendAsset } from "@/lib/publicApi";
 import { updateOrderAction } from "./actions";
 import { InlineSelect } from "./InlineSelect";
@@ -205,7 +206,7 @@ export function OrdersTable({
                     </td>
 
                     <td className="py-[14px] pr-[10px] font-helvetica text-[16px] tracking-[0.16px] text-brand-placeholder">
-                      {orDash(order.customerPhone)}
+                      {orDash(order.customerPhone && formatPhone(order.customerPhone))}
                     </td>
 
                     <td className="truncate py-[14px] pr-[10px] font-helvetica text-[16px] tracking-[0.16px] text-brand-placeholder">

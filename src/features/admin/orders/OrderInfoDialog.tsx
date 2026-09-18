@@ -3,6 +3,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import Image from "next/image";
 import { cn } from "@/lib/cn";
+import { formatPhone } from "@/lib/masks";
 import { backendAsset } from "@/lib/publicApi";
 import {
   formatDateTime,
@@ -43,7 +44,7 @@ export function OrderInfoDialog({
     ["Código", order.reference],
     ["Data", formatDateTime(order.createdAt)],
     ["Cliente", order.customerName],
-    ["Telefone", orDash(order.customerPhone)],
+    ["Telefone", orDash(order.customerPhone && formatPhone(order.customerPhone))],
     ["Jogo", orDash(order.gameName)],
     ["Produto", order.productName],
     ["Servidor", order.platform],

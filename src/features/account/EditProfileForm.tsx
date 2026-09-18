@@ -266,9 +266,9 @@ export function EditProfileForm({ defaults }: { defaults: ProfileDefaults }) {
           name="whatsapp"
           label="Número De Whatsapp:"
           type="tel"
-          inputMode="tel"
+          mask="phone"
           autoComplete="tel"
-          placeholder="+55"
+          placeholder="(11) 91234-5678"
           defaultValue={defaults.whatsapp}
           error={fieldErrors.whatsapp}
         />

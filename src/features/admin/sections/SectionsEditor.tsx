@@ -303,6 +303,7 @@ export function SectionsEditor({
                   label={section.titleLabel ?? "Alterar título da sessão"}
                   value={title}
                   maxLength={160}
+                  mask={section.titleMask}
                   placeholder={
                     section.defaultTitle ?? `${page.label} - ${section.label}`
                   }
@@ -329,6 +330,7 @@ export function SectionsEditor({
                 label={section.subtitleLabel ?? "Subtítulo"}
                 value={subtitle}
                 maxLength={200}
+                mask={section.subtitleMask}
                 placeholder={section.defaultSubtitle || undefined}
                 onChange={(event) => setSubtitle(event.target.value)}
               />

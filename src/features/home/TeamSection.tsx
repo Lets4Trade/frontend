@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { editItem } from "@/features/site/editing/attrs";
 import type { SectionItemView } from "@/features/site/content";
 import {
   TEAM_CARD_HEIGHT,
@@ -15,18 +16,34 @@ import {
  * exatamente na mesma coluna (dá para conferir pelo recorte idêntico das
  * primeiras palavras), o que descarta centralização.
  *
- * ── Os cards deixaram de ser espalhados ────────────────────────────────────
- * No arquivo os sete cards ficam em posições soltas em volta do mapa — (82,-1),
- * (1372,-66), (1377,408)... É bonito e é impossível de manter: com a equipe
- * vindo do banco, o oitavo membro não teria coordenada, e apagar o terceiro
- * deixaria um buraco no meio do mapa.
+ * ── Arranjo dos cards (Figma 131:1504 — a home de referência) ─────────────
+ * Os sete cards ficam nas coordenadas do arquivo, relativas à seção (origem no
+ * topo do título, y=2577, e na margem de 50px): dois ladeando o texto e cinco
+ * numa fileira ESCALONADA embaixo, cada um numa altura. A posição é do LUGAR,
+ * não da pessoa: o 1º membro da lista ocupa o 1º lugar, e reordenar pelo
+ * painel troca quem aparece onde.
  *
- * Viraram uma fileira que QUEBRA sozinha, centrada, com o mesmo card de 361×446
- * e vão de 25px do arquivo. O mapa, o título e o texto continuam onde estavam;
- * a seção passou a ter altura variável, que é o preço de a lista ser editável.
+ * Membro além do 7º não tem lugar no desenho: entra numa fileira centrada
+ * abaixo, em vez de ganhar coordenada inventada.
  *
- * Decidido com o usuário em 2026-09-10: CRUD completo vale a perda das posições.
+ * Histórico: 2026-09-10 fileira única; 2026-09-17 manhã, arranjo do nó
+ * 2186:2672 (outra versão da home) — o usuário confirmou depois que a
+ * referência é o 131:1504.
  */
+/** Os sete lugares do arquivo (cards 578:1798, 578:1736, 582:1810, …). */
+const CARD_POSITIONS: React.CSSProperties[] = [
+  { left: 82, top: -1 }, // DANIEL — esquerda do texto
+  { left: 1372, top: -66 }, // EDDMAX — direita do texto
+  { left: 79, top: 479 }, // ROGUE
+  { left: 382, top: 514 }, // ZEZÃO
+  { left: 707, top: 469 }, // YURI
+  { left: 1050, top: 511 }, // GUS
+  { left: 1377, top: 408 }, // LUAN
+];
+
+/** Onde o divisor que fecha a seção fica no arquivo (y=3595 − 2577). */
+const DIVIDER_TOP = 1018;
+
 export function TeamSection({
   title = "EQUIPE LETS 4 TRADE",
   subtitle = "Especialistas no que há de melhor no mercado relacionado a ARPGs",
@@ -39,6 +56,9 @@ export function TeamSection({
   body?: string;
   items?: SectionItemView[];
 }) {
+  const placed = items.slice(0, CARD_POSITIONS.length);
+  const rest = items.slice(CARD_POSITIONS.length);
+
   return (
     <section aria-labelledby="team-title" className="relative">
       <WorldMap />
@@ -55,6 +75,7 @@ export function TeamSection({
 
       <h2
         id="team-title"
+        data-edit-field="home:equipe:title"
         className="absolute top-0 left-[542px] w-[736px] text-center font-poppins text-[65px] leading-[normal] font-semibold tracking-[0.325px] text-white"
       >
         {title}
@@ -65,29 +86,45 @@ export function TeamSection({
           fica como seguro: as linhas abaixo têm posição absoluta, então uma
           quebra inesperada — durante a troca de fonte, ou se ela falhar — não
           empurraria nada, iria POR CIMA. */}
-      <p className="absolute top-[104px] left-[581px] w-[601px] text-center font-helvetica text-[18px] leading-[normal] font-bold tracking-[0.18px] whitespace-nowrap text-white">
+      <p data-edit-field="home:equipe:subtitle" className="absolute top-[104px] left-[581px] w-[601px] text-center font-helvetica text-[18px] leading-[normal] font-bold tracking-[0.18px] whitespace-nowrap text-white">
         {subtitle}
       </p>
 
-      {/* O parágrafo é posicionado, mas a seção abaixo dele FLUI — por isso ele
-          reserva a própria altura com um irmão invisível, e não com um `top`
-          fixo na fileira de cards. Texto editado no painel muda de altura. */}
-      <div className="pt-[153px]">
-        <p className="mx-auto w-[601px] font-helvetica text-[18px] leading-[normal] tracking-[0.18px] text-brand-placeholder">
-          {body || DEFAULT_BODY}
+      {/* Os dois primeiros membros, nas laterais do texto. */}
+      {placed.length > 0 ? (
+        <ul className="contents">
+          {placed.map((member, index) => (
+            <TeamCard
+              key={member.id}
+              member={member}
+              className="absolute"
+              style={CARD_POSITIONS[index]}
+            />
+          ))}
+        </ul>
+      ) : null}
+
+      {/* O parágrafo é posicionado, mas FLUI: texto editado no painel muda de
+          altura. `min-height` = onde o divisor fica no arquivo — os cards são
+          absolutos e não ocupam espaço, então é este bloco que dá à seção a
+          altura do desenho. */}
+      <div className="pt-[153px]" style={{ minHeight: DIVIDER_TOP }}>
+        <p className="mx-auto w-[601px] font-helvetica text-[18px] leading-[normal] tracking-[0.18px] whitespace-pre-line text-brand-placeholder">
+          <span data-edit-field="home:equipe:body">{body || TEAM_DEFAULT_BODY}</span>
         </p>
       </div>
 
-      {items.length > 0 ? (
-        <ul className="mt-[80px] flex flex-wrap justify-center gap-[25px]">
-          {items.map((member) => (
-            <TeamCard key={member.id} member={member} />
+      {rest.length > 0 ? (
+        // Membros além dos sete lugares do desenho: fileira centrada.
+        <ul className="mb-[100px] flex flex-wrap justify-center gap-[25px]">
+          {rest.map((member) => (
+            <TeamCard key={member.id} member={member} className="relative" />
           ))}
         </ul>
       ) : null}
 
       {/* Divisor de 1820×1 que fecha a seção (Figma 617:804). */}
-      <hr className="mt-[100px] w-[1820px] border-0 border-t border-brand-hairline" />
+      <hr className="w-[1820px] border-0 border-t border-brand-hairline" />
     </section>
   );
 }
@@ -129,16 +166,26 @@ function WorldMap() {
  * ⚠️ O raio do `backdrop-blur` não é exposto pelo inspector; usamos os mesmos
  * 40px dos cards do hero, que têm o mesmo tratamento no arquivo.
  */
-function TeamCard({ member }: { member: SectionItemView }) {
+function TeamCard({
+  member,
+  className,
+  style,
+}: {
+  member: SectionItemView;
+  /** `absolute` nas laterais, `relative` na grade. */
+  className: string;
+  style?: React.CSSProperties;
+}) {
   return (
     <li
-      className="team-card relative shrink-0 rounded-[30px] border border-white/10 bg-black/10 backdrop-blur-[40px]"
-      style={{ width: TEAM_CARD_WIDTH, height: TEAM_CARD_HEIGHT }}
+      className={`team-card shrink-0 rounded-[30px] border border-white/10 bg-black/10 backdrop-blur-[40px] ${className}`}
+      style={{ width: TEAM_CARD_WIDTH, height: TEAM_CARD_HEIGHT, ...style }}
     >
       {/* Membro sem foto continua com o nome no lugar certo: a moldura vazia
           ocupa a mesma caixa, em vez de o nome subir para o meio do card. */}
       {member.image ? (
         <Image
+          {...editItem("home:equipe", member.id, "image")}
           src={member.image}
           alt={member.title}
           width={Math.round(TEAM_PHOTO_WIDTH)}
@@ -148,13 +195,16 @@ function TeamCard({ member }: { member: SectionItemView }) {
         />
       ) : (
         <span
+          {...editItem("home:equipe", member.id, "image")}
           aria-hidden
-          className="absolute top-[50px] left-[50px] rounded-[20px] border border-dashed border-white/15"
+          className="pointer-events-none absolute top-[50px] left-[50px] rounded-[20px] border border-dashed border-white/15"
           style={{ width: TEAM_PHOTO_WIDTH, height: TEAM_PHOTO_HEIGHT }}
         />
       )}
 
-      <p className="team-name absolute top-[392px] left-1/2 w-[251px] -translate-x-1/2 text-center font-poppins text-[20px] leading-[normal] font-bold tracking-[0.4px] text-white">
+      <p
+        {...editItem("home:equipe", member.id, "title")}
+        className="team-name absolute top-[392px] left-1/2 w-[251px] -translate-x-1/2 text-center font-poppins text-[20px] leading-[normal] font-bold tracking-[0.4px] text-white">
         {member.title}
       </p>
     </li>
@@ -168,13 +218,15 @@ function TeamCard({ member }: { member: SectionItemView }) {
  * `defaultTitle` guarda rótulos curtos, e um texto deste tamanho ali faria o
  * catálogo virar arquivo de conteúdo.
  */
-const DEFAULT_BODY =
+export const TEAM_DEFAULT_BODY =
+  // Quatro parágrafos, como no arquivo (quebras renderizadas por
+  // `whitespace-pre-line`).
   "Desde 2021, a Lets 4 Trade tem sido sua parceira em tempo, diversão e nas " +
-  "melhores experiências em jogos online. A nossa equipe é formada por jogadores " +
+  "melhores experiências em jogos online.\n\nA nossa equipe é formada por jogadores " +
   "como você, que respiram games e sabem perfeitamente o que é precisar de um " +
-  "boost ou de moedas para otimizar a jogatina. Cada um dos nossos especialistas " +
+  "boost ou de moedas para otimizar a jogatina.\n\nCada um dos nossos especialistas " +
   "foi escolhido a dedo para assegurar que você sempre tenha o melhor atendimento " +
-  "e o máximo de aproveitamento do seu tempo de lazer. Como sempre dizemos: " +
+  "e o máximo de aproveitamento do seu tempo de lazer.\n\nComo sempre dizemos: " +
   "\u201cSe, com as nossas moedas e serviços, o seu dia se tornar um pouco mais " +
   "leve, divertido e feliz, então estamos no caminho certo!\u201d Em nome de todo " +
   "o time, o meu sincero muito obrigado por fazer parte da nossa jornada.";
