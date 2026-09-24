@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { CountUp } from "@/components/ui/CountUp";
 import { editItem } from "@/features/site/editing/attrs";
 import type { ComponentProps, CSSProperties } from "react";
 import type { SectionItemView } from "@/features/site/content";
@@ -8,6 +9,7 @@ import {
   REVIEW_CARD_WIDTH,
   REVIEW_FIRST_LEFT,
 } from "./reviews";
+import { reveal, revealDelay } from "./reveal";
 
 /**
  * Seção "NOSSAS REVIEWS" (Figma: título 537:1080, subtítulo 537:1105,
@@ -58,7 +60,8 @@ export function ReviewsSection({
         width={186}
         height={186}
         aria-hidden
-        className="pointer-events-none absolute -top-[223px] left-[444.95px] size-[186.12px] object-cover"
+        className="deco-float pointer-events-none absolute -top-[223px] left-[444.95px] size-[186.12px] object-cover"
+        style={{ ["--float-dur" as string]: "7.5s", ["--float-rot" as string]: "-4deg" }}
       />
 
       {/* Render decorativo à direita do título (Figma 848:104). */}
@@ -68,18 +71,20 @@ export function ReviewsSection({
         width={128}
         height={141}
         aria-hidden
-        className="pointer-events-none absolute top-[4.96px] left-[1692px] h-[140.97px] w-[128px] object-cover"
+        className="deco-float pointer-events-none absolute top-[4.96px] left-[1692px] h-[140.97px] w-[128px] object-cover"
+        style={{ ["--float-dur" as string]: "6s", ["--float-delay" as string]: "-2s" }}
       />
 
       <h2
         id="reviews-title"
         data-edit-field="home:reviews:title"
+        {...reveal("mask")}
         className="absolute top-0 left-[542px] w-[736px] text-center font-poppins text-[65px] leading-[normal] font-semibold tracking-[0.325px] text-white"
       >
         {title}
       </h2>
 
-      <p data-edit-field="home:reviews:subtitle" className="absolute top-[104px] left-[687px] w-[446px] text-center font-helvetica text-[18px] leading-[normal] font-bold tracking-[0.18px] text-white">
+      <p data-edit-field="home:reviews:subtitle" {...reveal("rise")} style={revealDelay(1)} className="absolute top-[104px] left-[687px] w-[446px] text-center font-helvetica text-[18px] leading-[normal] font-bold tracking-[0.18px] text-white">
         {subtitle}
       </p>
 
@@ -95,8 +100,10 @@ export function ReviewsSection({
           texto inteiro é editável, então a divisão é no primeiro espaço — e um
           texto sem espaço simplesmente sai todo em negrito, que é o padrão
           razoável para um contador. */}
-      <p data-edit-field="home:reviews:footnote" className="absolute top-[161px] left-[14px] font-poppins text-[20px] leading-[normal] text-white">
-        <strong className="font-bold">{counter.split(" ")[0]}</strong>
+      <p data-edit-field="home:reviews:footnote" {...reveal("rise")} style={revealDelay(2)} className="absolute top-[161px] left-[14px] font-poppins text-[20px] leading-[normal] text-white">
+        <strong className="font-bold">
+          <CountUp value={counter.split(" ")[0]} />
+        </strong>
         {counter.includes(" ")
           ? ` ${counter.slice(counter.indexOf(" ") + 1)}`
           : ""}
@@ -117,8 +124,10 @@ export function ReviewsSection({
 function RatingPill() {
   return (
     <div className="absolute top-[153px] left-[766px] h-[45px] w-[288px] rounded-[30px] border border-white/10">
-      <Stars className="absolute top-[17px] left-[84px] blur-[3px]" />
-      <Stars className="absolute top-[15px] left-[84px]" />
+      {/* As estrelas acendem uma a uma quando a pílula aparece — a cópia do
+          brilho junto, senão o halo chegaria antes da estrela. */}
+      <Stars className="absolute top-[17px] left-[84px] blur-[3px]" animated />
+      <Stars className="absolute top-[15px] left-[84px]" animated />
 
       {/* Risco de brilho na borda de cima da pílula, derivado do "Linear Brilho"
           do arquivo (547:1318). Mesmo desenho da `GlowBar`: some nas duas
@@ -127,6 +136,8 @@ function RatingPill() {
           pílula de 288, o que faz o risco morrer antes da curva da borda. */}
       <span
         aria-hidden
+        {...reveal("draw")}
+        style={revealDelay(6)}
         className="absolute -top-[2px] left-1/2 h-[2px] w-[249px] -translate-x-1/2 bg-linear-to-r from-transparent via-brand-rating to-transparent"
       />
     </div>
@@ -134,11 +145,11 @@ function RatingPill() {
 }
 
 /** Cinco estrelas de 16px com 10px de vão, no verde de avaliação do arquivo. */
-export function Stars({ className }: { className?: string }) {
+export function Stars({ className, animated = false }: { className?: string; animated?: boolean }) {
   return (
     <span aria-hidden className={`flex gap-[10px] ${className ?? ""}`}>
       {Array.from({ length: 5 }, (_, i) => (
-        <StarIcon key={i} />
+        <StarIcon key={i} index={animated ? i + 1 : undefined} />
       ))}
     </span>
   );
@@ -157,9 +168,10 @@ export function Stars({ className }: { className?: string }) {
 const STAR_PATH =
   "M4.76878 2.27225C5.61321 0.757417 6.03543 0 6.66667 0C7.29791 0 7.72013 0.757416 8.56456 2.27225L8.78302 2.66416C9.02298 3.09462 9.14296 3.30986 9.33004 3.45187C9.51711 3.59389 9.7501 3.6466 10.2161 3.75203L10.6403 3.84802C12.2801 4.21904 13.1 4.40455 13.2951 5.03182C13.4901 5.6591 12.9312 6.31271 11.8133 7.61995L11.5241 7.95815C11.2064 8.32962 11.0475 8.51536 10.9761 8.74514C10.9046 8.97493 10.9286 9.22274 10.9767 9.71837L11.0204 10.1696C11.1894 11.9137 11.2739 12.7858 10.7632 13.1735C10.2525 13.5612 9.48488 13.2077 7.94955 12.5008L7.55234 12.3179C7.11605 12.117 6.8979 12.0166 6.66667 12.0166C6.43543 12.0166 6.21728 12.117 5.78099 12.3179L5.38378 12.5008C3.84845 13.2077 3.08078 13.5612 2.5701 13.1735C2.05941 12.7858 2.14392 11.9137 2.31293 10.1696L2.35666 9.71837C2.40468 9.22274 2.4287 8.97493 2.35724 8.74514C2.28579 8.51536 2.12695 8.32962 1.80928 7.95815L1.52007 7.61995C0.402166 6.31271 -0.156784 5.6591 0.0382807 5.03182C0.233345 4.40455 1.05324 4.21904 2.69302 3.84802L3.11726 3.75203C3.58323 3.6466 3.81622 3.59389 4.0033 3.45187C4.19037 3.30986 4.31035 3.09462 4.55031 2.66416L4.76878 2.27225Z";
 
-function StarIcon() {
+function StarIcon({ index }: { index?: number }) {
   return (
     <svg
+      {...(index ? { ...reveal("pop"), style: revealDelay(index) } : {})}
       viewBox="-1.33335 -1.33335 16 16"
       className="size-[16px] shrink-0"
       fill="var(--brand-rating)"
@@ -202,7 +214,7 @@ function ReviewCarousel({ items }: { items: SectionItemView[] }) {
   const loopWidth = items.length * REVIEW_CARD_STEP;
 
   return (
-    <div className="reviews-viewport absolute top-[248px] left-0 h-[387px] w-[1820px] overflow-hidden">
+    <div {...reveal("rise")} style={revealDelay(3)} className="reviews-viewport absolute top-[248px] left-0 h-[387px] w-[1820px] overflow-hidden">
       {/* A `<ul>` precisa gerar caixa (e não `display: contents`) porque é ela
           que a animação desloca. */}
       <ul

@@ -2,6 +2,7 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import Image from "next/image";
+import type { RevealKind } from "./reveal";
 import { youtubeEmbedUrl } from "./youtube";
 
 /**
@@ -26,6 +27,7 @@ export function VideoPlayer({
   videoFile,
   frameClassName,
   compact = false,
+  revealKind,
 }: {
   image: string;
   /** Já validado por `youtubeId` — nunca a URL crua do painel. */
@@ -42,7 +44,10 @@ export function VideoPlayer({
   frameClassName?: string;
   /** Pílula de play menor, para a moldura estreita do celular. */
   compact?: boolean;
+  /** Gesto de entrada da moldura na home (ver `reveal.ts`). */
+  revealKind?: RevealKind;
 }) {
+  const revealAttrs = revealKind ? { "data-reveal": revealKind } : {};
   const frame =
     frameClassName ??
     "absolute top-0 left-[674px] h-[609px] w-[1146px] overflow-hidden rounded-[30px]";
@@ -59,7 +64,11 @@ export function VideoPlayer({
   );
 
   if (!videoId && !videoFile) {
-    return <div className={frame}>{thumb}</div>;
+    return (
+      <div className={frame} {...revealAttrs}>
+        {thumb}
+      </div>
+    );
   }
 
   return (
@@ -67,6 +76,7 @@ export function VideoPlayer({
       <Dialog.Trigger
         aria-label="Assistir ao vídeo de apresentação"
         className={`play-button ${frame}`}
+        {...revealAttrs}
       >
         {thumb}
         {compact ? (

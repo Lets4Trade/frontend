@@ -22,9 +22,11 @@ import { apiPost } from "@/lib/serverApi";
  * duplicada por desconfiança — é não gastar uma ida ao backend para descobrir
  * que o carrinho está vazio.
  *
- * ⚠️ NÃO EXISTE COBRANÇA neste caminho. Nenhum dado de cartão passa por aqui —
- * nem por este servidor, nem pelo backend (ver `CheckoutForm`). O pedido nasce
- * PENDENTE e é fechado no WhatsApp, que é como a loja opera hoje.
+ * ── E a cobrança? ─────────────────────────────────────────────────────────
+ * NÃO acontece aqui (2026-09-24). Este passo cria os pedidos e o `Payment` com o
+ * valor a cobrar e o prazo de 30 minutos. A cobrança é o passo seguinte, do
+ * NAVEGADOR direto à API (`features/payment/api.ts`), para o cartão não passar
+ * por este servidor.
  */
 
 export type CheckoutLine = {
@@ -35,6 +37,8 @@ export type CheckoutLine = {
 export type CheckoutResult =
   | {
       ok: true;
+      /** O pagamento que cobre os pedidos. `PAID` = coberto inteiro por coins. */
+      payment: { id: string; amountCents: number; status: string; expiresAt: string };
       count: number;
       references: string[];
       /** O que o servidor de fato aceitou debitar — pode ser menos do que o
@@ -100,6 +104,7 @@ export async function checkoutAction(
   const requestedCoins = Math.max(0, Math.floor(Number(coins)) || 0);
 
   const result = await apiPost<{
+    payment: { id: string; amountCents: number; status: string; expiresAt: string };
     references: string[];
     count: number;
     coinsSpent?: number;
@@ -121,6 +126,7 @@ export async function checkoutAction(
 
   return {
     ok: true,
+    payment: result.data.payment,
     count: result.data.count,
     references: result.data.references,
     coinsSpent: result.data.coinsSpent ?? 0,

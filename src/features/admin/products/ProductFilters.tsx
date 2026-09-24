@@ -66,6 +66,20 @@ export function ProductFilters({
         Cadastrar Game
       </Link>
 
+      {/* Leva o jogo e a aba abertos aqui: a ordem é por aba de um jogo. */}
+      <Link
+        href={`/admin/produtos/ordem${
+          query.game
+            ? `?${PARAM.game}=${encodeURIComponent(query.game)}${
+                query.type ? `&${PARAM.type}=${encodeURIComponent(query.type)}` : ""
+              }`
+            : ""
+        }`}
+        className={cn(buttonVariants({ variant: "outline" }), "w-[201px] px-0")}
+      >
+        Organizar ordem
+      </Link>
+
       <FilterMenu
         key={`game-${resetKey}`}
         width={249}

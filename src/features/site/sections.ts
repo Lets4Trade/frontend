@@ -211,6 +211,13 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         // Só YouTube é aceito; ver `features/home/youtube.ts`.
         defaultFootnote: "",
         footnoteLabel: "Link do vídeo (YouTube)",
+        // O BOTÃO "VEJA NOSSAS REFERÊNCIAS" tem link próprio (2026-09-24), no
+        // subtítulo (que a seção não usava). Precisa existir à parte: quando o
+        // player toca um vídeo ENVIADO, o link do YouTube acima fica vazio — e
+        // o botão tem que continuar levando ao vídeo das referências no canal.
+        // Vazio, cai no link do player; sem nenhum dos dois, nas reviews.
+        defaultSubtitle: "",
+        subtitleLabel: "Link do botão “Veja nossas referências” (YouTube)",
       },
       {
         key: "reviews",

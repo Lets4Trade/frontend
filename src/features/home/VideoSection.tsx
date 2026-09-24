@@ -2,6 +2,7 @@ import Image from "next/image";
 import { buttonVariants } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { VideoPlayer } from "./VideoPlayer";
+import { reveal, revealDelay } from "./reveal";
 import { youtubeId, youtubeWatchUrl } from "./youtube";
 
 /**
@@ -49,8 +50,14 @@ export function VideoSection({
   avatar = CEO_AVATAR,
   videoUrl,
   videoFile,
+  buttonUrl,
   extra = (_name: string, fallback: string) => fallback,
 }: {
+  /**
+   * Link do botão "VEJA NOSSAS REFERÊNCIAS" (subtítulo da sessão). Só YouTube,
+   * pelo mesmo `youtubeId` do player: a URL digitada nunca vira `href` crua.
+   */
+  buttonUrl?: string;
   title?: string;
   image?: string;
   /** Foto da assinatura do CEO — a SEGUNDA arte da sessão. */
@@ -70,6 +77,8 @@ export function VideoSection({
   videoFile?: string;
 }) {
   const videoId = youtubeId(videoUrl);
+  // O botão tem link próprio; vazio, usa o do player.
+  const buttonVideoId = youtubeId(buttonUrl) ?? videoId;
   const t = videoTexts(extra);
   // Qual fonte vale hoje — o editor de páginas lê isto para abrir o painel do
   // vídeo já dizendo o que está tocando. Na loja é só um atributo.
@@ -81,14 +90,14 @@ export function VideoSection({
       {/* `whitespace-pre-line`: o título vem da tela "Edição de sessões" e a
           quebra dele é uma quebra de linha de verdade no campo, não um `<br>`
           que o admin teria que digitar. O padrão do arquivo tem duas linhas. */}
-      <h2 data-edit-field="home:video:title" className="absolute top-[93px] left-0 w-[547px] text-center font-poppins text-[65px] leading-none font-semibold whitespace-pre-line text-white">
+      <h2 data-edit-field="home:video:title" {...reveal("mask")} className="absolute top-[93px] left-0 w-[547px] text-center font-poppins text-[65px] leading-none font-semibold whitespace-pre-line text-white">
         {title}
       </h2>
 
       {/* No arquivo a primeira frase é Bold e branca, e o resto Regular em
           #d8d8d8 — é um único bloco de texto com dois estilos, não dois
           parágrafos. */}
-      <p className="absolute top-[254px] left-0 w-[570px] text-center font-helvetica text-[18px] leading-[normal] tracking-[0.18px] whitespace-pre-line text-brand-placeholder">
+      <p {...reveal("rise")} style={revealDelay(1)} className="absolute top-[254px] left-0 w-[570px] text-center font-helvetica text-[18px] leading-[normal] tracking-[0.18px] whitespace-pre-line text-brand-placeholder">
         <strong data-edit-field="home:video:extra.saudacao" className="font-bold text-white">
           {t.saudacao}
         </strong>{" "}
@@ -109,11 +118,13 @@ export function VideoSection({
           leva — em nova aba, porque sai da loja. Sem vídeo, desce até as
           reviews da própria home, que é a outra prova que a página tem. */}
       <a
-        href={videoId ? youtubeWatchUrl(videoId) : "#reviews"}
-        {...(videoId ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+        href={buttonVideoId ? youtubeWatchUrl(buttonVideoId) : "#reviews"}
+        {...(buttonVideoId ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+        {...reveal("rise")}
+        style={revealDelay(2)}
         className={cn(
           buttonVariants({ variant: "primary" }),
-          "absolute top-[411px] left-[146px] w-[276px] px-0 shadow-[0_16px_18.5px_rgba(0,0,0,0.25)]",
+          "cta-sheen absolute top-[411px] left-[146px] w-[276px] px-0 shadow-[0_16px_18.5px_rgba(0,0,0,0.25)]",
         )}
       >
         <span data-edit-field="home:video:extra.botao">
@@ -123,6 +134,8 @@ export function VideoSection({
 
       <p
         data-edit-field="home:video:extra.convite"
+        {...reveal("rise")}
+        style={revealDelay(3)}
         className="absolute top-[486px] left-[2px] w-[568px] text-center font-helvetica text-[16px] leading-[normal] tracking-[0.16px] text-brand-placeholder"
       >
         {t.convite}
@@ -139,16 +152,22 @@ export function VideoSection({
         aria-hidden
         data-edit-image="home:video"
         data-edit-slot="secondary"
+        {...reveal("pop")}
+        style={revealDelay(4)}
         className="absolute top-[544px] left-0 size-[60px] rounded-full object-cover"
       />
       <p
         data-edit-field="home:video:extra.assinatura-nome"
+        {...reveal("rise")}
+        style={revealDelay(5)}
         className="absolute top-[552px] left-[75px] font-poppins text-[18px] leading-[26px] font-bold text-white"
       >
         {t.assinaturaNome}
       </p>
       <p
         data-edit-field="home:video:extra.assinatura-cargo"
+        {...reveal("rise")}
+        style={revealDelay(6)}
         className="absolute top-[580px] left-[75px] font-poppins text-[12px] leading-[13px] font-medium tracking-[0.12px] text-white/80"
       >
         {t.assinaturaCargo}
@@ -161,7 +180,7 @@ export function VideoSection({
         data-video-current={current}
         data-video-link={videoId ? videoUrl : ""}
       >
-        <VideoPlayer image={image} videoId={videoId} videoFile={videoFile} />
+        <VideoPlayer image={image} videoId={videoId} videoFile={videoFile} revealKind="wipe" />
       </div>
     </section>
   );

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { editItem } from "@/features/site/editing/attrs";
 import type { SectionItemView } from "@/features/site/content";
+import { reveal, revealDelay } from "./reveal";
 
 export function FaqSection({
   title = "DÚVIDAS SOBRE A EMPRESA",
@@ -47,7 +48,8 @@ export function FaqSection({
           alt=""
           width={214}
           height={321}
-          className="absolute top-[-19.51%] left-[-1.62%] h-[126.44%] w-[103.85%] max-w-none"
+          className="deco-float absolute top-[-19.51%] left-[-1.62%] h-[126.44%] w-[103.85%] max-w-none"
+          style={{ ["--float-dur" as string]: "6.5s", ["--float-rot" as string]: "0deg" }}
         />
       </span>
 
@@ -73,6 +75,7 @@ export function FaqSection({
           id="faq-title"
 
           data-edit-field="home:faq:title"
+          {...reveal("mask")}
           className="w-[894px] text-center font-poppins text-[65px] leading-[normal] font-semibold tracking-[0.325px] whitespace-nowrap text-white"
         >
           {title}
@@ -94,7 +97,14 @@ export function FaqSection({
       */}
         <dl className="mt-[18px] w-[796px]">
           {items.map((item, index) => (
-            <div key={item.id} className={index > 0 ? "mt-[27px]" : undefined}>
+            // Cada dúvida entra da esquerda, em cascata curta: a moldura de
+            // vidro fica parada (animar `backdrop-filter` de 1820px custa caro).
+            <div
+              key={item.id}
+              {...reveal("rise")}
+              style={revealDelay(index + 1)}
+              className={index > 0 ? "mt-[27px]" : undefined}
+            >
               <dt
                 {...editItem("home:faq", item.id, "title")}
                 className="w-[601px] font-helvetica text-[20px] leading-[normal] font-bold tracking-[0.2px] text-white"

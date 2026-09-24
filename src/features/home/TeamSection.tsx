@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { editItem } from "@/features/site/editing/attrs";
 import type { SectionItemView } from "@/features/site/content";
+import { reveal, revealDelay } from "./reveal";
 import {
   TEAM_CARD_HEIGHT,
   TEAM_CARD_WIDTH,
@@ -70,12 +71,14 @@ export function TeamSection({
         width={86}
         height={86}
         aria-hidden
-        className="pointer-events-none absolute -top-[12.68px] left-[533.88px] h-[85.56px] w-[86.42px] object-cover"
+        className="deco-float pointer-events-none absolute -top-[12.68px] left-[533.88px] h-[85.56px] w-[86.42px] object-cover"
+        style={{ ["--float-dur" as string]: "5.5s", ["--float-delay" as string]: "-1s", ["--float-rot" as string]: "6deg" }}
       />
 
       <h2
         id="team-title"
         data-edit-field="home:equipe:title"
+        {...reveal("mask")}
         className="absolute top-0 left-[542px] w-[736px] text-center font-poppins text-[65px] leading-[normal] font-semibold tracking-[0.325px] text-white"
       >
         {title}
@@ -86,7 +89,7 @@ export function TeamSection({
           fica como seguro: as linhas abaixo têm posição absoluta, então uma
           quebra inesperada — durante a troca de fonte, ou se ela falhar — não
           empurraria nada, iria POR CIMA. */}
-      <p data-edit-field="home:equipe:subtitle" className="absolute top-[104px] left-[581px] w-[601px] text-center font-helvetica text-[18px] leading-[normal] font-bold tracking-[0.18px] whitespace-nowrap text-white">
+      <p data-edit-field="home:equipe:subtitle" {...reveal("rise")} style={revealDelay(1)} className="absolute top-[104px] left-[581px] w-[601px] text-center font-helvetica text-[18px] leading-[normal] font-bold tracking-[0.18px] whitespace-nowrap text-white">
         {subtitle}
       </p>
 
@@ -99,6 +102,7 @@ export function TeamSection({
               member={member}
               className="absolute"
               style={CARD_POSITIONS[index]}
+              revealIndex={index}
             />
           ))}
         </ul>
@@ -109,7 +113,7 @@ export function TeamSection({
           absolutos e não ocupam espaço, então é este bloco que dá à seção a
           altura do desenho. */}
       <div className="pt-[153px]" style={{ minHeight: DIVIDER_TOP }}>
-        <p className="mx-auto w-[601px] font-helvetica text-[18px] leading-[normal] tracking-[0.18px] whitespace-pre-line text-brand-placeholder">
+        <p {...reveal("rise")} style={revealDelay(2)} className="mx-auto w-[601px] font-helvetica text-[18px] leading-[normal] tracking-[0.18px] whitespace-pre-line text-brand-placeholder">
           <span data-edit-field="home:equipe:body">{body || TEAM_DEFAULT_BODY}</span>
         </p>
       </div>
@@ -117,14 +121,14 @@ export function TeamSection({
       {rest.length > 0 ? (
         // Membros além dos sete lugares do desenho: fileira centrada.
         <ul className="mb-[100px] flex flex-wrap justify-center gap-[25px]">
-          {rest.map((member) => (
-            <TeamCard key={member.id} member={member} className="relative" />
+          {rest.map((member, index) => (
+            <TeamCard key={member.id} member={member} className="relative" revealIndex={index} />
           ))}
         </ul>
       ) : null}
 
       {/* Divisor de 1820×1 que fecha a seção (Figma 617:804). */}
-      <hr className="w-[1820px] border-0 border-t border-brand-hairline" />
+      <hr {...reveal("draw")} className="w-[1820px] border-0 border-t border-brand-hairline" />
     </section>
   );
 }
@@ -170,16 +174,27 @@ function TeamCard({
   member,
   className,
   style,
+  revealIndex,
 }: {
   member: SectionItemView;
+  /** Posição na cascata de entrada; o giro alterna de lado a cada card. */
+  revealIndex?: number;
   /** `absolute` nas laterais, `relative` na grade. */
   className: string;
   style?: React.CSSProperties;
 }) {
   return (
     <li
+      {...(revealIndex === undefined ? {} : reveal("tilt"))}
       className={`team-card shrink-0 rounded-[30px] border border-white/10 bg-black/10 backdrop-blur-[40px] ${className}`}
-      style={{ width: TEAM_CARD_WIDTH, height: TEAM_CARD_HEIGHT, ...style }}
+      style={{
+        width: TEAM_CARD_WIDTH,
+        height: TEAM_CARD_HEIGHT,
+        ...style,
+        ...(revealIndex === undefined
+          ? {}
+          : { ...revealDelay(revealIndex % 4), ["--reveal-tilt" as string]: revealIndex % 2 ? "4deg" : "-4deg" }),
+      }}
     >
       {/* Membro sem foto continua com o nome no lugar certo: a moldura vazia
           ocupa a mesma caixa, em vez de o nome subir para o meio do card. */}

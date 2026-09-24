@@ -110,7 +110,7 @@ export function ContactBubble({ whatsappHref }: { whatsappHref?: string }) {
           ref={panelRef}
           role="dialog"
           aria-label="Atendimento Lets4Trade"
-          className="fixed right-[16px] bottom-[104px] z-40 flex h-[min(620px,calc(100dvh-128px))] w-[380px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[20px] border border-brand-border bg-brand-surface shadow-[0_16px_40px_rgba(0,0,0,.5)] sm:right-[24px]"
+          className="contact-float fixed right-[16px] bottom-[104px] z-40 flex h-[min(620px,calc(100dvh-128px))] w-[380px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[20px] border border-brand-border bg-brand-surface shadow-[0_16px_40px_rgba(0,0,0,.5)] sm:right-[24px]"
         >
           <header className="flex items-center justify-between gap-[10px] border-b border-brand-hairline px-[16px] py-[14px]">
             <div>
@@ -173,7 +173,7 @@ export function ContactBubble({ whatsappHref }: { whatsappHref?: string }) {
         aria-expanded={open}
         aria-label={unread > 0 ? `Atendimento — ${unread} conversa(s) com resposta nova` : "Atendimento"}
         className={cn(
-          "fixed right-[16px] bottom-[16px] z-40 flex size-[72px] items-center justify-center rounded-full border border-white/10 bg-black/10 backdrop-blur-[10.8px] transition-[border-color,background-color] duration-[var(--dur-micro,160ms)] hover:border-brand-orange/60 hover:bg-black/30 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none sm:right-[24px] sm:bottom-[24px]",
+          "contact-float fixed right-[16px] bottom-[16px] z-40 flex size-[72px] items-center justify-center rounded-full border border-white/10 bg-black/10 backdrop-blur-[10.8px] transition-[border-color,background-color] duration-[var(--dur-micro,160ms)] hover:border-brand-orange/60 hover:bg-black/30 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none sm:right-[24px] sm:bottom-[24px]",
           open && "border-brand-orange/60 bg-black/40",
         )}
       >

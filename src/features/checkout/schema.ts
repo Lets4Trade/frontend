@@ -3,10 +3,10 @@ import { z } from "zod";
 /**
  * Dados do cartão (Figma 2568:1505).
  *
- * ESTES CAMPOS NÃO SAEM DO NAVEGADOR. Não há gateway integrado, e mandar número
- * de cartão para um backend que não é PCI-DSS seria criar um passivo em vez de
- * uma funcionalidade. A validação aqui existe para o formulário não deixar
- * passar dado obviamente errado — ver o comentário do `CheckoutForm`.
+ * Desde 2026-09-24 estes campos vão do navegador DIRETO à API e dela à Cielo
+ * (`features/payment/api.ts`) — nunca pelo servidor do Next, nunca gravados. A
+ * validação aqui existe para o formulário não deixar passar dado obviamente
+ * errado antes de gastar uma tentativa na operadora.
  *
  * Como sempre neste projeto: validação de UX. Quem valida cartão de verdade é a
  * adquirente.

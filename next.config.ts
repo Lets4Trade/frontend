@@ -31,8 +31,30 @@ import type { NextConfig } from "next";
  * `dangerouslySetInnerHTML`.
  *
  * `'unsafe-eval'` e `ws:` só em desenvolvimento: são do recarregamento a quente.
+ *
+ * ── Checkout: o 3DS do débito (2026-09-24) ────────────────────────────────
+ * Só em `/checkout` a política abre para o MPI da Braspag e a Cardinal (o
+ * motor do 3DS 2.0), e o desafio do BANCO roda num iframe/POST para o domínio
+ * do emissor — que muda de banco para banco e sem aviso. Por isso lá, e só lá,
+ * `frame-src`/`form-action`/`connect-src`/`img-src` aceitam `https:` genérico
+ * (mesma decisão do PodioTicket, que quebrou pagamento a cada domínio novo de
+ * bandeira). `script-src` continua ENUMERADO: script de terceiro é onde está o
+ * risco real, e as famílias que injetam script estão listadas.
  */
-function contentSecurityPolicy(): string {
+const THREE_DS_SCRIPT_SOURCES = [
+  "https://mpi.braspag.com.br",
+  "https://mpisandbox.braspag.com.br",
+  "https://*.cardinalcommerce.com",
+  "https://*.cardinaltrusted.com",
+  "https://apata.io",
+  "https://*.apata.io",
+  // Device fingerprint: ThreatMetrix e as coletas das próprias bandeiras.
+  "https://*.online-metrix.net",
+  "https://*.visa.com",
+  "https://*.mastercard.com",
+];
+
+function contentSecurityPolicy({ checkout = false } = {}): string {
   const isDev = process.env.NODE_ENV !== "production";
 
   let apiOrigin = "";
@@ -48,20 +70,23 @@ function contentSecurityPolicy(): string {
 
   const youtube = "https://www.youtube-nocookie.com";
 
+  const threeDs = checkout ? THREE_DS_SCRIPT_SOURCES : [];
+  const anyHttps = checkout ? ["https:"] : [];
+
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
-    "script-src": ["'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : [])],
+    "script-src": ["'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : []), ...threeDs],
     "style-src": ["'self'", "'unsafe-inline'"],
-    "img-src": ["'self'", "data:", "blob:", apiOrigin],
+    "img-src": ["'self'", "data:", "blob:", apiOrigin, ...anyHttps],
     "font-src": ["'self'", "data:"],
-    "connect-src": ["'self'", apiOrigin, apiSocket, ...(isDev ? ["ws:"] : [])],
-    "frame-src": [youtube],
+    "connect-src": ["'self'", apiOrigin, apiSocket, ...(isDev ? ["ws:"] : []), ...anyHttps],
+    "frame-src": [youtube, ...anyHttps],
     // O vídeo enviado pelo painel é servido pelo backend (`/uploads/videos`).
     "media-src": ["'self'", apiOrigin],
     "worker-src": ["'self'", "blob:"],
     "object-src": ["'none'"],
     "base-uri": ["'self'"],
-    "form-action": ["'self'"],
+    "form-action": ["'self'", ...anyHttps],
     "frame-ancestors": ["'none'"],
   };
 
@@ -146,6 +171,13 @@ const nextConfig: NextConfig = {
       {
         source: "/(.*)",
         headers: securityHeaders,
+      },
+      // DEPOIS da regra geral: para a mesma chave, o Next aplica a última.
+      {
+        source: "/checkout",
+        headers: [
+          { key: "Content-Security-Policy", value: contentSecurityPolicy({ checkout: true }) },
+        ],
       },
     ];
   },

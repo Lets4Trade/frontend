@@ -79,6 +79,49 @@ export function VideoToolbar({
         </div>
       ) : null}
 
+      {/* O LINK vem primeiro (2026-09-24): era um campo miúdo embaixo do
+          "enviar vídeo", e o usuário achou que o painel só aceitava upload. */}
+      <form
+        className="flex flex-col gap-[6px]"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSaveLink(link);
+        }}
+      >
+        <label htmlFor="video-link" className="font-poppins text-[12px] font-bold text-white/80">
+          Link do YouTube
+        </label>
+        <div className="flex gap-[6px]">
+          <input
+            id="video-link"
+            type="url"
+            value={link}
+            onChange={(event) => setLink(event.target.value)}
+            placeholder="https://www.youtube.com/watch?v=…"
+            maxLength={200}
+            disabled={busy}
+            autoFocus
+            className="h-[38px] min-w-0 flex-1 rounded-full border border-white/15 bg-black/40 px-[14px] font-helvetica text-[13px] text-white outline-none focus:border-brand-orange"
+          />
+          <button
+            type="submit"
+            disabled={busy || link.trim() === ""}
+            className="h-[38px] rounded-full bg-brand-orange px-[16px] font-poppins text-[13px] font-bold text-black disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            usar link
+          </button>
+        </div>
+        <span className="font-helvetica text-[11px] leading-[15px] text-brand-fg-subtle">
+          Aceita youtube.com/watch, youtu.be, /shorts e /live.
+        </span>
+      </form>
+
+      <div className="flex items-center gap-[8px]" aria-hidden>
+        <span className="h-px flex-1 bg-white/10" />
+        <span className="font-helvetica text-[11px] text-brand-fg-subtle">ou envie um arquivo</span>
+        <span className="h-px flex-1 bg-white/10" />
+      </div>
+
       <div className="flex flex-wrap gap-[6px]">
         <Button onClick={onPickVideo} disabled={busy}>
           enviar vídeo (MP4/WebM, até 100 MB)
@@ -93,33 +136,8 @@ export function VideoToolbar({
         ) : null}
       </div>
 
-      <form
-        className="flex gap-[6px]"
-        onSubmit={(event) => {
-          event.preventDefault();
-          onSaveLink(link);
-        }}
-      >
-        <input
-          type="url"
-          value={link}
-          onChange={(event) => setLink(event.target.value)}
-          placeholder="https://www.youtube.com/watch?v=…"
-          aria-label="Link do YouTube"
-          maxLength={200}
-          disabled={busy}
-          className="h-[32px] min-w-0 flex-1 rounded-full border border-white/15 bg-black/40 px-[12px] font-helvetica text-[12px] text-white outline-none focus:border-brand-orange"
-        />
-        <button
-          type="submit"
-          disabled={busy || link.trim() === ""}
-          className="h-[32px] rounded-full bg-brand-orange px-[14px] font-poppins text-[12px] font-bold text-black disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          usar link
-        </button>
-      </form>
       <p className="font-helvetica text-[11px] leading-[15px] text-brand-fg-subtle">
-        Enviar um vídeo substitui o link, e usar um link substitui o vídeo enviado. Publica na hora.
+        Um link substitui o vídeo enviado, e enviar um vídeo substitui o link. Publica na hora.
       </p>
     </div>
   );

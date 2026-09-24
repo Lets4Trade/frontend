@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/Button";
+import { CountUp } from "@/components/ui/CountUp";
 import { getSessionUser, type SessionUser } from "@/features/auth/session";
 import { CartButton } from "@/features/cart/CartButton";
 import { getMenuGames } from "@/features/game/menuGames";
@@ -81,8 +82,13 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
   const badge = layout.text("header-selo");
   const search = layout.text("header-busca");
   const actions = layout.text("header-acoes");
+  // No celular o cabeçalho acompanha a rolagem (pedido em 2026-09-24): é onde
+  // ficam menu, busca e carrinho, e o polegar não deveria precisar voltar ao
+  // topo para achá-los. `sticky` e não `fixed`: continua ocupando os 83px no
+  // fluxo, então nada da página sobe por baixo dele. No desktop segue como
+  // estava.
   return (
-    <header className="relative z-20 h-[83px] w-full bg-black/50 backdrop-blur-[9px]">
+    <header className="sticky top-0 z-40 h-[83px] w-full bg-black/50 backdrop-blur-[9px] lg:relative lg:z-20">
       <GlowBar className="-top-[2px]" />
 
       <div className="relative mx-auto flex h-full max-w-[1920px] items-center gap-[12px] px-[25px] md:gap-[25px] md:px-6 lg:px-[50px]">
@@ -130,7 +136,7 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
         <div className="pointer-events-none absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center leading-none md:hidden xl:flex">
           <div className="flex items-center gap-2">
             <span className="bg-gradient-to-b from-brand-orange to-brand-orange-deep bg-clip-text font-korataki text-[15px] font-bold tracking-[0.2px] text-transparent md:text-[20px]">
-              {badge.title}
+              <CountUp value={badge.title} />
             </span>
             <Image src="/icons/youtube-color.svg" alt="" width={19} height={19} aria-hidden />
           </div>

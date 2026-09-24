@@ -2,7 +2,7 @@
 
 import { getSessionRole } from "@/features/auth/session";
 import { revalidatePath } from "next/cache";
-import { apiDelete, apiPatchFormData, apiPostFormData } from "@/lib/serverApi";
+import { apiDelete, apiPatchFormData, apiPostFormData, apiPut } from "@/lib/serverApi";
 import { MAX_IMAGE_BYTES } from "../games/options";
 import { createProductSchema } from "./schema";
 
@@ -218,4 +218,39 @@ export async function updateProductAction(
 
   revalidatePath("/admin/produtos");
   return { ok: true, name: response.data.name, gameName: response.data.game.name };
+}
+
+/**
+ * "Organizar ordem": grava a ordem da aba na vitrine (2026-09-24). O 1º id vira
+ * o primeiro produto; os que não vierem voltam a "não organizado".
+ *
+ * A vitrine lê o catálogo sem cache (`no-store`), então a nova ordem aparece na
+ * próxima visita sem precisar derrubar etiqueta nenhuma.
+ */
+export async function saveProductOrderAction(
+  gameId: string,
+  type: string,
+  ids: string[],
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const role = await getSessionRole();
+  if (role !== "ADMIN") {
+    return { ok: false, message: "Sua conta não tem permissão para organizar produtos." };
+  }
+  if (!Array.isArray(ids) || ids.length === 0 || ids.length > 300) {
+    return { ok: false, message: "Lista de produtos inválida." };
+  }
+
+  const response = await apiPut("/admin/products/order", { gameId, type, ids });
+  if (!response.ok) {
+    return {
+      ok: false,
+      message:
+        response.status === 400 && response.message
+          ? response.message
+          : "Não conseguimos salvar a ordem agora. Tente novamente em instantes.",
+    };
+  }
+
+  revalidatePath("/admin/produtos");
+  return { ok: true };
 }

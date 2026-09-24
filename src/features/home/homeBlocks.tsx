@@ -80,6 +80,7 @@ export function buildHomeBlocks(
           avatar={section("video").secondaryImageUrl}
           videoUrl={section("video").footnote}
           videoFile={section("video").videoUrl}
+          buttonUrl={section("video").subtitle}
           extra={section("video").extra}
         />
       ),

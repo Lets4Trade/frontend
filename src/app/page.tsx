@@ -9,6 +9,7 @@ import {
 } from "@/features/site/content";
 import { buildHomeBlocks, orderBlocks } from "@/features/home/homeBlocks";
 import { buildMobileHomeBlocks } from "@/features/home/mobile/MobileHome";
+import { HomeMotion } from "@/features/home/HomeMotion";
 
 const OG_TITLE = "Lets4Trade";
 const OG_DESCRIPTION = "Sua loja de gamecoins.";
@@ -133,6 +134,14 @@ export default async function Home() {
       </main>
 
       <SiteFooter />
+
+      {/* Celular: o rodapé flutuante de atalhos (`MobileStickyNav`) fica sobre o
+          fim da página. Este respiro do tamanho dele deixa a última linha do
+          rodapé subir ACIMA do menu em vez de ficar escondida por baixo. */}
+      <div aria-hidden className="h-[100px] lg:hidden" />
+
+      {/* Entradas das seções — um observador para a página toda. */}
+      <HomeMotion />
     </div>
   );
 }

@@ -1,8 +1,11 @@
-import Image from "next/image";
 import { editItem } from "@/features/site/editing/attrs";
 import type { SectionItemView } from "@/features/site/content";
 import Link from "next/link";
-import { cn } from "@/lib/cn";
+import { CountUp } from "@/components/ui/CountUp";
+import { getMenuGames } from "@/features/game/menuGames";
+import { HomeGamesMenu } from "./HomeGamesMenu";
+import { HomeNavTileFace } from "./HomeNavTileFace";
+import { reveal, revealDelay } from "./reveal";
 
 /**
  * Faixa de navegação principal da home (Figma 796:1624), com os contadores nas
@@ -19,12 +22,14 @@ import { cn } from "@/lib/cn";
  * distância entre eles varia de 105 a 142px no arquivo. Por isso cada um carrega
  * o seu X em vez de sair de um `gap`.
  *
- * As setas de FIDELIDADE e VENDA PRA NÓS indicam submenu — ainda sem
- * comportamento, só o indicador visual do design.
+ * GAMES abre o dropdown com todos os jogos (`HomeGamesMenu`, 2026-09-24). As
+ * setas de FIDELIDADE e VENDA PRA NÓS indicam submenu — ainda sem
+ * comportamento, só o indicador visual do design. Toda seta começa PARA CIMA e
+ * aponta para baixo com o menu aberto (pedido do usuário).
  */
 export const NAV_ITEMS = [
   { label: "HOME", icon: "/icons/home/nav-home.svg", href: "/", left: 679, active: true, dropdown: false },
-  { label: "GAMES", icon: "/icons/home/nav-games.svg", href: "/games", left: 784, active: false, dropdown: false },
+  { label: "GAMES", icon: "/icons/home/nav-games.svg", href: "/games", left: 784, active: false, dropdown: true },
   { label: "FIDELIDADE", icon: "/icons/home/nav-fidelidade.svg", href: "/fidelidade", left: 905, active: false, dropdown: true },
   { label: "VENDA PRA NÓS", icon: "/icons/home/nav-venda.svg", href: "/venda", left: 1047, active: false, dropdown: true },
 ];
@@ -42,7 +47,13 @@ export const NAV_ITEMS = [
  */
 const STAT_CENTERS = [340, 1444.75];
 
-export function HomeNav({ stats = [] }: { stats?: SectionItemView[] }) {
+/**
+ * ASSÍNCRONO desde 2026-09-24: lê a lista de jogos do dropdown do GAMES — a
+ * mesma leitura cacheada do cabeçalho (`getMenuGames`), deduplicada pelo Next.
+ */
+export async function HomeNav({ stats = [] }: { stats?: SectionItemView[] }) {
+  const games = await getMenuGames();
+
   return (
     <section className="relative h-[129px]">
       {stats.slice(0, STAT_CENTERS.length).map((stat, index) => (
@@ -56,57 +67,40 @@ export function HomeNav({ stats = [] }: { stats?: SectionItemView[] }) {
       ))}
 
       <nav aria-label="Seções principais" className="contents">
-        {NAV_ITEMS.map((item) => (
-          <Link
-            key={item.label}
-            href={item.href}
-            aria-current={item.active ? "page" : undefined}
-            className="nav-item absolute top-[50px]"
-            style={{ left: item.left }}
-          >
-            <span className="flex items-center gap-[15px]">
-              <span className="relative block size-[55px]">
-                <Image
-                  src={item.active ? "/icons/home/tile-active.svg" : "/icons/home/tile.svg"}
-                  alt=""
-                  width={55}
-                  height={55}
-                  aria-hidden
-                  className="nav-tile absolute inset-0 size-full"
-                />
-                <Image
-                  src={item.icon}
-                  alt=""
-                  width={22}
-                  height={22}
-                  aria-hidden
-                  className="nav-icon absolute inset-0 m-auto size-[22px]"
-                />
-              </span>
+        {NAV_ITEMS.map((item, index) => {
+          const style = { left: item.left, ...revealDelay(index + 1) };
 
-              {item.dropdown ? (
-                <Image
-                  src="/icons/chevron-down.svg"
-                  alt=""
-                  width={18}
-                  height={18}
-                  aria-hidden
-                />
-              ) : null}
-            </span>
+          if (item.label === "GAMES") {
+            return (
+              <HomeGamesMenu
+                key={item.label}
+                label={item.label}
+                icon={item.icon}
+                games={games}
+                style={style}
+                revealAttrs={reveal("pop")}
+              />
+            );
+          }
 
-            {/* Rótulo centrado no ladrilho (y=988 no frame), e não no item
-                inteiro: a seta de submenu não pode deslocar o texto. */}
-            <span
-              className={cn(
-                "nav-label absolute top-[60px] left-[27.5px] -translate-x-1/2 whitespace-nowrap font-poppins text-[15px] leading-[19px] font-bold tracking-[0.15px]",
-                item.active ? "text-white" : "text-white/80",
-              )}
+          return (
+            <Link
+              key={item.label}
+              href={item.href}
+              aria-current={item.active ? "page" : undefined}
+              {...reveal("pop")}
+              className="nav-item absolute top-[50px]"
+              style={style}
             >
-              {item.label}
-            </span>
-          </Link>
-        ))}
+              <HomeNavTileFace
+                label={item.label}
+                icon={item.icon}
+                active={item.active}
+                chevron={item.dropdown}
+              />
+            </Link>
+          );
+        })}
       </nav>
     </section>
   );
@@ -138,7 +132,7 @@ function Stat({
         className="absolute top-[58px] -translate-x-1/2 font-poppins text-[40px] leading-[55px] font-semibold text-brand-orange"
         style={{ left: center }}
       >
-        {value}
+        <CountUp value={value} />
       </p>
       <p
         {...editItem("home:navegacao", id, "body")}

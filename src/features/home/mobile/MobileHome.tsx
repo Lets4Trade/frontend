@@ -1,17 +1,22 @@
 import Image from "next/image";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/Button";
+import { CountUp } from "@/components/ui/CountUp";
 import type { SectionItemView, SectionView } from "@/features/site/content";
 import { cn } from "@/lib/cn";
 import { BLOG_CARD } from "../guides";
 import type { HomeBlock } from "../homeBlocks";
+import { getMenuGames, type MenuGame } from "@/features/game/menuGames";
 import { NAV_ITEMS } from "../HomeNav";
+import { reveal, revealDelay } from "../reveal";
 import { Stars } from "../ReviewsSection";
 import { TEAM_DEFAULT_BODY } from "../TeamSection";
 import { VideoPlayer } from "../VideoPlayer";
 import { videoTexts } from "../VideoSection";
 import { youtubeId, youtubeWatchUrl } from "../youtube";
+import { MobileGamesMenu } from "./MobileGamesMenu";
 import { MobileHeroBanner } from "./MobileHeroBanner";
+import { NavTileFace } from "./NavTileFace";
 import { MobileStickyNav } from "./MobileStickyNav";
 
 /**
@@ -95,11 +100,17 @@ export function buildMobileHomeBlocks(
 
 // ─────────────────────────────── navegação ───────────────────────────────
 
-function MobileNav({ stats }: { stats: SectionItemView[] }) {
+/**
+ * Atalhos + contadores. ASSÍNCRONO desde 2026-09-24: lê a lista de jogos para o
+ * dropdown do GAMES — a MESMA leitura cacheada do cabeçalho (`getMenuGames`),
+ * que o Next deduplica na requisição, então não é uma ida a mais ao backend.
+ */
+async function MobileNav({ stats }: { stats: SectionItemView[] }) {
+  const games = await getMenuGames();
   return (
     <section>
       <nav id="home-mobile-tabs" aria-label="Seções principais">
-        <NavTiles />
+        <NavTiles games={games} />
       </nav>
 
       <div className="mt-[22px]">
@@ -112,7 +123,7 @@ function MobileNav({ stats }: { stats: SectionItemView[] }) {
             <div key={stat.id}>
               <dt className="sr-only">{stat.body}</dt>
               <dd className="font-poppins text-[32px] leading-[40px] font-semibold text-brand-orange">
-                {stat.title}
+                <CountUp value={stat.title} />
               </dd>
               <dd aria-hidden className="mt-[2px] font-poppins text-[12px] leading-[16px] font-bold tracking-[0.12px] text-white/80">
                 {stat.body}
@@ -124,61 +135,49 @@ function MobileNav({ stats }: { stats: SectionItemView[] }) {
 
       <Divider />
 
-      {/* A mesma fileira, fixa no topo quando a de cima sai da tela (o desenho
-          mobile a mostra flutuando sobre o bloco do vídeo). */}
+      {/* A mesma fileira, flutuando no rodapé da tela quando a de cima sai de
+          vista. Ali o dropdown de jogos abre PARA CIMA. */}
       <MobileStickyNav>
-        <NavTiles compact />
+        <NavTiles compact games={games} />
       </MobileStickyNav>
     </section>
   );
 }
 
-/** Os quatro atalhos da home (mesma lista do desktop, `NAV_ITEMS`). */
-export function NavTiles({ compact = false }: { compact?: boolean }) {
-  const tile = compact ? 38 : 55;
+/**
+ * Os quatro atalhos da home (mesma lista do desktop, `NAV_ITEMS`).
+ *
+ * O GAMES não é link: abre o dropdown com os jogos (`MobileGamesMenu`) — para
+ * cima na versão compacta (rodapé flutuante), para baixo na do corpo.
+ */
+export function NavTiles({ compact = false, games }: { compact?: boolean; games: MenuGame[] }) {
   return (
     <ul className="grid grid-cols-4">
       {NAV_ITEMS.map((item) => (
         <li key={item.label} className="flex justify-center">
-          <Link
-            href={item.href}
-            aria-current={item.active ? "page" : undefined}
-            className="nav-item flex flex-col items-center"
-          >
-            <span className="flex items-center gap-[4px]">
-              <span className="relative block" style={{ width: tile, height: tile }}>
-                <Image
-                  src={item.active ? "/icons/home/tile-active.svg" : "/icons/home/tile.svg"}
-                  alt=""
-                  width={55}
-                  height={55}
-                  aria-hidden
-                  className="nav-tile absolute inset-0 size-full"
-                />
-                <Image
-                  src={item.icon}
-                  alt=""
-                  width={22}
-                  height={22}
-                  aria-hidden
-                  className="nav-icon absolute inset-0 m-auto"
-                  style={{ width: compact ? 16 : 22, height: compact ? 16 : 22 }}
-                />
-              </span>
-              {item.dropdown ? (
-                <Image src="/icons/chevron-down.svg" alt="" width={14} height={14} aria-hidden className="size-[14px]" />
-              ) : null}
-            </span>
-            <span
-              className={cn(
-                "mt-[8px] font-poppins leading-none font-bold whitespace-nowrap",
-                compact ? "text-[9px]" : "text-[11px]",
-                item.active ? "text-white" : "text-white/80",
-              )}
+          {item.label === "GAMES" ? (
+            <MobileGamesMenu
+              label={item.label}
+              icon={item.icon}
+              games={games}
+              compact={compact}
+              side={compact ? "top" : "bottom"}
+            />
+          ) : (
+            <Link
+              href={item.href}
+              aria-current={item.active ? "page" : undefined}
+              className="nav-item flex flex-col items-center"
             >
-              {item.label}
-            </span>
-          </Link>
+              <NavTileFace
+                label={item.label}
+                icon={item.icon}
+                active={item.active}
+                compact={compact}
+                chevron={item.dropdown}
+              />
+            </Link>
+          )}
         </li>
       ))}
     </ul>
@@ -190,6 +189,8 @@ export function NavTiles({ compact = false }: { compact?: boolean }) {
 function MobileVideo({ section }: { section: SectionView }) {
   const t = videoTexts(section.extra);
   const videoId = youtubeId(section.footnote);
+  // Mesmo critério do desktop: link próprio do botão, senão o do player.
+  const buttonVideoId = youtubeId(section.subtitle) ?? videoId;
 
   return (
     <section aria-labelledby="video-title-mobile">
@@ -198,10 +199,11 @@ function MobileVideo({ section }: { section: SectionView }) {
         videoId={videoId}
         videoFile={section.videoUrl}
         compact
+        revealKind="wipe"
         frameClassName="play-button relative block aspect-[1146/609] w-full overflow-hidden rounded-[20px]"
       />
 
-      <h2
+      <h2 {...reveal("mask")}
         id="video-title-mobile"
         className="mt-[24px] font-poppins text-[26px] leading-[1.05] font-semibold whitespace-pre-line text-white"
       >
@@ -216,11 +218,11 @@ function MobileVideo({ section }: { section: SectionView }) {
       </p>
 
       <a
-        href={videoId ? youtubeWatchUrl(videoId) : "#reviews-mobile"}
-        {...(videoId ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+        href={buttonVideoId ? youtubeWatchUrl(buttonVideoId) : "#reviews-mobile"}
+        {...(buttonVideoId ? { target: "_blank", rel: "noopener noreferrer" } : {})}
         className={cn(
           buttonVariants({ variant: "primary" }),
-          "mx-auto mt-[24px] flex w-full max-w-[285px] shadow-[0_16px_18.5px_rgba(0,0,0,0.25)]",
+          "cta-sheen relative mx-auto mt-[24px] flex w-full max-w-[285px] shadow-[0_16px_18.5px_rgba(0,0,0,0.25)]",
         )}
       >
         {t.botao}
@@ -273,7 +275,7 @@ function MobileReviews({ section, items }: { section: SectionView; items: Sectio
         className="pointer-events-none absolute top-[118px] -right-[25px] h-[70px] w-[64px] object-cover"
       />
 
-      <h2
+      <h2 {...reveal("mask")}
         id="reviews-title-mobile"
         className="mt-[40px] text-center font-poppins text-[26px] leading-none font-semibold text-white"
       >
@@ -284,8 +286,8 @@ function MobileReviews({ section, items }: { section: SectionView; items: Sectio
       </p>
 
       <div className="relative mx-auto mt-[20px] flex h-[45px] w-[288px] max-w-full items-center justify-center rounded-[30px] border border-white/10">
-        <Stars className="absolute blur-[3px]" />
-        <Stars />
+        <Stars className="absolute blur-[3px]" animated />
+        <Stars animated />
         <span
           aria-hidden
           className="absolute -top-[2px] left-1/2 h-[2px] w-[249px] max-w-[86%] -translate-x-1/2 bg-linear-to-r from-transparent via-brand-rating to-transparent"
@@ -372,7 +374,7 @@ function MobileTeam({ section, items }: { section: SectionView; items: SectionIt
           aria-hidden
           className="pointer-events-none absolute -top-[20px] -left-[14px] size-[50px] object-cover"
         />
-        <h2 id="team-title-mobile" className="relative font-poppins text-[26px] leading-none font-semibold text-white">
+        <h2 {...reveal("mask")} id="team-title-mobile" className="relative font-poppins text-[26px] leading-none font-semibold text-white">
           {section.title || "EQUIPE LETS 4 TRADE"}
         </h2>
       </div>
@@ -391,8 +393,8 @@ function MobileTeam({ section, items }: { section: SectionView; items: SectionIt
 
       {rest.length > 0 ? (
         <ul className="mt-[18px] grid grid-cols-2 gap-[10px]">
-          {rest.map((member) => (
-            <li key={member.id}>
+          {rest.map((member, index) => (
+            <li key={member.id} {...reveal("rise")} style={revealDelay(index % 2)}>
               <MemberCard member={member} className="w-full" />
             </li>
           ))}
@@ -439,22 +441,22 @@ function MobileGuides({ title, items }: { title: string; items: SectionItemView[
   return (
     <section aria-labelledby="guides-title-mobile" className="relative">
       <Divider />
-      <h2 id="guides-title-mobile" className="mt-[40px] font-poppins text-[26px] leading-none font-semibold text-white">
+      <h2 {...reveal("mask")} id="guides-title-mobile" className="mt-[40px] font-poppins text-[26px] leading-none font-semibold text-white">
         {title || "GUIAS POPULARES"}
       </h2>
 
       <ul className="mt-[28px] flex flex-col gap-[20px]">
         {tall.map((guide) => (
-          <li key={guide.id}>
+          <li key={guide.id} {...reveal("rise")}>
             <GuideCard guide={guide} />
           </li>
         ))}
         {compact ? (
-          <li>
+          <li {...reveal("rise")}>
             <GuideCard guide={compact} compact />
           </li>
         ) : null}
-        <li>
+        <li {...reveal("rise")}>
           <Link
             href={BLOG_CARD.href}
             className="blog-card relative block aspect-[352/174] overflow-hidden rounded-[24px] border border-white/10 bg-black"
@@ -540,7 +542,7 @@ function MobileFaq({ title, items }: { title: string; items: SectionItemView[] }
     <section aria-labelledby="faq-title-mobile">
       <Divider />
       <div className="mt-[40px] overflow-hidden rounded-[24px] border border-white/20 bg-black/10 px-[25px] pt-[28px] pb-[32px] backdrop-blur-[100px]">
-        <h2 id="faq-title-mobile" className="font-poppins text-[20px] leading-none font-semibold text-white">
+        <h2 {...reveal("mask")} id="faq-title-mobile" className="font-poppins text-[20px] leading-none font-semibold text-white">
           {title || "DÚVIDAS SOBRE A EMPRESA"}
         </h2>
 
@@ -555,7 +557,7 @@ function MobileFaq({ title, items }: { title: string; items: SectionItemView[] }
 
         <dl className="mt-[24px] flex flex-col gap-[24px]">
           {items.map((item) => (
-            <div key={item.id}>
+            <div key={item.id} {...reveal("rise")}>
               <dt className="font-poppins text-[16px] leading-[1.2] font-semibold text-white">{item.title}</dt>
               <dd className="mt-[10px] font-helvetica text-[14px] leading-[1.25] text-brand-placeholder">
                 {item.body.split(/\n\s*\n/).map((paragraph, i) => (

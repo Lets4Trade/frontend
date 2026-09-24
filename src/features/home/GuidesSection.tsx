@@ -2,6 +2,7 @@ import Image from "next/image";
 import { editItem } from "@/features/site/editing/attrs";
 import Link from "next/link";
 import type { SectionItemView } from "@/features/site/content";
+import { reveal, revealDelay } from "./reveal";
 import { BLOG_CARD } from "./guides";
 
 /** Card do arquivo: 417×438, com vão de 40px entre colunas (457 − 417). */
@@ -42,13 +43,15 @@ export function GuidesSection({
         width={157}
         height={171}
         aria-hidden
-        className="pointer-events-none absolute -top-[148px] left-[1664px] h-[171.16px] w-[156.75px] object-cover"
+        className="deco-float pointer-events-none absolute -top-[148px] left-[1664px] h-[171.16px] w-[156.75px] object-cover"
+        style={{ ["--float-dur" as string]: "8s", ["--float-delay" as string]: "-3s", ["--float-rot" as string]: "-3deg" }}
       />
 
       <h2
         id="guides-title"
 
         data-edit-field="home:guias:title"
+        {...reveal("mask")}
         className="absolute top-0 left-0 w-[601px] font-helvetica text-[30px] leading-[normal] font-bold tracking-[0.3px] text-white"
       >
         {title}
@@ -72,8 +75,8 @@ export function GuidesSection({
           Defeito real, visível na home publicada; achado em 2026-09-15. */}
       <div className="ml-[6px] w-[1808px] pt-[80px]">
         <ul className="flex gap-[40px]">
-          {tall.map((guide) => (
-            <GuideCard key={guide.id} guide={guide} />
+          {tall.map((guide, index) => (
+            <GuideCard key={guide.id} guide={guide} revealIndex={index + 1} />
           ))}
 
           <li
@@ -82,10 +85,10 @@ export function GuidesSection({
           >
             {compact ? (
               <ul>
-                <GuideCard guide={compact} compact />
+                <GuideCard guide={compact} compact revealIndex={tall.length + 1} />
               </ul>
             ) : null}
-            <BlogCard />
+            <BlogCard revealIndex={tall.length + 2} />
           </li>
         </ul>
       </div>
@@ -106,8 +109,11 @@ export function GuidesSection({
 function GuideCard({
   guide,
   compact = false,
+  revealIndex = 0,
 }: {
   guide: SectionItemView;
+  /** Posição na cascata de entrada (ver `reveal.ts`). */
+  revealIndex?: number;
   /** O card BAIXO da quarta coluna (417×206), com as medidas do arquivo. */
   compact?: boolean;
 }) {
@@ -119,8 +125,9 @@ function GuideCard({
 
   return (
     <li
+      {...reveal("rise")}
       className="guide-card relative shrink-0 overflow-hidden rounded-[30px] border border-white/10"
-      style={{ width: GUIDE_CARD_WIDTH, height }}
+      style={{ width: GUIDE_CARD_WIDTH, height, ...revealDelay(revealIndex) }}
     >
       {/* Sem arte, o card fica no preto do tema em vez de transparente — os
           degradês por cima só fazem sentido sobre alguma coisa. */}
@@ -232,14 +239,15 @@ function GuideCard({
  * que o inspector mostra são a caixa envolvente já rotacionada e não servem
  * para posicionar direto.
  */
-function BlogCard() {
+function BlogCard({ revealIndex = 0 }: { revealIndex?: number }) {
   return (
     <Link
       href={BLOG_CARD.href}
       // `block` e não `absolute`: o card agora é o último item da fileira que
       // flui, e não mais um elemento solto sob o quarto guia.
+      {...reveal("rise")}
       className="blog-card relative block overflow-hidden rounded-[30px] border border-white/10 bg-black"
-      style={{ width: BLOG_CARD.width, height: BLOG_CARD.height }}
+      style={{ width: BLOG_CARD.width, height: BLOG_CARD.height, ...revealDelay(revealIndex) }}
     >
       {/* Elipse 791:1600 — centro (-6,81; 30,94), girada 77°. */}
       <span

@@ -1484,12 +1484,15 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
    Três regras. Elas existem para o site parecer DESENHADO, e não montado a
    partir do repertório padrão de animação de landing page.
 
-   1. NADA ANIMA SOZINHO. O movimento vem do usuário — do cursor ou da
-      rolagem. Nenhum elemento flutua, pulsa ou aparece com fade sozinho.
-      Página que se mexe sem ninguém pedir cansa em dois scrolls, e é a
-      assinatura mais óbvia de template. As únicas exceções são a entrada do
-      baralho do hero, que roda UMA vez e para, e o anel do botão de vídeo,
-      que já estava no design.
+   1. TODO MOVIMENTO TEM UM PAPEL. (Revista em 2026-09-24, quando o usuário
+      pediu a home "bem viva"; antes era "nada anima sozinho".) Entradas
+      existem, mas cada seção tem o SEU gesto — título que sobe da fenda,
+      vídeo que abre como cortina, card que cai no lugar — e rodam uma vez.
+      O que se move em repouso é pouco e tem motivo: as peças 3D flutuam
+      (são objetos, não texto), a moeda do hero chama o clique enquanto
+      espera, o botão de referências brilha de vez em quando. Texto e cards
+      nunca ficam se mexendo. O fade-up igual em tudo continua proibido: é
+      a assinatura de template.
 
    2. A CAIXA FICA PARADA; O CONTEÚDO REAGE. Levantar o card inteiro no hover
       é o gesto genérico — todo card do mundo faz isso. Aqui quem se mexe é a
@@ -1975,4 +1978,315 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
 .site-edit-stage .hero-deck[data-open="false"] .hero-art,
 .site-edit-stage .hero-deck[data-open="false"] .hero-logo {
   filter: blur(var(--hero-blur, 0px));
+}
+
+/* ==========================================================================
+   ENTRADAS DA HOME (2026-09-24)
+
+   `HomeMotion` marca `data-revealed` quando o elemento aparece; aqui mora o
+   gesto de cada papel (`features/home/reveal.ts`). Tudo depende de
+   `.motion-ready` no `<html>` — sem ela (sem JS, editor do painel, menos
+   movimento pedido) nada é escondido.
+
+   `@keyframes` com `fill-mode: backwards`, e NÃO `transition`: a transição
+   de entrada brigaria com as de hover que os cards já declaram (a última
+   `transition` venceria e apagaria a outra), e `backwards` segura o estado
+   inicial durante o atraso da cascata sem prender o `transform` final ao
+   elemento depois que a animação acaba. O `translate`/`scale` do Tailwind v4
+   são propriedades SEPARADAS de `transform`, então o `-translate-x-1/2` dos
+   títulos centrados continua valendo durante o gesto.
+
+   Custo: `transform`, `opacity` e `clip-path`, uma vez por elemento.
+   ========================================================================== */
+
+@media (prefers-reduced-motion: no-preference) {
+  .motion-ready [data-reveal]:not([data-revealed]) {
+    opacity: 0;
+  }
+
+  .motion-ready [data-reveal][data-revealed]:not([data-reveal-instant]) {
+    animation-duration: var(--dur-slow);
+    animation-timing-function: var(--ease-expo);
+    animation-fill-mode: backwards;
+    animation-delay: calc(var(--reveal-i, 0) * 80ms);
+  }
+
+  .motion-ready [data-reveal="rise"][data-revealed] {
+    animation-name: reveal-rise;
+  }
+  .motion-ready [data-reveal="mask"][data-revealed] {
+    animation-name: reveal-mask;
+    animation-duration: 760ms;
+  }
+  .motion-ready [data-reveal="wipe"][data-revealed] {
+    animation-name: reveal-wipe;
+    animation-duration: 900ms;
+  }
+  .motion-ready [data-reveal="pop"][data-revealed] {
+    animation-name: reveal-pop;
+    animation-duration: 520ms;
+    animation-timing-function: var(--ease-snap);
+  }
+  .motion-ready [data-reveal="draw"][data-revealed] {
+    animation-name: reveal-draw;
+    animation-duration: 900ms;
+  }
+  .motion-ready [data-reveal="tilt"][data-revealed] {
+    animation-name: reveal-tilt;
+    animation-duration: 820ms;
+  }
+  .motion-ready [data-reveal="fade"][data-revealed] {
+    animation-name: reveal-fade;
+    animation-duration: 900ms;
+  }
+}
+
+@keyframes reveal-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 32px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* O título sobe de dentro de uma fenda: o recorte esconde a parte que ainda
+   está "abaixo do chão". É o gesto que diferencia título de corpo de texto. */
+@keyframes reveal-mask {
+  from {
+    opacity: 0;
+    clip-path: inset(0 0 100% 0);
+    transform: translate3d(0, 0.45em, 0);
+  }
+  30% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 -10% 0);
+    transform: none;
+  }
+}
+
+/* O vídeo abre como cortina da esquerda para a direita, com o raio da
+   moldura (30px) já no recorte — sem ele as quinas apareceriam retas. */
+@keyframes reveal-wipe {
+  from {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0 round 30px);
+  }
+  15% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0 round 30px);
+  }
+}
+
+@keyframes reveal-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Divisor que se desenha do centro para as pontas. */
+@keyframes reveal-draw {
+  from {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+/* Card que cai no lugar. O giro alterna por card (`--reveal-tilt`), senão a
+   fileira inteira tombaria para o mesmo lado, como uma peça só. */
+@keyframes reveal-tilt {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 56px, 0) rotate(var(--reveal-tilt, -4deg));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes reveal-fade {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   AMBIENTE — o pouco que se move em repouso, cada um com motivo
+   -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Peças 3D decorativas (prisma, gemas, personagens do FAQ): objetos
+     flutuam; texto não. Durações e atrasos diferentes por peça, senão todas
+     subiriam e desceriam juntas como uma coisa só. */
+  .deco-float {
+    animation: deco-float var(--float-dur, 7s) ease-in-out var(--float-delay, 0s) infinite alternate;
+  }
+
+  /* Moeda do hero: enquanto o baralho está fechado ela é o ÚNICO jeito de
+     abri-lo, e parada ninguém percebe que é botão. Balança e emite um pulso;
+     aberto o baralho, ela some e o chamado para junto. */
+  .hero-deck[data-open="false"] .hero-coin::before {
+    animation: coin-beacon 2.6s var(--ease-expo) infinite;
+  }
+  .hero-deck[data-open="false"] .hero-coin > img {
+    animation: coin-idle 3.2s ease-in-out infinite;
+  }
+
+  /* Brilho que atravessa o botão de referências de vez em quando. */
+  .cta-sheen::after {
+    animation: cta-sheen 6s var(--ease-snap) 1.8s infinite;
+  }
+}
+
+@keyframes deco-float {
+  from {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  to {
+    transform: translate3d(0, -14px, 0) rotate(var(--float-rot, 3deg));
+  }
+}
+
+.hero-coin::before {
+  content: "";
+  position: absolute;
+  inset: -18%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 115, 0, 0.45) 0%, rgba(255, 115, 0, 0) 65%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes coin-beacon {
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+@keyframes coin-idle {
+  0%,
+  100% {
+    transform: rotate(-5deg) translate3d(0, 0, 0);
+  }
+  50% {
+    transform: rotate(5deg) translate3d(0, -4px, 0);
+  }
+}
+
+.cta-sheen {
+  overflow: hidden;
+}
+
+.cta-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.5) 50%,
+    transparent 65%
+  );
+  transform: translate3d(-120%, 0, 0);
+  pointer-events: none;
+}
+
+@keyframes cta-sheen {
+  0% {
+    transform: translate3d(-120%, 0, 0);
+  }
+  18%,
+  100% {
+    transform: translate3d(120%, 0, 0);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   ATENDIMENTO × RODAPÉ FLUTUANTE DA HOME (celular, 2026-09-24)
+
+   A bolinha do atendimento e a fileira de atalhos flutuante moram no mesmo
+   canto de baixo. Enquanto a fileira está visível (`html[data-bottom-nav]`,
+   posto por `MobileStickyNav`), bolinha e painel sobem a altura dela.
+   `translate` (a propriedade própria), e não `transform`: a bolinha não usa
+   nenhum dos dois hoje, mas o `transform` é o que as animações usam.
+   -------------------------------------------------------------------------- */
+
+/* As cores entram junto: esta `transition` substitui a do utilitário da
+   bolinha (`transition-[border-color,background-color]`), não soma. */
+.contact-float {
+  transition:
+    translate var(--dur-base) var(--ease-snap),
+    border-color var(--dur-micro) ease,
+    background-color var(--dur-micro) ease;
+}
+
+@media (max-width: 1023.98px) {
+  html[data-bottom-nav] .contact-float {
+    translate: 0 -88px;
+  }
+}
+
+/* Dropdown de jogos do atalho GAMES no celular (`MobileGamesMenu`): nasce do
+   lado do botão — para cima no rodapé flutuante, para baixo no corpo. */
+.games-drop {
+  transform-origin: var(--radix-dropdown-menu-content-transform-origin);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .games-drop[data-state="open"][data-side="top"] {
+    animation: games-drop-up var(--dur-base) var(--ease-snap);
+  }
+  .games-drop[data-state="open"][data-side="bottom"] {
+    animation: games-drop-down var(--dur-base) var(--ease-snap);
+  }
+}
+
+@keyframes games-drop-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.97);
+  }
+}
+
+@keyframes games-drop-down {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -10px, 0) scale(0.97);
+  }
 }

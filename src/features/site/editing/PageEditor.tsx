@@ -231,7 +231,12 @@ export function PageEditor({
     const videoBlock = target.closest<HTMLElement>("[data-edit-video]");
     if (videoBlock) {
       event.preventDefault();
-      const rect = videoBlock.getBoundingClientRect();
+      // A caixa do `data-edit-video` não tem tamanho (o player dentro dela é
+      // absoluto) e fica no canto da SEÇÃO — o painel abria em cima do título,
+      // longe do vídeo, e passava despercebido (2026-09-24). A posição vem da
+      // moldura do player, que é o primeiro filho.
+      const frame = videoBlock.firstElementChild ?? videoBlock;
+      const rect = frame.getBoundingClientRect();
       const current = videoBlock.dataset.videoCurrent;
       setVideo({
         key: videoBlock.dataset.editVideo ?? "",

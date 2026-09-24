@@ -22,6 +22,15 @@ import {
   ReferencesBadge,
   ReferencesButton,
 } from "./CheckoutPanel";
+import { payPayment, type PaymentCallResult } from "@/features/payment/api";
+import {
+  cartSignature,
+  clearPendingPayment,
+  readPendingPayment,
+  savePendingPayment,
+} from "@/features/payment/pendingPayment";
+import { ThreeDsError, authenticateDebit } from "@/features/payment/threeDs";
+import { maxInstallmentsFor } from "@/features/payment/types";
 import { checkoutAction, type CheckoutLine } from "./actions";
 import { cardSchema, pixSchema } from "./schema";
 
@@ -35,10 +44,7 @@ import { cardSchema, pixSchema } from "./schema";
  */
 const FALLBACK_COIN_CENTS = 10;
 
-/** O design mostra "1x de …"; até 12x é o padrão do mercado brasileiro. */
-const MAX_INSTALLMENTS = 12;
-
-type Method = "card" | "pix";
+type Method = "credit" | "debit" | "pix";
 type FieldErrors = Record<string, string>;
 
 /**
@@ -50,12 +56,16 @@ type FieldErrors = Record<string, string>;
  * muda o rótulo do botão e as parcelas de volta à esquerda. Separá-las exigiria
  * levantar esse estado para um contexto só para reuni-lo de novo.
  *
- * ⚠️ OS DADOS DO CARTÃO NÃO SAEM DO NAVEGADOR. Não há gateway integrado, e
- * mandar PAN/CVV para um backend que não é PCI-DSS seria criar um passivo, não
- * uma funcionalidade. Os campos são validados e descartados; o pedido é criado
- * PENDENTE e fechado no WhatsApp, que é como a loja opera hoje (está no FAQ da
- * página de jogo). Quando entrar a Braspag — que já é integração prevista do
- * projeto —, o cartão vai TOKENIZADO direto para ela, sem passar por nós.
+ * ── Pagamento (Cielo, 2026-09-24) ─────────────────────────────────────────
+ * Dois passos. (1) `checkoutAction` cria os pedidos e o `Payment` — o VALOR é
+ * decidido lá, no backend. (2) O navegador cobra esse pagamento direto na API
+ * (`payPayment`): o cartão vai do navegador ao backend e dele à Cielo, sem
+ * passar pelo servidor do Next e sem ser gravado em lugar nenhum. O débito
+ * autentica antes no banco (3DS, `authenticateDebit`).
+ *
+ * Recusa não recria o pedido: a próxima tentativa cobra o MESMO pagamento
+ * (`pendingPayment.ts`). Aprovado, PIX gerado ou banco aberto, o carrinho é
+ * esvaziado e a pessoa segue para `/pagamento/[id]`.
  */
 export function CheckoutClient({
   loyalty,
@@ -75,7 +85,7 @@ export function CheckoutClient({
   const clear = useCart((state) => state.clear);
   const hydrated = useCartHydrated();
 
-  const [method, setMethod] = useState<Method>("card");
+  const [method, setMethod] = useState<Method>("credit");
   const [coins, setCoins] = useState(0);
   const [installments, setInstallments] = useState(1);
   const [couponNote, setCouponNote] = useState<string | null>(null);
@@ -100,6 +110,9 @@ export function CheckoutClient({
     : 0;
   const discount = Math.min(coins, maxCoins) * coinCents;
   const total = Math.max(subtotal - discount, 0);
+  // O total muda com as coins; a parcela escolhida antes pode ter ficado
+  // abaixo do mínimo. Mesma regra do backend (`maxInstallmentsFor`).
+  const effectiveInstallments = Math.min(installments, maxInstallmentsFor(total));
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -108,7 +121,7 @@ export function CheckoutClient({
     const data = new FormData(event.currentTarget);
     const read = (name: string) => String(data.get(name) ?? "");
 
-    const schema = method === "card" ? cardSchema : pixSchema;
+    const schema = method === "pix" ? pixSchema : cardSchema;
     const parsed = schema.safeParse({
       holder: read("holder"),
       number: read("number"),
@@ -152,20 +165,109 @@ export function CheckoutClient({
      * nenhuma coin era debitada — a pessoa via R$ 20 a menos e pagava R$ 20 a
      * mais. Não dava prejuízo só porque nenhum saldo era creditado ainda.
      */
-    const result = await checkoutAction(lines, Math.min(coins, maxCoins));
+    const coinsToUse = Math.min(coins, maxCoins);
+    const signature = cartSignature(lines, coinsToUse);
 
-    if (result.ok) {
+    // Tentativa anterior recusada, mesmo carrinho: cobra o MESMO pagamento.
+    let pending = readPendingPayment(signature);
+    if (!pending) {
+      const created = await checkoutAction(lines, coinsToUse);
+      if (!created.ok) {
+        setIsSubmitting(false);
+        handleCheckoutError(created.reason);
+        return;
+      }
+      // Carrinho coberto inteiro por coins: nada a cobrar.
+      if (created.payment.status === "PAID") {
+        goToPayment(created.payment.id);
+        return;
+      }
+      pending = { ...created.payment, signature };
+      savePendingPayment(pending);
+    }
+
+    const card =
+      method === "pix"
+        ? null
+        : {
+            holder: read("holder").trim(),
+            number: read("number").replace(/\D/g, ""),
+            expiry: read("expiry").trim(),
+            cvv: read("cvv").replace(/\D/g, ""),
+          };
+
+    let result: PaymentCallResult;
+    try {
+      if (method === "pix") {
+        result = await payPayment(pending.id, { method: "PIX" });
+      } else if (method === "credit") {
+        result = await payPayment(pending.id, {
+          method: "CREDIT_CARD",
+          card: card!,
+          installments: effectiveInstallments,
+        });
+      } else {
+        // O valor autenticado no banco tem que ser o MESMO cobrado — o do
+        // servidor, nunca o recalculado aqui.
+        const threeDs = await authenticateDebit({
+          paymentId: pending.id,
+          amountCents: pending.amountCents,
+          card: card!,
+        });
+        result = await payPayment(pending.id, { method: "DEBIT_CARD", card: card!, threeDs });
+      }
+    } catch (error) {
+      setIsSubmitting(false);
+      setFormError(
+        error instanceof ThreeDsError
+          ? error.message
+          : "Não conseguimos processar o pagamento. Tente de novo em instantes.",
+      );
+      return;
+    }
+
+    if (!result.ok) {
+      setIsSubmitting(false);
+      if (result.status === 401) {
+        router.push("/login?redirect=/checkout");
+        return;
+      }
+      // Prazo acabou ou os pedidos mudaram: a próxima tentativa cria outro.
+      if (result.status === 409) clearPendingPayment();
+      setFormError(result.message);
+      return;
+    }
+
+    const payment = result.payment;
+    if (payment.redirectUrl) {
+      // Débito fora do 3DS do navegador: autentica na página do banco, que
+      // volta para `/pagamento/[id]` pelo backend.
       clear();
-      router.push("/conta/pedidos");
+      clearPendingPayment();
+      window.location.assign(payment.redirectUrl);
+      return;
+    }
+    if (payment.status === "PAID" || payment.pix || payment.processing) {
+      goToPayment(payment.id);
       return;
     }
 
     setIsSubmitting(false);
-    if (result.reason === "unauthenticated") {
+    setFormError(payment.lastError ?? "Pagamento não aprovado. Tente outra forma de pagamento.");
+  }
+
+  function goToPayment(id: string) {
+    clear();
+    clearPendingPayment();
+    router.push(`/pagamento/${encodeURIComponent(id)}`);
+  }
+
+  function handleCheckoutError(reason: "unauthenticated" | "empty" | "invalid" | "error" | "coins") {
+    if (reason === "unauthenticated") {
       router.push("/login?redirect=/checkout");
       return;
     }
-    if (result.reason === "coins") {
+    if (reason === "coins") {
       // O saldo mudou entre a escolha e o envio (outra aba, outro aparelho). É
       // o único erro deste fluxo que a pessoa resolve sozinha, então a tela
       // desfaz a escolha em vez de só reclamar.
@@ -177,7 +279,7 @@ export function CheckoutClient({
     }
 
     setFormError(
-      result.reason === "invalid"
+      reason === "invalid"
         ? "Algum item do carrinho não está mais disponível. Revise o carrinho."
         : "Não conseguimos criar seu pedido agora. Tente novamente em instantes.",
     );
@@ -194,11 +296,20 @@ export function CheckoutClient({
           </h1>
           <div aria-hidden className="mt-[15px] h-px w-full bg-white/25" />
 
-          <fieldset className="mt-[23px] flex gap-[40px]">
+          {/* O arquivo desenha CRÉDITO e PIX; DÉBITO entrou com a Cielo e
+              divide a mesma fileira — o vão encolhe de 40 para 28 para caber
+              nos 476px. */}
+          <fieldset className="mt-[23px] flex flex-wrap gap-x-[28px] gap-y-[14px]">
             <legend className="sr-only">Forma de pagamento</legend>
             <MethodRadio
               label="CARTÃO DE CRÉDITO"
-              value="card"
+              value="credit"
+              current={method}
+              onSelect={setMethod}
+            />
+            <MethodRadio
+              label="DÉBITO"
+              value="debit"
               current={method}
               onSelect={setMethod}
             />
@@ -210,7 +321,7 @@ export function CheckoutClient({
             />
           </fieldset>
 
-          {method === "card" ? (
+          {method !== "pix" ? (
             <div className="mt-[28px] flex flex-col gap-[25px]">
               <TextField
                 name="holder"
@@ -252,19 +363,26 @@ export function CheckoutClient({
                   error={fieldErrors.cvv}
                 />
               </div>
-              <SelectField
-                name="installments"
-                label="Número de parcelas"
-                placeholder="Escolha as parcelas"
-                value={String(installments)}
-                onValueChange={(value) => setInstallments(Number(value))}
-                options={installmentOptions(total)}
-              />
+              {method === "credit" ? (
+                <SelectField
+                  name="installments"
+                  label="Número de parcelas"
+                  placeholder="Escolha as parcelas"
+                  value={String(effectiveInstallments)}
+                  onValueChange={(value) => setInstallments(Number(value))}
+                  options={installmentOptions(total)}
+                />
+              ) : (
+                <p className="font-helvetica text-[14px] leading-[20px] text-brand-placeholder">
+                  No débito o seu banco pode pedir uma confirmação (SMS ou app)
+                  antes de aprovar.
+                </p>
+              )}
             </div>
           ) : (
             <p className="mt-[28px] rounded-[15px] border border-white/10 bg-[image:var(--brand-surface-fill)] px-[25px] py-[20px] font-helvetica text-[16px] leading-[24px] text-brand-fg-muted">
-              No PIX o código de pagamento é enviado depois da confirmação do
-              pedido. Nenhum dado bancário é pedido aqui.
+              Ao confirmar, geramos o QR Code do PIX. Você tem 30 minutos para
+              pagar — a aprovação é automática.
             </p>
           )}
 
@@ -555,7 +673,7 @@ function CashbackCard({ loyalty }: { loyalty: LoyaltySummary | null }) {
 
 /** "1x de R$ 500,00 (R$ 500,00)" — sem juros, que é o que o arquivo mostra. */
 function installmentOptions(totalCents: number) {
-  return Array.from({ length: MAX_INSTALLMENTS }, (_, index) => {
+  return Array.from({ length: maxInstallmentsFor(totalCents) }, (_, index) => {
     const times = index + 1;
     return {
       value: String(times),
