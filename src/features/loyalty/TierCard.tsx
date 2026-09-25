@@ -20,6 +20,13 @@ import {
  * cards — provável descuido de duplicação: dizer "Seu nível atual" em todos
  * torna a informação inútil. Ver .claude/context/open-questions.md.
  */
+/**
+ * Largura do card no arquivo. A geometria dos emblemas (`tiers.ts`) foi medida
+ * nela, pela esquerda; convertida para distância da borda DIREITA, o emblema
+ * fica no mesmo lugar em 1920 e acompanha o card quando ele encolhe.
+ */
+const ART_CARD_WIDTH = 302;
+
 export function TierCard({
   tier,
   isCurrent,
@@ -32,7 +39,11 @@ export function TierCard({
   const art = tierArt(tier.tier);
 
   return (
-    <article className="relative h-[450px] w-[302px] shrink-0 overflow-hidden rounded-[30px] border border-white/10 bg-brand-surface">
+    // Largura FLUIDA (2026-09-25): o card ocupa a coluna da grade da página —
+    // 302px em 1920, como no arquivo — em vez de 302 fixos, que em 1895
+    // mandavam o quinto card sozinho para a linha de baixo. Por isso o que
+    // era medido pela esquerda até a borda direita agora é ancorado à direita.
+    <article className="relative h-[450px] w-full overflow-hidden rounded-[30px] border border-white/10 bg-brand-surface">
       {/* Barra de destaque: a de baixo é nítida (2px), a de cima é a mesma com
           blur de 9px fazendo o halo. */}
       <div
@@ -65,7 +76,7 @@ export function TierCard({
           aria-hidden
           className="absolute object-contain blur-[13.5px]"
           style={{
-            left: art.iconLeft,
+            right: ART_CARD_WIDTH - art.iconLeft - art.iconSize,
             top: art.iconTop,
             width: art.iconSize,
             height: art.iconSize,
@@ -81,7 +92,7 @@ export function TierCard({
         aria-hidden
         className="absolute object-contain"
         style={{
-          left: art.iconLeft,
+          right: ART_CARD_WIDTH - art.iconLeft - art.iconSize,
           top: art.iconTop,
           width: art.iconSize,
           height: art.iconSize,
@@ -90,7 +101,7 @@ export function TierCard({
 
       <StatBox
         label="Cashback"
-        className="absolute top-[230px] left-[25px] h-[96px] w-[252px]"
+        className="absolute top-[230px] right-[25px] left-[25px] h-[96px]"
         contentClassName="px-[25px]"
       >
         {/* 22px aqui, contra 24px no painel-resumo. */}
@@ -100,7 +111,7 @@ export function TierCard({
       </StatBox>
 
       {isCurrent ? (
-        <p className="absolute top-[351px] left-[25px] flex h-[49px] w-[252px] items-center justify-center rounded-[15px] border border-brand-orange bg-brand-orange/[0.06] font-helvetica text-[14px] font-bold tracking-[0.14px] text-white">
+        <p className="absolute top-[351px] right-[25px] left-[25px] flex h-[49px] items-center justify-center rounded-[15px] border border-brand-orange bg-brand-orange/[0.06] font-helvetica text-[14px] font-bold tracking-[0.14px] text-white">
           Seu nível atual
         </p>
       ) : null}

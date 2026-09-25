@@ -77,6 +77,8 @@ export type BuilderGameSummary = {
  */
 export type Draft = {
   name: string;
+  /** Link da página (`/games/<slug>`), editável na etapa 4 desde 2026-09-25. */
+  slug: string;
   heading: string;
   serversLabel: string;
   categoriesLabel: string;

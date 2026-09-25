@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { toastError, toastOk } from "@/components/ui/Toasts";
 import { cn } from "@/lib/cn";
+import { ACTION_FAILED_MESSAGE, ACTION_FAILED_UPLOAD_MESSAGE, runAction } from "@/lib/safeAction";
 import {
   addSectionItemAction,
   deleteSectionItemAction,
@@ -11,10 +12,12 @@ import {
   removeVideoAction,
   reorderSectionItemsAction,
   saveVideoLinkAction,
+  setSectionItemGameAction,
   uploadItemImageAction,
   uploadSectionImageAction,
   videoUploadedAction,
 } from "../actions";
+import { sectionKey, sitePage, type GameOption } from "@/features/site/sections";
 import { ItemToolbar, type ItemSelection } from "./ItemToolbar";
 import { uploadSectionVideo, VIDEO_ACCEPT } from "./videoUpload";
 import { VideoToolbar, type VideoSelection } from "./VideoToolbar";
@@ -88,14 +91,22 @@ export function PageEditor({
   blocks,
   initialOrder,
   initialHidden,
+  games = [],
 }: {
   page: string;
   pageLabel: string;
   blocks: EditorBlock[];
   initialOrder: string[];
   initialHidden: string[];
+  /** Jogos cadastrados, para o botão "jogo" dos slides do hero. */
+  games?: GameOption[];
 }) {
   const router = useRouter();
+  const gameSectionKeys = new Set(
+    (sitePage(page)?.sections ?? [])
+      .filter((section) => section.list?.game)
+      .map((section) => sectionKey(page, section.key)),
+  );
   const [order, setOrder] = useState(initialOrder);
   const [hidden, setHidden] = useState(initialHidden);
   const [draft, setDraft] = useState<Draft>({});
@@ -332,7 +343,7 @@ export function PageEditor({
    */
   async function runItemAction(action: () => Promise<{ ok: boolean; message?: string }>, done: string) {
     setItemBusy(true);
-    const result = await action();
+    const result = await runAction(action, { ok: false, message: ACTION_FAILED_MESSAGE });
     setItemBusy(false);
     setSelection(null);
     setConfirmingRemove(false);
@@ -379,7 +390,11 @@ export function PageEditor({
     }
 
     setItemBusy(true);
-    const created = await addSectionItemAction(sectionKey, itemLabel);
+    const created = await runAction(() => addSectionItemAction(sectionKey, itemLabel), {
+      ok: false,
+      reason: "error",
+      message: ACTION_FAILED_MESSAGE,
+    });
     setItemBusy(false);
 
     if (!created.ok) {
@@ -413,7 +428,10 @@ export function PageEditor({
     let target = pending;
     if (pending.kind === "new-item") {
       setItemBusy(true);
-      const created = await addSectionItemAction(pending.sectionKey, pending.itemLabel);
+      const created = await runAction(
+        () => addSectionItemAction(pending.sectionKey, pending.itemLabel),
+        { ok: false, reason: "error", message: ACTION_FAILED_MESSAGE },
+      );
       setItemBusy(false);
       if (!created.ok) {
         toastError(created.message ?? "Não foi possível adicionar.");
@@ -439,10 +457,13 @@ export function PageEditor({
       form.set("field", pendingUpload.field);
     }
 
-    const result =
-      pendingUpload.kind === "section"
-        ? await uploadSectionImageAction(form)
-        : await uploadItemImageAction(form);
+    const result = await runAction<{ ok: boolean; message?: string }>(
+      () =>
+        pendingUpload.kind === "section"
+          ? uploadSectionImageAction(form)
+          : uploadItemImageAction(form),
+      { ok: false, message: ACTION_FAILED_UPLOAD_MESSAGE },
+    );
 
     if (!result.ok) {
       toastError(result.message ?? "Não foi possível enviar a imagem.");
@@ -454,7 +475,7 @@ export function PageEditor({
 
   async function runVideo(action: () => Promise<{ ok: boolean; message?: string }>, done: string) {
     setVideoBusy(true);
-    const result = await action();
+    const result = await runAction(action, { ok: false, message: ACTION_FAILED_MESSAGE });
     setVideoBusy(false);
     setVideoProgress(null);
     if (!result.ok) {
@@ -497,15 +518,19 @@ export function PageEditor({
       (texts[`${pageKey}:${section}`] ??= {})[field] = value;
     }
 
-    const result = await publishPageAction({
-      page,
-      texts,
-      items: Object.values(items),
-      order: [
-        ...order.map((key) => ({ key: `${page}:${key}`, hidden: false })),
-        ...hidden.map((key) => ({ key: `${page}:${key}`, hidden: true })),
-      ],
-    });
+    const result = await runAction(
+      () =>
+        publishPageAction({
+          page,
+          texts,
+          items: Object.values(items),
+          order: [
+            ...order.map((key) => ({ key: `${page}:${key}`, hidden: false })),
+            ...hidden.map((key) => ({ key: `${page}:${key}`, hidden: true })),
+          ],
+        }),
+      { ok: false, reason: "error", message: ACTION_FAILED_MESSAGE },
+    );
 
     setPublishing(false);
     if (!result.ok) {
@@ -643,6 +668,13 @@ export function PageEditor({
                 stageRef.current = node;
               }}
               onMouseDown={onStageMouseDown}
+              // Dentro do editor NADA navega. A seleção roda no `mousedown`, e
+              // `preventDefault` ali não cancela o `click` de um link — o card do
+              // hero (um `<a>`) levava à página do jogo em vez de ser selecionado
+              // (2026-09-25). A captura cancela antes de o link agir.
+              onClickCapture={(event) => {
+                if ((event.target as HTMLElement).closest("a")) event.preventDefault();
+              }}
               className="site-edit-stage origin-top-left"
               style={{ width: PAGE_WIDTH, transform: `scale(${scale})` }}
             >
@@ -679,6 +711,14 @@ export function PageEditor({
             };
             fileRef.current?.click();
           }}
+          // Só sessões que declaram seletor de jogo (`list.game` no catálogo).
+          games={gameSectionKeys.has(selection.sectionKey) ? games : undefined}
+          onPickGame={(gameId) =>
+            void runItemAction(
+              () => setSectionItemGameAction(selection.sectionKey, selection.id, gameId),
+              `Jogo do ${selection.itemLabel} trocado.`,
+            )
+          }
           onAdd={addItem}
           onAskRemove={() => setConfirmingRemove(true)}
           onConfirmRemove={removeItem}

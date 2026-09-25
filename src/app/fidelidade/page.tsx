@@ -57,8 +57,11 @@ export default async function FidelidadePage() {
     <div className="flex min-h-dvh flex-col bg-brand-bg">
       <SiteHeader />
 
-      <main className="flex-1 overflow-x-auto">
-        <div className="mx-auto w-max px-[154px] pt-[68px] pb-[100px]">
+      {/* Largura do Figma vira TETO, não medida (regra do projeto): era
+          `w-max` com o conteúdo de 1612px fixos, e a página rolava na
+          horizontal em qualquer tela menor que 1920 (2026-09-25). */}
+      <main className="flex-1">
+        <div className="mx-auto w-full max-w-[1920px] px-[16px] pt-[40px] pb-[100px] md:px-[50px] md:pt-[68px] 2xl:px-[154px]">
           <LoyaltySummary
             data={summary}
             caption={section("resumo").title || undefined}
@@ -68,7 +71,11 @@ export default async function FidelidadePage() {
             {section("niveis").title || "Todos os Níveis"}
           </h2>
 
-          <div className="mt-[25px] flex gap-[25px]">
+          {/* Grade que ENCOLHE antes de quebrar: em 1920 são cinco colunas de
+              302px (as do arquivo); abaixo de ~250px por card ela passa para
+              quatro, três… — nunca um card sozinho sobrando numa linha por
+              causa de poucos pixels, nem rolagem horizontal. */}
+          <div className="mt-[25px] grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-[25px]">
             {summary.tiers.map((tier) => (
               <TierCard
                 key={tier.tier}

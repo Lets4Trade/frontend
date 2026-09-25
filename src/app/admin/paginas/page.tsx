@@ -1,3 +1,4 @@
+import { getAdminGames } from "@/features/admin/catalog";
 import type { Metadata } from "next";
 import { ADMIN_SHELL } from "@/features/admin/layout";
 import { buildHomeBlocks } from "@/features/home/homeBlocks";
@@ -37,10 +38,12 @@ export default async function AdminPagesPage({ searchParams }: PageProps) {
   const requested = typeof params.pagina === "string" ? params.pagina : "home";
   const pageKey = (EDITABLE_PAGES as readonly string[]).includes(requested) ? requested : "home";
 
-  const [section, items, layout] = await Promise.all([
+  const [section, items, layout, games] = await Promise.all([
     getSectionsFor(pageKey),
     getSectionItemsFor(pageKey),
     getSectionLayout(pageKey),
+    // Para o botão "jogo" dos slides do hero: escolhe-se entre os cadastrados.
+    getAdminGames(),
   ]);
 
   const catalog = sitePage(pageKey);
@@ -110,6 +113,7 @@ export default async function AdminPagesPage({ searchParams }: PageProps) {
           blocks={blocks}
           initialOrder={layout.visible}
           initialHidden={layout.hidden}
+          games={games.map(({ id, name, slug }) => ({ id, name, slug }))}
         />
       </div>
     </div>

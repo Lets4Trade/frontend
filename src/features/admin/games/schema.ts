@@ -38,6 +38,11 @@ export const createGameSchema = z.object({
     .min(2, "O nome do jogo precisa ter ao menos 2 caracteres.")
     .max(120, "O nome do jogo é longo demais."),
 
+  // Link na loja (`/games/<slug>`), editável desde 2026-09-25. Vazio = o
+  // servidor deriva do nome. A normalização acontece nas duas pontas (prévia
+  // aqui, gravação no backend); o que o schema barra é só o tamanho.
+  slug: z.string().trim().max(80, "O link pode ter no máximo 80 caracteres.").default(""),
+
   platform: z.enum(platformValues, {
     message: "Escolha a plataforma do jogo.",
   }),

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { SelectField } from "@/components/ui/SelectField";
 import { TextField } from "@/components/ui/TextField";
 import { cn } from "@/lib/cn";
+import { ACTION_FAILED_MESSAGE, runAction } from "@/lib/safeAction";
 import {
   deleteUserAction,
   getUserDetailAction,
@@ -75,7 +76,10 @@ export function UserEditDialog({ user }: { user: AdminUser }) {
     }
 
     startTransition(async () => {
-      const result = await getUserDetailAction(user.id);
+      const result = await runAction(() => getUserDetailAction(user.id), {
+        ok: false,
+        message: ACTION_FAILED_MESSAGE,
+      });
       if (!result.ok) {
         setLoadError(result.message);
         return;
@@ -92,13 +96,17 @@ export function UserEditDialog({ user }: { user: AdminUser }) {
     setFormError(null);
 
     startTransition(async () => {
-      const result = await updateUserAction(detail.id, {
-        name: String(data.get("name") ?? ""),
-        whatsapp: String(data.get("whatsapp") ?? ""),
-        discord: String(data.get("discord") ?? ""),
-        role: String(data.get("role") ?? detail.role),
-        isActive: String(data.get("isActive") ?? "true") === "true",
-      });
+      const result = await runAction(
+        () =>
+          updateUserAction(detail.id, {
+            name: String(data.get("name") ?? ""),
+            whatsapp: String(data.get("whatsapp") ?? ""),
+            discord: String(data.get("discord") ?? ""),
+            role: String(data.get("role") ?? detail.role),
+            isActive: String(data.get("isActive") ?? "true") === "true",
+          }),
+        { ok: false, message: ACTION_FAILED_MESSAGE },
+      );
 
       if (!result.ok) {
         setFormError(result.message);
@@ -117,7 +125,10 @@ export function UserEditDialog({ user }: { user: AdminUser }) {
     setFormError(null);
 
     startTransition(async () => {
-      const result = await deleteUserAction(detail.id);
+      const result = await runAction(() => deleteUserAction(detail.id), {
+        ok: false,
+        message: ACTION_FAILED_MESSAGE,
+      });
       if (!result.ok) {
         setFormError(result.message);
         setConfirmingDelete(false);

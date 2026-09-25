@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { formatPrice } from "@/features/game/content";
 import { ProductCardShell } from "@/features/game/ProductCardShell";
+import { ACTION_FAILED_MESSAGE, runAction } from "@/lib/safeAction";
 import { deleteProductAction } from "./actions";
 import { productImage, type AdminProduct } from "./catalog";
 
@@ -72,7 +73,10 @@ function DeleteButton({ id, name }: { id: string; name: string }) {
 
   function confirmDelete() {
     startDelete(async () => {
-      const result = await deleteProductAction(id);
+      const result = await runAction(() => deleteProductAction(id), {
+        ok: false,
+        message: ACTION_FAILED_MESSAGE,
+      });
       if (!result.ok) {
         setError(result.message);
         return;

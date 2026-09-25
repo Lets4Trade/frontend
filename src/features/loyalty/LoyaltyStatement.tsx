@@ -31,7 +31,7 @@ export function LoyaltyStatement({
   return (
     <section
       aria-labelledby="fidelidade-extrato"
-      className="mt-[50px] w-[1612px] overflow-hidden rounded-[30px] border border-white/10 bg-brand-surface p-[50px]"
+      className="mt-[50px] w-full overflow-hidden rounded-[30px] border border-white/10 bg-brand-surface p-[20px] md:p-[50px]"
     >
       <h2
         id="fidelidade-extrato"
@@ -40,7 +40,9 @@ export function LoyaltyStatement({
         Últimos movimentos
       </h2>
 
-      <table className="mt-[25px] w-full border-collapse text-left">
+      {/* Tabela larga no celular rola DENTRO do card, nunca a página. */}
+      <div className="mt-[25px] overflow-x-auto">
+      <table className="w-full min-w-[560px] border-collapse text-left">
         <thead>
           <tr className="font-helvetica text-[14px] leading-[13px] font-bold tracking-[0.14px] text-white/80">
             <th className="pb-[16px] font-normal">Data</th>
@@ -77,6 +79,7 @@ export function LoyaltyStatement({
           ))}
         </tbody>
       </table>
+      </div>
     </section>
   );
 }

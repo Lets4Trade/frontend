@@ -48,7 +48,17 @@ export type SiteListDef = {
   secondaryImage?: string;
   /** Rótulo do link. */
   href?: string;
+  /**
+   * Rótulo do seletor de JOGO (2026-09-25). Com ele, o item representa um jogo
+   * CADASTRADO: nome e link saem do jogo (`/games/<slug>`) e os campos `title`
+   * e `href` nem aparecem — o admin escolhe em vez de redigitar, e trocar o
+   * link do jogo no builder leva o item junto. Hoje: os slides do hero.
+   */
+  game?: string;
 };
+
+/** Um jogo como o seletor do painel precisa dele. */
+export type GameOption = { id: string; name: string; slug: string };
 
 export type SiteSectionDef = {
   /** Sufixo da chave. A chave cheia é `${pageKey}:${key}`. */
@@ -175,10 +185,12 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         imageHint: "Arte do topo da home — 859×758.",
         list: {
           itemLabel: "slide",
-          title: "Nome do jogo",
+          // Nome e link vêm do JOGO escolhido (2026-09-25) — antes eram dois
+          // campos digitados, que repetiam o cadastro e envelheciam quando o
+          // link do jogo mudava.
+          game: "Jogo",
           image: "Personagem (recorte, ~336×758)",
-          secondaryImage: "Logo do jogo",
-          href: "Link do slide",
+          secondaryImage: "Logo do jogo (vazio usa a do jogo)",
         },
       },
       {

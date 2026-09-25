@@ -10,8 +10,14 @@ import {
   saveSectionItemAction,
 } from "@/features/site/actions";
 import type { SectionItem } from "@/features/site/list";
-import type { SiteListDef } from "@/features/site/sections";
+import { SelectField } from "@/components/ui/SelectField";
+import type { GameOption, SiteListDef } from "@/features/site/sections";
 import { cn } from "@/lib/cn";
+import {
+  ACTION_FAILED_MESSAGE,
+  ACTION_FAILED_UPLOAD_MESSAGE,
+  runAction,
+} from "@/lib/safeAction";
 
 /**
  * O editor da LISTA de uma sessão — os reviews, os membros da equipe, os
@@ -42,11 +48,14 @@ import { cn } from "@/lib/cn";
 export function SectionItemsEditor({
   sectionKey,
   def,
+  games = [],
 }: {
   /** `home:reviews`. Trocar de sessão recarrega a lista. */
   sectionKey: string;
   /** Como esta sessão chama seus campos. */
   def: SiteListDef;
+  /** Jogos cadastrados, para as sessões com seletor de jogo (`def.game`). */
+  games?: GameOption[];
 }) {
   const [items, setItems] = useState<SectionItem[]>([]);
   const [loadedKey, setLoadedKey] = useState<string | null>(null);
@@ -105,9 +114,13 @@ export function SectionItemsEditor({
     setItems(next);
 
     startTransition(async () => {
-      const result = await reorderSectionItemsAction(
-        sectionKey,
-        next.map((item) => item.id),
+      const result = await runAction(
+        () =>
+          reorderSectionItemsAction(
+            sectionKey,
+            next.map((item) => item.id),
+          ),
+        { ok: false, reason: "error", message: ACTION_FAILED_MESSAGE },
       );
       if (result.ok) {
         setItems(result.data);
@@ -117,7 +130,12 @@ export function SectionItemsEditor({
       // é "a lista mudou desde que a tela carregou", e aí o estado certo é o
       // dele, não o meu invertido de volta.
       toastError(result.message ?? "Não conseguimos salvar a ordem.");
-      loadSectionItemsAction(sectionKey).then((again) => {
+      // Também protegido: sem isto, a recarga falhando depois de uma recusa
+      // viraria promise rejeitada sem dono.
+      void runAction(() => loadSectionItemsAction(sectionKey), {
+        ok: false,
+        reason: "error",
+      }).then((again) => {
         if (again.ok) setItems(again.data);
       });
     });
@@ -125,7 +143,14 @@ export function SectionItemsEditor({
 
   function remove(item: SectionItem) {
     startTransition(async () => {
-      const result = await deleteSectionItemAction(sectionKey, item.id);
+      const result = await runAction(
+        () => deleteSectionItemAction(sectionKey, item.id),
+        {
+          ok: false,
+          reason: "error",
+          message: ACTION_FAILED_MESSAGE,
+        },
+      );
       if (result.ok) {
         setItems((list) => list.filter((row) => row.id !== item.id));
         toastOk(`${capitalize(def.itemLabel)} removido.`);
@@ -136,11 +161,22 @@ export function SectionItemsEditor({
   }
 
   function save(form: FormData, id: string | null) {
+    // Slide sem jogo não tem nome nem link na loja — o seletor substituiu os dois
+    // campos, então ele é obrigatório aqui (o backend aceita vazio para outras
+    // listas e para desligar um item, mas esta tela não oferece isso).
+    if (def.game && !form.get("gameId")) {
+      toastError(`Escolha o jogo do ${def.itemLabel}.`);
+      return;
+    }
     form.set("sectionKey", sectionKey);
     if (id) form.set("id", id);
 
     startTransition(async () => {
-      const result = await saveSectionItemAction(form);
+      const result = await runAction(() => saveSectionItemAction(form), {
+        ok: false,
+        reason: "error",
+        message: ACTION_FAILED_UPLOAD_MESSAGE,
+      });
       if (!result.ok) {
         toastError(result.message ?? "Não conseguimos salvar o item.");
         return;
@@ -152,7 +188,11 @@ export function SectionItemsEditor({
           ? list.map((row) => (row.id === result.data.id ? result.data : row))
           : [...list, result.data];
       });
-      toastOk(id ? "Item salvo. A loja já mostra." : `${capitalize(def.itemLabel)} adicionado.`);
+      toastOk(
+        id
+          ? "Item salvo. A loja já mostra."
+          : `${capitalize(def.itemLabel)} adicionado.`,
+      );
     });
   }
 
@@ -181,6 +221,7 @@ export function SectionItemsEditor({
                 index={index}
                 total={items.length}
                 def={def}
+                games={games}
                 pending={pending}
                 onMove={move}
                 onRemove={remove}
@@ -191,8 +232,8 @@ export function SectionItemsEditor({
 
           {items.length === 0 ? (
             <p className="mt-[10px] font-poppins text-[14px] text-brand-fg-subtle">
-              Nenhum {def.itemLabel} nesta sessão. A loja mostra o bloco vazio até
-              você adicionar o primeiro.
+              Nenhum {def.itemLabel} nesta sessão. A loja mostra o bloco vazio
+              até você adicionar o primeiro.
             </p>
           ) : null}
 
@@ -204,6 +245,7 @@ export function SectionItemsEditor({
             index={-1}
             total={items.length}
             def={def}
+            games={games}
             pending={pending}
             onMove={move}
             onRemove={remove}
@@ -227,6 +269,7 @@ function ItemRow({
   index,
   total,
   def,
+  games,
   pending,
   onMove,
   onRemove,
@@ -236,6 +279,7 @@ function ItemRow({
   index: number;
   total: number;
   def: SiteListDef;
+  games: GameOption[];
   pending: boolean;
   onMove: (index: number, direction: -1 | 1) => void;
   onRemove: (item: SectionItem) => void;
@@ -308,6 +352,37 @@ function ItemRow({
           ) : null}
         </div>
 
+        {def.game ? (
+          <div className="max-w-[420px]">
+            <SelectField
+              // `key` pelo jogo SALVO: o React 19 reseta o `<form action>` depois
+              // de salvar, e o select do Radix (não controlado) voltava ao valor
+              // com que foi MONTADO — a tela mostrava o jogo antigo e um segundo
+              // "Salvar" desfazia a troca. Remontar com o valor novo resolve.
+              key={item?.game?.id ?? "sem-jogo"}
+              label={def.game}
+              name="gameId"
+              defaultValue={item?.game?.id}
+              placeholder="Escolha o jogo"
+              options={games.map((game) => ({
+                value: game.id,
+                label: game.name,
+              }))}
+            />
+            {/* Nome e link DERIVADOS, à vista: é o que responde "e o link?" sem
+                o admin precisar procurar — ele mora no cadastro do jogo. */}
+            <p className="mt-[6px] font-poppins text-[12px] text-brand-fg-subtle">
+              {item?.game
+                ? `Link: /games/${item.game.slug} — para mudar, edite o jogo no Builder.`
+                : item?.gameRemoved
+                  ? `O jogo deste ${def.itemLabel} foi excluído — ele está FORA da loja. Escolha outro jogo.`
+                  : item?.title
+                    ? `Sem jogo ligado — hoje mostra "${item.title}"${item.href ? ` → ${item.href}` : ""}.`
+                    : "Nome e link vêm do jogo escolhido."}
+            </p>
+          </div>
+        ) : null}
+
         <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-[15px]">
           {def.title ? (
             <Field label={def.title}>
@@ -347,7 +422,11 @@ function ItemRow({
 
         <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-[15px]">
           {def.image ? (
-            <ImageField label={def.image} name="image" current={item?.imageUrl} />
+            <ImageField
+              label={def.image}
+              name="image"
+              current={item?.imageUrl}
+            />
           ) : null}
           {def.secondaryImage ? (
             <ImageField
@@ -373,7 +452,13 @@ function ItemRow({
 const INPUT =
   "h-[42px] w-full rounded-[12px] border border-brand-border bg-black px-[14px] font-poppins text-[14px] text-white outline-none focus:border-brand-orange";
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="flex flex-col gap-[6px]">
       <span className="font-poppins text-[12px] tracking-[0.12px] text-brand-fg-muted">
@@ -407,7 +492,13 @@ function ImageField({
       <span className="flex items-center gap-[12px]">
         {current ? (
           <span className="relative block size-[42px] shrink-0 overflow-hidden rounded-[8px] border border-white/10">
-            <Image src={current} alt="" fill sizes="42px" className="object-cover" />
+            <Image
+              src={current}
+              alt=""
+              fill
+              sizes="42px"
+              className="object-cover"
+            />
           </span>
         ) : (
           <span

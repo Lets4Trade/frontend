@@ -17,11 +17,13 @@ import {
   saveTabAction,
 } from "@/features/site/actions";
 import type { SectionContent } from "@/features/site/list";
+import { ACTION_FAILED_MESSAGE, ACTION_FAILED_UPLOAD_MESSAGE, runAction } from "@/lib/safeAction";
 import { SectionItemsEditor } from "./SectionItemsEditor";
 import {
   SITE_PAGES,
   sectionKey,
   sitePage,
+  type GameOption,
   type SiteSectionDef,
 } from "@/features/site/sections";
 
@@ -52,14 +54,19 @@ import {
 export function SectionsEditor({
   sections,
   tabs,
+  games,
+  initialPage,
 }: {
   sections: SectionContent[];
   tabs: NavTabOverride[];
+  /** Jogos ativos, para o seletor dos slides do hero. */
+  games: GameOption[];
+  /** Página que a tela abre selecionada (`?pagina=`). Ausente = a primeira. */
+  initialPage?: string;
 }) {
-  const [pageKey, setPageKey] = useState(SITE_PAGES[0].key);
-  const [sectionSuffix, setSectionSuffix] = useState(
-    SITE_PAGES[0].sections[0].key,
-  );
+  const firstPage = (initialPage && sitePage(initialPage)) || SITE_PAGES[0];
+  const [pageKey, setPageKey] = useState(firstPage.key);
+  const [sectionSuffix, setSectionSuffix] = useState(firstPage.sections[0].key);
 
   const [saved, setSaved] = useState(sections);
   const [tabState, setTabState] = useState(tabs);
@@ -119,7 +126,11 @@ export function SectionsEditor({
     if (file) form.set("image", file, file.name);
 
     startTransition(async () => {
-      const result = await saveSectionAction(form);
+      const result = await runAction(() => saveSectionAction(form), {
+        ok: false,
+        reason: "error",
+        message: ACTION_FAILED_UPLOAD_MESSAGE,
+      });
 
       if (result.ok) {
         setSaved((list) => [
@@ -138,7 +149,11 @@ export function SectionsEditor({
 
   function resetSection() {
     startTransition(async () => {
-      const result = await resetSectionAction(fullKey);
+      const result = await runAction(() => resetSectionAction(fullKey), {
+        ok: false,
+        reason: "error",
+        message: ACTION_FAILED_MESSAGE,
+      });
       if (result.ok) {
         setSaved((list) => list.filter((item) => item.key !== fullKey));
         setTitle("");
@@ -159,7 +174,11 @@ export function SectionsEditor({
     if (icon) form.set("icon", icon, icon.name);
 
     startTransition(async () => {
-      const result = await saveTabAction(form);
+      const result = await runAction(() => saveTabAction(form), {
+        ok: false,
+        reason: "error",
+        message: ACTION_FAILED_UPLOAD_MESSAGE,
+      });
 
       if (result.ok) {
         setTabState((list) => [
@@ -472,6 +491,7 @@ export function SectionsEditor({
           key={fullKey}
           sectionKey={fullKey}
           def={section.list}
+          games={games}
         />
       ) : null}
     </>

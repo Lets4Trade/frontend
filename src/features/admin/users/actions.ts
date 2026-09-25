@@ -36,7 +36,9 @@ export async function getUserDetailAction(id: string): Promise<DetailResult> {
   const denied = await requireAdmin();
   if (denied) return { ok: false, message: denied };
 
-  const response = await apiGet<AdminUserDetail>(`/admin/users/${id}`);
+  if (!isValidId(id)) return { ok: false, message: "Usuário inválido." };
+
+  const response = await apiGet<AdminUserDetail>(`/admin/users/${encodeURIComponent(id)}`);
   if (!response.ok) {
     return {
       ok: false,
@@ -68,19 +70,44 @@ export async function updateUserAction(
   const denied = await requireAdmin();
   if (denied) return { ok: false, message: denied };
 
-  if (edit.name.trim().length < 3) {
-    return { ok: false, message: "O nome precisa ter ao menos 3 caracteres." };
+  // Server action é endereço público: o corpo pode chegar em qualquer forma,
+  // e um `.trim()` num campo que não é string viraria 500 em vez de recusa.
+  if (
+    !isValidId(id) ||
+    typeof edit !== "object" ||
+    edit === null ||
+    typeof edit.name !== "string" ||
+    typeof edit.whatsapp !== "string" ||
+    typeof edit.discord !== "string" ||
+    typeof edit.role !== "string" ||
+    typeof edit.isActive !== "boolean"
+  ) {
+    return { ok: false, message: "Confira os campos e tente de novo." };
   }
 
-  const response = await apiPatch<unknown>(`/admin/users/${id}`, {
-    name: edit.name.trim(),
+  const name = edit.name.trim();
+  if (name.length < 3) {
+    return { ok: false, message: "O nome precisa ter ao menos 3 caracteres." };
+  }
+  // Espelha o `@Length(3, 30)` do `UpdateUserDto`: sem isto o backend recusava
+  // e a tela mostrava o genérico "confira os campos", sem dizer qual.
+  if (name.length > 30) {
+    return { ok: false, message: "O nome pode ter no máximo 30 caracteres." };
+  }
+
+  const body: Record<string, unknown> = {
+    name,
     // Vazio vira string vazia (o backend traduz para nulo), e não `undefined` —
-    // que significaria "não mexa" e impediria LIMPAR um campo.
+    // que significaria "não mexa" e impediria LIMPAR um campo. Vale para os
+    // dois: o `UpdateUserDto` aceita WhatsApp vazio desde 2026-09-25 — antes
+    // recusava, e editar QUALQUER coisa de um usuário sem telefone voltava 400.
     whatsapp: edit.whatsapp.trim(),
     discord: edit.discord.trim(),
     role: edit.role,
     isActive: edit.isActive,
-  });
+  };
+
+  const response = await apiPatch<unknown>(`/admin/users/${encodeURIComponent(id)}`, body);
 
   if (!response.ok) {
     return { ok: false, message: mutationMessage(response.status) };
@@ -93,14 +120,24 @@ export async function updateUserAction(
 export async function deleteUserAction(id: string): Promise<MutationResult> {
   const denied = await requireAdmin();
   if (denied) return { ok: false, message: denied };
+  if (!isValidId(id)) return { ok: false, message: "Usuário inválido." };
 
-  const response = await apiDelete<unknown>(`/admin/users/${id}`);
+  const response = await apiDelete<unknown>(`/admin/users/${encodeURIComponent(id)}`);
   if (!response.ok) {
     return { ok: false, message: mutationMessage(response.status) };
   }
 
   revalidatePath("/admin/usuarios");
   return { ok: true };
+}
+
+/**
+ * O id vai para o CAMINHO da URL. Sem conferir o formato, um `../orders` vindo
+ * do cliente viraria outra rota do backend no `fetch` (que normaliza o
+ * caminho) — com a sessão de admin de quem chamou.
+ */
+function isValidId(id: unknown): id is string {
+  return typeof id === "string" && /^[A-Za-z0-9_-]{1,100}$/.test(id);
 }
 
 /**

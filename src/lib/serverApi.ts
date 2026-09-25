@@ -26,6 +26,14 @@ const SURFACE = "client";
  */
 const TIMEOUT_MS = 4000;
 
+/**
+ * Teto de quem manda ARQUIVO. Os 4s acima são para leitura; um upload de 5 MB
+ * atravessa a rede duas vezes (navegador → Next → API) e ainda é re-codificado
+ * pelo `sharp` no backend. Com 4s o `fetch` abortava no meio e o cadastro
+ * voltava "erro" mesmo com o backend gravando depois (2026-09-25).
+ */
+const UPLOAD_TIMEOUT_MS = 30_000;
+
 export type ApiResult<T> =
   | { ok: true; data: T }
   | {
@@ -178,7 +186,8 @@ async function request<T>(
   }
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timeout = init.body instanceof FormData ? UPLOAD_TIMEOUT_MS : TIMEOUT_MS;
+  const timer = setTimeout(() => controller.abort(), timeout);
 
   try {
     const response = await fetch(`${API_URL}${path}`, {

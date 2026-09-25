@@ -41,7 +41,12 @@ export async function updateOrderAction(
   if (role === null) return { ok: false, reason: "unauthenticated" };
   if (role !== "ADMIN") return { ok: false, reason: "forbidden" };
 
-  if (typeof id !== "string" || id.trim() === "" || id.length > 100) {
+  // Formato fechado, e não só "não vazio": o id vai para o CAMINHO da URL, e
+  // um `../` vindo do cliente viraria outra rota do backend no `fetch`.
+  if (typeof id !== "string" || !/^[A-Za-z0-9_-]{1,100}$/.test(id)) {
+    return { ok: false, reason: "invalid" };
+  }
+  if (typeof patch !== "object" || patch === null) {
     return { ok: false, reason: "invalid" };
   }
 
@@ -53,7 +58,7 @@ export async function updateOrderAction(
     return { ok: false, reason: "invalid", message: "Nada para alterar." };
   }
 
-  const result = await apiPatch<AdminOrder>(`/admin/orders/${id}`, body);
+  const result = await apiPatch<AdminOrder>(`/admin/orders/${encodeURIComponent(id)}`, body);
 
   if (!result.ok) {
     if (result.reason === "unauthenticated") {

@@ -244,6 +244,18 @@ const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
   experimental: {
+    // O painel sobe arte por SERVER ACTION (jogo, produto, builder, sessões), e
+    // o teto padrão do Next para o corpo de uma action é 1 MB. A tela e o
+    // backend prometem 5 MB por imagem — então qualquer arte entre 1 e 5 MB
+    // fazia a action LANÇAR antes de rodar e o cadastro quebrava sem mensagem
+    // (2026-09-25). 11 MB = as DUAS imagens de uma sessão (2 × 5 MB, o teto do
+    // multer em `sections.controller.ts`) + folga do multipart. Não é mais
+    // largo que isso: este limite é também a proteção contra corpo gigante na
+    // rota pública que o Next abre para cada action. Vídeo NÃO passa por aqui
+    // (`videoUpload.ts` sobe direto para a API).
+    serverActions: {
+      bodySizeLimit: "11mb",
+    },
     optimizePackageImports: [
       "@fortawesome/react-fontawesome",
       "@fortawesome/free-solid-svg-icons",

@@ -31,6 +31,7 @@ import {
 } from "@/features/payment/pendingPayment";
 import { ThreeDsError, authenticateDebit } from "@/features/payment/threeDs";
 import { maxInstallmentsFor } from "@/features/payment/types";
+import { runAction } from "@/lib/safeAction";
 import { checkoutAction, type CheckoutLine } from "./actions";
 import { cardSchema, pixSchema } from "./schema";
 
@@ -171,7 +172,13 @@ export function CheckoutClient({
     // Tentativa anterior recusada, mesmo carrinho: cobra o MESMO pagamento.
     let pending = readPendingPayment(signature);
     if (!pending) {
-      const created = await checkoutAction(lines, coinsToUse);
+      // Exceção (rede, deploy novo) cai no mesmo "error" de uma recusa comum:
+      // sem isto o botão ficava em "enviando" para sempre, porque o
+      // `setIsSubmitting(false)` abaixo nunca rodava.
+      const created = await runAction(() => checkoutAction(lines, coinsToUse), {
+        ok: false,
+        reason: "error",
+      });
       if (!created.ok) {
         setIsSubmitting(false);
         handleCheckoutError(created.reason);

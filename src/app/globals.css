@@ -1933,6 +1933,15 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
   pointer-events: none;
 }
 
+/* ...mas o que é EDITÁVEL dentro de um link volta a receber clique. O card do
+   hero inteiro é um `<a>` (leva à página do jogo), e a regra acima deixava a
+   arte, a logo e o nome dele inalcançáveis — não havia como selecionar um slide
+   em `/admin/paginas` nem trocar o jogo dele (achado em 2026-09-25). Continua
+   sem navegar: o `PageEditor` chama `preventDefault` em todo clique de item. */
+.site-edit-stage a [data-edit-item] {
+  pointer-events: auto;
+}
+
 /* Texto que a LOJA não mostra (o nome do card do hero, que quem identifica é o
    logo) precisa existir para ser editado. `sr-only` some da tela; aqui ele
    volta, como uma etiqueta sobre o card. */

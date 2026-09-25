@@ -9,6 +9,8 @@ import {
   AdminFieldGrid,
   AdminFormActions,
 } from "@/features/admin/AdminFormCard";
+import { ACTION_FAILED_UPLOAD_MESSAGE, runAction } from "@/lib/safeAction";
+import { slugify, slugifyDraft } from "@/lib/slugify";
 import { createGameAction, type CreateGameResult } from "./actions";
 import {
   ACCEPTED_IMAGE_TYPES,
@@ -18,7 +20,7 @@ import {
 } from "./options";
 import { createGameSchema } from "./schema";
 
-type ErrorField = "name" | "platform" | "productType" | "servers";
+type ErrorField = "name" | "slug" | "platform" | "productType" | "servers";
 type FieldErrors = Partial<Record<ErrorField, string>>;
 
 type FailureReason = Extract<CreateGameResult, { ok: false }>["reason"];
@@ -51,6 +53,12 @@ export function GameForm() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [saved, setSalvo] = useState<{ name: string; slug: string } | null>(null);
+  // O link acompanha o NOME até o admin mexer nele; depois é dele. Voltar a
+  // esvaziar o campo devolve o automático.
+  const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
+  const [slugTouched, setSlugTouched] = useState(false);
+  const shownSlug = slugTouched ? slug : slugify(name);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -59,6 +67,7 @@ export function GameForm() {
 
     const parsed = createGameSchema.safeParse({
       name: data.get("name"),
+      slug: data.get("slug") ?? "",
       platform: data.get("platform"),
       productType: data.get("productType"),
       servers: data.get("servers") ?? "",
@@ -82,7 +91,11 @@ export function GameForm() {
     setFormError(null);
 
     startSubmit(async () => {
-      const result = await createGameAction(data);
+      const result = await runAction(() => createGameAction(data), {
+        ok: false,
+        reason: "error",
+        message: ACTION_FAILED_UPLOAD_MESSAGE,
+      });
 
       if (!result.ok) {
         setFormError(result.message ?? ERROR_MESSAGES[result.reason]);
@@ -96,6 +109,9 @@ export function GameForm() {
       // `reset()` nativo também zera o input de arquivo, que o React não
       // controla e que um `setState` não alcançaria.
       formRef.current?.reset();
+      setName("");
+      setSlug("");
+      setSlugTouched(false);
     });
   }
 
@@ -109,7 +125,31 @@ export function GameForm() {
           autoComplete="off"
           maxLength={120}
           error={fieldErrors.name}
+          value={name}
+          onChange={(event) => setName(event.target.value)}
         />
+
+        {/* Fora do Figma (2026-09-25): o endereço da página na loja. Nasce do
+            nome e o admin pode trocar; a prévia já sai normalizada, que é o que
+            o servidor vai gravar. */}
+        <div>
+          <TextField
+            label="Link na loja:"
+            name="slug"
+            placeholder="link-do-jogo"
+            autoComplete="off"
+            maxLength={80}
+            error={fieldErrors.slug}
+            value={shownSlug}
+            onChange={(event) => {
+              setSlug(slugifyDraft(event.target.value));
+              setSlugTouched(event.target.value !== "");
+            }}
+          />
+          <p className="mt-[6px] pl-[25px] font-helvetica text-[12px] text-brand-fg-subtle">
+            /games/{slugify(shownSlug) || "…"}
+          </p>
+        </div>
 
         {/* SEM placeholder, e com a opção do arquivo já escolhida.
             "Steam" e "Gold" são valores REAIS destes selects — desenhá-los como

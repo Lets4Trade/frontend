@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
@@ -21,6 +22,7 @@ import {
   updateProductAction,
   type CreateProductResult,
 } from "./actions";
+import { ACTION_FAILED_UPLOAD_MESSAGE, runAction } from "@/lib/safeAction";
 import { createProductSchema } from "./schema";
 import type { AdminProduct } from "./catalog";
 
@@ -88,7 +90,12 @@ export function ProductForm({
   const [isSubmitting, startSubmit] = useTransition();
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
-  const [saved, setSaved] = useState<{ name: string; gameName: string } | null>(null);
+  const [saved, setSaved] = useState<{
+    name: string;
+    gameName: string;
+    /** Para o "Ver na loja"; `null` se o jogo sumiu da lista entre o envio e a volta. */
+    gameSlug: string | null;
+  } | null>(null);
 
   const [gameId, setGameId] = useState(product?.game.id ?? "");
   const selectedGame = games.find((game) => game.id === gameId) ?? null;
@@ -180,9 +187,13 @@ export function ProductForm({
     setFormError(null);
 
     startSubmit(async () => {
-      const result = isEditing
-        ? await updateProductAction(product.id, data)
-        : await createProductAction(data);
+      // O slug é lido AGORA, antes do `await`: no sucesso o formulário zera o
+      // jogo escolhido, e depois disso não haveria mais de onde tirá-lo.
+      const gameSlug = selectedGame?.slug ?? null;
+      const result = await runAction(
+        () => (isEditing ? updateProductAction(product.id, data) : createProductAction(data)),
+        { ok: false, reason: "error", message: ACTION_FAILED_UPLOAD_MESSAGE },
+      );
 
       if (!result.ok) {
         setFormError(result.message ?? ERROR_MESSAGES[result.reason]);
@@ -197,7 +208,7 @@ export function ProductForm({
         return;
       }
 
-      setSaved({ name: result.name, gameName: result.gameName });
+      setSaved({ name: result.name, gameName: result.gameName, gameSlug });
       formRef.current?.reset();
       // O `reset()` nativo devolve os campos ao estado inicial do DOM, mas o
       // jogo escolhido também vive em estado React (é ele que monta os três
@@ -329,13 +340,20 @@ export function ProductForm({
             <p className="font-helvetica text-[14px] text-brand-rating">
               {saved.name} cadastrado em {saved.gameName}
             </p>
-            {/* O produto está saved, mas a vitrine ainda lê o conteúdo semente
-                do frontend — quem for conferir em /games não vai achar. Dizer
-                isso é mais barato que a pessoa concluir que o cadastro falhou. */}
-            <p className="font-helvetica text-[13px] text-brand-fg-subtle">
-              A vitrine ainda não lê o catálogo do banco, então ele não aparece
-              em /games por enquanto.
-            </p>
+            {/* Até 2026-09-10 aqui havia um aviso de que a vitrine não lia o
+                banco. Ela lê desde então, e o aviso passou a MENTIR — fazia o
+                admin achar que o cadastro não tinha efeito. No lugar, o atalho
+                para conferir o produto onde o cliente vai vê-lo. */}
+            {saved.gameSlug ? (
+              <Link
+                href={`/games/${encodeURIComponent(saved.gameSlug)}`}
+                target="_blank"
+                rel="noopener"
+                className="font-helvetica text-[13px] text-brand-fg-subtle underline underline-offset-2 hover:text-white"
+              >
+                Ver na loja
+              </Link>
+            ) : null}
           </div>
         ) : null}
       </AdminFormActions>

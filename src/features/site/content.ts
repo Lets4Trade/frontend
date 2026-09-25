@@ -145,6 +145,8 @@ type RawItem = {
   secondaryImageUrl?: string | null;
   href?: string | null;
   createdAt?: string | null;
+  /** Jogo ligado ao item (slides do hero). O backend só manda jogo ATIVO. */
+  game?: { name?: string | null; slug?: string | null; imageUrl?: string | null } | null;
 };
 
 /**
@@ -174,17 +176,24 @@ export async function getSectionItemsFor(
     const rows = raw[sectionKey(pageKey, key)];
     if (!Array.isArray(rows)) return [];
 
-    return rows.map((row, index) => ({
-      // O id vem do banco; o índice é rede de segurança para o `key` do React
-      // caso uma linha chegue sem ele.
-      id: row.id ?? `${key}-${index}`,
-      title: row.title?.trim() ?? "",
-      body: row.body?.trim() ?? "",
-      image: backendAsset(row.imageUrl) ?? undefined,
-      secondaryImage: backendAsset(row.secondaryImageUrl) ?? undefined,
-      href: row.href?.trim() || undefined,
-      createdAt: row.createdAt ?? undefined,
-    }));
+    return rows.map((row, index) => {
+      // Item ligado a um JOGO (slide do hero, 2026-09-25): nome, link e — sem
+      // logo própria — a logo vêm do jogo. É o que faz trocar o link do jogo no
+      // builder levar o slide junto, em vez de deixá-lo num endereço morto.
+      const game = row.game?.slug ? row.game : null;
+      return {
+        // O id vem do banco; o índice é rede de segurança para o `key` do React
+        // caso uma linha chegue sem ele.
+        id: row.id ?? `${key}-${index}`,
+        title: (game?.name ?? row.title)?.trim() ?? "",
+        body: row.body?.trim() ?? "",
+        image: backendAsset(row.imageUrl) ?? undefined,
+        secondaryImage:
+          backendAsset(row.secondaryImageUrl ?? game?.imageUrl ?? null) ?? undefined,
+        href: game ? `/games/${game.slug}` : row.href?.trim() || undefined,
+        createdAt: row.createdAt ?? undefined,
+      };
+    });
   };
 }
 

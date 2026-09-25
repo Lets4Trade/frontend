@@ -1,5 +1,7 @@
 "use client";
 
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import type { GameOption } from "@/features/site/sections";
 import { cn } from "@/lib/cn";
 
 /**
@@ -39,6 +41,8 @@ export function ItemToolbar({
   selection,
   busy,
   confirmingRemove,
+  games,
+  onPickGame,
   onMove,
   onChangeImage,
   onAdd,
@@ -49,6 +53,12 @@ export function ItemToolbar({
   selection: ItemSelection;
   busy: boolean;
   confirmingRemove: boolean;
+  /**
+   * Jogos cadastrados — só para itens de sessão com seletor de jogo (slides do
+   * hero). Ausente = o botão "jogo" não aparece.
+   */
+  games?: GameOption[];
+  onPickGame?: (gameId: string) => void;
   onMove: (direction: -1 | 1) => void;
   onChangeImage: () => void;
   onAdd: () => void;
@@ -95,6 +105,9 @@ export function ItemToolbar({
           >
             →
           </ToolbarButton>
+          {games && onPickGame ? (
+            <GamePicker games={games} disabled={busy} onPick={onPickGame} />
+          ) : null}
           {selection.imageField ? (
             <ToolbarButton onClick={onChangeImage} disabled={busy} label="Trocar a imagem">
               trocar imagem
@@ -109,6 +122,57 @@ export function ItemToolbar({
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * "jogo ▾": troca o jogo do slide entre os CADASTRADOS — nome e link vêm dele,
+ * então não há o que digitar. Moldura única das camadas flutuantes do projeto
+ * (raio 20, `bg-brand-surface`, itens raio 12 com realce `white/5`).
+ */
+function GamePicker({
+  games,
+  disabled,
+  onPick,
+}: {
+  games: GameOption[];
+  disabled: boolean;
+  onPick: (gameId: string) => void;
+}) {
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger
+        disabled={disabled}
+        aria-label="Escolher o jogo"
+        title="Escolher o jogo"
+        className="h-[26px] rounded-full px-[10px] font-poppins text-[12px] text-white/80 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        jogo ▾
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          sideOffset={6}
+          className="z-[60] max-h-[320px] min-w-[220px] overflow-y-auto rounded-[20px] border border-brand-border bg-brand-surface p-[8px] shadow-[0_16px_40px_rgba(0,0,0,.5)]"
+        >
+          {games.length === 0 ? (
+            <p className="px-[12px] py-[8px] font-poppins text-[13px] text-brand-fg-subtle">
+              Nenhum jogo cadastrado.
+            </p>
+          ) : (
+            games.map((game) => (
+              <DropdownMenu.Item
+                key={game.id}
+                onSelect={() => onPick(game.id)}
+                className="cursor-pointer rounded-[12px] px-[12px] py-[8px] font-poppins text-[14px] text-white outline-none data-[highlighted]:bg-white/5"
+              >
+                {game.name}
+                <span className="ml-[8px] text-[12px] text-brand-fg-subtle">/games/{game.slug}</span>
+              </DropdownMenu.Item>
+            ))
+          )}
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   );
 }
 

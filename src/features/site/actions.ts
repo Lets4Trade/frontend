@@ -7,6 +7,7 @@ import { LAYOUT_TAG } from "./layoutContent";
 import { apiDelete, apiGet, apiPost, apiPut, apiPutFormData } from "@/lib/serverApi";
 import type { SectionContent, SectionItem } from "./list";
 import type { NavTabOverride } from "@/features/game/tabs";
+import { MAX_IMAGE_BYTES } from "@/features/admin/games/options";
 
 /**
  * As escritas de "Edição de sessões" (Figma 3806:7081).
@@ -29,6 +30,17 @@ export type SectionsResult<T> =
       reason: "unauthenticated" | "forbidden" | "invalid" | "error";
       message?: string;
     };
+
+/**
+ * Mesmo teto do multer do backend (`MAX_IMAGE_BYTES`). Conferido aqui para o
+ * arquivo grande não atravessar Next → API só para ser recusado no fim; e a
+ * recusa vira texto claro, em vez do "não foi possível salvar" genérico.
+ */
+const IMAGE_TOO_LARGE = {
+  ok: false,
+  reason: "invalid",
+  message: "A imagem precisa ter no máximo 5 MB.",
+} as const satisfies SectionsResult<never>;
 
 async function requireAdmin(): Promise<SectionsResult<never> | null> {
   const role = await getSessionRole();
@@ -68,6 +80,7 @@ export async function saveSectionAction(
 
   const image = form.get("image");
   if (image instanceof File && image.size > 0) {
+    if (image.size > MAX_IMAGE_BYTES) return IMAGE_TOO_LARGE;
     payload.set("image", image, image.name);
   }
 
@@ -117,13 +130,24 @@ export async function saveTabAction(
 
   const payload = new FormData();
   payload.set("key", key);
-  for (const field of ["label", "position", "isActive"] as const) {
+  for (const field of ["label", "position"] as const) {
     const value = form.get(field);
     if (typeof value === "string") payload.set(field, value);
+  }
+  // Aqui a ausência É intencional ("renomear sem mexer na visibilidade"), então
+  // o campo continua opcional — mas, quando vem, só "true"/"false", que é o que
+  // o backend aceita. Qualquer outro valor seria um 400 sem explicação.
+  const isActive = form.get("isActive");
+  if (isActive !== null) {
+    if (isActive !== "true" && isActive !== "false") {
+      return { ok: false, reason: "invalid", message: "Visibilidade inválida." };
+    }
+    payload.set("isActive", isActive);
   }
 
   const icon = form.get("icon");
   if (icon instanceof File && icon.size > 0) {
+    if (icon.size > MAX_IMAGE_BYTES) return IMAGE_TOO_LARGE;
     payload.set("icon", icon, icon.name);
   }
 
@@ -214,12 +238,33 @@ export async function saveSectionItemAction(
     payload.set(field, typeof value === "string" ? value : "");
   }
 
-  const isActive = form.get("isActive");
-  if (typeof isActive === "string") payload.set("isActive", isActive);
+  // Seletor de JOGO (slides do hero). Só viaja quando o formulário TEM o campo:
+  // ausente é "não mexa" para o backend, e as outras listas nunca o mandam.
+  // Formato fechado porque é id — o backend confere se o jogo existe e está ativo.
+  const gameId = form.get("gameId");
+  if (typeof gameId === "string") {
+    if (gameId !== "" && !/^[A-Za-z0-9_-]{1,100}$/.test(gameId)) {
+      return { ok: false, reason: "invalid", message: "Jogo inválido." };
+    }
+    payload.set("gameId", gameId);
+  }
+
+  // "visível" é CHECKBOX, e checkbox desmarcado simplesmente não entra no
+  // `FormData`. Repassar só quando presente fazia o backend ler a ausência como
+  // "não mexa" — desmarcar e salvar não escondia nada. Na edição (com `id`) o
+  // valor vai SEMPRE, explícito; o backend só aceita "true"/"false".
+  // No cadastro o formulário nem tem o checkbox, e item novo nasce visível:
+  // mandar "false" ali criaria todo item já escondido.
+  const visible = isChecked(form.get("isActive"));
+  if (payload.has("id")) payload.set("isActive", visible ? "true" : "false");
+  else if (visible) payload.set("isActive", "true");
 
   for (const field of ["image", "secondaryImage"]) {
     const file = form.get(field);
-    if (file instanceof File && file.size > 0) payload.set(field, file, file.name);
+    if (file instanceof File && file.size > 0) {
+      if (file.size > MAX_IMAGE_BYTES) return IMAGE_TOO_LARGE;
+      payload.set(field, file, file.name);
+    }
   }
 
   const result = await apiPutFormData<SectionItem>("/admin/section-items", payload);
@@ -268,6 +313,11 @@ export async function reorderSectionItemsAction(
 
   revalidateStore();
   return { ok: true, data: result.data.map(withAssets) };
+}
+
+/** Valor de checkbox marcado: o `value` declarado ("true") ou o padrão do navegador ("on"). */
+function isChecked(value: FormDataEntryValue | null): boolean {
+  return value === "true" || value === "on";
 }
 
 /** As artes voltam do backend como caminho relativo; a tela precisa da URL. */
@@ -327,6 +377,18 @@ export async function publishPageAction(input: {
 }): Promise<SectionsResult<{ sections: number; items: number }>> {
   const denied = await requireAdmin();
   if (denied) return denied;
+
+  if (
+    typeof input !== "object" ||
+    input === null ||
+    typeof input.page !== "string" ||
+    input.page === "" ||
+    typeof input.texts !== "object" ||
+    input.texts === null ||
+    !Array.isArray(input.order)
+  ) {
+    return { ok: false, reason: "invalid", message: "Rascunho inválido." };
+  }
 
   const entries = Object.entries(input.texts);
 
@@ -391,6 +453,8 @@ export async function uploadSectionImageAction(
   if (typeof key !== "string" || !(image instanceof File) || image.size === 0) {
     return { ok: false, reason: "invalid", message: "Escolha uma imagem." };
   }
+
+  if (image.size > MAX_IMAGE_BYTES) return IMAGE_TOO_LARGE;
 
   // "secondary" = a segunda arte da sessão; qualquer outro valor é a principal.
   const field = form.get("slot") === "secondary" ? "secondaryImage" : "image";
@@ -465,6 +529,7 @@ export async function uploadItemImageAction(
   ) {
     return { ok: false, reason: "invalid", message: "Escolha uma imagem." };
   }
+  if (image.size > MAX_IMAGE_BYTES) return IMAGE_TOO_LARGE;
 
   const payload = new FormData();
   payload.set("sectionKey", sectionKey);
@@ -499,6 +564,36 @@ export async function addSectionItemAction(
   const payload = new FormData();
   payload.set("sectionKey", sectionKey);
   payload.set("title", `Novo ${label}`.slice(0, 120));
+
+  const result = await apiPutFormData<SectionItem>("/admin/section-items", payload);
+  if (!result.ok) return failure(result);
+
+  revalidateStore();
+  return { ok: true, data: withAssets(result.data) };
+}
+
+/**
+ * Liga um item a um JOGO cadastrado — o botão "jogo" da barrinha em
+ * `/admin/paginas` (2026-09-25). Manda SÓ `gameId`: os outros campos ausentes
+ * são "não mexa" para o backend, que copia nome e link do jogo para o item.
+ */
+export async function setSectionItemGameAction(
+  sectionKey: string,
+  id: string,
+  gameId: string,
+): Promise<SectionsResult<SectionItem>> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
+  const idPattern = /^[A-Za-z0-9_-]{1,100}$/;
+  if (!sectionKey || !idPattern.test(id) || !idPattern.test(gameId)) {
+    return { ok: false, reason: "invalid", message: "Jogo inválido." };
+  }
+
+  const payload = new FormData();
+  payload.set("sectionKey", sectionKey);
+  payload.set("id", id);
+  payload.set("gameId", gameId);
 
   const result = await apiPutFormData<SectionItem>("/admin/section-items", payload);
   if (!result.ok) return failure(result);

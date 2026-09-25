@@ -10,6 +10,7 @@ import {
   apiPut,
   apiPutFormData,
 } from "@/lib/serverApi";
+import { MAX_IMAGE_BYTES } from "../games/options";
 import type { BuilderGame } from "./types";
 
 /**
@@ -43,6 +44,8 @@ export type BuilderResult<T = undefined> =
 /** O corpo do `PUT` — o mesmo formato do `SaveGamePageDto` do backend. */
 export type SavePagePayload = {
   name: string;
+  /** Link na loja. Ausente/vazio = não mexe. */
+  slug?: string;
   heading: string;
   serversLabel: string;
   categoriesLabel: string;
@@ -83,7 +86,16 @@ export async function savePageAction(
   const denied = await requireAdmin();
   if (denied) return denied;
 
-  if (!payload.name?.trim()) {
+  if (
+    typeof payload !== "object" ||
+    payload === null ||
+    typeof payload.name !== "string" ||
+    !Array.isArray(payload.servers) ||
+    !Array.isArray(payload.categories)
+  ) {
+    return { ok: false, reason: "invalid", message: "Dados da página inválidos." };
+  }
+  if (!payload.name.trim()) {
     return { ok: false, reason: "invalid", message: "O nome do game é obrigatório." };
   }
   if (!Array.isArray(payload.productTypes) || payload.productTypes.length === 0) {
@@ -94,13 +106,19 @@ export async function savePageAction(
     };
   }
 
+  const slug = typeof payload.slug === "string" ? payload.slug.trim() : "";
+  if (slug.length > 80) {
+    return { ok: false, reason: "invalid", message: "O link pode ter no máximo 80 caracteres." };
+  }
+
   const body = {
     name: payload.name.trim(),
+    ...(slug === "" ? {} : { slug }),
     heading: payload.heading ?? "",
     serversLabel: payload.serversLabel ?? "",
     categoriesLabel: payload.categoriesLabel ?? "",
     description: payload.description ?? "",
-    productTypes: payload.productTypes,
+    productTypes: [...payload.productTypes],
     servers: cleanList(payload.servers),
     categories: cleanList(payload.categories),
     sectionOrder: payload.sectionOrder,
@@ -129,6 +147,7 @@ export async function uploadLogoAction(
   if (!(file instanceof File) || file.size === 0) {
     return { ok: false, reason: "invalid", message: "Escolha uma imagem." };
   }
+  if (file.size > MAX_IMAGE_BYTES) return IMAGE_TOO_LARGE;
 
   const body = new FormData();
   body.append("image", file);
@@ -156,6 +175,7 @@ export async function uploadBannerAction(
   if (!(file instanceof File) || file.size === 0) {
     return { ok: false, reason: "invalid", message: "Escolha uma imagem." };
   }
+  if (file.size > MAX_IMAGE_BYTES) return IMAGE_TOO_LARGE;
 
   const body = new FormData();
   body.append("image", file);
@@ -201,14 +221,35 @@ export async function removeBannerAction(
  */
 function cleanList(items: { id?: string; label: string }[]) {
   return items
-    .map((item) => ({ id: item.id, label: item.label.trim() }))
+    // Linha que nem tem `label` de texto é lixo do cliente, não erro de quem
+    // edita — descartada junto das vazias, em vez de derrubar a action no `.trim()`.
+    .filter((item) => typeof item?.label === "string")
+    .map((item) => ({
+      id: typeof item.id === "string" && item.id !== "" ? item.id : undefined,
+      label: item.label.trim(),
+    }))
     .filter((item) => item.label !== "");
 }
+
+/**
+ * Mesmo teto do cadastro de jogo e do multer do backend. Faltava nas duas
+ * etapas de imagem do builder: o arquivo grande atravessava navegador → Next →
+ * API só para o backend recusar no fim — e, acima do `bodySizeLimit`, nem
+ * chegava aqui e derrubava a tela (2026-09-25).
+ */
+const IMAGE_TOO_LARGE = {
+  ok: false,
+  reason: "invalid",
+  message: "A imagem precisa ter no máximo 5 MB.",
+} as const satisfies BuilderResult<never>;
 
 /** A vitrine e o próprio builder passam a mostrar o que acabou de ser salvo. */
 function revalidate(slug: string) {
   revalidatePath(`/games/${slug}`);
   revalidatePath("/admin/builder", "layout");
+  // Nome e link do jogo aparecem nos slides do hero da home (itens ligados ao
+  // jogo, 2026-09-25): trocar o link no builder tem que chegar lá na hora.
+  revalidatePath("/", "layout");
   // Nome e logo do jogo aparecem no menu GAMES do cabeçalho (`menuGames.ts`).
   updateTag(GAMES_MENU_TAG);
 }
@@ -231,7 +272,8 @@ function failure(result: {
   }
   return {
     ok: false,
-    reason: result.status === 400 ? "invalid" : "error",
+    // 409 = link já usado por outro jogo: é recusa de DADO, como o 400.
+    reason: result.status === 400 || result.status === 409 ? "invalid" : "error",
     message: result.message,
   };
 }

@@ -33,6 +33,10 @@ export type SectionItem = {
   secondaryImageUrl?: string | null;
   href?: string | null;
   isActive: boolean;
+  /** Jogo ligado ao item (slides do hero). Nulo = sem jogo ou jogo desativado. */
+  game?: { id: string; name: string; slug: string; imageUrl?: string | null } | null;
+  /** Estava ligado a um jogo que foi EXCLUÍDO — o item já não aparece na loja. */
+  gameRemoved?: boolean;
 };
 
 export type SectionsSnapshot = {

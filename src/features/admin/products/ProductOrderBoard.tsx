@@ -20,6 +20,7 @@ import { CSS } from "@dnd-kit/utilities";
 import Image from "next/image";
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/cn";
+import { ACTION_FAILED_MESSAGE, runAction } from "@/lib/safeAction";
 import { saveProductOrderAction } from "./actions";
 import { productImage } from "./catalog";
 import type { OrderableProduct } from "./ordering";
@@ -79,7 +80,10 @@ export function ProductOrderBoard({
 
   function save() {
     startTransition(async () => {
-      const result = await saveProductOrderAction(gameId, type, order);
+      const result = await runAction(() => saveProductOrderAction(gameId, type, order), {
+        ok: false,
+        message: ACTION_FAILED_MESSAGE,
+      });
       if (result.ok) {
         setSaved(order);
         setMessage({ tone: "ok", text: "Ordem salva. A vitrine já mostra a nova ordem." });

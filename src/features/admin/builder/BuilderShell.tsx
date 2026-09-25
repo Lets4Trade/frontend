@@ -1,9 +1,11 @@
 "use client";
 
+import { slugify } from "@/lib/slugify";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState, useTransition } from "react";
 import { toastError, toastOk } from "@/components/ui/Toasts";
+import { ACTION_FAILED_MESSAGE, runAction } from "@/lib/safeAction";
 import { ADMIN_SHELL } from "@/features/admin/layout";
 import { resolveSectionOrder } from "@/features/game/sections";
 import { PRODUCT_TABS } from "@/features/game/tabs";
@@ -82,17 +84,24 @@ export function BuilderShell({
 
   function publish() {
     startTransition(async () => {
-      const result = await savePageAction(game.id, {
-        name: draft.name,
-        heading: draft.heading,
-        serversLabel: draft.serversLabel,
-        categoriesLabel: draft.categoriesLabel,
-        description: draft.description,
-        productTypes: draft.productTypes,
-        servers: draft.servers.map((item) => ({ id: item.id, label: item.label })),
-        categories: draft.categories.map((item) => ({ id: item.id, label: item.label })),
-        sectionOrder: draft.sectionOrder,
-      });
+      const result = await runAction(
+        () =>
+          savePageAction(game.id, {
+            name: draft.name,
+            // Forma FINAL do link: o campo guarda o rascunho (com hífen no fim
+            // enquanto se digita), e o servidor normaliza de novo de qualquer jeito.
+            slug: slugify(draft.slug),
+            heading: draft.heading,
+            serversLabel: draft.serversLabel,
+            categoriesLabel: draft.categoriesLabel,
+            description: draft.description,
+            productTypes: draft.productTypes,
+            servers: draft.servers.map((item) => ({ id: item.id, label: item.label })),
+            categories: draft.categories.map((item) => ({ id: item.id, label: item.label })),
+            sectionOrder: draft.sectionOrder,
+          }),
+        { ok: false, reason: "error", message: ACTION_FAILED_MESSAGE },
+      );
 
       if (result.ok) {
         // O rascunho é RECARREGADO da resposta, não mantido como estava: o
@@ -219,7 +228,7 @@ function renderPanel(
         />
       );
     case "nome":
-      return <NamePanel draft={draft} patch={patch} slug={game.slug} />;
+      return <NamePanel draft={draft} patch={patch} publishedSlug={game.slug} />;
     case "categorias-principais":
       return <MainCategoriesPanel draft={draft} patch={patch} />;
     case "servidores":
@@ -275,6 +284,7 @@ function toDraft(game: BuilderGame): Draft {
 
   return {
     name: game.name,
+    slug: game.slug,
     heading: game.heading ?? "",
     serversLabel: game.serversLabel ?? "",
     categoriesLabel: game.categoriesLabel ?? "",
@@ -305,7 +315,7 @@ function diffSteps(draft: Draft, saved: Draft): ReadonlySet<BuilderStepId> {
   ) {
     dirty.add("titulos");
   }
-  if (draft.name !== saved.name) dirty.add("nome");
+  if (draft.name !== saved.name || draft.slug !== saved.slug) dirty.add("nome");
   if (draft.description !== saved.description) dirty.add("descricao");
   if (!sameList(draft.productTypes, saved.productTypes)) {
     dirty.add("categorias-principais");

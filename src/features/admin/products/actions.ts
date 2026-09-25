@@ -107,6 +107,10 @@ export async function createProductAction(
     return { ok: false, reason: "error" };
   }
 
+  // A listagem do painel é server component: sem invalidar, voltar para ela
+  // logo depois de cadastrar podia mostrar a lista do cache, sem o produto novo
+  // — o `update` e o `delete` já faziam isto, o cadastro não.
+  revalidatePath("/admin/produtos");
   return {
     ok: true,
     name: response.data.name,
@@ -130,7 +134,9 @@ export async function deleteProductAction(
     return { ok: false, message: "Sua conta não tem permissão para excluir produtos." };
   }
 
-  const response = await apiDelete(`/admin/products/${id}`);
+  if (!isValidId(id)) return { ok: false, message: "Produto inválido." };
+
+  const response = await apiDelete(`/admin/products/${encodeURIComponent(id)}`);
   if (!response.ok) {
     return {
       ok: false,
@@ -162,6 +168,7 @@ export async function updateProductAction(
   const role = await getSessionRole();
   if (role === null) return { ok: false, reason: "unauthenticated" };
   if (role !== "ADMIN") return { ok: false, reason: "forbidden" };
+  if (!isValidId(id)) return { ok: false, reason: "invalid", message: "Produto inválido." };
 
   // `gameId` fica de FORA: o produto já tem jogo, o backend não aceita trocá-lo
   // no PATCH, e o campo nem viaja (o select está desabilitado na tela).
@@ -185,10 +192,13 @@ export async function updateProductAction(
   payload.set("priceCents", String(parsed.data.priceCents));
   payload.set("platform", parsed.data.platform);
   payload.set("productType", parsed.data.productType);
-  if (parsed.data.serverId !== "") payload.set("serverId", parsed.data.serverId);
-  if (parsed.data.categoryId !== "") {
-    payload.set("categoryId", parsed.data.categoryId);
-  }
+  // Na EDIÇÃO os dois vão SEMPRE, inclusive vazios — diferente do cadastro.
+  // No PATCH, ausente significa "manter" e `""` significa "remover" (o backend
+  // grava nulo). Omitir o vazio, como o cadastro faz, deixava o admin sem jeito
+  // de TIRAR o servidor ou a categoria de um produto: o select voltava para
+  // "nenhum", salvava, e o valor antigo continuava lá (2026-09-25).
+  payload.set("serverId", parsed.data.serverId);
+  payload.set("categoryId", parsed.data.categoryId);
 
   const image = form.get("image");
   if (image instanceof File && image.size > 0) {
@@ -199,7 +209,7 @@ export async function updateProductAction(
   }
 
   const response = await apiPatchFormData<{ name: string; game: { name: string } }>(
-    `/admin/products/${id}`,
+    `/admin/products/${encodeURIComponent(id)}`,
     payload,
   );
 
@@ -236,11 +246,19 @@ export async function saveProductOrderAction(
   if (role !== "ADMIN") {
     return { ok: false, message: "Sua conta não tem permissão para organizar produtos." };
   }
-  if (!Array.isArray(ids) || ids.length === 0 || ids.length > 300) {
+  if (
+    typeof gameId !== "string" ||
+    typeof type !== "string" ||
+    !Array.isArray(ids) ||
+    ids.length === 0 ||
+    ids.length > 300 ||
+    !ids.every((id) => typeof id === "string")
+  ) {
     return { ok: false, message: "Lista de produtos inválida." };
   }
 
-  const response = await apiPut("/admin/products/order", { gameId, type, ids });
+  // Remontado: só os três campos do `SaveProductOrderDto` viajam.
+  const response = await apiPut("/admin/products/order", { gameId, type, ids: [...ids] });
   if (!response.ok) {
     return {
       ok: false,
@@ -253,4 +271,13 @@ export async function saveProductOrderAction(
 
   revalidatePath("/admin/produtos");
   return { ok: true };
+}
+
+/**
+ * O id vai para o CAMINHO da URL. Sem conferir o formato, um `../` vindo do
+ * cliente viraria outra rota do backend no `fetch` (que normaliza o caminho) —
+ * com a sessão de admin de quem chamou.
+ */
+function isValidId(id: unknown): id is string {
+  return typeof id === "string" && /^[A-Za-z0-9_-]{1,100}$/.test(id);
 }

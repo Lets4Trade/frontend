@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { DeleteGameButton } from "@/features/admin/builder/DeleteGameButton";
 import { getBuilderGames } from "@/features/admin/builder/list";
 import { backendAsset } from "@/lib/publicApi";
 import { ADMIN_SHELL } from "@/features/admin/layout";
@@ -51,10 +52,13 @@ export default async function BuilderPickerPage() {
           {games.map((game) => {
             const art = backendAsset(game.imageUrl);
             return (
-              <li key={game.id}>
+              // `relative` para a lixeira ficar SOBRE o card sem estar DENTRO do
+              // link: botão aninhado em `<a>` é HTML inválido e o clique nele
+              // também navegaria.
+              <li key={game.id} className="relative">
                 <Link
                   href={`/admin/builder/${game.id}`}
-                  className="flex h-[140px] items-center gap-[20px] rounded-[20px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[25px] transition-opacity hover:opacity-90"
+                  className="flex h-[140px] items-center gap-[20px] rounded-[20px] border border-brand-border bg-[image:var(--brand-surface-fill)] pr-[52px] pl-[25px] transition-opacity hover:opacity-90"
                 >
                   <div className="relative h-[90px] w-[110px] shrink-0">
                     {art ? (
@@ -82,6 +86,9 @@ export default async function BuilderPickerPage() {
                     </span>
                   </span>
                 </Link>
+                <div className="absolute top-[10px] right-[10px]">
+                  <DeleteGameButton id={game.id} name={game.name} />
+                </div>
               </li>
             );
           })}

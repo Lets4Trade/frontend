@@ -6,6 +6,7 @@ import { toastError } from "@/components/ui/Toasts";
 import { cn } from "@/lib/cn";
 import { formatPhone } from "@/lib/masks";
 import { backendAsset } from "@/lib/publicApi";
+import { ACTION_FAILED_MESSAGE, runAction } from "@/lib/safeAction";
 import { updateOrderAction } from "./actions";
 import { InlineSelect } from "./InlineSelect";
 import { OrderInfoDialog } from "./OrderInfoDialog";
@@ -122,7 +123,11 @@ export function OrdersTable({
 
   function change(order: AdminOrder, patch: { status?: string; assigneeId?: string | null }) {
     startTransition(async () => {
-      const result = await updateOrderAction(order.id, patch);
+      const result = await runAction(() => updateOrderAction(order.id, patch), {
+        ok: false,
+        reason: "error",
+        message: ACTION_FAILED_MESSAGE,
+      });
 
       if (result.ok) {
         setOverrides((current) => ({

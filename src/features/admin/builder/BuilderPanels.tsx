@@ -1,10 +1,12 @@
 "use client";
 
+import { slugify, slugifyDraft } from "@/lib/slugify";
 import Image from "next/image";
 import { useRef, useTransition } from "react";
 import { TextAreaField } from "@/components/ui/TextAreaField";
 import { TextField } from "@/components/ui/TextField";
 import { toastError } from "@/components/ui/Toasts";
+import { ACTION_FAILED_MESSAGE, ACTION_FAILED_UPLOAD_MESSAGE, runAction } from "@/lib/safeAction";
 import { PRODUCT_TABS } from "@/features/game/tabs";
 import { removeBannerAction, uploadBannerAction, uploadLogoAction } from "./actions";
 import type { BuilderListItem, Draft } from "./types";
@@ -95,16 +97,20 @@ export function TitlesPanel({
   );
 }
 
-/** Etapa 4 — Nome do game. */
+/** Etapa 4 — Nome do game e link na loja. */
 export function NamePanel({
   draft,
   patch,
-  slug,
+  publishedSlug,
 }: {
   draft: Draft;
   patch: (next: Partial<Draft>) => void;
-  slug: string;
+  /** O link que está NO AR — para avisar quando o rascunho for trocá-lo. */
+  publishedSlug: string;
 }) {
+  const nextSlug = slugify(draft.slug);
+  const changing = nextSlug !== "" && nextSlug !== publishedSlug;
+
   return (
     <>
       <TextField
@@ -113,10 +119,26 @@ export function NamePanel({
         maxLength={120}
         onChange={(event) => patch({ name: event.target.value })}
       />
+      {/* Renomear NÃO muda o link sozinho (2026-09-25: o link passou a ser
+          editável, mas continua sendo decisão explícita — ele pode estar
+          compartilhado e indexado). */}
+      <TextField
+        label="Link na loja"
+        value={draft.slug}
+        maxLength={80}
+        placeholder="link-do-jogo"
+        onChange={(event) => patch({ slug: slugifyDraft(event.target.value) })}
+      />
       <p className="-mt-[15px] font-poppins text-[13px] text-brand-fg-subtle">
-        O endereço da loja continua <span className="text-white">/games/{slug}</span>.
-        Renomear o game NÃO muda o endereço — ele já foi compartilhado e pode
-        estar indexado, e trocá-lo quebraria todos esses links de uma vez.
+        Endereço: <span className="text-white">/games/{nextSlug || publishedSlug}</span>
+        {changing ? (
+          <>
+            {" "}
+            — ao publicar, <span className="text-white">/games/{publishedSlug}</span> deixa de
+            funcionar. Os slides da home que usam este game acompanham sozinhos; links
+            digitados à mão em outros lugares (rodapé, guias) precisam ser trocados.
+          </>
+        ) : null}
       </p>
     </>
   );
@@ -365,7 +387,11 @@ export function LogoPanel({
     form.append("image", file);
 
     startTransition(async () => {
-      const result = await uploadLogoAction(gameId, form);
+      const result = await runAction(() => uploadLogoAction(gameId, form), {
+        ok: false,
+        reason: "error",
+        message: ACTION_FAILED_UPLOAD_MESSAGE,
+      });
       if (result.ok) onUploaded(result.data.imageUrl);
       else toastError(result.message ?? "Não foi possível enviar a imagem.");
     });
@@ -418,7 +444,11 @@ export function BannerPanel({
     form.append("image", file);
 
     startTransition(async () => {
-      const result = await uploadBannerAction(gameId, form);
+      const result = await runAction(() => uploadBannerAction(gameId, form), {
+        ok: false,
+        reason: "error",
+        message: ACTION_FAILED_UPLOAD_MESSAGE,
+      });
       if (result.ok) {
         onChange([...banners, { id: result.data.id, imageUrl: result.data.imageUrl }]);
       } else {
@@ -429,7 +459,11 @@ export function BannerPanel({
 
   function drop(bannerId: string) {
     startTransition(async () => {
-      const result = await removeBannerAction(gameId, bannerId);
+      const result = await runAction(() => removeBannerAction(gameId, bannerId), {
+        ok: false,
+        reason: "error",
+        message: ACTION_FAILED_MESSAGE,
+      });
       if (result.ok) onChange(banners.filter((banner) => banner.id !== bannerId));
       else toastError(result.message ?? "Não foi possível remover o banner.");
     });
