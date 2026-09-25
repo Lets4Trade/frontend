@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { SiteFooter } from "@/components/layout/SiteFooter";
+import { getLayoutContent } from "@/features/site/layoutContent";
 
 /**
  * Moldura das telas de compra: checkout (Figma 2568:1505) e acompanhamento do
@@ -22,7 +23,11 @@ import { SiteFooter } from "@/components/layout/SiteFooter";
  * cabeçalho por baixo, quem ganha a faixa é o painel, que é o que o desenho
  * mostra; com ele por cima, sobrava um retângulo escuro atravessando o painel.
  */
-export function CheckoutShell({ children }: { children: ReactNode }) {
+export async function CheckoutShell({ children }: { children: ReactNode }) {
+  // A logo do painel ("Logo da marca"), a MESMA do cabeçalho do site — leitura
+  // cacheada, compartilhada com o rodapé desta mesma página (2026-09-24).
+  const brand = (await getLayoutContent()).text("marca");
+
   return (
     <div className="flex min-h-dvh flex-col bg-brand-bg">
       <main className="flex-1 overflow-x-auto">
@@ -50,13 +55,13 @@ export function CheckoutShell({ children }: { children: ReactNode }) {
           <header className="absolute top-0 left-0 z-0 flex h-[83px] w-[1077px] items-center bg-black/50 px-[50px] backdrop-blur-[9px]">
             <Link href="/" aria-label="Lets4Trade — início">
               <Image
-                src="/images/lets4trade-logo.png"
+                src={brand.imageUrl ?? "/images/lets4trade-logo.png"}
                 alt=""
                 width={138}
                 height={65}
                 priority
                 aria-hidden
-                className="h-[65px] w-[138px] object-contain"
+                className={`h-[65px] w-[138px] ${brand.imageUrl ? "object-contain" : "object-cover"}`}
               />
             </Link>
           </header>

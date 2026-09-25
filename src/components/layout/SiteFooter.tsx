@@ -86,7 +86,8 @@ export async function SiteFooter() {
             alt="Lets4Trade"
             width={174}
             height={82}
-            className="h-[82px] w-[174px] object-cover"
+            // Mesma regra do cabeçalho: `cover` só para o arquivo de fábrica.
+            className={`h-[82px] w-[174px] ${brand.imageUrl ? "object-contain" : "object-cover"}`}
           />
 
           {social.length > 0 ? (

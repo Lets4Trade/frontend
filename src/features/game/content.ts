@@ -397,7 +397,6 @@ function buildTabs(
       id: tab.id,
       label: tab.label,
       icon: { src: tab.icon, width: 50, height: 50 },
-      iconOverlay: tab.overlay,
       // A primeira aba é o estado padrão da página, e estado padrão não carrega
       // parâmetro — a mesma regra da paginação ("página 1 não vai na URL").
       href: index === 0 ? `/games/${slug}` : `/games/${slug}?aba=${tab.id}`,

@@ -4,6 +4,7 @@ import { Manrope, DM_Sans } from "next/font/google";
 import localFont from "next/font/local";
 import { PageViewTracker } from "@/features/admin/PageViewTracker";
 import { getContacts } from "@/features/site/contacts";
+import { getLayoutContent } from "@/features/site/layoutContent";
 import { ContactBubble } from "@/features/support/ContactBubble";
 import "./globals.css";
 
@@ -75,7 +76,7 @@ const korataki = localFont({
   ],
 });
 
-export const metadata: Metadata = {
+const BASE_METADATA: Metadata = {
   metadataBase: new URL(
     (process.env.NEXT_PUBLIC_ROOT_SITE_URL || "http://localhost:3000").replace(
       /\/$/,
@@ -102,15 +103,35 @@ export const metadata: Metadata = {
     description:
       "Lets4Trade",
   },
-  icons: {
-    icon: [
-      { url: "/images/logo.png", sizes: "64x64", type: "image/png" },
-      { url: "/images/logo.png", sizes: "192x192", type: "image/png" },
-      { url: "/images/logo.png", sizes: "512x512", type: "image/png" },
-    ],
-    apple: [{ url: "/images/logo.png", sizes: "180x180", type: "image/png" }],
-  },
 };
+
+/** O ícone de fábrica, enquanto o painel não tiver um. */
+const DEFAULT_ICON = "/images/logo.png";
+
+/**
+ * O ícone da aba (favicon) sai do painel (2026-09-24, rebranding): Edição de
+ * sessões → Cabeçalho e rodapé → "Ícone do site". Vazio, fica o de fábrica.
+ *
+ * Mesma leitura cacheada do cabeçalho (1h, derrubada pelo painel ao salvar), então
+ * não é uma ida a mais ao backend. O arquivo enviado passa pelo backend, que o
+ * re-codifica (WebP) — navegadores atuais aceitam WebP como ícone.
+ *
+ * ⚠️ Navegadores guardam favicon em cache por conta própria, e por bastante
+ * tempo: quem já visitou pode demorar a ver o ícone novo.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const icon = (await getLayoutContent()).text("icone").imageUrl;
+  const url = icon ?? DEFAULT_ICON;
+  const type = icon ? undefined : "image/png";
+
+  return {
+    ...BASE_METADATA,
+    icons: {
+      icon: [{ url, ...(type ? { type } : {}) }],
+      apple: [{ url }],
+    },
+  };
+}
 
 export default async function RootLayout({
   children,
@@ -126,10 +147,6 @@ export default async function RootLayout({
       lang="pt-BR"
       className={`${manrope.variable} ${dmSans.variable} ${poppins.variable} ${helveticaNeue.variable} ${korataki.variable}`}
     >
-      <head>
-        <link rel="icon" href="/images/logo.png" />
-      </head>
-
       <body suppressHydrationWarning className="scroll-smooth antialiased">
         {/* Registra cada TELA aberta na loja — navegação, não clique. Fica no
             layout raiz para cobrir toda rota sem que cada página precise

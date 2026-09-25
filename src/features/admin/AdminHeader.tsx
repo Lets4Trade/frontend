@@ -30,7 +30,14 @@ import { ADMIN_NAV } from "./nav";
  * atual. O layout continua sendo servidor e é ele quem lê a sessão — o `user`
  * chega por prop já resolvido.
  */
-export function AdminHeader({ user }: { user: SessionUser }) {
+export function AdminHeader({
+  user,
+  logoUrl,
+}: {
+  user: SessionUser;
+  /** "Logo da marca" do painel (2026-09-24); ausente = o arquivo de fábrica. */
+  logoUrl?: string;
+}) {
   const pathname = usePathname();
 
   return (
@@ -40,12 +47,12 @@ export function AdminHeader({ user }: { user: SessionUser }) {
       <div className="relative mx-auto flex h-full max-w-[1920px] items-center px-4 sm:px-6 lg:px-[50px]">
         <Link href="/" aria-label="Lets4Trade — ir para a loja" className="shrink-0">
           <Image
-            src="/images/lets4trade-logo.png"
+            src={logoUrl ?? "/images/lets4trade-logo.png"}
             alt="Lets4Trade"
             width={138}
             height={65}
             priority
-            className="h-[65px] w-[138px] object-cover"
+            className={`h-[65px] w-[138px] ${logoUrl ? "object-contain" : "object-cover"}`}
           />
         </Link>
 

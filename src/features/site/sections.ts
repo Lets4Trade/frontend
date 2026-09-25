@@ -440,8 +440,22 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         // vezes para não deixar os dois lados discordando.
         hasTitle: false,
         hasImage: true,
+        // Desde 2026-09-24 é a logo de TODO lugar: cabeçalho, rodapé, checkout,
+        // tela de pagamento e cabeçalho do painel admin (pedido de rebranding:
+        // "alterar em todos os lugares que ela aparece").
         imageHint:
-          "Cabeçalho (138×65) e rodapé (174×82). O arquivo atual é quadrado com margens transparentes, que a caixa recorta.",
+          "Aparece no cabeçalho, rodapé, checkout, pagamento e painel admin (~138×65). O arquivo atual é quadrado com margens transparentes, que a caixa recorta.",
+      },
+      {
+        // O ícone da ABA do navegador (favicon) e do atalho no celular. Seção à
+        // parte porque é outra arte: quadrada e legível em 16px, enquanto a
+        // logo é horizontal. Lido pelo `generateMetadata` do layout raiz.
+        key: "icone",
+        label: "Ícone do site",
+        hasTitle: false,
+        hasImage: true,
+        imageHint:
+          "Ícone da aba do navegador e do atalho no celular. Quadrado (512×512), PNG com fundo transparente. Navegadores guardam o ícone em cache — pode demorar a aparecer para quem já visitou.",
       },
       {
         // Os canais de atendimento OFICIAIS, num lugar só. Antes o WhatsApp de

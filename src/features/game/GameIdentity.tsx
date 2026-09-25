@@ -147,22 +147,6 @@ function TabIcon({ tab }: { tab: GameTab }) {
           className="size-full"
         />
       </span>
-
-      {tab.iconOverlay ? (
-        <span
-          className="absolute"
-          style={{ inset: tab.iconOverlay.inset }}
-          aria-hidden
-        >
-          <Image
-            src={tab.iconOverlay.src}
-            alt=""
-            width={32}
-            height={32}
-            className={`size-full ${tab.iconOverlay.flip ? "-scale-x-100 rotate-180" : ""}`}
-          />
-        </span>
-      ) : null}
     </span>
   );
 }

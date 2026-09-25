@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { AdminToaster } from "@/components/ui/Toasts";
 import { AdminHeader } from "@/features/admin/AdminHeader";
+import { getLayoutContent } from "@/features/site/layoutContent";
 import { PageViewTracker } from "@/features/admin/PageViewTracker";
 import { getSessionRole, getSessionUser } from "@/features/auth/session";
 
@@ -34,7 +35,12 @@ export const metadata: Metadata = {
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   // As duas leem o MESMO perfil, memorizado por requisição — é uma ida ao
   // backend, não duas.
-  const [role, user] = await Promise.all([getSessionRole(), getSessionUser()]);
+  const [role, user, layout] = await Promise.all([
+    getSessionRole(),
+    getSessionUser(),
+    // A logo do painel sai da mesma sessão do site ("Logo da marca").
+    getLayoutContent(),
+  ]);
 
   if (role === null || user === null) redirect("/login?redirect=/admin");
   if (role !== "ADMIN") notFound();
@@ -44,7 +50,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       {/* Registra cada tela do painel aberta — é a prova de quem acessou dado
           pessoal de terceiros, e quando. */}
       <PageViewTracker surface="admin" />
-      <AdminHeader user={user} />
+      <AdminHeader user={user} logoUrl={layout.text("marca").imageUrl} />
       <main className="flex-1">{children}</main>
       <SiteFooter />
 

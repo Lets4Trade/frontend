@@ -187,10 +187,7 @@ export function TypeTabs({ query }: { query: ProductsQuery }) {
                 : "bg-[image:var(--brand-surface-fill)]",
             )}
           >
-            <TabIcon
-              icon={tab.icon}
-              overlay={"overlay" in tab ? tab.overlay : undefined}
-            />
+            <TabIcon icon={tab.icon} />
 
             <span
               className={cn(
@@ -217,31 +214,12 @@ export function TypeTabs({ query }: { query: ProductsQuery }) {
  */
 const ICON_BLEED = "0 -14.81% -29.63% -14.81%";
 
-function TabIcon({
-  icon,
-  overlay,
-}: {
-  icon: string;
-  /** O ícone de ITENS é composto por dois desenhos sobrepostos. */
-  overlay?: { src: string; inset: string };
-}) {
+function TabIcon({ icon }: { icon: string }) {
   return (
     <span className="relative block size-[50px]">
       <span className="absolute" style={{ inset: ICON_BLEED }}>
         <Image src={icon} alt="" width={65} height={65} aria-hidden className="size-full" />
       </span>
-
-      {overlay ? (
-        <span className="absolute" style={{ inset: overlay.inset }} aria-hidden>
-          <Image
-            src={overlay.src}
-            alt=""
-            width={32}
-            height={32}
-            className="size-full -scale-x-100 rotate-180"
-          />
-        </span>
-      ) : null}
     </span>
   );
 }

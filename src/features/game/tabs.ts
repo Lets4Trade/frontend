@@ -24,11 +24,6 @@ export type ProductTabDef = {
   productType: string;
   label: string;
   icon: string;
-  /**
-   * Camada extra sobre o ícone. O arquivo compõe o ícone de ITENS com dois
-   * desenhos sobrepostos; nenhuma outra aba precisa disso.
-   */
-  overlay?: { src: string; inset: string; flip?: boolean };
 };
 
 /** A ordem é a do arquivo. */
@@ -43,12 +38,11 @@ export const PRODUCT_TABS: ProductTabDef[] = [
     id: "itens",
     productType: "ITENS",
     label: "ITENS",
-    icon: "/icons/game/tab-itens-base.svg",
-    overlay: {
-      src: "/icons/game/tab-itens-mark.svg",
-      inset: "21.21% 41.49% 48.48% 40.77%",
-      flip: true,
-    },
+    // UM arquivo só (2026-09-24): círculo + duas espadas cruzadas. Era montado
+    // em duas camadas (círculo + espada posicionada por porcentagem) e a espada
+    // saía minúscula e deslocada no painel e na loja. Gerado a partir de
+    // `tab-itens-base.svg` e `tab-itens-mark.svg`.
+    icon: "/icons/game/tab-itens.svg",
   },
   { id: "gold", productType: "GOLD", label: "GOLD", icon: "/icons/game/tab-gold.svg" },
   {
@@ -155,10 +149,6 @@ export function resolveProductTabs(
         ...tab,
         label: override?.label?.trim() || tab.label,
         icon: override?.iconUrl || tab.icon,
-        // O ícone personalizado é UMA imagem; a sobreposição de dois desenhos
-        // só faz sentido na arte original de ITENS. Trocar o ícone descarta a
-        // camada extra, senão o desenho novo sairia com uma marca por cima.
-        overlay: override?.iconUrl ? undefined : tab.overlay,
       };
     })
     .sort(byPosition(byKey));

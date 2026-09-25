@@ -43,12 +43,6 @@ export type GameTab = {
   id: string;
   label: string;
   icon: ImageRef;
-  /**
-   * Camada extra sobre o ícone, com a caixa em porcentagem — o arquivo compõe
-   * o ícone de ITENS com dois desenhos sobrepostos. Fica opcional para o admin
-   * poder trocar por um ícone único sem mexer em código.
-   */
-  iconOverlay?: { src: string; inset: string; flip?: boolean };
   href: string;
 };
 

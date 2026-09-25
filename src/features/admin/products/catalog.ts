@@ -79,7 +79,6 @@ export const TYPE_TABS = PRODUCT_TABS.map((tab) => ({
   value: tab.productType,
   label: tab.label,
   icon: tab.icon,
-  overlay: tab.overlay,
 }));
 
 const TYPES = new Set<string>(TYPE_TABS.map((t) => t.value));

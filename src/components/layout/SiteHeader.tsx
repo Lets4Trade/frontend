@@ -99,11 +99,12 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
             width={138}
             height={65}
             priority
-            // O PNG é 1000×1000 com margens transparentes; `object-cover` na
-            // caixa 138×65 recorta exatamente essas margens (igual ao Figma).
-            // Mobile (Figma 2667:1864): logo menor, para caber selo, carrinho e
-            // menu na mesma linha de ~400px.
-            className="h-[41px] w-[88px] object-cover md:h-[65px] md:w-[138px]"
+            // O PNG de fábrica é 1000×1000 com margens transparentes; `object-cover`
+            // na caixa 138×65 recorta exatamente essas margens (igual ao Figma).
+            // Logo ENVIADA pelo painel (rebranding) usa `contain`: outro formato
+            // seria cortado. Mobile (Figma 2667:1864): logo menor, para caber
+            // selo, carrinho e menu na mesma linha de ~400px.
+            className={`h-[41px] w-[88px] md:h-[65px] md:w-[138px] ${brand.imageUrl ? "object-contain" : "object-cover"}`}
           />
         </Link>
 
