@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getAdminGames } from "@/features/admin/catalog";
 import { ADMIN_SHELL } from "@/features/admin/layout";
-import { PARAM, TYPE_TABS } from "@/features/admin/products/catalog";
+import { PARAM } from "@/features/admin/products/catalog";
 import { ProductOrderBoard } from "@/features/admin/products/ProductOrderBoard";
 import { getProductOrdering } from "@/features/admin/products/ordering";
+import { getGameTabs } from "@/features/admin/games/tabs/list";
+import { isProductTab } from "@/features/admin/games/tabs/types";
 import { cn } from "@/lib/cn";
+import { requireAdminPage } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
   title: "Organizar produtos | Lets4Trade",
@@ -21,27 +24,36 @@ function first(value: string | string[] | undefined) {
 /**
  * Painel → Produtos → Organizar ordem (2026-09-24, fora do Figma).
  *
- * A ordem é por ABA de um jogo (jogo + tipo): é o que a vitrine mostra junto, e
- * o filtro de servidor só recorta a mesma sequência. Jogo e aba moram na URL,
- * com os MESMOS nomes de parâmetro da listagem (`jogo`, `tipo`), então o botão
- * da listagem já chega aqui com a aba que estava aberta.
+ * A ordem é por ABA de um jogo (`?aba=<tabId>`, abas por jogo 2026-09-28): é
+ * o que a vitrine mostra junto, e o filtro de servidor só recorta a mesma
+ * sequência. Sem jogo escolhido não há aba — a tela pede o jogo primeiro. Jogo
+ * e aba moram na URL, com os MESMOS nomes de parâmetro da listagem (`jogo`,
+ * `aba`), então o botão da listagem já chega aqui com a aba que estava aberta.
  *
  * Os dois são VALIDADOS contra o que existe (jogo cadastrado, aba que o jogo
  * tem) antes de qualquer leitura — é input de URL.
  */
 export default async function ProductOrderPage({ searchParams }: PageProps) {
+  await requireAdminPage();
   const params = await searchParams;
   const games = await getAdminGames();
 
   const game = games.find((item) => item.id === first(params[PARAM.game]));
-  const tabs = TYPE_TABS.filter((tab) => game?.productTypes.includes(tab.value));
-  const tab = tabs.find((item) => item.value === first(params[PARAM.type])) ?? (game ? tabs[0] : undefined);
 
-  const ordering = game && tab ? await getProductOrdering(game.id, tab.value) : null;
+  // Abas do JOGO (contrato `game-tabs.md`): a ordem é por `tabId`. `null` =
+  // leitura falhou; a tela diz isso em vez de inventar abas.
+  const gameTabs = game ? await getGameTabs(game.id) : null;
+  const tabs: OrderTab[] = (gameTabs ?? [])
+    .filter(isProductTab)
+    .map((tab) => ({ key: tab.id, label: tab.label }));
+  const wanted = first(params[PARAM.tab]);
+  const tab = tabs.find((item) => item.key === wanted) ?? (game ? tabs[0] : undefined);
 
-  const href = (gameId: string, type?: string) => {
+  const ordering = game && tab ? await getProductOrdering(game.id, tab.key) : null;
+
+  const href = (gameId: string, next?: OrderTab) => {
     const search = new URLSearchParams({ [PARAM.game]: gameId });
-    if (type) search.set(PARAM.type, type);
+    if (next) search.set(PARAM.tab, next.key);
     return `/admin/produtos/ordem?${search.toString()}`;
   };
 
@@ -57,7 +69,7 @@ export default async function ProductOrderPage({ searchParams }: PageProps) {
           </p>
         </div>
         <Link
-          href={game ? `/admin/produtos?${PARAM.game}=${game.id}${tab ? `&${PARAM.type}=${tab.value}` : ""}` : "/admin/produtos"}
+          href={game ? `/admin/produtos?${PARAM.game}=${game.id}${tab ? `&${PARAM.tab}=${tab.key}` : ""}` : "/admin/produtos"}
           className="font-poppins text-[14px] font-bold text-brand-orange transition-opacity hover:opacity-80"
         >
           ← Voltar para produtos
@@ -75,7 +87,7 @@ export default async function ProductOrderPage({ searchParams }: PageProps) {
       {game ? (
         <nav aria-label="Aba" className="mt-[14px] flex flex-wrap gap-[10px]">
           {tabs.map((item) => (
-            <Pill key={item.value} href={href(game.id, item.value)} active={item.value === tab?.value} small>
+            <Pill key={item.key} href={href(game.id, item)} active={item.key === tab?.key} small>
               {item.label}
             </Pill>
           ))}
@@ -85,6 +97,8 @@ export default async function ProductOrderPage({ searchParams }: PageProps) {
       <div className="mt-[32px]">
         {!game ? (
           <Empty>Escolha um jogo acima para organizar os produtos dele.</Empty>
+        ) : !gameTabs ? (
+          <Empty>Não conseguimos carregar as abas deste jogo agora. Recarregue a página.</Empty>
         ) : !tab ? (
           <Empty>Este jogo ainda não tem abas de produto.</Empty>
         ) : !ordering?.ok ? (
@@ -102,9 +116,9 @@ export default async function ProductOrderPage({ searchParams }: PageProps) {
             {/* `key`: trocar de aba remonta o quadro com a lista nova, em vez de
                 herdar o rascunho da aba anterior. */}
             <ProductOrderBoard
-              key={`${game.id}|${tab.value}`}
+              key={`${game.id}|${tab.key}`}
               gameId={game.id}
-              type={tab.value}
+              tabId={tab.key}
               initial={ordering.items}
             />
           </>
@@ -113,6 +127,9 @@ export default async function ProductOrderPage({ searchParams }: PageProps) {
     </div>
   );
 }
+
+/** Uma aba do seletor (`?aba=<tabId>`). */
+type OrderTab = { key: string; label: string };
 
 function Pill({
   href,

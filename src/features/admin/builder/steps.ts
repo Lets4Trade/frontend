@@ -31,7 +31,7 @@ export type BuilderStep = {
   /**
    * Etapa que NÃO edita nada aqui — leva para outra tela do painel.
    *
-   * "Lista de produtos" é a única: os produtos já têm tela própria
+   * "Lista de produtos" e "Abas da loja" (desde 2026-09-28): os produtos já têm tela própria
    * (`/admin/produtos`), com filtro, busca, paginação e cadastro. Refazer isso
    * dentro do builder seria manter duas telas de produto que precisam concordar.
    */
@@ -43,11 +43,16 @@ export const BUILDER_STEPS: readonly BuilderStep[] = [
   { id: "banner", number: 2, title: "Banner Principal", hint: "Altere o banner" },
   { id: "logo", number: 3, title: "Logo do game", hint: "Altere a logo" },
   { id: "nome", number: 4, title: "Nome do game", hint: "Defina o nome do game" },
+  // Era "Categorias Principais" (os tipos que viravam abas). Desde 2026-09-28
+  // as abas são POR JOGO, com nome, ícone e layout próprios, e vivem em Jogos →
+  // Abas; a etapa virou atalho para lá, como a 8. O número fica: é como a
+  // pessoa fala da etapa.
   {
     id: "categorias-principais",
     number: 5,
-    title: "Categorias Principais",
-    hint: "As principais categorias",
+    title: "Abas da loja",
+    hint: "Configuradas em Jogos → Abas",
+    href: (gameId) => `/admin/jogos/${encodeURIComponent(gameId)}/abas`,
   },
   {
     id: "servidores",
@@ -58,8 +63,10 @@ export const BUILDER_STEPS: readonly BuilderStep[] = [
   {
     id: "categorias",
     number: 7,
-    title: "Categorias dos servers",
-    hint: "Categorias dos servidores",
+    // Só as GLOBAIS (valem em todo servidor e toda aba). As de um servidor +
+    // aba ficam em Jogos → Categorias (2026-09-28).
+    title: "Categorias globais",
+    hint: "Valem para todas as abas",
   },
   {
     id: "produtos",

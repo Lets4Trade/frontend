@@ -18,7 +18,7 @@ function validForm(extra: Record<string, string | File> = {}): FormData {
   const form = new FormData();
   form.set("name", "  Path of Exile 2  ");
   form.set("platform", "STEAM");
-  form.set("productType", "GOLD");
+  form.set("tabTemplate", "GOLD");
   form.set("servers", "Standard, Hardcore , ,");
   for (const [k, v] of Object.entries(extra)) form.set(k, v);
   return form;
@@ -46,7 +46,7 @@ describe("createGameAction", () => {
   it.each([
     ["nome curto", { name: "a" }],
     ["plataforma fora do enum", { platform: "ATARI" }],
-    ["tipo fora do enum", { productType: "NFT" }],
+    ["modelo de aba desconhecido", { tabTemplate: "NFT" }],
     ["servidor longo demais", { servers: "x".repeat(121) }],
   ])("input inválido (%s) → invalid, sem chamar a API", async (_l, extra) => {
     const result = await createGameAction(validForm(extra));

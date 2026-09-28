@@ -9,7 +9,7 @@ import {
 } from "@/features/game/GameSections";
 import { ProductCardShell } from "@/features/game/ProductCardShell";
 import { gapBefore, type GameSectionKey } from "@/features/game/sections";
-import { LINK_TABS, PRODUCT_TABS, type ProductTabDef } from "@/features/game/tabs";
+import { tabIconSrc, type GameTab } from "@/features/admin/games/tabs/types";
 import type { BuilderShared, Draft } from "./types";
 
 /**
@@ -177,13 +177,17 @@ export function BuilderPreview({
   draft,
   gameName,
   shared,
+  tabs: gameTabs = null,
 }: {
   draft: Draft;
   gameName: string;
   shared: BuilderShared | null;
+  /** Abas do jogo (Jogos → Abas). `null` = desenha pelos tipos antigos. */
+  tabs?: GameTab[] | null;
 }) {
-  const tabs = PRODUCT_TABS.filter((tab) => draft.productTypes.includes(tab.productType));
-  const heading = draft.heading.trim() || derivedHeading(gameName, tabs[0]?.label);
+  const tabs = previewTabs(gameTabs);
+  const firstProduct = tabs.find((tab) => !tab.isLink);
+  const heading = draft.heading.trim() || derivedHeading(gameName, firstProduct?.label);
   const banner = draft.banners[0];
   const { outerRef, innerRef, scale, height } = useScaledPreview();
 
@@ -242,7 +246,7 @@ export function BuilderPreview({
 type BlockContext = {
   draft: Draft;
   gameName: string;
-  tabs: ProductTabDef[];
+  tabs: PreviewTab[];
   heading: string;
   banner: Draft["banners"][number] | undefined;
   shared: BuilderShared | null;
@@ -299,7 +303,7 @@ function renderBlock(key: GameSectionKey, ctx: BlockContext) {
             </p>
 
             <div className="mt-[25px] flex flex-wrap gap-[15px]">
-              {[...tabs, ...LINK_TABS].map((tab, index) => (
+              {tabs.map((tab, index) => (
                 <span
                   key={tab.id}
                   className={`flex h-[99px] min-w-[130px] flex-col items-center rounded-[8px] border-2 border-white/10 px-[10px] pt-[11px] ${
@@ -308,21 +312,25 @@ function renderBlock(key: GameSectionKey, ctx: BlockContext) {
                       : "bg-[image:var(--brand-surface-fill)] text-white/80"
                   }`}
                 >
-                  <Image
-                    src={tab.icon}
-                    alt=""
-                    width={50}
-                    height={50}
-                    className="size-[50px]"
-                  />
+                  {tab.icon ? (
+                    <Image
+                      src={tab.icon}
+                      alt=""
+                      width={50}
+                      height={50}
+                      className="size-[50px] object-contain"
+                    />
+                  ) : (
+                    <span className="size-[50px] rounded-[8px] border border-dashed border-white/20" />
+                  )}
                   <span className="mt-[5px] font-poppins text-[15px] leading-none font-bold">
                     {tab.label}
                   </span>
                 </span>
               ))}
-              {tabs.length === 0 ? (
+              {!tabs.some((tab) => !tab.isLink) ? (
                 <span className="font-poppins text-[15px] text-white/40">
-                  Nenhuma categoria principal escolhida — a loja abriria sem abas.
+                  Nenhuma aba de produto ativa — a loja abriria sem catálogo. Configure em Jogos → Abas.
                 </span>
               ) : null}
             </div>
@@ -379,17 +387,28 @@ function renderBlock(key: GameSectionKey, ctx: BlockContext) {
           <p className="font-helvetica text-[18px] leading-none font-bold text-white">
             {draft.categoriesLabel.trim() || "Selecionar categoria"}
           </p>
-          <div className="mt-[24px] grid grid-cols-[repeat(auto-fill,282px)] gap-x-[24px] gap-y-[15px]">
+          <div className="mt-[24px] grid grid-cols-[repeat(auto-fill,282px)] items-start gap-x-[24px] gap-y-[15px]">
             {draft.categories.map((category) => (
-              <span
-                key={category.key}
-                className="flex h-[40px] w-[282px] items-center gap-[10px] rounded-[8px] border border-white/10 bg-[image:var(--brand-surface-fill)] px-[25px]"
-              >
-                <span className="h-[30px] w-[32px] shrink-0 rounded-[8px] border-2 border-white/10" />
-                <span className="truncate font-poppins text-[13px] leading-none font-bold text-white/80">
-                  {category.label || "—"}
+              <div key={category.key} className="flex flex-col gap-[8px]">
+                <span className="flex h-[40px] w-[282px] items-center gap-[10px] rounded-[8px] border border-white/10 bg-[image:var(--brand-surface-fill)] px-[25px]">
+                  <span className="h-[30px] w-[32px] shrink-0 rounded-[8px] border-2 border-white/10" />
+                  <span className="truncate font-poppins text-[13px] leading-none font-bold text-white/80">
+                    {category.label || "—"}
+                  </span>
                 </span>
-              </span>
+                {/* Mesmo desenho da vitrine (`CategoryPanel`): filhas recuadas sob o pai. */}
+                {category.children.map((child) => (
+                  <span
+                    key={child.key}
+                    className="ml-[20px] flex h-[34px] w-[262px] items-center gap-[10px] rounded-[8px] border border-white/10 bg-[image:var(--brand-surface-fill)] px-[20px]"
+                  >
+                    <span className="h-[22px] w-[24px] shrink-0 rounded-[6px] border-2 border-white/10" />
+                    <span className="truncate font-poppins text-[12px] leading-none font-bold text-white/70">
+                      {child.label || "—"}
+                    </span>
+                  </span>
+                ))}
+              </div>
             ))}
           </div>
         </div>
@@ -527,4 +546,25 @@ function derivedHeading(name: string, tabLabel?: string) {
   if (!tabLabel) return `Compre em ${name}`;
   const what = tabLabel.charAt(0) + tabLabel.slice(1).toLocaleLowerCase("pt-BR");
   return `Compre ${what} De ${name}`;
+}
+
+/** Uma aba como a maquete a desenha. */
+type PreviewTab = { id: string; label: string; icon: string | null; isLink: boolean };
+
+/**
+ * As abas da maquete: as ATIVAS do jogo, na ordem gravada — é o que a loja
+ * desenha. Elas não fazem parte do rascunho do Builder (gravam na hora, em
+ * Jogos → Abas), então aparecem aqui como estão publicadas. Sem elas (leitura
+ * falhou ou jogo sem abas) a maquete mostra o aviso de "sem aba de produto".
+ */
+function previewTabs(gameTabs: GameTab[] | null): PreviewTab[] {
+  return (gameTabs ?? [])
+    .filter((tab) => tab.isActive)
+    .sort((a, b) => a.position - b.position)
+    .map((tab) => ({
+      id: tab.id,
+      label: tab.label,
+      icon: tabIconSrc(tab.iconUrl),
+      isLink: tab.layout === "LINK",
+    }));
 }

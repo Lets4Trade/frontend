@@ -8,7 +8,6 @@ import {
   PARAM,
   SORT_BOXES,
   SORT_SELECT,
-  TYPE_TABS,
   buildHref,
   type ProductsQuery,
 } from "./catalog";
@@ -44,7 +43,7 @@ export function ProductFilters({
   // navegação do Next é suave: sem remontar, o `open` do DOM sobrevive à troca
   // de página e o menu fica aberto por cima do resultado que ele acabou de
   // filtrar. Trocar a `key` força o remonte, que o fecha.
-  const resetKey = `${query.game}|${query.type}|${query.sort}|${query.search}|${query.page}`;
+  const resetKey = `${query.game}|${query.tab}|${query.sort}|${query.search}|${query.page}`;
 
   const currentGame = games.find((game) => game.id === query.game);
   const currentSort =
@@ -71,7 +70,7 @@ export function ProductFilters({
         href={`/admin/produtos/ordem${
           query.game
             ? `?${PARAM.game}=${encodeURIComponent(query.game)}${
-                query.type ? `&${PARAM.type}=${encodeURIComponent(query.type)}` : ""
+                query.tab ? `&${PARAM.tab}=${encodeURIComponent(query.tab)}` : ""
               }`
             : ""
         }`}
@@ -114,7 +113,7 @@ export function ProductFilters({
         placeholder="Pesquisar itens..."
         hidden={{
           [PARAM.game]: query.game,
-          [PARAM.type]: query.type,
+          [PARAM.tab]: query.tab,
           [PARAM.sort]: query.sort === "recente" ? "" : query.sort,
         }}
       />
@@ -156,39 +155,51 @@ export function ProductFilters({
 }
 
 /**
- * Abas de tipo (Figma 3805:3485): 130×99 com 15px de vão, ícone de 50px no topo
- * e o rótulo embaixo. A ativa recebe o degradê laranja.
+ * Abas do JOGO escolhido (contrato `game-tabs.md`, 2026-09-28), na moldura do
+ * Figma 3805:3485: 130×99, ícone de 50px e rótulo; a ativa com o degradê
+ * laranja. Ficam só as de catálogo e serviço (LINK não tem produto).
  *
- * O arquivo desenha NOVE abas, e aqui há SETE. "VENDA PRA NÓS" e "FIDELIDADE"
- * não são tipos de produto — na vitrine são links para `/venda` e
- * `/fidelidade`. Como filtro de produto nunca casariam com nada, e uma aba que
- * sempre volta vazia é pior que uma aba a menos. Ver `list.ts`.
+ * SÓ com jogo escolhido: desde a FASE 5 não existe "tipo" global, e aba é
+ * coisa de UM jogo — sem jogo a tela não desenha filtro de aba nenhum.
  */
-export function TypeTabs({ query }: { query: ProductsQuery }) {
+export function GameTabFilter({
+  query,
+  tabs,
+}: {
+  query: ProductsQuery;
+  tabs: { id: string; label: string; icon: string | null; isActive: boolean }[];
+}) {
+  if (tabs.length === 0) {
+    return (
+      <p className="text-center font-poppins text-[14px] text-brand-fg-subtle">
+        Este jogo não tem abas de produto.{" "}
+        <Link href={`/admin/jogos/${encodeURIComponent(query.game)}/abas`} className="font-bold text-brand-orange">
+          Configurar abas →
+        </Link>
+      </p>
+    );
+  }
   return (
-    <nav
-      aria-label="Filtrar por tipo de produto"
-      className="flex flex-wrap justify-center gap-[15px]"
-    >
-      {TYPE_TABS.map((tab) => {
-        const active = query.type === tab.value;
+    <nav aria-label="Filtrar por aba do jogo" className="flex flex-wrap justify-center gap-[15px]">
+      {tabs.map((tab) => {
+        const active = query.tab === tab.id;
         return (
           <Link
-            key={tab.value}
-            // Clicar na aba ativa desliga o filtro — é o gesto natural para
-            // "voltar a ver tudo", e não há um botão "todos" no arquivo.
-            href={buildHref(query, { type: active ? "" : tab.value })}
+            key={tab.id}
+            href={buildHref(query, { tab: active ? "" : tab.id })}
             aria-current={active ? "true" : undefined}
             className={cn(
-              "relative flex h-[99px] w-[130px] flex-col items-center justify-start rounded-[8px]",
+              "relative flex h-[99px] min-w-[130px] flex-col items-center justify-start rounded-[8px]",
               "border-2 border-white/10 px-[10px] pt-[11px] backdrop-blur-[100px] transition-opacity hover:opacity-90",
-              active
-                ? "bg-[image:var(--brand-orange-gradient)]"
-                : "bg-[image:var(--brand-surface-fill)]",
+              active ? "bg-[image:var(--brand-orange-gradient)]" : "bg-[image:var(--brand-surface-fill)]",
+              tab.isActive ? null : "opacity-60",
             )}
           >
-            <TabIcon icon={tab.icon} />
-
+            {tab.icon ? (
+              <Image src={tab.icon} alt="" width={50} height={50} aria-hidden className="size-[50px] object-contain" />
+            ) : (
+              <span aria-hidden className="size-[50px] rounded-[8px] border border-dashed border-white/20" />
+            )}
             <span
               className={cn(
                 "mt-[8px] text-center font-poppins text-[15px] leading-[19px] font-bold tracking-[0.15px]",
@@ -196,30 +207,11 @@ export function TypeTabs({ query }: { query: ProductsQuery }) {
               )}
             >
               {tab.label}
+              {tab.isActive ? null : <span className="sr-only"> (oculta na loja)</span>}
             </span>
           </Link>
         );
       })}
     </nav>
-  );
-}
-
-/**
- * O SVG do ícone é MAIOR que a caixa de 50px — ele sangra para baixo e para os
- * lados, que é onde mora o brilho do desenho. Os valores são os que o arquivo
- * declara; recortar em 50×50 cortaria o brilho fora.
- *
- * Os mesmos números do `TabIcon` da vitrine (`features/game/GameIdentity.tsx`),
- * porque é o MESMO ícone: as duas telas desenham a mesma fileira de abas.
- */
-const ICON_BLEED = "0 -14.81% -29.63% -14.81%";
-
-function TabIcon({ icon }: { icon: string }) {
-  return (
-    <span className="relative block size-[50px]">
-      <span className="absolute" style={{ inset: ICON_BLEED }}>
-        <Image src={icon} alt="" width={65} height={65} aria-hidden className="size-full" />
-      </span>
-    </span>
   );
 }

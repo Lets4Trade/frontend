@@ -32,6 +32,7 @@ import {
 import { ThreeDsError, authenticateDebit } from "@/features/payment/threeDs";
 import { maxInstallmentsFor } from "@/features/payment/types";
 import { runAction } from "@/lib/safeAction";
+import { hashString, selectionKey } from "@/features/cart/lineId";
 import { checkoutAction, type CheckoutLine } from "./actions";
 import { cardSchema, pixSchema } from "./schema";
 
@@ -153,10 +154,12 @@ export function CheckoutClient({
     // Só id e quantidade: nome, arte, servidor e PREÇO são lidos do catálogo
     // no backend (ver `actions.ts`). O que o carrinho guarda no `localStorage`
     // serve para desenhar a tela — nada dali vira valor de pedido.
-    const lines: CheckoutLine[] = items.map((item) => ({
-      productId: item.productId,
-      units: item.quantity,
-    }));
+    // Serviço leva a ESCOLHA (o backend refaz o `quote` com ela) e sempre 1.
+    const lines: CheckoutLine[] = items.map((item) =>
+      item.selection
+        ? { productId: item.productId, units: 1, selection: item.selection }
+        : { productId: item.productId, units: item.quantity },
+    );
 
     /**
      * As coins vão JUNTO com o carrinho.
@@ -167,7 +170,17 @@ export function CheckoutClient({
      * mais. Não dava prejuízo só porque nenhum saldo era creditado ainda.
      */
     const coinsToUse = Math.min(coins, maxCoins);
-    const signature = cartSignature(lines, coinsToUse);
+    // A escolha entra na assinatura: mudar "1 → 50" para "1 → 90" é OUTRO
+    // pedido e não pode reaproveitar o pagamento pendente do anterior.
+    const signature = cartSignature(
+      lines.map((line) => ({
+        productId: line.selection
+          ? `${line.productId}#${hashString(selectionKey(line.selection))}`
+          : line.productId,
+        units: line.units,
+      })),
+      coinsToUse,
+    );
 
     // Tentativa anterior recusada, mesmo carrinho: cobra o MESMO pagamento.
     let pending = readPendingPayment(signature);
@@ -489,7 +502,7 @@ export function CheckoutClient({
                 id: item.id,
                 name: item.name,
                 platform: item.platform,
-                quantity: `${item.quantity}x`,
+                quantity: item.summary ?? `${item.quantity}x`,
                 price: formatCents(item.unitPriceCents * item.quantity),
                 gameLogo: item.gameLogo,
                 date: formatDate(item.addedAt),

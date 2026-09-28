@@ -137,19 +137,6 @@ export type SiteSectionDef = {
    * painel mostra o editor de itens abaixo do formulário da seção.
    */
   list?: SiteListDef;
-  /**
-   * A sessão É a fileira de ABAS da loja, e não um bloco de conteúdo.
-   *
-   * As abas (GOLD, MOEDAS, MENTORIA…) moram numa tabela própria (`NavTab`),
-   * gravam no CLIQUE e aparecem em toda página de jogo. Até 2026-09-14 a
-   * fileira ficava fixa na tela, fora de qualquer sessão — como o Figma
-   * 3806:7081 desenha —, e aparecia com "Home - Reviews" ou "Cabeçalho ·
-   * Botões" escolhidos, sugerindo que fazia parte deles e que o SALVAR logo
-   * abaixo a gravava. Nenhuma das duas coisas era verdade.
-   *
-   * Marcada assim, a sessão não mostra título, banner nem SALVAR: só a fileira.
-   */
-  navTabs?: boolean;
 };
 
 export type SitePageDef = {
@@ -360,16 +347,6 @@ export const SITE_PAGES: readonly SitePageDef[] = [
     label: "Página de jogo (todos)",
     href: "/games",
     sections: [
-      {
-        // Primeira da lista porque é a primeira coisa da página de jogo, logo
-        // abaixo do banner. Nada é gravado em `SiteSectionContent` com esta
-        // chave — as abas têm tabela e rota próprias.
-        key: "abas",
-        label: "Abas da loja",
-        hasTitle: false,
-        hasImage: false,
-        navTabs: true,
-      },
       {
         key: "referencias",
         label: "Referências",

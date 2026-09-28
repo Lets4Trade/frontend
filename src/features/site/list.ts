@@ -1,14 +1,12 @@
-import type { NavTabOverride } from "@/features/game/tabs";
 import { backendAsset } from "@/lib/publicApi";
 import { apiGet } from "@/lib/serverApi";
 
 /**
  * Leitura das personalizações de "Edição de sessões", a partir do SERVIDOR.
  *
- * SÓ a leitura do PAINEL. A leitura pública das abas vive em `navTabs.ts`,
- * porque este arquivo importa `serverApi` — que importa `next/headers` — e a
- * vitrine chega às abas por um caminho que passa por client component. Misturar
- * as duas quebrou o build uma vez; ver o comentário em `navTabs.ts`.
+ * SÓ a leitura do PAINEL: este arquivo importa `serverApi` — que importa
+ * `next/headers` — e por isso nunca pode ser alcançado pela vitrine (a
+ * leitura pública mora em `content.ts`).
  *
  * Os caminhos de arte viram URL absoluta AQUI, na fronteira: o backend guarda
  * `/uploads/…` e servi-lo pelo Next daria 404.
@@ -39,25 +37,23 @@ export type SectionItem = {
   gameRemoved?: boolean;
 };
 
+/**
+ * `tabs` (as abas globais de `NavTab`) saiu na FASE 5: as abas são por jogo. A
+ * chave, se um backend antigo ainda a mandar, é ignorada.
+ */
 export type SectionsSnapshot = {
   sections: SectionContent[];
-  tabs: NavTabOverride[];
 };
 
-/** As duas listas que a tela do painel edita. */
+/** As sessões que a tela do painel edita. */
 export async function getSectionsAdmin(): Promise<SectionsSnapshot> {
   const result = await apiGet<SectionsSnapshot>("/admin/sections");
-  if (!result.ok) return { sections: [], tabs: [] };
+  if (!result.ok) return { sections: [] };
 
   return {
     sections: (result.data.sections ?? []).map((section) => ({
       ...section,
       imageUrl: backendAsset(section.imageUrl),
     })),
-    tabs: (result.data.tabs ?? []).map(withAbsoluteIcon),
   };
-}
-
-function withAbsoluteIcon(tab: NavTabOverride): NavTabOverride {
-  return { ...tab, iconUrl: backendAsset(tab.iconUrl) };
 }

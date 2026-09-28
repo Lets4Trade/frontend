@@ -44,11 +44,12 @@ const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" 
  */
 export function ProductOrderBoard({
   gameId,
-  type,
+  tabId,
   initial,
 }: {
   gameId: string;
-  type: string;
+  /** A aba do jogo (`tabId`). */
+  tabId: string;
   initial: OrderableProduct[];
 }) {
   const [saved, setSaved] = useState(() => initial.map((item) => item.id));
@@ -80,7 +81,7 @@ export function ProductOrderBoard({
 
   function save() {
     startTransition(async () => {
-      const result = await runAction(() => saveProductOrderAction(gameId, type, order), {
+      const result = await runAction(() => saveProductOrderAction(gameId, tabId, order), {
         ok: false,
         message: ACTION_FAILED_MESSAGE,
       });

@@ -1,202 +1,56 @@
 /**
- * As abas de serviço da página de jogo (Figma 1524:401) — a definição ÚNICA.
+ * Os MODELOS de aba de jogo (Figma 1524:401) — só para CADASTRO.
  *
- * Elas apareciam escritas em dois lugares: `features/game/seed.ts` (vitrine) e
- * `features/admin/products/catalog.ts` (painel). Eram a mesma lista com dois
- * formatos, e o dia em que uma aba nova entrasse num só dos dois é o dia em que
- * o admin cadastra um tipo que a loja não sabe desenhar.
+ * Desde a limpeza da FASE 5 (contrato `.claude/context/game-tabs.md`,
+ * 2026-09-28) as abas da vitrine vêm SÓ do banco (`GameTab`, por jogo). "Tipo
+ * de produto" deixou de existir: esta lista é o espelho da constante
+ * `default-tabs.ts` do backend, usada em dois lugares:
+ *   - o formulário de jogo novo manda `productTypes: [KEY]` — a CHAVE de um
+ *     modelo, que o backend usa para criar as abas iniciais e NÃO grava;
+ *   - o ícone de reserva de uma aba sem `iconUrl` cujo slug é o de um modelo.
  *
- * ── O que liga a aba ao banco ──────────────────────────────────────────────
- * `productType` é o valor do enum `GameProductType` do backend; `id` é o que
- * viaja na URL pública (`?aba=moedas`). São dois campos e não um porque servem
- * a públicos diferentes: o enum é contrato de API e o id é endereço que uma
- * pessoa lê e compartilha. Converter um no outro com `toLowerCase()` funcionaria
- * hoje e amarraria o endereço público ao nome de uma constante de banco.
- *
- * A lista é FECHADA por causa da arte: cada aba precisa do seu ícone, e o
- * backend documenta a mesma restrição no enum ("não inventamos tipo sem arte,
- * porque a aba apareceria sem ícone na vitrine").
+ * `key` (maiúscula) é o que viaja para a API; `slug` é o da aba criada (vai em
+ * `?aba=`). Mantidos separados para não amarrar o endereço público ao nome da
+ * chave.
  */
-export type ProductTabDef = {
-  /** O que vai na URL da vitrine. */
-  id: string;
-  /** O valor do enum `GameProductType` no backend. */
-  productType: string;
+export type TabTemplate = {
+  /** Chave aceita por `POST /admin/games` em `productTypes`. */
+  key: string;
+  /** Slug da aba que o backend cria a partir do modelo. */
+  slug: string;
   label: string;
   icon: string;
+  layout: "CATALOG" | "SERVICE";
 };
 
-/** A ordem é a do arquivo. */
-export const PRODUCT_TABS: ProductTabDef[] = [
-  {
-    id: "moedas",
-    productType: "MOEDAS",
-    label: "MOEDAS",
-    icon: "/icons/game/tab-moedas.svg",
-  },
-  {
-    id: "itens",
-    productType: "ITENS",
-    label: "ITENS",
-    // UM arquivo só (2026-09-24): círculo + duas espadas cruzadas. Era montado
-    // em duas camadas (círculo + espada posicionada por porcentagem) e a espada
-    // saía minúscula e deslocada no painel e na loja. Gerado a partir de
-    // `tab-itens-base.svg` e `tab-itens-mark.svg`.
-    icon: "/icons/game/tab-itens.svg",
-  },
-  { id: "gold", productType: "GOLD", label: "GOLD", icon: "/icons/game/tab-gold.svg" },
-  {
-    id: "builds",
-    productType: "BUILDS",
-    label: "BUILDS",
-    icon: "/icons/game/tab-builds.svg",
-  },
-  {
-    id: "boosting",
-    productType: "BOOSTING",
-    label: "BOOSTING",
-    icon: "/icons/game/tab-boosting.svg",
-  },
-  {
-    id: "carry",
-    productType: "CARRY",
-    label: "CARRY",
-    icon: "/icons/game/tab-carry.svg",
-  },
-  {
-    id: "mentoria",
-    productType: "MENTORIA",
-    label: "MENTORIA",
-    icon: "/icons/game/tab-mentoria.svg",
-  },
+/** Modelos de aba de PRODUTO. A ordem é a do arquivo do Figma. */
+export const TAB_TEMPLATES: readonly TabTemplate[] = [
+  { key: "MOEDAS", slug: "moedas", label: "MOEDAS", icon: "/icons/game/tab-moedas.svg", layout: "CATALOG" },
+  // UM arquivo só (2026-09-24): círculo + duas espadas cruzadas — em duas
+  // camadas a espada saía minúscula e deslocada.
+  { key: "ITENS", slug: "itens", label: "ITENS", icon: "/icons/game/tab-itens.svg", layout: "CATALOG" },
+  { key: "GOLD", slug: "gold", label: "GOLD", icon: "/icons/game/tab-gold.svg", layout: "CATALOG" },
+  { key: "BUILDS", slug: "builds", label: "BUILDS", icon: "/icons/game/tab-builds.svg", layout: "CATALOG" },
+  { key: "BOOSTING", slug: "boosting", label: "BOOSTING", icon: "/icons/game/tab-boosting.svg", layout: "SERVICE" },
+  { key: "CARRY", slug: "carry", label: "CARRY", icon: "/icons/game/tab-carry.svg", layout: "SERVICE" },
+  { key: "MENTORIA", slug: "mentoria", label: "MENTORIA", icon: "/icons/game/tab-mentoria.svg", layout: "SERVICE" },
 ];
 
-const BY_ID = new Map(PRODUCT_TABS.map((tab) => [tab.id, tab]));
-const BY_TYPE = new Map(PRODUCT_TABS.map((tab) => [tab.productType, tab]));
-
-/** Aba pelo id da URL. `undefined` para um `?aba=` inventado. */
-export function tabById(id: string): ProductTabDef | undefined {
-  return BY_ID.get(id);
-}
-
-/** Aba pelo tipo do backend. `undefined` para um enum que a arte não cobre. */
-export function tabByProductType(type: string): ProductTabDef | undefined {
-  return BY_TYPE.get(type);
-}
-
 /**
- * As duas abas do arquivo que NÃO são tipo de produto.
- *
- * "VENDA PRA NÓS" e "FIDELIDADE" desenham iguais às outras e ficam na mesma
- * fileira, mas levam para outra página em vez de filtrar o catálogo. Ficam
- * separadas justamente por isso: como filtro de produto elas nunca casariam com
- * nada, e no painel elas não existem.
+ * Os modelos de LINK que o backend acrescenta a todo jogo novo. Aqui só servem
+ * de ícone de reserva por slug — quem decide se a aba existe é o banco.
  */
-export const LINK_TABS = [
-  {
-    id: "venda",
-    label: "VENDA PRA NÓS",
-    icon: "/icons/game/tab-venda.svg",
-    href: "/venda",
-  },
-  {
-    id: "fidelidade",
-    label: "FIDELIDADE",
-    icon: "/icons/game/tab-fidelidade.svg",
-    href: "/fidelidade",
-  },
+export const LINK_TAB_TEMPLATES = [
+  { slug: "venda", label: "VENDA PRA NÓS", icon: "/icons/game/tab-venda.svg" },
+  { slug: "fidelidade", label: "FIDELIDADE", icon: "/icons/game/tab-fidelidade.svg" },
 ] as const;
 
-/**
- * A personalização de uma aba, vinda da tela "Edição de sessões".
- *
- * Todo campo é opcional porque a linha no banco só guarda o que foi MUDADO:
- * ausente significa "como o arquivo do Figma desenhou". É a mesma convenção do
- * Builder de Páginas.
- */
-export type NavTabOverride = {
-  key: string;
-  label?: string | null;
-  /** Já ABSOLUTA quando chega aqui — a conversão é da fronteira de dados. */
-  iconUrl?: string | null;
-  position?: number | null;
-  isActive: boolean;
-};
-
-/**
- * As abas como a loja deve desenhá-las: as do código, com as personalizações
- * aplicadas.
- *
- * ── Por que o código continua mandando em QUAIS abas existem ───────────────
- * Uma aba de produto filtra um `GameProductType`, e tipo de produto é coluna de
- * `Product` — criar uma aba de verdade é acrescentar valor a um enum, o que é
- * migration e não formulário. O que a tela permite é trocar ícone, renomear,
- * reordenar e esconder; e é exatamente isso que esta função aplica.
- *
- * Aba escondida (`isActive: false`) SOME da lista. Override de chave
- * desconhecida é ignorado — uma aba removida do código não pode ressuscitar por
- * causa de uma linha esquecida no banco.
- */
-export function resolveProductTabs(
-  overrides: readonly NavTabOverride[] = [],
-): ProductTabDef[] {
-  const byKey = new Map(overrides.map((item) => [item.key, item]));
-
-  return PRODUCT_TABS.filter((tab) => byKey.get(tab.id)?.isActive !== false)
-    .map((tab) => {
-      const override = byKey.get(tab.id);
-      return {
-        ...tab,
-        label: override?.label?.trim() || tab.label,
-        icon: override?.iconUrl || tab.icon,
-      };
-    })
-    .sort(byPosition(byKey));
-}
-
-/** As duas abas de LINK, com a mesma personalização. */
-export function resolveLinkTabs(overrides: readonly NavTabOverride[] = []) {
-  const byKey = new Map(overrides.map((item) => [item.key, item]));
-
-  return LINK_TABS.filter((tab) => byKey.get(tab.id)?.isActive !== false)
-    .map((tab) => {
-      const override = byKey.get(tab.id);
-      return {
-        ...tab,
-        label: override?.label?.trim() || tab.label,
-        icon: override?.iconUrl || tab.icon,
-      };
-    })
-    .sort(byPosition(byKey));
-}
-
-/**
- * Ordena pela posição escolhida, mantendo a do arquivo para quem não tem uma.
- *
- * Quem não foi reordenado recebe um número ALTO em vez de zero: assim as abas
- * personalizadas sobem para as primeiras posições (que é o que "posição 0"
- * significa para quem arrastou) e as intocadas ficam atrás, na ordem original.
- */
-function byPosition(byKey: Map<string, NavTabOverride>) {
-  return (a: { id: string }, b: { id: string }) => {
-    const pa = byKey.get(a.id)?.position ?? Number.MAX_SAFE_INTEGER;
-    const pb = byKey.get(b.id)?.position ?? Number.MAX_SAFE_INTEGER;
-    return pa - pb;
-  };
-}
-
-/**
- * O rótulo de uma aba: o personalizado, o do código, ou a chave crua.
- *
- * A última reserva quase nunca acontece — só se o banco guardar uma aba que o
- * código não conhece mais. Existe para a lista de escondidas não mostrar
- * "undefined" nesse caso.
- */
-const LABEL_BY_ID = new Map<string, string>([
-  ...PRODUCT_TABS.map((tab) => [tab.id, tab.label] as const),
-  ...LINK_TABS.map((tab) => [tab.id, tab.label] as const),
+const ICON_BY_SLUG = new Map<string, string>([
+  ...TAB_TEMPLATES.map((tab) => [tab.slug, tab.icon] as const),
+  ...LINK_TAB_TEMPLATES.map((tab) => [tab.slug, tab.icon] as const),
 ]);
 
-export function tabLabel(key: string, override?: string | null): string {
-  return override?.trim() || LABEL_BY_ID.get(key) || key;
+/** Ícone do modelo com esse slug; `undefined` para aba criada pelo admin. */
+export function templateIcon(slug: string): string | undefined {
+  return ICON_BY_SLUG.get(slug);
 }

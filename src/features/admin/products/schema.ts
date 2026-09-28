@@ -34,7 +34,16 @@ export const createProductSchema = z.object({
     .max(MAX_PRICE_CENTS, "O preço passa do teto de R$ 100.000,00."),
 
   platform: z.string().min(1, "Escolha a plataforma."),
-  productType: z.string().min(1, "Escolha o tipo de produto."),
+
+  /**
+   * A ABA do jogo onde o produto aparece (contrato `game-tabs.md`,
+   * 2026-09-28) — no lugar do antigo "tipo de produto", que o backend agora
+   * deriva da aba. Vai para o corpo, mas o formato é fechado do mesmo jeito.
+   */
+  tabId: z
+    .string()
+    .min(1, "Escolha a aba do produto.")
+    .regex(/^[A-Za-z0-9_-]{1,100}$/, "Aba inválida."),
 
   /** Vazio é válido: um jogo pode não ter servidores cadastrados. */
   serverId: z.string().optional().default(""),

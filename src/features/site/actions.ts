@@ -6,7 +6,6 @@ import { backendAsset } from "@/lib/publicApi";
 import { LAYOUT_TAG } from "./layoutContent";
 import { apiDelete, apiGet, apiPost, apiPut, apiPutFormData } from "@/lib/serverApi";
 import type { SectionContent, SectionItem } from "./list";
-import type { NavTabOverride } from "@/features/game/tabs";
 import { MAX_IMAGE_BYTES } from "@/features/admin/games/options";
 
 /**
@@ -45,7 +44,8 @@ const IMAGE_TOO_LARGE = {
 async function requireAdmin(): Promise<SectionsResult<never> | null> {
   const role = await getSessionRole();
   if (role === null) return { ok: false, reason: "unauthenticated" };
-  if (role !== "ADMIN") return { ok: false, reason: "forbidden" };
+  // Conteúdo: ADMIN e EDITOR (2026-09-25). O backend confere de novo.
+  if (role !== "ADMIN" && role !== "EDITOR") return { ok: false, reason: "forbidden" };
   return null;
 }
 
@@ -108,60 +108,6 @@ export async function resetSectionAction(
 
   revalidateStore();
   return { ok: true, data: result.data };
-}
-
-/**
- * Salva a personalização de uma aba: rótulo, ícone, ordem ou visibilidade.
- *
- * Só o que veio no `FormData` é reenviado. Ausente significa "não mexa neste
- * campo" — é o que permite trocar só o rótulo sem apagar o ícone, e esconder
- * uma aba sem renomeá-la.
- */
-export async function saveTabAction(
-  form: FormData,
-): Promise<SectionsResult<NavTabOverride>> {
-  const denied = await requireAdmin();
-  if (denied) return denied;
-
-  const key = form.get("key");
-  if (typeof key !== "string" || key.trim() === "") {
-    return { ok: false, reason: "invalid", message: "Aba inválida." };
-  }
-
-  const payload = new FormData();
-  payload.set("key", key);
-  for (const field of ["label", "position"] as const) {
-    const value = form.get(field);
-    if (typeof value === "string") payload.set(field, value);
-  }
-  // Aqui a ausência É intencional ("renomear sem mexer na visibilidade"), então
-  // o campo continua opcional — mas, quando vem, só "true"/"false", que é o que
-  // o backend aceita. Qualquer outro valor seria um 400 sem explicação.
-  const isActive = form.get("isActive");
-  if (isActive !== null) {
-    if (isActive !== "true" && isActive !== "false") {
-      return { ok: false, reason: "invalid", message: "Visibilidade inválida." };
-    }
-    payload.set("isActive", isActive);
-  }
-
-  const icon = form.get("icon");
-  if (icon instanceof File && icon.size > 0) {
-    if (icon.size > MAX_IMAGE_BYTES) return IMAGE_TOO_LARGE;
-    payload.set("icon", icon, icon.name);
-  }
-
-  const result = await apiPutFormData<NavTabOverride>(
-    "/admin/sections/tabs",
-    payload,
-  );
-  if (!result.ok) return failure(result);
-
-  revalidateStore();
-  return {
-    ok: true,
-    data: { ...result.data, iconUrl: backendAsset(result.data.iconUrl) },
-  };
 }
 
 /**

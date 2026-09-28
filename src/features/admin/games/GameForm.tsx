@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState, useTransition, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { FileField } from "@/components/ui/FileField";
@@ -16,11 +17,11 @@ import {
   ACCEPTED_IMAGE_TYPES,
   MAX_IMAGE_BYTES,
   PLATFORMS,
-  PRODUCT_TYPES,
+  TAB_TEMPLATE_OPTIONS,
 } from "./options";
 import { createGameSchema } from "./schema";
 
-type ErrorField = "name" | "slug" | "platform" | "productType" | "servers";
+type ErrorField = "name" | "slug" | "platform" | "tabTemplate" | "servers";
 type FieldErrors = Partial<Record<ErrorField, string>>;
 
 type FailureReason = Extract<CreateGameResult, { ok: false }>["reason"];
@@ -52,7 +53,7 @@ export function GameForm() {
   const [isSubmitting, startSubmit] = useTransition();
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
-  const [saved, setSalvo] = useState<{ name: string; slug: string } | null>(null);
+  const [saved, setSalvo] = useState<{ name: string; slug: string; id?: string } | null>(null);
   // O link acompanha o NOME até o admin mexer nele; depois é dele. Voltar a
   // esvaziar o campo devolve o automático.
   const [name, setName] = useState("");
@@ -69,7 +70,7 @@ export function GameForm() {
       name: data.get("name"),
       slug: data.get("slug") ?? "",
       platform: data.get("platform"),
-      productType: data.get("productType"),
+      tabTemplate: data.get("tabTemplate"),
       servers: data.get("servers") ?? "",
     });
 
@@ -103,7 +104,7 @@ export function GameForm() {
         return;
       }
 
-      setSalvo({ name: result.name, slug: result.slug });
+      setSalvo({ name: result.name, slug: result.slug, id: result.id });
       // Limpa para o próximo cadastro — é uma tela de cadastrar em série, e
       // deixar o jogo anterior nos campos convida a salvar duplicado. O
       // `reset()` nativo também zera o input de arquivo, que o React não
@@ -179,11 +180,14 @@ export function GameForm() {
         />
 
         <SelectField
-          label="Tipo de Produtos do jogo:"
-          name="productType"
+          // Só um MODELO: vira a PRIMEIRA aba do jogo (o backend a cria com
+          // rótulo, ícone e layout do modelo); as outras se criam depois, em
+          // "Abas". Não é gravado como "tipo" em lugar nenhum.
+          label="Tipo de produto inicial:"
+          name="tabTemplate"
           defaultValue="GOLD"
-          options={PRODUCT_TYPES}
-          error={fieldErrors.productType}
+          options={TAB_TEMPLATE_OPTIONS}
+          error={fieldErrors.tabTemplate}
         />
 
         <FileField
@@ -210,7 +214,21 @@ export function GameForm() {
 
         {saved ? (
           <p role="status" className="font-helvetica text-[14px] text-brand-rating">
-            {saved.name} cadastrado em /games/{saved.slug}
+            {saved.name} cadastrado em /games/{saved.slug} ·{" "}
+            {/* As abas nascem do tipo escolhido acima; o próximo passo natural
+                é dar nome, ícone e layout a elas (e criar as demais). */}
+            {saved.id ? (
+              <Link
+                href={`/admin/jogos/${encodeURIComponent(saved.id)}/abas`}
+                className="font-bold underline"
+              >
+                configurar as abas →
+              </Link>
+            ) : (
+              <Link href="/admin/jogos" className="font-bold underline">
+                ver lista de jogos
+              </Link>
+            )}
           </p>
         ) : null}
       </AdminFormActions>

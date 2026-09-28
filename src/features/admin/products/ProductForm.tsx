@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition, type FormEvent } from "react";
+import { useCallback, useRef, useState, useTransition, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { FileField } from "@/components/ui/FileField";
 import { MoneyField } from "@/components/ui/MoneyField";
@@ -14,9 +14,12 @@ import {
   ACCEPTED_IMAGE_TYPES,
   MAX_IMAGE_BYTES,
   PLATFORMS,
-  PRODUCT_TYPES,
   labelFor,
 } from "../games/options";
+import { listGameTabsAction } from "../games/tabs/actions";
+import { isProductTab, type GameTab } from "../games/tabs/types";
+import { PricingEditor } from "./PricingEditor";
+import { draftToPricing, pricingToDraft, type PricingDraft } from "./pricingDraft";
 import {
   createProductAction,
   updateProductAction,
@@ -25,13 +28,14 @@ import {
 import { ACTION_FAILED_UPLOAD_MESSAGE, runAction } from "@/lib/safeAction";
 import { createProductSchema } from "./schema";
 import type { AdminProduct } from "./catalog";
+import { categorySelectOptions } from "./categoryOptions";
 
 type ErrorField =
   | "gameId"
   | "name"
   | "priceCents"
   | "platform"
-  | "productType"
+  | "tabId"
   | "serverId"
   | "categoryId";
 type FieldErrors = Partial<Record<ErrorField, string>>;
@@ -68,6 +72,14 @@ const ERROR_MESSAGES: Record<FailureReason, string> = {
  * manda uma plataforma e um tipo), ela já vem escolhida: obrigar a abrir um
  * dropdown de um item é atrito sem contrapartida.
  *
+ * ── ABA no lugar do "Tipo de Produto" (contrato `game-tabs.md`, 2026-09-28) ─
+ * As abas agora são por jogo (Jogos → Abas). O select lista as de catálogo e
+ * serviço do jogo escolhido, lidas por server action quando o jogo muda (na
+ * edição, já vêm do servidor). Aba SERVIÇO abre o editor da regra de preço
+ * (`PricingEditor`), que viaja num hidden como JSON e é validado pelo MESMO
+ * `pricingSchema` aqui, na action e no backend. As categorias do select são as
+ * do servidor + aba escolhidos, mais as globais.
+ *
  * ── "Nome do produto" NÃO está no arquivo ───────────────────────────────────
  * Entrou porque os consumidores exigem: o card da vitrine mostra o nome
  * (`ProductCard`) e o pedido o congela (`Order.productName`). Sem ele, dois
@@ -78,10 +90,13 @@ const ERROR_MESSAGES: Record<FailureReason, string> = {
 export function ProductForm({
   games,
   product,
+  initialTabs,
 }: {
   games: AdminGame[];
   /** Presente = EDIÇÃO. Ausente = cadastro novo. */
   product?: AdminProduct;
+  /** Abas do jogo do produto, lidas no servidor (só na edição). */
+  initialTabs?: GameTab[] | null;
 }) {
   const router = useRouter();
   const isEditing = product !== undefined;
@@ -100,6 +115,49 @@ export function ProductForm({
   const [gameId, setGameId] = useState(product?.game.id ?? "");
   const selectedGame = games.find((game) => game.id === gameId) ?? null;
 
+  // Abas do jogo escolhido. `null` = ainda não lidas (ou a leitura falhou —
+  // `tabsError` diz qual). Só as de catálogo/serviço recebem produto.
+  const [tabs, setTabs] = useState<GameTab[] | null>(initialTabs ?? null);
+  const [tabsError, setTabsError] = useState(isEditing && !initialTabs);
+  const [loadingTabs, startLoadTabs] = useTransition();
+  const tabsRequest = useRef(0);
+  const productTabs = tabs?.filter(isProductTab) ?? [];
+
+  const [tabId, setTabId] = useState(product?.tabId ?? "");
+  const [serverId, setServerId] = useState(product?.serverId ?? "");
+  const selectedTab = productTabs.find((tab) => tab.id === tabId) ?? null;
+  const isService = selectedTab?.layout === "SERVICE";
+
+  // Preço do produto acompanhado AO VIVO só para a prévia do serviço.
+  const [priceCents, setPriceCents] = useState(product?.priceCents ?? 0);
+  const onPriceChange = useCallback((cents: number) => setPriceCents(cents), []);
+  const [pricingDraft, setPricingDraft] = useState<PricingDraft>(() => pricingToDraft(product?.pricing));
+
+  /**
+   * Lê as abas do jogo recém-escolhido. O contador descarta respostas
+   * atrasadas: trocar de jogo duas vezes rápido não pode deixar as abas do
+   * primeiro no select do segundo.
+   */
+  function loadTabs(id: string) {
+    const request = ++tabsRequest.current;
+    setTabs(null);
+    setTabsError(false);
+    setTabId("");
+    if (!id) return;
+    startLoadTabs(async () => {
+      const result = await runAction(() => listGameTabsAction(id), { ok: false, reason: "error" });
+      if (request !== tabsRequest.current) return;
+      if (!result.ok) {
+        setTabsError(true);
+        return;
+      }
+      setTabs(result.data);
+      const options = result.data.filter(isProductTab);
+      // Uma aba só já vem escolhida — mesma regra dos outros selects.
+      setTabId(options.length === 1 ? options[0].id : "");
+    });
+  }
+
   /**
    * Trocar o jogo apaga os erros da PRIMEIRA fileira, e só dela.
    *
@@ -111,6 +169,9 @@ export function ProductForm({
    */
   function selectGame(id: string) {
     setGameId(id);
+    const game = games.find((item) => item.id === id);
+    setServerId(game && game.servers.length === 1 ? game.servers[0].id : "");
+    loadTabs(id);
     setFieldErrors((previous) => ({
       priceCents: previous.priceCents,
       name: previous.name,
@@ -125,11 +186,10 @@ export function ProductForm({
       label: labelFor(PLATFORMS, value),
     })) ?? [];
 
-  const productTypeOptions =
-    selectedGame?.productTypes.map((value) => ({
-      value,
-      label: labelFor(PRODUCT_TYPES, value),
-    })) ?? [];
+  const tabOptions = productTabs.map((tab) => ({
+    value: tab.id,
+    label: `${tab.label}${tab.layout === "SERVICE" ? " — serviço" : ""}${tab.isActive ? "" : " (oculta)"}`,
+  }));
 
   const serverOptions =
     selectedGame?.servers.map((server) => ({ value: server.id, label: server.label })) ?? [];
@@ -137,8 +197,36 @@ export function ProductForm({
   // Categorias vêm do Builder de Páginas. Jogo que nunca passou por lá tem a
   // lista vazia, e aí o select aparece desabilitado com a explicação — em vez
   // de sumir e deixar a pessoa sem saber por que não dá para classificar.
-  const categoryOptions =
-    selectedGame?.categories.map((c) => ({ value: c.id, label: c.label })) ?? [];
+  //
+  // Só as do ESCOPO: servidor + aba escolhidos, mais as globais (sem servidor
+  // / sem aba). Categoria de outro servidor ou aba não aparece na vitrine
+  // daquele produto, e o backend recusaria a combinação.
+  const categoryOptions = selectedGame
+    ? categorySelectOptions(
+        selectedGame.categories.filter(
+          (category) =>
+            (!category.serverId || category.serverId === serverId) &&
+            (!category.tabId || category.tabId === tabId),
+        ),
+      )
+    : [];
+  const categoryDefault =
+    product?.categoryId && categoryOptions.some((option) => option.value === product.categoryId)
+      ? product.categoryId
+      : undefined;
+
+  /**
+   * O que vai no hidden `pricing`: a regra (aba SERVIÇO), `"null"` para LIMPAR
+   * a de um produto que saiu de uma aba de serviço, ou nada.
+   */
+  const pricingCheck = isService ? draftToPricing(pricingDraft) : null;
+  const pricingField = pricingCheck
+    ? pricingCheck.ok
+      ? JSON.stringify(pricingCheck.pricing)
+      : ""
+    : isEditing && product?.pricing
+      ? "null"
+      : "";
 
   /** Uma opção só já vem escolhida; várias abrem com o placeholder. */
   const onlyOption = (options: { value: string }[]) =>
@@ -156,7 +244,7 @@ export function ProductForm({
       name: data.get("name"),
       priceCents: data.get("priceCents"),
       platform: data.get("platform") ?? "",
-      productType: data.get("productType") ?? "",
+      tabId: data.get("tabId") ?? "",
       serverId: data.get("serverId") ?? "",
       categoryId: data.get("categoryId") ?? "",
     });
@@ -179,6 +267,15 @@ export function ProductForm({
     if (selectedGame && selectedGame.servers.length > 0 && parsed.data.serverId === "") {
       setFieldErrors({ serverId: "Escolha o servidor do produto." });
       setFormError(null);
+      setSaved(null);
+      return;
+    }
+
+    // Regra de preço inválida não sai daqui: o erro já está escrito embaixo
+    // do editor, e este aviso aponta para ele.
+    if (pricingCheck && !pricingCheck.ok) {
+      setFieldErrors({});
+      setFormError(`Preço do serviço: ${pricingCheck.message}`);
       setSaved(null);
       return;
     }
@@ -215,6 +312,9 @@ export function ProductForm({
       // selects dependentes). Sem esta linha, os dropdowns continuariam com as
       // opções do jogo anterior sobre um campo de jogo já vazio.
       setGameId("");
+      loadTabs("");
+      setServerId("");
+      setPricingDraft(pricingToDraft(null));
     });
   }
 
@@ -258,12 +358,13 @@ export function ProductForm({
           }
           options={serverOptions}
           defaultValue={product?.serverId ?? onlyOption(serverOptions)}
+          onValueChange={setServerId}
           disabled={selectedGame === null || serverOptions.length === 0}
           error={fieldErrors.serverId}
         />
 
         <SelectField
-          key={`category-${gameId}`}
+          key={`category-${gameId}-${serverId}-${tabId}`}
           label="Categoria:"
           name="categoryId"
           // Placeholder diferente quando o jogo não tem categoria nenhuma —
@@ -271,31 +372,55 @@ export function ProductForm({
           // parece defeito. Aqui o texto ainda diz ONDE se cria uma.
           placeholder={
             selectedGame !== null && categoryOptions.length === 0
-              ? "Nenhuma — crie no Builder de Páginas"
+              ? "Nenhuma neste servidor/aba"
               : "Categoria (opcional)"
           }
           options={categoryOptions}
-          defaultValue={product?.categoryId ?? undefined}
+          defaultValue={categoryDefault}
           disabled={selectedGame === null || categoryOptions.length === 0}
           error={fieldErrors.categoryId}
         />
 
         <SelectField
-          key={`type-${gameId}`}
-          label="Tipo de Produto:"
-          name="productType"
-          placeholder="Tipo de produto"
-          options={productTypeOptions}
-          defaultValue={product?.productType ?? onlyOption(productTypeOptions)}
-          disabled={selectedGame === null}
-          error={fieldErrors.productType}
+          // Remonta quando as abas chegam: o `defaultValue` do Radix só vale
+          // na montagem.
+          key={`tab-${gameId}-${tabs === null ? "loading" : tabs.length}`}
+          label="Aba:"
+          name="tabId"
+          placeholder={
+            selectedGame === null
+              ? "Aba"
+              : loadingTabs
+                ? "Carregando abas…"
+                : tabsError
+                  ? "Não foi possível ler as abas"
+                  : tabOptions.length === 0
+                    ? "Nenhuma — crie em Jogos → Abas"
+                    : "Aba do produto"
+          }
+          options={tabOptions}
+          defaultValue={tabId || undefined}
+          onValueChange={setTabId}
+          disabled={selectedGame === null || tabOptions.length === 0}
+          error={
+            fieldErrors.tabId ??
+            (tabsError ? "Recarregue a página para tentar ler as abas de novo." : undefined)
+          }
         />
 
         <MoneyField
-          label="Preço"
+          // Em serviço o "preço" muda de papel conforme o modo — o rótulo diz qual.
+          label={
+            isService && pricingDraft.mode === "QUANTITY"
+              ? "Preço unitário padrão"
+              : isService && pricingDraft.mode === "LEVEL_RANGE"
+                ? "Taxa base do serviço"
+                : "Preço"
+          }
           name="priceCents"
           placeholder="R$ 0,00"
           defaultCents={product?.priceCents}
+          onCentsChange={onPriceChange}
           error={fieldErrors.priceCents}
         />
 
@@ -319,6 +444,13 @@ export function ProductForm({
           error={fieldErrors.name}
         />
       </AdminFieldGrid>
+
+      <input type="hidden" name="pricing" value={pricingField} />
+      {isService ? (
+        <div className="mt-[49px] max-w-[1100px]">
+          <PricingEditor draft={pricingDraft} onChange={setPricingDraft} basePriceCents={priceCents} />
+        </div>
+      ) : null}
 
       <AdminFormActions>
         <Button type="submit" variant="primary" fullWidth disabled={isSubmitting}>

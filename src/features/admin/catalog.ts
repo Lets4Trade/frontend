@@ -1,8 +1,8 @@
 import { apiGet } from "@/lib/serverApi";
 
 /**
- * Jogo como o formulário de PRODUTO precisa dele: com as plataformas, os tipos
- * e os servidores que o próprio jogo declarou.
+ * Jogo como o formulário de PRODUTO precisa dele: com as plataformas e os
+ * servidores que o próprio jogo declarou (as abas vêm de `games/tabs/list.ts`).
  *
  * É o contrato de `GET /api/v1/admin/games`.
  */
@@ -12,15 +12,30 @@ export type AdminGame = {
   name: string;
   /** Nomes do enum `GamePlatform` do backend. */
   platforms: string[];
-  /** Nomes do enum `GameProductType` do backend. */
-  productTypes: string[];
   servers: { id: string; label: string }[];
   /**
    * Categorias criadas no Builder de Páginas (etapa 7). Lista vazia é o normal
    * de um jogo que ainda não passou pelo builder — o select some nesse caso, em
    * vez de aparecer sem nenhuma opção.
    */
-  categories: { id: string; label: string }[];
+  categories: {
+    id: string;
+    label: string;
+    /**
+     * Pai da subcategoria (contrato C da FASE 4); `null`/ausente no primeiro
+     * nível. Lista PLANA — quem monta "Categoria › Subcategoria" para o select é
+     * `categorySelectOptions` (`products/categoryOptions.ts`).
+     */
+    parentId?: string | null;
+    /**
+     * Escopo da categoria (abas por jogo, 2026-09-28): `null`/ausente = vale
+     * para todos os servidores / todas as abas. O cadastro de produto filtra por
+     * aqui. Se o backend não mandar os campos, tudo conta como global — o
+     * select mostra a mais, e o backend recusa a combinação errada no save.
+     */
+    serverId?: string | null;
+    tabId?: string | null;
+  }[];
 };
 
 /**

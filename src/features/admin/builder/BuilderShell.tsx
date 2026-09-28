@@ -8,23 +8,32 @@ import { toastError, toastOk } from "@/components/ui/Toasts";
 import { ACTION_FAILED_MESSAGE, runAction } from "@/lib/safeAction";
 import { ADMIN_SHELL } from "@/features/admin/layout";
 import { resolveSectionOrder } from "@/features/game/sections";
-import { PRODUCT_TABS } from "@/features/game/tabs";
+import { toCategoryTree } from "@/features/game/categoryTree";
 import { savePageAction } from "./actions";
+import { draftCategoriesToPayload } from "./payload";
 import {
   BannerPanel,
+  CategoryTreePanel,
   DescriptionPanel,
   ListPanel,
   LogoPanel,
-  MainCategoriesPanel,
   NamePanel,
   PanelShell,
   TitlesPanel,
 } from "./BuilderPanels";
 import { BuilderPreview } from "./BuilderPreview";
 import { BuilderSidebar } from "./BuilderSidebar";
+import type { GameTab } from "@/features/admin/games/tabs/types";
 import { SectionOrderPanel } from "./SectionOrderPanel";
 import { stepById, type BuilderStepId } from "./steps";
-import type { BuilderGame, BuilderListItem, BuilderShared, Draft } from "./types";
+import { isGlobalCategory } from "./types";
+import type {
+  BuilderCategory,
+  BuilderGame,
+  BuilderListItem,
+  BuilderShared,
+  Draft,
+} from "./types";
 
 /**
  * "Builder de Páginas" (Figma 3883:2153) — a casca da tela.
@@ -49,8 +58,14 @@ import type { BuilderGame, BuilderListItem, BuilderShared, Draft } from "./types
 export function BuilderShell({
   game,
   shared,
+  tabs,
 }: {
   game: BuilderGame;
+  /**
+   * As abas do jogo (Jogos → Abas). `null` = leitura falhou ou o backend ainda
+   * não as tem: a maquete volta a desenhar as abas pelos tipos antigos.
+   */
+  tabs: GameTab[] | null;
   /** `null` quando a página publicada não pôde ser lida — a maquete segue sem
       os blocos compartilhados em vez de a tela inteira falhar. */
   shared: BuilderShared | null;
@@ -76,11 +91,14 @@ export function BuilderShell({
   const isDirty = dirtySteps.size > 0;
 
   const derivedHeading = useMemo(() => {
-    const first = PRODUCT_TABS.find((tab) => draft.productTypes.includes(tab.productType));
+    // A primeira aba ATIVA de produto do jogo — a que a loja abre por padrão.
+    const first = tabs
+      ?.filter((tab) => tab.isActive && tab.layout !== "LINK")
+      .sort((a, b) => a.position - b.position)[0];
     if (!first) return `Compre em ${draft.name}`;
     const what = first.label.charAt(0) + first.label.slice(1).toLocaleLowerCase("pt-BR");
     return `Compre ${what} De ${draft.name}`;
-  }, [draft.name, draft.productTypes]);
+  }, [draft.name, tabs]);
 
   function publish() {
     startTransition(async () => {
@@ -95,9 +113,8 @@ export function BuilderShell({
             serversLabel: draft.serversLabel,
             categoriesLabel: draft.categoriesLabel,
             description: draft.description,
-            productTypes: draft.productTypes,
             servers: draft.servers.map((item) => ({ id: item.id, label: item.label })),
-            categories: draft.categories.map((item) => ({ id: item.id, label: item.label })),
+            categories: draftCategoriesToPayload(draft.categories),
             sectionOrder: draft.sectionOrder,
           }),
         { ok: false, reason: "error", message: ACTION_FAILED_MESSAGE },
@@ -189,7 +206,7 @@ export function BuilderShell({
               </PanelShell>
             </>
           ) : (
-            <BuilderPreview draft={draft} gameName={draft.name} shared={shared} />
+            <BuilderPreview draft={draft} gameName={draft.name} shared={shared} tabs={tabs} />
           )}
         </div>
       </div>
@@ -229,8 +246,6 @@ function renderPanel(
       );
     case "nome":
       return <NamePanel draft={draft} patch={patch} publishedSlug={game.slug} />;
-    case "categorias-principais":
-      return <MainCategoriesPanel draft={draft} patch={patch} />;
     case "servidores":
       return (
         <ListPanel
@@ -243,13 +258,23 @@ function renderPanel(
       );
     case "categorias":
       return (
-        <ListPanel
-          items={draft.categories}
-          onChange={(categories) => patch({ categories })}
-          addLabel="+ Adicionar categoria"
-          itemLabel="Categoria"
-          emptyHint="Sem categorias, o painel “Selecionar categoria” não aparece na loja."
-        />
+        <>
+          <p className="font-poppins text-[13px] text-brand-fg-subtle">
+            Estas são as categorias GLOBAIS do jogo: aparecem em todos os servidores e em todas as
+            abas. As de um servidor ou de uma aba específica ficam em{" "}
+            <Link
+              href={`/admin/jogos/${encodeURIComponent(game.id)}/categorias`}
+              className="font-bold text-brand-orange underline"
+            >
+              Jogos → Categorias
+            </Link>
+            .
+          </p>
+          <CategoryTreePanel
+            items={draft.categories}
+            onChange={(categories) => patch({ categories })}
+          />
+        </>
       );
     case "descricao":
       return <DescriptionPanel draft={draft} patch={patch} />;
@@ -260,7 +285,8 @@ function renderPanel(
           onChange={(sectionOrder) => patch({ sectionOrder })}
         />
       );
-    // A etapa 8 é um `<Link>` na lateral e nunca abre painel — ver `steps.ts`.
+    // As etapas 5 e 8 são `<Link>` na lateral e nunca abrem painel — ver `steps.ts`.
+    case "categorias-principais":
     case "produtos":
       return null;
   }
@@ -289,9 +315,11 @@ function toDraft(game: BuilderGame): Draft {
     serversLabel: game.serversLabel ?? "",
     categoriesLabel: game.categoriesLabel ?? "",
     description: game.description ?? "",
-    productTypes: [...game.productTypes],
     servers: game.servers.map(toItem),
-    categories: game.categories.map(toItem),
+    // Árvore de dois níveis, venha ela montada (`children`) ou plana (`parentId`).
+    categories: toCategoryTree(game.categories.filter(isGlobalCategory)).map(
+      (row): BuilderCategory => ({ ...toItem(row), children: row.children.map(toItem) }),
+    ),
     // Sempre concreta na tela: `resolveSectionOrder` traduz o vazio do banco
     // ("não personalizado") na ordem padrão do arquivo.
     sectionOrder: resolveSectionOrder(game.sectionOrder),
@@ -317,11 +345,8 @@ function diffSteps(draft: Draft, saved: Draft): ReadonlySet<BuilderStepId> {
   }
   if (draft.name !== saved.name || draft.slug !== saved.slug) dirty.add("nome");
   if (draft.description !== saved.description) dirty.add("descricao");
-  if (!sameList(draft.productTypes, saved.productTypes)) {
-    dirty.add("categorias-principais");
-  }
   if (!sameItems(draft.servers, saved.servers)) dirty.add("servidores");
-  if (!sameItems(draft.categories, saved.categories)) dirty.add("categorias");
+  if (!sameCategories(draft.categories, saved.categories)) dirty.add("categorias");
   if (!sameList(draft.sectionOrder, saved.sectionOrder)) dirty.add("ordem");
 
   // Banner e logo NÃO entram: eles já foram publicados no momento do upload,
@@ -339,4 +364,9 @@ function sameItems(a: BuilderListItem[], b: BuilderListItem[]) {
     a.length === b.length &&
     a.every((item, index) => item.id === b[index].id && item.label === b[index].label)
   );
+}
+
+/** Mesma regra de `sameItems`, nos dois níveis. */
+function sameCategories(a: BuilderCategory[], b: BuilderCategory[]) {
+  return sameItems(a, b) && a.every((item, index) => sameItems(item.children, b[index].children));
 }

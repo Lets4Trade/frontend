@@ -149,6 +149,16 @@ export function SectionOrderPanel({
 
   return (
     <>
+      {/* Construtor de páginas (2026-09-25): publicada a página DESTE jogo lá
+          (Páginas → "Jogo — nome"), a ordem e os blocos novos passam a ser os
+          de lá, e esta lista só vale enquanto ela não for publicada. */}
+      <p className="mb-[14px] rounded-[12px] border border-brand-border bg-black/30 px-[12px] py-[10px] font-poppins text-[12px] leading-[18px] text-brand-fg-muted">
+        Quer pôr banners, textos ou produtos em destaque entre estas seções? Use{" "}
+        <a href="/admin/paginas" className="text-brand-orange hover:underline">
+          Páginas
+        </a>{" "}
+        → &quot;Jogo — …&quot;. Depois de publicada lá, a ordem de lá é a que vale.
+      </p>
       <DndContext
         accessibility={{ announcements }}
         sensors={sensors}

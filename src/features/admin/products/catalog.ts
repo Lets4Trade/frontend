@@ -11,7 +11,7 @@
  * esconder a maior parte), o estado sobrevive ao voltar do navegador, e o
  * objeto de query já é a query string da API.
  */
-import { PRODUCT_TABS } from "@/features/game/tabs";
+import type { Pricing } from "@/features/pricing/quote";
 
 export type AdminProduct = {
   id: string;
@@ -19,7 +19,11 @@ export type AdminProduct = {
   /** Sempre CENTAVOS inteiros — o backend converte o `Decimal` na saída. */
   priceCents: number;
   platform: string;
-  productType: string;
+  /** Aba do jogo (contrato `game-tabs.md`). */
+  tabId?: string | null;
+  tabLabel?: string | null;
+  /** Regra de preço de SERVIÇO; `null` em aba CATALOG. */
+  pricing?: Pricing | null;
   /** Caminho servido pelo BACKEND (`/uploads/products/…`), não pelo Next. */
   imageUrl: string | null;
   serverId: string | null;
@@ -63,30 +67,14 @@ const SORTS = new Set<string>([
   ...SORT_BOXES.map((o) => o.value),
 ]);
 
-/**
- * As abas de tipo do arquivo são NOVE, mas duas delas — "VENDA PRA NÓS" e
- * "FIDELIDADE" — não são tipos de produto: na vitrine elas são links para
- * `/venda` e `/fidelidade`. Como filtro de produto nunca casariam com nada,
- * então aqui ficam as SETE que existem no enum `GameProductType` do backend.
- *
- * DERIVADAS de `features/game/tabs.ts`, e não escritas de novo. Esta lista era
- * uma segunda cópia da mesma coisa, com outro formato — e uma aba nova entraria
- * num dos dois lugares antes do outro, deixando o painel cadastrar um tipo que
- * a loja não sabe desenhar. `tabs.ts` é dado puro, então importá-lo aqui não
- * arrasta nada de servidor para o bundle do navegador.
- */
-export const TYPE_TABS = PRODUCT_TABS.map((tab) => ({
-  value: tab.productType,
-  label: tab.label,
-  icon: tab.icon,
-}));
-
-const TYPES = new Set<string>(TYPE_TABS.map((t) => t.value));
-
 /** Nomes dos parâmetros, num lugar só porque links e leitura usam os dois. */
 export const PARAM = {
   game: "jogo",
-  type: "tipo",
+  /**
+   * Aba do jogo (`tabId`, contrato `game-tabs.md`) — só com jogo escolhido.
+   * Não há mais filtro por "tipo" sem jogo (FASE 5): aba é coisa de UM jogo.
+   */
+  tab: "aba",
   sort: "ordem",
   search: "busca",
   page: "pagina",
@@ -94,7 +82,8 @@ export const PARAM = {
 
 export type ProductsQuery = {
   game: string;
-  type: string;
+  /** Aba do jogo. Validada contra as abas do jogo na PÁGINA, que as lê. */
+  tab: string;
   sort: string;
   search: string;
   page: number;
@@ -107,7 +96,7 @@ function first(value: string | string[] | undefined) {
 }
 
 /**
- * Lê a query da URL e a VALIDA. Nada do endereço é aceito como veio: tipo e
+ * Lê a query da URL e a VALIDA. Nada do endereço é aceito como veio: aba e
  * ordem só passam se estiverem nas listas, a página é inteiro positivo, e a
  * busca tem teto. É input de cliente — vale a regra de qualquer boundary, e
  * vale mesmo o backend também validando.
@@ -120,13 +109,16 @@ export function parseProductsQuery(
   gameIds: readonly string[],
 ): ProductsQuery {
   const rawGame = first(params[PARAM.game]) ?? "";
-  const rawType = first(params[PARAM.type]) ?? "";
+  const rawTab = first(params[PARAM.tab]) ?? "";
   const rawSort = first(params[PARAM.sort]) ?? "";
   const rawPage = Number.parseInt(first(params[PARAM.page]) ?? "1", 10);
 
+  const game = gameIds.includes(rawGame) ? rawGame : "";
   return {
-    game: gameIds.includes(rawGame) ? rawGame : "",
-    type: TYPES.has(rawType) ? rawType : "",
+    game,
+    // Aba só existe dentro de um jogo. Aqui só o FORMATO (é id opaco); se ela é
+    // mesmo deste jogo, a página confere com a lista de abas que ela lê.
+    tab: game !== "" && /^[A-Za-z0-9_-]{1,100}$/.test(rawTab) ? rawTab : "",
     sort: SORTS.has(rawSort) ? rawSort : "recente",
     search: (first(params[PARAM.search]) ?? "").slice(0, 80),
     page: Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1,
@@ -149,7 +141,9 @@ export function buildHref(
 
   const search = new URLSearchParams();
   if (next.game) search.set(PARAM.game, next.game);
-  if (next.type) search.set(PARAM.type, next.type);
+  // Trocar de jogo zera a aba: ela é de UM jogo só.
+  if (patch.game !== undefined && patch.game !== query.game && patch.tab === undefined) next.tab = "";
+  if (next.tab) search.set(PARAM.tab, next.tab);
   // "recente" é o padrão do backend; omiti-lo mantém a URL limpa.
   if (next.sort && next.sort !== "recente") search.set(PARAM.sort, next.sort);
   if (next.search) search.set(PARAM.search, next.search);

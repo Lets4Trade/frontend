@@ -31,7 +31,7 @@ export function LoyaltyStatement({
   return (
     <section
       aria-labelledby="fidelidade-extrato"
-      className="mt-[50px] w-full overflow-hidden rounded-[30px] border border-white/10 bg-brand-surface p-[20px] md:p-[50px]"
+      className="w-full overflow-hidden rounded-[30px] border border-white/10 bg-brand-surface p-[20px] md:p-[50px]"
     >
       <h2
         id="fidelidade-extrato"

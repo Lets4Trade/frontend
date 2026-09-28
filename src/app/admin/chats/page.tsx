@@ -13,6 +13,7 @@ import {
 import { ADMIN_SHELL } from "@/features/admin/layout";
 import { getAttendants } from "@/features/admin/orders/list";
 import { getSessionUserId } from "@/features/auth/session";
+import { requireAdminPage } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
   title: "Chats — Lets4Trade",
@@ -32,6 +33,7 @@ type PageProps = {
  * autorização de verdade). Filtro, busca, página e conversa aberta moram na URL.
  */
 export default async function AdminChatsPage({ searchParams }: PageProps) {
+  await requireAdminPage();
   const query = parseChatsQuery(await searchParams);
 
   const [page, detail, attendants, staffId] = await Promise.all([

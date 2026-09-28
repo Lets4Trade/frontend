@@ -4,6 +4,7 @@ import { getSessionRole } from "@/features/auth/session";
 import { revalidatePath } from "next/cache";
 import { apiDelete, apiPatchFormData, apiPostFormData, apiPut } from "@/lib/serverApi";
 import { MAX_IMAGE_BYTES } from "../games/options";
+import { pricingSchema, type Pricing } from "@/features/pricing/quote";
 import { createProductSchema } from "./schema";
 
 /**
@@ -43,7 +44,7 @@ export async function createProductAction(
     name: form.get("name"),
     priceCents: form.get("priceCents"),
     platform: form.get("platform"),
-    productType: form.get("productType"),
+    tabId: form.get("tabId"),
     serverId: form.get("serverId") ?? "",
     categoryId: form.get("categoryId") ?? "",
   });
@@ -56,6 +57,9 @@ export async function createProductAction(
     };
   }
 
+  const pricing = readPricing(form);
+  if (!pricing.ok) return { ok: false, reason: "invalid", message: pricing.message };
+
   const payload = new FormData();
   payload.set("gameId", parsed.data.gameId);
   payload.set("name", parsed.data.name);
@@ -63,7 +67,11 @@ export async function createProductAction(
   // `ProductsService` — em nenhum ponto do caminho o preço passa por float.
   payload.set("priceCents", String(parsed.data.priceCents));
   payload.set("platform", parsed.data.platform);
-  payload.set("productType", parsed.data.productType);
+  // A aba do jogo — "tipo de produto" não existe mais (FASE 5).
+  payload.set("tabId", parsed.data.tabId);
+  // Cadastro: só vai quando há regra (aba SERVIÇO). `null` num cadastro seria
+  // o mesmo que não mandar.
+  if (pricing.value) payload.set("pricing", JSON.stringify(pricing.value));
   // Só manda se houver: o DTO trata ausente e vazio da mesma forma, mas mandar
   // string vazia deixaria o campo parecer preenchido em qualquer log.
   if (parsed.data.serverId !== "") payload.set("serverId", parsed.data.serverId);
@@ -101,7 +109,7 @@ export async function createProductAction(
         ok: false,
         reason: "invalid",
         message:
-          "O servidor recusou os dados. Confira se a plataforma, o servidor e o tipo pertencem ao jogo escolhido.",
+          "O servidor recusou os dados. Confira se a plataforma, o servidor, a aba e a categoria pertencem ao jogo escolhido.",
       };
     }
     return { ok: false, reason: "error" };
@@ -178,7 +186,7 @@ export async function updateProductAction(
       name: form.get("name"),
       priceCents: form.get("priceCents"),
       platform: form.get("platform"),
-      productType: form.get("productType"),
+      tabId: form.get("tabId"),
       serverId: form.get("serverId") ?? "",
       categoryId: form.get("categoryId") ?? "",
     });
@@ -187,11 +195,19 @@ export async function updateProductAction(
     return { ok: false, reason: "invalid", message: parsed.error.issues[0]?.message };
   }
 
+  const pricing = readPricing(form);
+  if (!pricing.ok) return { ok: false, reason: "invalid", message: pricing.message };
+
   const payload = new FormData();
   payload.set("name", parsed.data.name);
   payload.set("priceCents", String(parsed.data.priceCents));
   payload.set("platform", parsed.data.platform);
-  payload.set("productType", parsed.data.productType);
+  payload.set("tabId", parsed.data.tabId);
+  // Na edição `null` LIMPA a regra (produto que passou de uma aba SERVIÇO para
+  // uma CATÁLOGO); ausente mantém.
+  if (pricing.value !== undefined) {
+    payload.set("pricing", pricing.value === null ? "null" : JSON.stringify(pricing.value));
+  }
   // Na EDIÇÃO os dois vão SEMPRE, inclusive vazios — diferente do cadastro.
   // No PATCH, ausente significa "manter" e `""` significa "remover" (o backend
   // grava nulo). Omitir o vazio, como o cadastro faz, deixava o admin sem jeito
@@ -239,16 +255,19 @@ export async function updateProductAction(
  */
 export async function saveProductOrderAction(
   gameId: string,
-  type: string,
+  /** A aba do jogo (`tabId`, abas por jogo 2026-09-28). */
+  tabId: string,
   ids: string[],
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const role = await getSessionRole();
   if (role !== "ADMIN") {
     return { ok: false, message: "Sua conta não tem permissão para organizar produtos." };
   }
+  if (!isValidId(tabId)) {
+    return { ok: false, message: "Aba inválida." };
+  }
   if (
     typeof gameId !== "string" ||
-    typeof type !== "string" ||
     !Array.isArray(ids) ||
     ids.length === 0 ||
     ids.length > 300 ||
@@ -257,8 +276,12 @@ export async function saveProductOrderAction(
     return { ok: false, message: "Lista de produtos inválida." };
   }
 
-  // Remontado: só os três campos do `SaveProductOrderDto` viajam.
-  const response = await apiPut("/admin/products/order", { gameId, type, ids: [...ids] });
+  // Remontado: só os campos do `SaveProductOrderDto` viajam.
+  const response = await apiPut("/admin/products/order", {
+    gameId,
+    tabId,
+    ids: [...ids],
+  });
   if (!response.ok) {
     return {
       ok: false,
@@ -280,4 +303,36 @@ export async function saveProductOrderAction(
  */
 function isValidId(id: unknown): id is string {
   return typeof id === "string" && /^[A-Za-z0-9_-]{1,100}$/.test(id);
+}
+
+/** Teto do JSON da regra: 20 adicionais + 50 faixas cabem com folga em 20 KB. */
+const MAX_PRICING_CHARS = 20_000;
+
+/**
+ * Lê o campo `pricing` do formulário: ausente/vazio = `undefined` (não mexer),
+ * `"null"` = `null` (limpar), o resto é JSON validado pelo `pricingSchema` do
+ * contrato — o MESMO que o backend usa. Vai adiante REMONTADO (o `data` do zod),
+ * então chave extra injetada no JSON não viaja.
+ */
+function readPricing(
+  form: FormData,
+): { ok: true; value: Pricing | null | undefined } | { ok: false; message: string } {
+  const raw = form.get("pricing");
+  if (raw === null || raw === "") return { ok: true, value: undefined };
+  if (typeof raw !== "string" || raw.length > MAX_PRICING_CHARS) {
+    return { ok: false, message: "Regra de preço inválida." };
+  }
+  if (raw === "null") return { ok: true, value: null };
+
+  let json: unknown;
+  try {
+    json = JSON.parse(raw);
+  } catch {
+    return { ok: false, message: "Regra de preço inválida." };
+  }
+  const parsed = pricingSchema.safeParse(json);
+  if (!parsed.success) {
+    return { ok: false, message: parsed.error.issues[0]?.message ?? "Regra de preço inválida." };
+  }
+  return { ok: true, value: parsed.data };
 }

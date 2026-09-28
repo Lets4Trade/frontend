@@ -165,7 +165,16 @@ export const getSessionUserId = cache(async (): Promise<string | null> => {
 });
 
 /** Espelha o enum `UserRole` do backend (prisma/schema.prisma). */
-export type SessionRole = "ADMIN" | "USER";
+export type SessionRole = "ADMIN" | "EDITOR" | "USER";
+
+/**
+ * Quem pode mexer em CONTEÚDO do site (construtor de páginas, sessões, Builder
+ * de jogo): ADMIN e EDITOR (2026-09-25). O EDITOR existe para o cliente final
+ * editar a loja sem enxergar pedidos, usuários e pagamentos.
+ */
+export function canEditContent(role: SessionRole | null): role is "ADMIN" | "EDITOR" {
+  return role === "ADMIN" || role === "EDITOR";
+}
 
 /**
  * Papel da sessão atual, ou `null` sem sessão.
@@ -183,5 +192,8 @@ export type SessionRole = "ADMIN" | "USER";
 export const getSessionRole = cache(async (): Promise<SessionRole | null> => {
   const profile = await fetchProfile();
   if (profile === null) return null;
-  return profile.role === "ADMIN" ? "ADMIN" : "USER";
+  // Allowlist explícita: papel desconhecido continua caindo em USER.
+  if (profile.role === "ADMIN") return "ADMIN";
+  if (profile.role === "EDITOR") return "EDITOR";
+  return "USER";
 });

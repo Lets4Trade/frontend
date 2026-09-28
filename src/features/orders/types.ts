@@ -47,6 +47,12 @@ export type Order = {
   status: OrderStatus;
   /** Etapa ATUAL do pedido. As anteriores contam como concluídas. */
   currentStep: OrderStepKey;
+  /**
+   * Só pedido de SERVIÇO: a conta do preço ("Nível 1 → 50" R$ 250,00,
+   * "Prioridade" R$ 24,14) e as horas estimadas, já formatadas. Ausente/`null`
+   * = pedido de catálogo — a tela mostra só a quantidade.
+   */
+  details?: { lines: { label: string; price: string }[]; hours: string | null } | null;
 };
 
 /**

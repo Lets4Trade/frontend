@@ -8,8 +8,9 @@ import {
   ReferencesSection,
 } from "./GameSections";
 import { ProductGrid } from "./ProductGrid";
-import { gapBefore, type GameSectionKey } from "./sections";
-import type { CatalogQuery } from "./catalog";
+import { ServiceSection } from "./ServiceSection";
+import { DEFAULT_GAP, DEFAULT_SECTION_ORDER, gapBefore, type GameSectionKey } from "./sections";
+import { activeTab, scopedCategories, type CatalogQuery } from "./catalog";
 import type { GamePage } from "./types";
 
 /**
@@ -59,12 +60,46 @@ export function GamePageSections({
   );
 }
 
+/**
+ * As seções da página como PEÇAS (construtor de páginas, 2026-09-25): chave →
+ * nó, só as que têm o que mostrar. A ordem e os blocos novos entre elas vêm da
+ * página publicada; o vão é decidido na composição (`gapBefore`).
+ */
+export function gameSectionNodes(page: GamePage, query: CatalogQuery): Record<string, { node: ReactNode; gap: number }> {
+  const out: Record<string, { node: ReactNode; gap: number }> = {};
+  for (const key of DEFAULT_SECTION_ORDER) {
+    const node = renderSection(key, page, query);
+    if (node) out[key] = { node, gap: DEFAULT_GAP };
+  }
+  return out;
+}
+
 /** `null` = este bloco não tem o que mostrar nesta página. */
 function renderSection(
   key: GameSectionKey,
   page: GamePage,
   query: CatalogQuery,
 ): ReactNode {
+  // Aba SERVICE (abas por jogo, 2026-09-28): servidor, categoria e produto
+  // moram DENTRO do card configurador, que ocupa o lugar do bloco "Lista de
+  // produtos". Os blocos de servidor e categoria somem — o card os tem — e o
+  // resto da página (banner, identidade, referências, FAQ) fica igual.
+  const tab = activeTab(page, query);
+  if (tab?.layout === "SERVICE") {
+    if (key === "servers" || key === "categories") return null;
+    if (key === "catalog") return <ServiceSection page={page} query={query} tab={tab} />;
+  }
+  // Jogo sem nenhuma aba de produto ativa (desde a FASE 5 as abas vêm SÓ do
+  // banco): não há catálogo a pedir. Servidor e categoria somem — filtrariam
+  // nada — e o bloco da lista vira um aviso; o resto da página continua.
+  if (!tab && (key === "servers" || key === "categories" || key === "catalog")) {
+    return key === "catalog" ? (
+      <p className="rounded-[30px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[50px] py-[40px] text-center font-poppins text-[16px] text-brand-fg-muted">
+        Nenhum produto disponível para este jogo no momento.
+      </p>
+    ) : null;
+  }
+
   switch (key) {
     case "banner":
       return page.banners.length > 0 ? <BannerSection banners={page.banners} /> : null;
@@ -78,7 +113,7 @@ function renderSection(
       ) : null;
 
     case "categories":
-      return page.categories.items.length > 0 ? (
+      return scopedCategories(page, query).length > 0 ? (
         <CategoryPanel page={page} query={query} />
       ) : null;
 

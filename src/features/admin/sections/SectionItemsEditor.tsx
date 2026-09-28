@@ -49,6 +49,7 @@ export function SectionItemsEditor({
   sectionKey,
   def,
   games = [],
+  onChanged,
 }: {
   /** `home:reviews`. Trocar de sessão recarrega a lista. */
   sectionKey: string;
@@ -56,6 +57,11 @@ export function SectionItemsEditor({
   def: SiteListDef;
   /** Jogos cadastrados, para as sessões com seletor de jogo (`def.game`). */
   games?: GameOption[];
+  /**
+   * Avisado depois de cada gravação bem-sucedida (salvar, remover, reordenar).
+   * O construtor de páginas usa para recarregar a prévia.
+   */
+  onChanged?: () => void;
 }) {
   const [items, setItems] = useState<SectionItem[]>([]);
   const [loadedKey, setLoadedKey] = useState<string | null>(null);
@@ -124,6 +130,7 @@ export function SectionItemsEditor({
       );
       if (result.ok) {
         setItems(result.data);
+        onChanged?.();
         return;
       }
       // Recarrega do servidor em vez de desfazer na mão: a recusa mais provável
@@ -154,6 +161,7 @@ export function SectionItemsEditor({
       if (result.ok) {
         setItems((list) => list.filter((row) => row.id !== item.id));
         toastOk(`${capitalize(def.itemLabel)} removido.`);
+        onChanged?.();
         return;
       }
       toastError(result.message ?? "Não conseguimos remover o item.");
@@ -188,6 +196,7 @@ export function SectionItemsEditor({
           ? list.map((row) => (row.id === result.data.id ? result.data : row))
           : [...list, result.data];
       });
+      onChanged?.();
       toastOk(
         id
           ? "Item salvo. A loja já mostra."

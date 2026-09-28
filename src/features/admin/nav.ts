@@ -16,6 +16,8 @@ export type AdminNavItem = {
    * acesa.
    */
   match?: readonly string[];
+  /** Quem vê o item. Ausente = só ADMIN (padrão fechado para item novo). */
+  roles?: readonly ("ADMIN" | "EDITOR")[];
 };
 
 export const ADMIN_NAV: readonly AdminNavItem[] = [
@@ -31,8 +33,12 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
     // começar pelo meio.
     label: "Produtos",
     href: "/admin/produtos",
-    match: ["/admin/produtos", "/admin/jogos"],
+    match: ["/admin/produtos"],
   },
+  // NÃO está no arquivo do Figma: o CRUD de jogos ganhou tela própria em
+  // 2026-09-28 (antes o cadastro ficava sob "Produtos" e editar/excluir, só no
+  // Builder). Só ADMIN — o EDITOR mexe na página do jogo, não no catálogo.
+  { label: "Jogos", href: "/admin/jogos", match: ["/admin/jogos"] },
   // NÃO está no arquivo do Figma: o atendimento (popup de contato + Discord) foi
   // pedido em 2026-09-15. Ao lado de pedidos porque é o mesmo trabalho.
   { label: "Chats", href: "/admin/chats", match: ["/admin/chats"] },
@@ -43,12 +49,14 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
     label: "Páginas",
     href: "/admin/paginas",
     match: ["/admin/paginas", "/admin/sessoes"],
+    roles: ["ADMIN", "EDITOR"],
   },
   { label: "Usuários", href: "/admin/usuarios", match: ["/admin/usuarios"] },
   {
     label: "Builder de Page",
     href: "/admin/builder",
     match: ["/admin/builder"],
+    roles: ["ADMIN", "EDITOR"],
   },
   // NÃO está no arquivo do Figma: as cinco abas desenhadas não incluem logs. A
   // tela foi pedida depois, e sem item de menu ela seria inalcançável.

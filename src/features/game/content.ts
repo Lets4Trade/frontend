@@ -3,15 +3,15 @@ import type { CatalogQuery, CatalogResult } from "./catalog";
 import { resolveSectionOrder } from "./sections";
 import { getEditorial } from "./seed";
 import { getSectionItemsFor, getSectionsFor } from "@/features/site/content";
-import { getNavTabs } from "@/features/site/navTabs";
 import {
-  resolveLinkTabs,
-  resolveProductTabs,
-  tabById,
-  tabByProductType,
-  type NavTabOverride,
-} from "./tabs";
-import type { GamePage, GameProduct, GameTab } from "./types";
+  defaultTabId,
+  readPricing,
+  tabsFromApi,
+  toGameCategories,
+  type ApiCategory,
+  type ApiGameTab,
+} from "./storefrontTabs";
+import type { GamePage, GameProduct } from "./types";
 
 /**
  * Os jogos em que o grupo "Dúvidas sobre Orbs" aparece, ACIMA do geral.
@@ -53,9 +53,18 @@ type StorefrontGame = {
   name: string;
   /** Ausente quando o jogo foi cadastrado sem arte — ver a nota sobre nulos. */
   imageUrl?: string | null;
-  productTypes: string[];
+  /**
+   * Abas do banco (ativas, por posição) — contrato game-tabs, 2026-09-28. A
+   * ÚNICA fonte das abas desde a FASE 5; ausente (o backend apaga lista nula)
+   * = jogo sem aba ativa.
+   */
+  tabs?: ApiGameTab[] | null;
   servers: { slug: string; label: string }[];
-  categories: { slug: string; label: string }[];
+  /**
+   * Árvore de dois níveis (contrato C da FASE 4): raízes com `children` OU lista
+   * plana com `parentId` — `toCategoryTree` resolve as duas.
+   */
+  categories: StorefrontCategory[];
   banners: { id: string; imageUrl: string; href?: string | null }[];
   /**
    * Personalização do Builder de Páginas. Ausentes = "não personalizado", e a
@@ -70,13 +79,18 @@ type StorefrontGame = {
   sectionOrder?: string[] | null;
 };
 
+/** Com `serverSlug`/`tabSlug` desde as abas por jogo (nulo = vale para todos). */
+type StorefrontCategory = ApiCategory;
+
 /** O que `GET /api/v1/games/:slug/products` devolve. */
 type StorefrontProductPage = {
   items: {
     id: string;
     name: string;
     priceCents: number;
-    productType: string;
+    tabSlug?: string | null;
+    /** Só produto de aba SERVICE; nulo/ausente = FIXED. */
+    pricing?: unknown;
     imageUrl?: string | null;
     serverSlug?: string | null;
     serverLabel?: string | null;
@@ -97,11 +111,10 @@ const PAGE_SIZE = 24;
  * está desativado — a página transforma isso num 404.
  */
 export async function getGamePage(slug: string): Promise<GamePage | null> {
-  // As duas leituras em paralelo: a personalização das abas não depende do
-  // jogo, e em série somaria latência à página mais navegada da loja.
-  const [game, navTabs, section, items] = await Promise.all([
+  // As leituras em paralelo: em série somariam latência à página mais navegada
+  // da loja.
+  const [game, section, items] = await Promise.all([
     publicApiGet<StorefrontGame>(`/games/${encodeURIComponent(slug)}`),
-    getNavTabs(),
     // Os blocos COMPARTILHADOS da página de jogo (referências, notícias,
     // dúvidas) têm o mesmo conteúdo em todos os jogos, então vivem na tela
     // "Edição de sessões" e não no Builder — que cuida do que é de cada jogo.
@@ -113,10 +126,11 @@ export async function getGamePage(slug: string): Promise<GamePage | null> {
   ]);
   if (!game) return null;
 
-  const tabs = buildTabs(game.slug, game.productTypes, navTabs);
-  // A primeira aba de PRODUTO é a ativa. As de link ("VENDA PRA NÓS",
-  // "FIDELIDADE") nunca podem ser: elas não filtram catálogo nenhum.
-  const activeTabId = tabs.find((tab) => tabById(tab.id))?.id ?? "";
+  const tabs = tabsFromApi(game.slug, Array.isArray(game.tabs) ? game.tabs : []);
+  // A primeira aba que não é LINK é a ativa. As de link ("VENDA PRA NÓS",
+  // "FIDELIDADE") nunca podem ser: elas levam para outra página. Sem nenhuma,
+  // `activeTabId` é "" e a página sai sem catálogo.
+  const activeTabId = defaultTabId(tabs);
 
   const editorial = getEditorial(game.slug, game.name);
 
@@ -131,7 +145,9 @@ export async function getGamePage(slug: string): Promise<GamePage | null> {
   });
   // O título ESCRITO pelo admin vence o derivado. Vazio no banco é nulo (o
   // backend converte), então basta o falsy — nunca `=== null`.
-  const heading = game.heading?.trim() || buildHeading(game.name, activeTabId);
+  const heading =
+    game.heading?.trim() ||
+    buildHeading(game.name, tabs.find((tab) => tab.id === activeTabId)?.label);
   const logo = backendAsset(game.imageUrl);
 
   return {
@@ -192,10 +208,7 @@ export async function getGamePage(slug: string): Promise<GamePage | null> {
      */
     categories: {
       label: game.categoriesLabel?.trim() || "Selecionar categoria",
-      items: game.categories.map((category) => ({
-        id: category.slug,
-        label: category.label,
-      })),
+      items: toGameCategories(game.categories ?? []),
     },
 
     catalog: { pageSize: PAGE_SIZE },
@@ -299,7 +312,8 @@ export function withActiveTab(page: GamePage, activeTabId: string): GamePage {
       // O título ESCRITO pelo admin não muda com a aba — ele é o título da
       // página. Só o derivado acompanha a aba escolhida.
       heading:
-        page.identity.customHeading ?? buildHeading(page.name, activeTabId),
+        page.identity.customHeading ??
+        buildHeading(page.name, page.tabs.find((tab) => tab.id === activeTabId)?.label),
     },
   };
 }
@@ -324,8 +338,11 @@ export async function getCatalog(
 ): Promise<CatalogResult> {
   const params = new URLSearchParams();
 
-  const tab = tabById(query.tab);
-  if (tab) params.set("type", tab.productType);
+  // Só aba de verdade (e não LINK) filtra. Sem aba válida não há catálogo a
+  // pedir: listar o jogo inteiro misturaria serviço com catálogo.
+  const tab = page.tabs.find((item) => item.id === query.tab && item.layout !== "LINK");
+  if (!tab) return { items: [], total: 0, pageCount: 1, page: 1 };
+  params.set("tab", tab.id);
   if (query.server) params.set("server", query.server);
   // Repetível: marcar duas categorias significa "qualquer uma das duas".
   for (const slug of query.categories) params.append("category", slug);
@@ -367,49 +384,33 @@ function toProduct(item: StorefrontProductPage["items"][number]): GameProduct {
     serverLabel: item.serverLabel ?? undefined,
     categorySlug: item.categorySlug ?? undefined,
     categoryLabel: item.categoryLabel ?? undefined,
-    tabId: tabByProductType(item.productType)?.id ?? "",
+    tabId: item.tabSlug || "",
+    ...readPricing(item.pricing),
   };
 }
 
 /**
- * As abas que ESTE jogo desenha.
+ * Os produtos de SERVIÇO de um escopo (aba + servidor + categoria), para o
+ * card configurador. Uma chamada, até 60 itens (o teto do DTO): um serviço com
+ * mais variações que isso não caberia nas pílulas do card de qualquer forma.
  *
- * Saem do `productTypes` do banco, na ordem do arquivo — não da lista completa.
- * Um jogo que só vende moedas não mostra sete abas: as outras seis levariam a
- * catálogos vazios, e o cliente descobriria isso um clique de cada vez.
- *
- * Um tipo que o backend conheça e a arte não cubra é IGNORADO em silêncio, em
- * vez de virar uma aba sem ícone. O enum do backend documenta a mesma regra.
+ * Falha vira lista vazia — o card mostra o estado vazio em vez de derrubar a
+ * página (a identidade e o FAQ continuam no ar).
  */
-function buildTabs(
-  slug: string,
-  productTypes: string[],
-  overrides: NavTabOverride[],
-): GameTab[] {
-  const wanted = new Set(productTypes);
+export async function getServiceProducts(
+  page: GamePage,
+  scope: { tab: string; server: string; category?: string },
+): Promise<GameProduct[]> {
+  const params = new URLSearchParams();
+  params.set("tab", scope.tab);
+  if (scope.server) params.set("server", scope.server);
+  if (scope.category) params.set("category", scope.category);
+  params.set("limit", "60");
 
-  // `resolveProductTabs` aplica rótulo, ícone, ordem e visibilidade da tela
-  // "Edição de sessões"; o filtro por `productTypes` é do BUILDER, e diz quais
-  // abas ESTE jogo vende. As duas coisas se somam.
-  const productTabs: GameTab[] = resolveProductTabs(overrides)
-    .filter((tab) => wanted.has(tab.productType))
-    .map((tab, index) => ({
-      id: tab.id,
-      label: tab.label,
-      icon: { src: tab.icon, width: 50, height: 50 },
-      // A primeira aba é o estado padrão da página, e estado padrão não carrega
-      // parâmetro — a mesma regra da paginação ("página 1 não vai na URL").
-      href: index === 0 ? `/games/${slug}` : `/games/${slug}?aba=${tab.id}`,
-    }));
-
-  const linkTabs: GameTab[] = resolveLinkTabs(overrides).map((tab) => ({
-    id: tab.id,
-    label: tab.label,
-    icon: { src: tab.icon, width: 50, height: 50 },
-    href: tab.href,
-  }));
-
-  return [...productTabs, ...linkTabs];
+  const result = await publicApiGet<StorefrontProductPage>(
+    `/games/${encodeURIComponent(page.slug)}/products?${params.toString()}`,
+  );
+  return result ? result.items.map(toProduct) : [];
 }
 
 /**
@@ -421,14 +422,13 @@ function buildTabs(
  * painel: a página nasceria sem título. Derivar do nome e da aba ativa faz
  * qualquer jogo novo nascer com o título certo.
  */
-function buildHeading(name: string, activeTabId: string): string {
-  const tab = tabById(activeTabId);
-  if (!tab) return `Compre em ${name}`;
+function buildHeading(name: string, tabLabel: string | undefined): string {
+  if (!tabLabel) return `Compre em ${name}`;
 
   // "MOEDAS" → "Moedas". O arquivo escreve o rótulo em caixa alta na aba e em
   // capitalização normal no título.
   const what =
-    tab.label.charAt(0) + tab.label.slice(1).toLocaleLowerCase("pt-BR");
+    tabLabel.charAt(0) + tabLabel.slice(1).toLocaleLowerCase("pt-BR");
   return `Compre ${what} De ${name}`;
 }
 

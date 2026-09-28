@@ -7,9 +7,8 @@ import { TextAreaField } from "@/components/ui/TextAreaField";
 import { TextField } from "@/components/ui/TextField";
 import { toastError } from "@/components/ui/Toasts";
 import { ACTION_FAILED_MESSAGE, ACTION_FAILED_UPLOAD_MESSAGE, runAction } from "@/lib/safeAction";
-import { PRODUCT_TABS } from "@/features/game/tabs";
 import { removeBannerAction, uploadBannerAction, uploadLogoAction } from "./actions";
-import type { BuilderListItem, Draft } from "./types";
+import type { BuilderCategory, BuilderListItem, Draft } from "./types";
 
 /**
  * Os painéis de edição do builder — um por etapa da lateral.
@@ -170,62 +169,8 @@ export function DescriptionPanel({
   );
 }
 
-/**
- * Etapa 5 — Categorias Principais.
- *
- * São as ABAS da loja, e a lista é FECHADA: cada uma precisa do ícone que o
- * arquivo do Figma desenha. Um tipo sem arte apareceria como aba em branco, e é
- * por isso que aqui se escolhe entre sete e não se digita um nome.
- */
-export function MainCategoriesPanel({
-  draft,
-  patch,
-}: {
-  draft: Draft;
-  patch: (next: Partial<Draft>) => void;
-}) {
-  function toggle(productType: string) {
-    const next = draft.productTypes.includes(productType)
-      ? draft.productTypes.filter((value) => value !== productType)
-      : [...draft.productTypes, productType];
-    patch({ productTypes: next });
-  }
-
-  return (
-    <>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(0,180px))] gap-[15px]">
-        {PRODUCT_TABS.map((tab) => {
-          const checked = draft.productTypes.includes(tab.productType);
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              role="checkbox"
-              aria-checked={checked}
-              onClick={() => toggle(tab.productType)}
-              className={`flex h-[90px] flex-col items-center justify-center gap-[8px] rounded-[12px] border-2 transition-opacity hover:opacity-90 ${
-                checked
-                  ? "border-brand-orange/60 bg-brand-orange/10"
-                  : "border-white/10 bg-[image:var(--brand-surface-fill)]"
-              }`}
-            >
-              <Image src={tab.icon} alt="" width={36} height={36} className="size-[36px]" />
-              <span className="font-poppins text-[13px] leading-none font-bold text-white">
-                {tab.label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {draft.productTypes.length === 0 ? (
-        <p className="font-poppins text-[13px] text-brand-orange">
-          Escolha ao menos uma: sem nenhuma aba, a loja do game abre sem catálogo.
-        </p>
-      ) : null}
-    </>
-  );
-}
+// Etapa 5 ("Categorias Principais") deixou de ter painel em 2026-09-28: as
+// abas são por jogo, em Jogos → Abas (`features/admin/games/tabs`).
 
 /**
  * Etapas 6 e 7 — listas editáveis de servidores e categorias.
@@ -332,7 +277,182 @@ export function ListPanel({
   );
 }
 
-function RowButton({
+/**
+ * Etapa 7 — categorias com SUBCATEGORIAS (contrato C da FASE 4).
+ *
+ * Não reaproveita o `ListPanel` porque a unidade aqui é um bloco (categoria +
+ * filhas), mas os controles são os mesmos — renomear, ↑ ↓ e ✕ — para as duas
+ * listas não ensinarem gestos diferentes.
+ *
+ * Dois níveis e nenhum a mais: subcategoria não tem botão de "adicionar sub",
+ * e o próprio tipo (`BuilderCategory`) não tem onde guardar um neto.
+ *
+ * Reordenar move DENTRO do nível: subcategoria não troca de pai por aqui. Para
+ * mudar de pai, remove-se e cria-se de novo — trocar de pai com produto ligado
+ * é decisão que merece ser explícita, e o backend recusa a remoção enquanto
+ * houver produto.
+ */
+export function CategoryTreePanel({
+  items,
+  onChange,
+}: {
+  items: BuilderCategory[];
+  onChange: (next: BuilderCategory[]) => void;
+}) {
+  function patchCategory(key: string, next: Partial<BuilderCategory>) {
+    onChange(items.map((item) => (item.key === key ? { ...item, ...next } : item)));
+  }
+
+  function addCategory() {
+    // `randomUUID` só para a CHAVE do React; nunca vai ao servidor.
+    onChange([...items, { key: crypto.randomUUID(), label: "", children: [] }]);
+  }
+
+  function addChild(parent: BuilderCategory) {
+    patchCategory(parent.key, {
+      children: [...parent.children, { key: crypto.randomUUID(), label: "" }],
+    });
+  }
+
+  return (
+    <>
+      {items.length === 0 ? (
+        <p className="font-poppins text-[13px] text-brand-fg-subtle">
+          Sem categorias, o painel “Selecionar categoria” não aparece na loja.
+        </p>
+      ) : null}
+
+      <ul className="flex flex-col gap-[20px]">
+        {items.map((category, index) => (
+          <li
+            key={category.key}
+            className="flex flex-col gap-[12px] rounded-[20px] border border-white/10 bg-black/20 p-[15px]"
+          >
+            <ItemRow
+              label={`Categoria ${index + 1}`}
+              fallback="categoria"
+              item={category}
+              isFirst={index === 0}
+              isLast={index === items.length - 1}
+              onRename={(label) => patchCategory(category.key, { label })}
+              onMove={(direction) => onChange(moveByKey(items, category.key, direction))}
+              onRemove={() => onChange(items.filter((item) => item.key !== category.key))}
+            />
+
+            {category.children.length > 0 ? (
+              <ul className="flex flex-col gap-[12px] pl-[20px] sm:pl-[40px]">
+                {category.children.map((child, childIndex) => (
+                  <li key={child.key}>
+                    <ItemRow
+                      label={`Subcategoria ${childIndex + 1}`}
+                      fallback="subcategoria"
+                      item={child}
+                      isFirst={childIndex === 0}
+                      isLast={childIndex === category.children.length - 1}
+                      onRename={(label) =>
+                        patchCategory(category.key, {
+                          children: category.children.map((current) =>
+                            current.key === child.key ? { ...current, label } : current,
+                          ),
+                        })
+                      }
+                      onMove={(direction) =>
+                        patchCategory(category.key, {
+                          children: moveByKey(category.children, child.key, direction),
+                        })
+                      }
+                      onRemove={() =>
+                        patchCategory(category.key, {
+                          children: category.children.filter((current) => current.key !== child.key),
+                        })
+                      }
+                    />
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={() => addChild(category)}
+              className="ml-[20px] h-[40px] rounded-full border border-dashed border-white/15 font-poppins text-[13px] font-bold text-white/70 transition-opacity hover:opacity-90 sm:ml-[40px]"
+            >
+              + Adicionar subcategoria{category.label.trim() ? ` em ${category.label.trim()}` : ""}
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <button
+        type="button"
+        onClick={addCategory}
+        className="h-[50px] w-full rounded-full border border-dashed border-white/20 font-poppins text-[14px] font-bold text-white/80 transition-opacity hover:opacity-90"
+      >
+        + Adicionar categoria
+      </button>
+      <p className="-mt-[15px] font-poppins text-[13px] text-brand-fg-subtle">
+        Remover uma categoria remove as subcategorias dela. Se alguma ainda tiver
+        produtos, a publicação é recusada com a contagem.
+      </p>
+    </>
+  );
+}
+
+/** Uma linha editável: campo + ↑ ↓ ✕. */
+function ItemRow({
+  label,
+  fallback,
+  item,
+  isFirst,
+  isLast,
+  onRename,
+  onMove,
+  onRemove,
+}: {
+  label: string;
+  fallback: string;
+  item: BuilderListItem;
+  isFirst: boolean;
+  isLast: boolean;
+  onRename: (label: string) => void;
+  onMove: (direction: -1 | 1) => void;
+  onRemove: () => void;
+}) {
+  const name = item.label || fallback;
+  return (
+    <div className="flex items-end gap-[10px]">
+      <div className="min-w-0 flex-1">
+        <TextField
+          label={label}
+          value={item.label}
+          maxLength={120}
+          onChange={(event) => onRename(event.target.value)}
+        />
+      </div>
+      <RowButton label={`Mover ${name} para cima`} onClick={() => onMove(-1)} disabled={isFirst}>
+        ↑
+      </RowButton>
+      <RowButton label={`Mover ${name} para baixo`} onClick={() => onMove(1)} disabled={isLast}>
+        ↓
+      </RowButton>
+      <RowButton label={`Remover ${name}`} onClick={onRemove} danger>
+        ✕
+      </RowButton>
+    </div>
+  );
+}
+
+/** Troca o item de `key` com o vizinho; fora dos limites devolve a lista igual. */
+export function moveByKey<T extends { key: string }>(items: T[], key: string, direction: -1 | 1): T[] {
+  const index = items.findIndex((item) => item.key === key);
+  const target = index + direction;
+  if (index < 0 || target < 0 || target >= items.length) return items;
+  const next = [...items];
+  [next[index], next[target]] = [next[target], next[index]];
+  return next;
+}
+
+export function RowButton({
   label,
   onClick,
   disabled,

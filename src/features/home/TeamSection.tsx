@@ -31,16 +31,32 @@ import {
  * 2186:2672 (outra versão da home) — o usuário confirmou depois que a
  * referência é o 131:1504.
  */
-/** Os sete lugares do arquivo (cards 578:1798, 578:1736, 582:1810, …). */
+/**
+ * Largura dos cards posicionados. No arquivo eles têm 361px e os cinco de baixo
+ * se SOBREPÕEM (79→440 invade o 382 e assim por diante) — o usuário apontou
+ * como bug em 2026-09-28. Cinco de 361 não cabem lado a lado nos 1820px da
+ * seção com respiro, então o card afina para 330 e a foto (261) continua do
+ * mesmo tamanho, centralizada: perde-se só folga lateral.
+ */
+const PLACED_CARD_WIDTH = 330;
+/** Cinco colunas de 330 com 22 de vão, centradas nos 1820 da seção. */
+const COLUMN_LEFT = [41, 393, 745, 1097, 1449];
+
+/**
+ * Os sete lugares (ordem do Figma 131:1504, cards 578:1798, 578:1736, …).
+ * A fileira de baixo mantém o escalonamento do arquivo, mas ninguém invade o
+ * vizinho nem os cards de cima. EDDMAX começava 66px ACIMA da seção, saindo
+ * por cima do título e da moldura — agora alinha com o DANIEL.
+ */
 const CARD_POSITIONS: React.CSSProperties[] = [
-  { left: 82, top: -1 }, // DANIEL — esquerda do texto
-  { left: 1372, top: -66 }, // EDDMAX — direita do texto
-  { left: 79, top: 479 }, // ROGUE
-  { left: 382, top: 514 }, // ZEZÃO
-  { left: 707, top: 469 }, // YURI
-  { left: 1050, top: 511 }, // GUS
-  { left: 1377, top: 408 }, // LUAN
-];
+  { left: COLUMN_LEFT[0], top: 0 }, // DANIEL — esquerda do texto
+  { left: COLUMN_LEFT[4], top: 0 }, // EDDMAX — direita do texto
+  { left: COLUMN_LEFT[0], top: 479 }, // ROGUE
+  { left: COLUMN_LEFT[1], top: 514 }, // ZEZÃO
+  { left: COLUMN_LEFT[2], top: 469 }, // YURI
+  { left: COLUMN_LEFT[3], top: 511 }, // GUS
+  { left: COLUMN_LEFT[4], top: 474 }, // LUAN (era 408: batia no EDDMAX)
+].map((position) => ({ ...position, width: PLACED_CARD_WIDTH }));
 
 /** Onde o divisor que fecha a seção fica no arquivo (y=3595 − 2577). */
 const DIVIDER_TOP = 1018;
@@ -183,6 +199,11 @@ function TeamCard({
   className: string;
   style?: React.CSSProperties;
 }) {
+  // A foto fica centrada em qualquer largura de card. `left` calculado, e não
+  // `translate`, porque o hover já usa `transform` na foto.
+  const cardWidth = typeof style?.width === "number" ? style.width : TEAM_CARD_WIDTH;
+  const photoLeft = (cardWidth - TEAM_PHOTO_WIDTH) / 2;
+
   return (
     <li
       {...(revealIndex === undefined ? {} : reveal("tilt"))}
@@ -205,15 +226,15 @@ function TeamCard({
           alt={member.title}
           width={Math.round(TEAM_PHOTO_WIDTH)}
           height={Math.round(TEAM_PHOTO_HEIGHT)}
-          className="team-photo absolute top-[50px] left-[50px] object-contain"
-          style={{ width: TEAM_PHOTO_WIDTH, height: TEAM_PHOTO_HEIGHT }}
+          className="team-photo absolute top-[50px] object-contain"
+          style={{ left: photoLeft, width: TEAM_PHOTO_WIDTH, height: TEAM_PHOTO_HEIGHT }}
         />
       ) : (
         <span
           {...editItem("home:equipe", member.id, "image")}
           aria-hidden
-          className="pointer-events-none absolute top-[50px] left-[50px] rounded-[20px] border border-dashed border-white/15"
-          style={{ width: TEAM_PHOTO_WIDTH, height: TEAM_PHOTO_HEIGHT }}
+          className="pointer-events-none absolute top-[50px] rounded-[20px] border border-dashed border-white/15"
+          style={{ left: photoLeft, width: TEAM_PHOTO_WIDTH, height: TEAM_PHOTO_HEIGHT }}
         />
       )}
 

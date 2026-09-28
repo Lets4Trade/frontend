@@ -34,7 +34,7 @@ function productForm(extra: Record<string, string | File> = {}): FormData {
   form.set("name", " 500M Divine ");
   form.set("priceCents", "5000");
   form.set("platform", "STEAM");
-  form.set("productType", "GOLD");
+  form.set("tabId", "tab1");
   form.set("serverId", "srv1");
   form.set("categoryId", "");
   for (const [k, v] of Object.entries(extra)) form.set(k, v);
@@ -71,7 +71,11 @@ describe("createProductAction", () => {
     ["preço acima do teto", { priceCents: "10000001" }],
     ["preço não numérico", { priceCents: "abc" }],
     ["sem plataforma", { platform: "" }],
-    ["sem tipo", { productType: "" }],
+    ["sem aba", { tabId: "" }],
+    ["aba com cara de caminho", { tabId: "../x" }],
+    ["pricing que não é JSON", { pricing: "{" }],
+    ["pricing fora do schema", { pricing: JSON.stringify({ mode: "QUANTITY", min: 5, max: 1 }) }],
+    ["pricing gigante", { pricing: "x".repeat(20_001) }],
   ])("input inválido (%s) → invalid, sem API", async (_l, extra) => {
     expect(await createProductAction(productForm(extra))).toMatchObject({
       ok: false,
@@ -100,14 +104,14 @@ describe("createProductAction", () => {
     const entries = formEntries(body);
     // `categoryId` vazio não viaja.
     expect(Object.keys(entries).sort()).toEqual(
-      ["gameId", "image", "name", "platform", "priceCents", "productType", "serverId"].sort(),
+      ["gameId", "image", "name", "platform", "priceCents", "tabId", "serverId"].sort(),
     );
     expect(entries).toMatchObject({
       gameId: "game1",
       name: "500M Divine",
       priceCents: "5000",
       platform: "STEAM",
-      productType: "GOLD",
+      tabId: "tab1",
       serverId: "srv1",
     });
     expect(Number.isInteger(Number(entries.priceCents))).toBe(true);
@@ -190,6 +194,29 @@ describe("updateProductAction", () => {
     expect(entries).toHaveProperty("categoryId", "");
   });
 
+  it("pricing: validado, REMONTADO (chave extra some) e enviado como JSON", async () => {
+    const pricing = { mode: "FIXED", baseHours: 2, evil: "<x>" };
+    await updateProductAction("p1", productForm({ pricing: JSON.stringify(pricing) }));
+    const entries = formEntries(patch.mock.calls[0][1]);
+    expect(JSON.parse(String(entries.pricing))).toEqual({ mode: "FIXED", baseHours: 2 });
+    expect(entries).not.toHaveProperty("productType");
+  });
+
+  it("pricing \"null\" limpa na edição; ausente não viaja", async () => {
+    await updateProductAction("p1", productForm({ pricing: "null" }));
+    expect(formEntries(patch.mock.calls[0][1])).toHaveProperty("pricing", "null");
+    await updateProductAction("p1", productForm());
+    expect(formEntries(patch.mock.calls[1][1])).not.toHaveProperty("pricing");
+  });
+
+  it("no CADASTRO, pricing null não viaja; regra válida viaja", async () => {
+    await createProductAction(productForm({ pricing: "null" }));
+    expect(formEntries(post.mock.calls[0][1])).not.toHaveProperty("pricing");
+    const rule = { mode: "QUANTITY", unitLabel: "Horas", min: 1, max: 10, step: 1 };
+    await createProductAction(productForm({ pricing: JSON.stringify(rule) }));
+    expect(JSON.parse(String(formEntries(post.mock.calls[1][1]).pricing))).toEqual(rule);
+  });
+
   it("no CADASTRO, vazio continua não viajando", async () => {
     await createProductAction(productForm({ serverId: "", categoryId: "" }));
     const entries = formEntries(post.mock.calls[0][1]);
@@ -244,7 +271,7 @@ describe("deleteProductAction", () => {
 describe("saveProductOrderAction", () => {
   it.each([[null], ["USER" as const]])("sessão %s não chama a API", async (r) => {
     role.mockResolvedValue(r);
-    expect(await saveProductOrderAction("g1", "GOLD", ["a"])).toMatchObject({ ok: false });
+    expect(await saveProductOrderAction("g1", "tab1", ["a"])).toMatchObject({ ok: false });
     expect(put).not.toHaveBeenCalled();
   });
 
@@ -253,18 +280,27 @@ describe("saveProductOrderAction", () => {
     ["acima de 300", Array.from({ length: 301 }, (_, i) => `p${i}`)],
     ["id que não é texto", [1, 2] as unknown as string[]],
   ])("lista inválida (%s) → recusa sem API", async (_l, ids) => {
-    expect(await saveProductOrderAction("g1", "GOLD", ids)).toEqual({
+    expect(await saveProductOrderAction("g1", "tab1", ids)).toEqual({
       ok: false,
       message: "Lista de produtos inválida.",
     });
     expect(put).not.toHaveBeenCalled();
   });
 
-  it("caminho feliz manda só gameId, type e ids", async () => {
-    expect(await saveProductOrderAction("g1", "GOLD", ["b", "a"])).toEqual({ ok: true });
+  it("aba inválida → recusa sem API", async () => {
+    expect(await saveProductOrderAction("g1", "../x", ["a"])).toEqual({
+      ok: false,
+      message: "Aba inválida.",
+    });
+    expect(await saveProductOrderAction("g1", "", ["a"])).toMatchObject({ ok: false });
+    expect(put).not.toHaveBeenCalled();
+  });
+
+  it("caminho feliz manda só gameId, tabId e ids", async () => {
+    expect(await saveProductOrderAction("g1", "tab1", ["b", "a"])).toEqual({ ok: true });
     expect(put).toHaveBeenCalledWith("/admin/products/order", {
       gameId: "g1",
-      type: "GOLD",
+      tabId: "tab1",
       ids: ["b", "a"],
     });
     expect(revalidatePath).toHaveBeenCalledWith("/admin/produtos");
@@ -272,12 +308,12 @@ describe("saveProductOrderAction", () => {
 
   it("400 repassa a mensagem do backend (é acionável); o resto vira genérico", async () => {
     put.mockResolvedValue(apiFail(400, "Produto p9 não é deste jogo"));
-    expect(await saveProductOrderAction("g1", "GOLD", ["p9"])).toEqual({
+    expect(await saveProductOrderAction("g1", "tab1", ["p9"])).toEqual({
       ok: false,
       message: "Produto p9 não é deste jogo",
     });
     put.mockResolvedValue(apiFail(0));
-    expect(await saveProductOrderAction("g1", "GOLD", ["p9"])).toMatchObject({
+    expect(await saveProductOrderAction("g1", "tab1", ["p9"])).toMatchObject({
       ok: false,
       message: expect.stringContaining("Não conseguimos salvar a ordem"),
     });

@@ -6,7 +6,7 @@ import { AdminToaster } from "@/components/ui/Toasts";
 import { AdminHeader } from "@/features/admin/AdminHeader";
 import { getLayoutContent } from "@/features/site/layoutContent";
 import { PageViewTracker } from "@/features/admin/PageViewTracker";
-import { getSessionRole, getSessionUser } from "@/features/auth/session";
+import { canEditContent, getSessionRole, getSessionUser } from "@/features/auth/session";
 
 export const metadata: Metadata = {
   title: "Painel | Lets4Trade",
@@ -43,14 +43,16 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   ]);
 
   if (role === null || user === null) redirect("/login?redirect=/admin");
-  if (role !== "ADMIN") notFound();
+  // ADMIN e EDITOR entram; o EDITOR só enxerga conteúdo (menu filtrado e as
+  // telas só-ADMIN chamam `requireAdminPage`).
+  if (!canEditContent(role)) notFound();
 
   return (
     <div className="flex min-h-dvh flex-col bg-brand-bg">
       {/* Registra cada tela do painel aberta — é a prova de quem acessou dado
           pessoal de terceiros, e quando. */}
       <PageViewTracker surface="admin" />
-      <AdminHeader user={user} logoUrl={layout.text("marca").imageUrl} />
+      <AdminHeader user={user} role={role} logoUrl={layout.text("marca").imageUrl} />
       <main className="flex-1">{children}</main>
       <SiteFooter />
 

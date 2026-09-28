@@ -92,6 +92,7 @@ export function PageEditor({
   initialOrder,
   initialHidden,
   games = [],
+  orderLocked = false,
 }: {
   page: string;
   pageLabel: string;
@@ -100,6 +101,12 @@ export function PageEditor({
   initialHidden: string[];
   /** Jogos cadastrados, para o botão "jogo" dos slides do hero. */
   games?: GameOption[];
+  /**
+   * A ORDEM das seções pertence ao construtor de páginas (2026-09-25). Com
+   * isto ligado, esta tela só edita textos e imagens — duas telas mandando na
+   * ordem discordariam na primeira mudança.
+   */
+  orderLocked?: boolean;
 }) {
   const router = useRouter();
   const gameSectionKeys = new Set(
@@ -628,15 +635,25 @@ export function PageEditor({
                 e na imagem para trocar.
               </p>
 
-              <SectionOrderList
-                blocks={blocks}
-                order={order}
-                hidden={hidden}
-                onChange={(nextOrder, nextHidden) => {
-                  setOrder(nextOrder);
-                  setHidden(nextHidden);
-                }}
-              />
+              {orderLocked ? (
+                <p className="mt-[12px] rounded-[12px] border border-brand-border bg-black/30 p-[12px] font-helvetica text-[12px] leading-[17px] text-brand-fg-muted">
+                  A ordem das seções, o que aparece e os blocos novos ficam no{" "}
+                  <a href="/admin/paginas" className="text-brand-orange underline-offset-2 hover:underline">
+                    construtor de páginas
+                  </a>
+                  . Aqui você edita os textos e as imagens das seções do desenho.
+                </p>
+              ) : (
+                <SectionOrderList
+                  blocks={blocks}
+                  order={order}
+                  hidden={hidden}
+                  onChange={(nextOrder, nextHidden) => {
+                    setOrder(nextOrder);
+                    setHidden(nextHidden);
+                  }}
+                />
+              )}
 
               <p className="mt-[14px] font-helvetica text-[11px] leading-[15px] text-brand-fg-subtle">
                 Imagens são publicadas na hora, ao escolher o arquivo.

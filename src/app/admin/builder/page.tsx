@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { DeleteGameButton } from "@/features/admin/builder/DeleteGameButton";
 import { getBuilderGames } from "@/features/admin/builder/list";
+import { getSessionRole } from "@/features/auth/session";
 import { backendAsset } from "@/lib/publicApi";
 import { ADMIN_SHELL } from "@/features/admin/layout";
 
@@ -28,7 +29,9 @@ export const metadata: Metadata = {
  * nenhum do painel), esta some e vira um link de lá.
  */
 export default async function BuilderPickerPage() {
-  const games = await getBuilderGames();
+  const [games, role] = await Promise.all([getBuilderGames(), getSessionRole()]);
+  // Excluir jogo é só ADMIN (2026-09-25): o EDITOR edita a página, não o catálogo.
+  const canDelete = role === "ADMIN";
 
   return (
     <div className={`${ADMIN_SHELL} pb-[100px]`}>
@@ -86,9 +89,11 @@ export default async function BuilderPickerPage() {
                     </span>
                   </span>
                 </Link>
-                <div className="absolute top-[10px] right-[10px]">
-                  <DeleteGameButton id={game.id} name={game.name} />
-                </div>
+                {canDelete ? (
+                  <div className="absolute top-[10px] right-[10px]">
+                    <DeleteGameButton id={game.id} name={game.name} />
+                  </div>
+                ) : null}
               </li>
             );
           })}

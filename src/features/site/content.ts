@@ -13,10 +13,10 @@ import {
  * A leitura das SESSÕES para as páginas públicas do site.
  *
  * ── Sem cookie, como a vitrine ─────────────────────────────────────────────
- * Vive separada de `list.ts` (que é do painel e importa `serverApi`) pelo mesmo
- * motivo de `navTabs.ts`: as páginas públicas são renderizadas em caminhos que
- * passam por client component, e um `next/headers` importado por engano quebra
- * o build. Ver o comentário em `navTabs.ts`.
+ * Vive separada de `list.ts` (que é do painel e importa `serverApi`): as
+ * páginas públicas são renderizadas em caminhos que passam por client
+ * component, e um `next/headers` importado por engano quebra o build. A regra:
+ * leitura PÚBLICA (sem cookie) nunca mora no mesmo arquivo que a autenticada.
  *
  * ── O que é personalizado e o que é padrão ─────────────────────────────────
  * O banco guarda só o que o admin mudou. Tudo o mais vem do catálogo em

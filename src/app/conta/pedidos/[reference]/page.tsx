@@ -13,6 +13,7 @@ import { getOrderConversation, getOrderDetail } from "@/features/orders/orderDet
 import { OrderStatusTracker } from "@/features/orders/OrderStatusTracker";
 import {
   OrderLineBlock,
+  ServiceDetailsBlock,
   TotalsBlock,
 } from "@/features/orders/OrderSummaryPieces";
 
@@ -104,6 +105,10 @@ export default async function PedidoPage({ params }: PageProps) {
                   date: order.date,
                 }}
               />
+
+              {order.details ? (
+                <ServiceDetailsBlock lines={order.details.lines} hours={order.details.hours} />
+              ) : null}
 
               <div aria-hidden className="mt-[26px] h-px w-full bg-white/25" />
 

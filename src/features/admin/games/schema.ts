@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PLATFORMS, PRODUCT_TYPES } from "./options";
+import { PLATFORMS, TAB_TEMPLATE_OPTIONS } from "./options";
 
 /**
  * Validação do cadastro de jogo (Figma 4468:1792).
@@ -12,7 +12,7 @@ import { PLATFORMS, PRODUCT_TYPES } from "./options";
  */
 
 const platformValues = PLATFORMS.map((o) => o.value) as [string, ...string[]];
-const productTypeValues = PRODUCT_TYPES.map((o) => o.value) as [string, ...string[]];
+const tabTemplateValues = TAB_TEMPLATE_OPTIONS.map((o) => o.value) as [string, ...string[]];
 
 /** Teto de servidores. Espelha o `@ArrayMaxSize(40)` do DTO. */
 export const MAX_SERVERS = 40;
@@ -47,8 +47,9 @@ export const createGameSchema = z.object({
     message: "Escolha a plataforma do jogo.",
   }),
 
-  productType: z.enum(productTypeValues, {
-    message: "Escolha o tipo de produto do jogo.",
+  // Modelo da primeira aba (chave de `TAB_TEMPLATE_OPTIONS`) — não é gravado.
+  tabTemplate: z.enum(tabTemplateValues, {
+    message: "Escolha o tipo de produto inicial do jogo.",
   }),
 
   servers: z

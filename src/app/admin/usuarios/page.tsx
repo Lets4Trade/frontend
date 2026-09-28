@@ -13,6 +13,7 @@ import {
 import { ROLE_OPTIONS } from "@/features/admin/users/types";
 import { cn } from "@/lib/cn";
 import { ADMIN_SHELL } from "@/features/admin/layout";
+import { requireAdminPage } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
   title: "Painel de usuário | Lets4Trade",
@@ -42,6 +43,7 @@ export default async function AdminUsersPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  await requireAdminPage();
   const query = parseUsersQuery(await searchParams);
   const page = await getAdminUsers(query);
 

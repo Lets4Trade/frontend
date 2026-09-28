@@ -17,6 +17,7 @@ import {
   attendantName,
   statusStyle,
 } from "@/features/admin/orders/types";
+import { requireAdminPage } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
   title: "Vendas e pedidos — Lets4Trade",
@@ -42,6 +43,7 @@ type PageProps = {
  * página: é o número que responde "quantos pedidos tenho para atender".
  */
 export default async function AdminOrdersPage({ searchParams }: PageProps) {
+  await requireAdminPage();
   const query = parseOrdersQuery(await searchParams, ORDER_STATUSES);
 
   // As duas leituras em paralelo: a lista de atendentes não depende do filtro,

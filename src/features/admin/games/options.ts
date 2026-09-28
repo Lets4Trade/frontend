@@ -1,13 +1,17 @@
+import { TAB_TEMPLATES } from "@/features/game/tabs";
+
 /**
  * Opções dos dois selects do cadastro de jogo.
  *
- * ESTA LISTA ESPELHA OS ENUMS `GamePlatform` e `GameProductType` do backend
- * (backend/prisma/schema.prisma). O `value` é o nome do enum e vai cru para a
- * API; o `label` é só o que a pessoa lê. Se um valor sair de sincronia, o
- * backend responde 400 — a divergência aparece, não passa silenciosa.
+ * `PLATFORMS` ESPELHA o enum `GamePlatform` do backend
+ * (backend/prisma/schema.prisma); `TAB_TEMPLATE_OPTIONS`, a constante de
+ * MODELOS de aba (`backend/src/app/games/tabs/default-tabs.ts`). O `value` vai
+ * cru para a API; o `label` é só o que a pessoa lê. Se um valor sair de
+ * sincronia, o backend responde 400 — a divergência aparece, não passa
+ * silenciosa.
  *
- * Por que duplicado e não buscado do servidor: são dois enums que mudam por
- * migration, ou seja, no ritmo de um deploy. Um endpoint só para listá-los
+ * Por que duplicado e não buscado do servidor: as duas listas mudam no ritmo
+ * de um deploy. Um endpoint só para listá-los
  * custaria um round-trip em toda abertura do formulário para entregar um dado
  * que só muda quando o código muda.
  */
@@ -28,19 +32,15 @@ export const PLATFORMS: readonly SelectOption[] = [
 ];
 
 /**
- * Os rótulos são os das abas que a página de jogo já desenha — os ícones
- * correspondentes estão em `public/icons/game/tab-*.svg`. Tipo sem ícone
- * apareceria na vitrine como uma aba vazia, então a lista para onde a arte para.
+ * O MODELO da primeira aba de um jogo novo ("Moedas", "Boosting"…). Desde a
+ * FASE 5 "tipo de produto" não existe no banco: a chave só diz ao backend qual
+ * aba inicial criar (rótulo, ícone e layout do modelo) e não é gravada.
+ * Derivada de `features/game/tabs.ts` para rótulo e ícone não divergirem.
  */
-export const PRODUCT_TYPES: readonly SelectOption[] = [
-  { value: "MOEDAS", label: "Moedas" },
-  { value: "ITENS", label: "Itens" },
-  { value: "GOLD", label: "Gold" },
-  { value: "BOOSTING", label: "Boosting" },
-  { value: "CARRY", label: "Carry" },
-  { value: "BUILDS", label: "Builds" },
-  { value: "MENTORIA", label: "Mentoria" },
-];
+export const TAB_TEMPLATE_OPTIONS: readonly SelectOption[] = TAB_TEMPLATES.map((tab) => ({
+  value: tab.key,
+  label: tab.label.charAt(0) + tab.label.slice(1).toLocaleLowerCase("pt-BR"),
+}));
 
 /** Espelha `MAX_IMAGE_BYTES` do backend (common/storage/image-storage.service.ts). */
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;

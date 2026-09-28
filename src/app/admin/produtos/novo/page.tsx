@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AdminFormCard } from "@/features/admin/AdminFormCard";
 import { getAdminGames } from "@/features/admin/catalog";
 import { ProductForm } from "@/features/admin/products/ProductForm";
+import { requireAdminPage } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
   title: "Cadastro de produto | Lets4Trade",
@@ -20,6 +21,7 @@ export const metadata: Metadata = {
  * em cima de um dado que o servidor já tinha na mão ao renderizar a página.
  */
 export default async function NewProductPage() {
+  await requireAdminPage();
   const games = await getAdminGames();
 
   return (

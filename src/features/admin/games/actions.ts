@@ -26,7 +26,17 @@ import { createGameSchema } from "./schema";
  */
 
 export type CreateGameResult =
-  | { ok: true; slug: string; name: string }
+  | {
+      ok: true;
+      slug: string;
+      name: string;
+      /**
+       * Para o atalho "configurar abas" depois do cadastro (2026-09-28). O
+       * backend cria as abas a partir do tipo escolhido; ausente = resposta sem
+       * id, e a tela aponta para a lista de jogos.
+       */
+      id?: string;
+    }
   | {
       ok: false;
       reason: "unauthenticated" | "forbidden" | "invalid" | "error";
@@ -42,7 +52,7 @@ export async function createGameAction(form: FormData): Promise<CreateGameResult
     name: form.get("name"),
     slug: form.get("slug") ?? "",
     platform: form.get("platform"),
-    productType: form.get("productType"),
+    tabTemplate: form.get("tabTemplate"),
     servers: form.get("servers") ?? "",
   });
 
@@ -58,11 +68,11 @@ export async function createGameAction(form: FormData): Promise<CreateGameResult
   payload.set("name", parsed.data.name);
   // Só viaja se o admin escolheu: ausente, o backend deriva do nome.
   if (parsed.data.slug !== "") payload.set("slug", parsed.data.slug);
-  // Os dois selects mandam UM valor, e o backend guarda listas (os rótulos do
-  // arquivo estão no plural e a página de jogo monta várias abas). O contrato
-  // é a lista; hoje ela tem um elemento.
+  // Os dois selects mandam UM valor e o contrato é lista. `productTypes` é o
+  // nome que o `POST /admin/games` mantém (FASE 5) para as CHAVES de modelo de
+  // aba: o backend cria as abas iniciais a partir delas e não as grava.
   payload.set("platforms", parsed.data.platform);
-  payload.set("productTypes", parsed.data.productType);
+  payload.set("productTypes", parsed.data.tabTemplate);
   payload.set("servers", parsed.data.servers.join(","));
 
   const image = form.get("image");
@@ -80,7 +90,7 @@ export async function createGameAction(form: FormData): Promise<CreateGameResult
     payload.set("image", image, image.name);
   }
 
-  const response = await apiPostFormData<{ slug: string; name: string }>(
+  const response = await apiPostFormData<{ id?: string; slug: string; name: string }>(
     "/admin/games",
     payload,
   );
@@ -113,7 +123,13 @@ export async function createGameAction(form: FormData): Promise<CreateGameResult
 
   // Jogo novo entra no menu GAMES do cabeçalho na hora (`menuGames.ts`).
   updateTag(GAMES_MENU_TAG);
-  return { ok: true, slug: response.data.slug, name: response.data.name };
+  const id = response.data.id;
+  return {
+    ok: true,
+    slug: response.data.slug,
+    name: response.data.name,
+    ...(typeof id === "string" && /^[A-Za-z0-9_-]{1,100}$/.test(id) ? { id } : {}),
+  };
 }
 
 /**
@@ -151,5 +167,6 @@ export async function deactivateGameAction(
   // excluído seguiria no menu por até uma hora.
   updateTag(GAMES_MENU_TAG);
   revalidatePath("/admin/builder");
+  revalidatePath("/admin/jogos");
   return { ok: true };
 }

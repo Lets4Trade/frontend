@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { PARAM } from "@/features/game/catalog";
-import { tabByProductType } from "@/features/game/tabs";
 
 /**
  * Busca do cabeçalho: sugere jogos e produtos enquanto a pessoa digita
@@ -41,7 +40,8 @@ type RawProduct = {
   id: string;
   name: string;
   priceCents: number;
-  productType: string;
+  /** Aba do jogo em que o produto está (abas por jogo, 2026-09-28). */
+  tabSlug?: string;
   imageUrl?: string;
   gameSlug: string;
   gameName: string;
@@ -67,14 +67,14 @@ function asset(path?: string) {
 }
 
 /**
- * Produto → vitrine do jogo JÁ filtrada: aba do tipo, servidor do produto e o
+ * Produto → vitrine do jogo JÁ filtrada: aba do produto, servidor e o
  * nome na busca. Sem o servidor a vitrine cairia no primeiro da lista e o
  * produto poderia não aparecer.
  */
 function productHref(product: RawProduct) {
   const params = new URLSearchParams();
-  const tab = tabByProductType(product.productType);
-  if (tab) params.set(PARAM.tab, tab.id);
+  // Sem `tabSlug` (produto sem aba) a vitrine abre na aba padrão.
+  if (product.tabSlug) params.set(PARAM.tab, product.tabSlug);
   if (product.serverSlug) params.set(PARAM.server, product.serverSlug);
   params.set(PARAM.search, product.name);
   return `/games/${product.gameSlug}?${params.toString()}`;

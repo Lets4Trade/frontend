@@ -13,6 +13,7 @@ import {
 import { CATEGORY_OPTIONS } from "@/features/admin/logs/types";
 import { cn } from "@/lib/cn";
 import { ADMIN_SHELL } from "@/features/admin/layout";
+import { requireAdminPage } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
   title: "Logs | Lets4Trade",
@@ -49,6 +50,7 @@ export default async function AdminLogsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  await requireAdminPage();
   const query = parseLogsQuery(await searchParams);
   const page = await getAuditLogs(query);
 

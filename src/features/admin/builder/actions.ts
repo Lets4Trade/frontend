@@ -11,6 +11,7 @@ import {
   apiPutFormData,
 } from "@/lib/serverApi";
 import { MAX_IMAGE_BYTES } from "../games/options";
+import { cleanCategories, cleanList, type SavePageCategory } from "./payload";
 import type { BuilderGame } from "./types";
 
 /**
@@ -50,11 +51,12 @@ export type SavePagePayload = {
   serversLabel: string;
   categoriesLabel: string;
   description: string;
-  productTypes: string[];
   servers: { id?: string; label: string }[];
-  categories: { id?: string; label: string }[];
+  /** Dois níveis: categoria → subcategoria (contrato C da FASE 4). */
+  categories: SavePageCategory[];
   sectionOrder: string[];
 };
+
 
 /**
  * `null` quando a sessão é ADMIN; a recusa pronta quando não é.
@@ -67,7 +69,8 @@ export type SavePagePayload = {
 async function requireAdmin(): Promise<BuilderResult<never> | null> {
   const role = await getSessionRole();
   if (role === null) return { ok: false, reason: "unauthenticated" };
-  if (role !== "ADMIN") return { ok: false, reason: "forbidden" };
+  // Conteúdo: ADMIN e EDITOR (2026-09-25). O backend confere de novo.
+  if (role !== "ADMIN" && role !== "EDITOR") return { ok: false, reason: "forbidden" };
   return null;
 }
 
@@ -98,13 +101,9 @@ export async function savePageAction(
   if (!payload.name.trim()) {
     return { ok: false, reason: "invalid", message: "O nome do game é obrigatório." };
   }
-  if (!Array.isArray(payload.productTypes) || payload.productTypes.length === 0) {
-    return {
-      ok: false,
-      reason: "invalid",
-      message: "Escolha ao menos uma categoria principal — ela vira as abas da loja.",
-    };
-  }
+
+  const categories = cleanCategories(payload.categories);
+  if (!categories.ok) return { ok: false, reason: "invalid", message: categories.message };
 
   const slug = typeof payload.slug === "string" ? payload.slug.trim() : "";
   if (slug.length > 80) {
@@ -118,9 +117,8 @@ export async function savePageAction(
     serversLabel: payload.serversLabel ?? "",
     categoriesLabel: payload.categoriesLabel ?? "",
     description: payload.description ?? "",
-    productTypes: [...payload.productTypes],
     servers: cleanList(payload.servers),
-    categories: cleanList(payload.categories),
+    categories: categories.data,
     sectionOrder: payload.sectionOrder,
   };
 
@@ -210,25 +208,6 @@ export async function removeBannerAction(
 
   if (!result.ok) return failure(result);
   return { ok: true, data: result.data };
-}
-
-/**
- * Linhas em branco são DESCARTADAS, não recusadas.
- *
- * A lista da tela ganha uma linha vazia a cada clique em "adicionar", e quem
- * clicou duas vezes e preencheu uma não cometeu um erro que mereça um formulário
- * recusado — só deixou uma linha sobrando.
- */
-function cleanList(items: { id?: string; label: string }[]) {
-  return items
-    // Linha que nem tem `label` de texto é lixo do cliente, não erro de quem
-    // edita — descartada junto das vazias, em vez de derrubar a action no `.trim()`.
-    .filter((item) => typeof item?.label === "string")
-    .map((item) => ({
-      id: typeof item.id === "string" && item.id !== "" ? item.id : undefined,
-      label: item.label.trim(),
-    }))
-    .filter((item) => item.label !== "");
 }
 
 /**

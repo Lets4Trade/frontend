@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
-import { LoyaltyStatement } from "@/features/loyalty/LoyaltyStatement";
-import { LoyaltySummary } from "@/features/loyalty/LoyaltySummary";
-import { TierCard } from "@/features/loyalty/TierCard";
+import { LOYALTY_ORDER, loyaltyNodes } from "@/features/loyalty/loyaltyNodes";
+import { composeBlocks } from "@/features/pages/compose";
+import { BlockColumn, WideFrame } from "@/features/pages/frames";
+import { getPublishedPage } from "@/features/pages/public";
 import { getLoyalty } from "@/features/loyalty/data";
 import { getSectionsFor } from "@/features/site/content";
 
@@ -37,9 +38,10 @@ export const metadata: Metadata = {
  * só precisa entrar. É o mesmo tratamento de `/conta/pedidos`.
  */
 export default async function FidelidadePage() {
-  const [section, loyalty] = await Promise.all([
+  const [section, loyalty, page] = await Promise.all([
     getSectionsFor("fidelidade"),
     getLoyalty(),
+    getPublishedPage("fidelidade"),
   ]);
 
   if (!loyalty.ok) {
@@ -52,6 +54,14 @@ export default async function FidelidadePage() {
   }
 
   const { summary, entries } = loyalty;
+  const nodes = loyaltyNodes(summary, entries, section);
+
+  // Construtor de páginas (2026-09-25): publicada, a lista de blocos manda —
+  // ordem das três seções do desenho e blocos novos entre elas. Sem
+  // publicação, as três na ordem do arquivo.
+  const items = page
+    ? composeBlocks(page.blocks, page.refs, nodes)
+    : LOYALTY_ORDER.map((key) => ({ key, gap: nodes[key]!.gap, node: nodes[key]!.node }));
 
   return (
     <div className="flex min-h-dvh flex-col bg-brand-bg">
@@ -61,32 +71,9 @@ export default async function FidelidadePage() {
           `w-max` com o conteúdo de 1612px fixos, e a página rolava na
           horizontal em qualquer tela menor que 1920 (2026-09-25). */}
       <main className="flex-1">
-        <div className="mx-auto w-full max-w-[1920px] px-[16px] pt-[40px] pb-[100px] md:px-[50px] md:pt-[68px] 2xl:px-[154px]">
-          <LoyaltySummary
-            data={summary}
-            caption={section("resumo").title || undefined}
-          />
-
-          <h2 className="mt-[50px] font-helvetica text-[25px] leading-[26px] font-bold tracking-[0.25px] text-white">
-            {section("niveis").title || "Todos os Níveis"}
-          </h2>
-
-          {/* Grade que ENCOLHE antes de quebrar: em 1920 são cinco colunas de
-              302px (as do arquivo); abaixo de ~250px por card ela passa para
-              quatro, três… — nunca um card sozinho sobrando numa linha por
-              causa de poucos pixels, nem rolagem horizontal. */}
-          <div className="mt-[25px] grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-[25px]">
-            {summary.tiers.map((tier) => (
-              <TierCard
-                key={tier.tier}
-                tier={tier}
-                isCurrent={tier.tier === summary.tier}
-              />
-            ))}
-          </div>
-
-          <LoyaltyStatement entries={entries} coinCents={summary.coinCents} />
-        </div>
+        <WideFrame>
+          <BlockColumn items={items} />
+        </WideFrame>
       </main>
 
       <SiteFooter />

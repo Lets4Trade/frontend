@@ -54,7 +54,7 @@ const THREE_DS_SCRIPT_SOURCES = [
   "https://*.mastercard.com",
 ];
 
-function contentSecurityPolicy({ checkout = false } = {}): string {
+function contentSecurityPolicy({ checkout = false, framableBySelf = false } = {}): string {
   const isDev = process.env.NODE_ENV !== "production";
 
   let apiOrigin = "";
@@ -80,14 +80,19 @@ function contentSecurityPolicy({ checkout = false } = {}): string {
     "img-src": ["'self'", "data:", "blob:", apiOrigin, ...anyHttps],
     "font-src": ["'self'", "data:"],
     "connect-src": ["'self'", apiOrigin, apiSocket, ...(isDev ? ["ws:"] : []), ...anyHttps],
-    "frame-src": [youtube, ...anyHttps],
+    // `'self'` para o editor de páginas embutir a prévia (`/previa/...`) — só a
+    // própria origem, e quem decide se aceita ser embutida é a página embutida.
+    "frame-src": ["'self'", youtube, ...anyHttps],
     // O vídeo enviado pelo painel é servido pelo backend (`/uploads/videos`).
     "media-src": ["'self'", apiOrigin],
     "worker-src": ["'self'", "blob:"],
     "object-src": ["'none'"],
     "base-uri": ["'self'"],
     "form-action": ["'self'", ...anyHttps],
-    "frame-ancestors": ["'none'"],
+    // `'self'` SÓ na prévia do construtor de páginas (ver `headers()`): o editor
+    // em `/admin/paginas` a abre num iframe da mesma origem. Todo o resto do
+    // site continua sem poder ser enquadrado por ninguém.
+    "frame-ancestors": [framableBySelf ? "'self'" : "'none'"],
   };
 
   const policy = Object.entries(directives)
@@ -177,6 +182,17 @@ const nextConfig: NextConfig = {
         source: "/checkout",
         headers: [
           { key: "Content-Security-Policy", value: contentSecurityPolicy({ checkout: true }) },
+        ],
+      },
+      // Prévia do construtor de páginas (2026-09-25): a ÚNICA rota que aceita
+      // ser enquadrada, e só pela própria origem — o editor desenha a página
+      // real num iframe para mostrar celular/tablet/desktop de verdade. A rota
+      // ainda exige sessão ADMIN; o enquadramento sozinho não expõe nada.
+      {
+        source: "/previa/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Content-Security-Policy", value: contentSecurityPolicy({ framableBySelf: true }) },
         ],
       },
     ];

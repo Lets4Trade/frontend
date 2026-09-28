@@ -1,15 +1,13 @@
-import { getAdminGames } from "@/features/admin/catalog";
 import type { Metadata } from "next";
-import { ADMIN_SHELL } from "@/features/admin/layout";
-import { buildHomeBlocks } from "@/features/home/homeBlocks";
-import {
-  getSectionItemsFor,
-  getSectionLayout,
-  getSectionsFor,
-} from "@/features/site/content";
-import { PageEditor, type EditorBlock } from "@/features/site/editing/PageEditor";
-import { SITE_PAGES, sitePage } from "@/features/site/sections";
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { getAdminGames } from "@/features/admin/catalog";
+import { getGameTabs } from "@/features/admin/games/tabs/list";
+import { getAdminPage } from "@/features/pages/adminPage";
+import { ContentPageEditor } from "@/features/pages/editor/ContentPageEditor";
+import { PageBuilder } from "@/features/pages/editor/PageBuilder";
+import { STATIC_PAGES, builderPage, gamePageDef } from "@/features/pages/registry";
+import { getSectionsAdmin } from "@/features/site/list";
 
 export const metadata: Metadata = {
   title: "Páginas — Lets4Trade",
@@ -20,102 +18,95 @@ type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-/** Páginas que já têm edição inline. As demais entram conforme forem migradas. */
-const EDITABLE_PAGES = ["home"] as const;
-
 /**
- * "Páginas" — edição no próprio desenho da página (2026-09-15).
+ * "Páginas" — o construtor (fases 1–4, 2026-09-25). Fora do Figma: o arquivo
+ * não desenha uma tela de montar páginas.
  *
- * Substitui o formulário de "Edição de sessões": em vez de campos, a página
- * real aparece aqui e o texto é editado onde ele está. Ver
- * `features/site/editing/PageEditor.tsx`.
+ * `?pagina=` escolhe a página: home, venda, fidelidade, `jogo-<id>` (uma por
+ * jogo ativo) — montadas por blocos — e as de conteúdo (cabeçalho/rodapé,
+ * conteúdo comum dos jogos, termos). Slug desconhecido é 404.
  *
- * O SERVIDOR monta os blocos (os mesmos componentes da loja, com os mesmos
- * dados); o editor só os reordena e marca o que mudou.
+ * A guarda é do `app/admin/layout.tsx` (ADMIN e EDITOR); quem autoriza de
+ * verdade é o `RolesGuard` do backend em cada rota.
  */
 export default async function AdminPagesPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const requested = typeof params.pagina === "string" ? params.pagina : "home";
-  const pageKey = (EDITABLE_PAGES as readonly string[]).includes(requested) ? requested : "home";
+  const slug = typeof params.pagina === "string" ? params.pagina : "home";
 
-  const [section, items, layout, games] = await Promise.all([
-    getSectionsFor(pageKey),
-    getSectionItemsFor(pageKey),
-    getSectionLayout(pageKey),
-    // Para o botão "jogo" dos slides do hero: escolhe-se entre os cadastrados.
-    getAdminGames(),
-  ]);
+  const [games, sectionsSnapshot] = await Promise.all([getAdminGames(), getSectionsAdmin()]);
+  const page = builderPage(slug, games);
+  if (!page) notFound();
 
-  const catalog = sitePage(pageKey);
-  const label = (key: string) =>
-    catalog?.sections.find((item) => item.key === key)?.label ?? key;
+  const pages = [
+    ...STATIC_PAGES.filter((item) => item.kind === "blocks"),
+    ...games.map(gamePageDef),
+    ...STATIC_PAGES.filter((item) => item.kind === "content"),
+  ].map((item) => ({ slug: item.slug, label: item.label }));
 
-  const blocks: EditorBlock[] = buildHomeBlocks(section, items).map((block) => ({
-    key: block.key,
-    label: label(block.key),
-    gap: block.gap,
-    node: block.node,
-    // Como a seção chama UM item ("review", "membro"): é o que a barrinha de
-    // ações escreve. Seção sem lista não ganha barrinha.
-    itemLabel: catalog?.sections.find((item) => item.key === block.key)?.list?.itemLabel,
-    itemLabels: block.itemLabels,
-  }));
+  const gameOptions = games.map(({ id, name, slug: gameSlug }) => ({ id, name, slug: gameSlug }));
+
+  if (page.kind === "content") {
+    return (
+      <ContentPageEditor
+        page={page}
+        pages={pages}
+        sections={sectionsSnapshot.sections.filter((section) => section.key.startsWith(`${page.catalogPage}:`))}
+        games={gameOptions}
+        // Cabeçalho e rodapé aparecem na prévia da home; o resto não tem prévia aqui.
+        previewPath={page.slug === "layout" ? "/previa/home" : null}
+      />
+    );
+  }
+
+  const initial = await getAdminPage(page);
+  if (!initial) {
+    return (
+      <div className="px-[24px] pt-[40px]">
+        <h1 className="font-helvetica text-[24px] font-bold text-white">Construtor de páginas</h1>
+        <p className="mt-[12px] max-w-[640px] font-poppins text-[15px] leading-[23px] text-brand-fg-muted">
+          Não foi possível carregar a página agora. Confira se o backend está no ar e com as migrações aplicadas.
+          Enquanto isso, os textos e imagens continuam editáveis{" "}
+          <Link href="/admin/paginas/desenho" className="text-brand-orange hover:underline">
+            no desenho
+          </Link>
+          .
+        </p>
+      </div>
+    );
+  }
+
+  const catalogPage = page.content.kind === "sections" ? page.content.catalogPage : null;
+
+  // As abas CATALOG de cada jogo, para o filtro do bloco "Produtos" (FASE 5:
+  // aba no lugar do tipo). Em paralelo — uma leitura por jogo ativo, só nesta
+  // tela do painel. `null` = leitura falhou; o editor avisa.
+  const tabsByGame = await Promise.all(
+    games.map(async (game) => {
+      const tabs = await getGameTabs(game.id);
+      return tabs
+        ? tabs
+            .filter((tab) => tab.isActive && tab.layout === "CATALOG")
+            .map((tab) => ({ slug: tab.slug, label: tab.label }))
+        : null;
+    }),
+  );
 
   return (
-    <div className={`${ADMIN_SHELL} pb-[60px]`}>
-      <header className="flex flex-wrap items-start justify-between gap-[25px]">
-        <div>
-          <h1 className="font-helvetica text-[25px] leading-none font-bold tracking-[0.25px] text-white">
-            Páginas
-          </h1>
-          <p className="mt-[14px] font-poppins text-[16px] text-brand-fg-muted">
-            Clique no texto da página para editar
-          </p>
-        </div>
-
-        <nav aria-label="Páginas do site" className="flex flex-wrap gap-[10px]">
-          {SITE_PAGES.map((item) => {
-            const editable = (EDITABLE_PAGES as readonly string[]).includes(item.key);
-            const active = item.key === pageKey;
-            return editable ? (
-              <Link
-                key={item.key}
-                href={`/admin/paginas?pagina=${item.key}`}
-                aria-current={active ? "page" : undefined}
-                className={`flex h-[40px] items-center rounded-full border px-[18px] font-poppins text-[14px] transition-colors ${
-                  active
-                    ? "border-brand-orange bg-brand-orange/10 text-white"
-                    : "border-white/15 text-white/70 hover:text-white"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ) : (
-              // Ainda no formulário antigo: link que leva para lá, em vez de um
-              // item morto.
-              <Link
-                key={item.key}
-                href={`/admin/sessoes?pagina=${item.key}`}
-                className="flex h-[40px] items-center rounded-full border border-white/10 px-[18px] font-poppins text-[14px] text-white/40 transition-colors hover:text-white/70"
-                title="Esta página ainda usa o formulário de sessões"
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-      </header>
-
-      <div className="mt-[30px]">
-        <PageEditor
-          page={pageKey}
-          pageLabel={catalog?.label ?? pageKey}
-          blocks={blocks}
-          initialOrder={layout.visible}
-          initialHidden={layout.hidden}
-          games={games.map(({ id, name, slug }) => ({ id, name, slug }))}
-        />
-      </div>
-    </div>
+    <PageBuilder
+      key={page.slug}
+      page={page}
+      pages={pages}
+      initial={initial}
+      sections={
+        catalogPage ? sectionsSnapshot.sections.filter((section) => section.key.startsWith(`${catalogPage}:`)) : []
+      }
+      games={games.map(({ id, name, slug: gameSlug, categories }, index) => ({
+        id,
+        name,
+        slug: gameSlug,
+        catalogTabs: tabsByGame[index],
+        categories,
+      }))}
+    />
   );
 }

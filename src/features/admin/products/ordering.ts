@@ -1,7 +1,7 @@
 import { apiGet } from "@/lib/serverApi";
 
 /**
- * A aba inteira (jogo + tipo) na ordem da vitrine, para "Organizar ordem"
+ * A aba inteira (jogo + aba) na ordem da vitrine, para "Organizar ordem"
  * (2026-09-24). Espelha `ProductsService.listForOrdering` no backend.
  */
 export type OrderableProduct = {
@@ -18,8 +18,12 @@ export type ProductOrdering =
   | { ok: true; items: OrderableProduct[]; truncated: boolean }
   | { ok: false };
 
-export async function getProductOrdering(gameId: string, type: string): Promise<ProductOrdering> {
-  const params = new URLSearchParams({ gameId, type });
+export async function getProductOrdering(
+  gameId: string,
+  /** Aba do jogo (contrato `game-tabs.md`). */
+  tabId: string,
+): Promise<ProductOrdering> {
+  const params = new URLSearchParams({ gameId, tabId });
   const result = await apiGet<{ items: OrderableProduct[]; truncated?: boolean }>(
     `/admin/products/order?${params.toString()}`,
   );

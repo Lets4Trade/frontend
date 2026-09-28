@@ -18,8 +18,7 @@ export const metadata: Metadata = {
  * backend, rota por rota.
  *
  * Server component fino: busca e entrega. Quem edita é o `SectionsEditor`, que
- * precisa ser client porque a tela troca de sessão, renomeia aba e sobe arte
- * sem recarregar.
+ * precisa ser client porque a tela troca de sessão e sobe arte sem recarregar.
  *
  * A moldura é o `AdminFormCard` — o MESMO card de 1510 do cadastro de jogo e do
  * de produto, que é o que o arquivo desenha aqui também (1510×606, raio 30,
@@ -40,14 +39,13 @@ export default async function AdminSectionsPage({ searchParams }: PageProps) {
 
   // Em paralelo: são leituras independentes. Os jogos alimentam o seletor dos
   // slides do hero — escolher um jogo cadastrado em vez de redigitar nome e link.
-  const [{ sections, tabs }, games] = await Promise.all([getSectionsAdmin(), getAdminGames()]);
+  const [{ sections }, games] = await Promise.all([getSectionsAdmin(), getAdminGames()]);
 
   return (
     <AdminFormCard title="EDIÇÃO DE SESSÃO" headingId="titulo-sessoes">
       <div className="px-[50px] pt-[35px]">
         <SectionsEditor
           sections={sections}
-          tabs={tabs}
           games={games.map(({ id, name, slug }) => ({ id, name, slug }))}
           initialPage={initialPage}
           // Remonta ao trocar de página pela URL: o estado inicial do editor

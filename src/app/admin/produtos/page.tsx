@@ -4,17 +4,19 @@ import Link from "next/link";
 import { getAdminGames } from "@/features/admin/catalog";
 import { AdminProductCard } from "@/features/admin/products/AdminProductCard";
 import {
+  GameTabFilter,
   ProductFilters,
-  TypeTabs,
 } from "@/features/admin/products/ProductFilters";
+import { getGameTabs } from "@/features/admin/games/tabs/list";
+import { isProductTab, tabIconSrc } from "@/features/admin/games/tabs/types";
 import {
   buildHref,
   parseProductsQuery,
   type ProductsQuery,
 } from "@/features/admin/products/catalog";
 import { getAdminProducts } from "@/features/admin/products/list";
-import { cn } from "@/lib/cn";
 import { ADMIN_SHELL } from "@/features/admin/layout";
+import { requireAdminPage } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
   title: "Produtos | Lets4Trade",
@@ -39,52 +41,80 @@ export default async function AdminProductsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  await requireAdminPage();
   const params = await searchParams;
 
   // Os jogos vêm primeiro porque a query precisa deles para VALIDAR o filtro de
   // jogo — um id que não existe vira "sem filtro" em vez de listagem vazia.
   const games = await getAdminGames();
-  const query = parseProductsQuery(
+  const parsed = parseProductsQuery(
     params,
     games.map((game) => game.id),
   );
+
+  // O filtro de aba só existe com jogo escolhido: são as ABAS DELE (contrato
+  // `game-tabs.md`; o "tipo" global saiu na FASE 5). `null` = leitura falhou.
+  const gameTabs = parsed.game ? await getGameTabs(parsed.game) : null;
+  const productTabs = gameTabs?.filter(isProductTab) ?? null;
+  const query = {
+    ...parsed,
+    // Aba que não é deste jogo (URL editada à mão) vira "sem filtro".
+    tab: productTabs?.some((tab) => tab.id === parsed.tab) ? parsed.tab : "",
+  };
   const page = await getAdminProducts(query);
 
   return (
     <div className={`${ADMIN_SHELL} pb-[120px]`}>
-        <ProductFilters games={games} query={query} />
+      <ProductFilters games={games} query={query} />
 
+      {/* Sem jogo escolhido não há filtro de aba: a grade sobe. */}
+      {parsed.game ? (
         <div className="mt-[51px]">
-          <TypeTabs query={query} />
-        </div>
-
-        {/* A faixa dos cards é 1715 e a da barra de filtros é 1820: são larguras
-            diferentes no arquivo, e a grade fica centrada dentro da maior. */}
-        <div className="mx-auto mt-[50px] w-full max-w-[1715px]">
-          {page.items.length === 0 ? (
-            <EmptyState query={query} hasGames={games.length > 0} />
+          {productTabs ? (
+            <GameTabFilter
+              query={query}
+              tabs={productTabs.map((tab) => ({
+                id: tab.id,
+                label: tab.label,
+                icon: tabIconSrc(tab.iconUrl),
+                isActive: tab.isActive,
+              }))}
+            />
           ) : (
-            <>
-              {/* `gap-x` de 24 e não 25 pelo mesmo motivo da vitrine: seis cards
+            <p className="text-center font-poppins text-[14px] text-brand-fg-subtle">
+              Não conseguimos carregar as abas deste jogo agora.
+            </p>
+          )}
+        </div>
+      ) : null}
+
+      {/* A faixa dos cards é 1715 e a da barra de filtros é 1820: são larguras
+            diferentes no arquivo, e a grade fica centrada dentro da maior. */}
+      <div className="mx-auto mt-[50px] w-full max-w-[1715px]">
+        {page.items.length === 0 ? (
+          <EmptyState query={query} hasGames={games.length > 0} />
+        ) : (
+          <>
+            {/* `gap-x` de 24 e não 25 pelo mesmo motivo da vitrine: seis cards
                   de 265 com 25 de vão dão 1715, um pixel a mais do que cabe, e
                   o `auto-fill` cairia para cinco colunas. O `justify-between`
                   devolve o pixel. */}
-              <div className="grid grid-cols-[repeat(auto-fill,265px)] justify-between gap-x-[24px] gap-y-[25px]">
-                {page.items.map((product) => (
-                  <AdminProductCard key={product.id} product={product} />
-                ))}
-              </div>
+            <div className="grid grid-cols-[repeat(auto-fill,265px)] justify-between gap-x-[24px] gap-y-[25px]">
+              {page.items.map((product) => (
+                <AdminProductCard key={product.id} product={product} />
+              ))}
+            </div>
 
-              <Pagination
-                current={page.page}
-                pageCount={page.pageCount}
-                href={(next) => buildHref(query, { page: next })}
-                label="dos produtos"
-                className="mt-[50px]"
-              />
-            </>
-          )}
-        </div>
+            <Pagination
+              current={page.page}
+              pageCount={page.pageCount}
+              href={(next) => buildHref(query, { page: next })}
+              label="dos produtos"
+              className="mt-[50px]"
+            />
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -101,7 +131,8 @@ function EmptyState({
   query: ProductsQuery;
   hasGames: boolean;
 }) {
-  const filtering = query.game !== "" || query.type !== "" || query.search !== "";
+  const filtering =
+    query.game !== "" || query.tab !== "" || query.search !== "";
 
   if (filtering) {
     return (
@@ -128,7 +159,9 @@ function EmptyState({
         href={hasGames ? "/admin/produtos/novo" : "/admin/jogos/novo"}
         className="mt-4 inline-block font-poppins text-[16px] font-bold tracking-[0.16px] text-brand-orange transition-opacity hover:opacity-80"
       >
-        {hasGames ? "Cadastrar o primeiro produto →" : "Cadastrar um jogo primeiro →"}
+        {hasGames
+          ? "Cadastrar o primeiro produto →"
+          : "Cadastrar um jogo primeiro →"}
       </Link>
     </div>
   );

@@ -80,6 +80,28 @@ export function OrderLineBlock({ line }: { line: SummaryLine }) {
   );
 }
 
+/**
+ * A conta de um pedido de SERVIÇO: cada linha do preço (faixa de nível,
+ * adicionais) e as horas estimadas. É o que o atendente entrega e o que o
+ * cliente confere — o resumo curto já aparece em "Quantidade".
+ */
+export function ServiceDetailsBlock({
+  lines,
+  hours,
+}: {
+  lines: { label: string; price: string }[];
+  hours: string | null;
+}) {
+  return (
+    <section aria-label="Detalhes do serviço" className="mt-[22px]">
+      {lines.map((line, index) => (
+        <SummaryRow key={`${index}-${line.label}`} label={line.label} value={line.price} className="mt-[12px]" />
+      ))}
+      {hours ? <SummaryRow label="Total de Horas" value={hours} className="mt-[12px]" /> : null}
+    </section>
+  );
+}
+
 /** Preço / Desconto / Total, com os divisores do arquivo. */
 export function TotalsBlock({
   price,

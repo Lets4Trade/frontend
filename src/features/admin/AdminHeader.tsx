@@ -32,9 +32,12 @@ import { ADMIN_NAV } from "./nav";
  */
 export function AdminHeader({
   user,
+  role,
   logoUrl,
 }: {
   user: SessionUser;
+  /** Filtra o menu: o EDITOR só vê o que é conteúdo. */
+  role: "ADMIN" | "EDITOR";
   /** "Logo da marca" do painel (2026-09-24); ausente = o arquivo de fábrica. */
   logoUrl?: string;
 }) {
@@ -63,7 +66,7 @@ export function AdminHeader({
           aria-label="Seções do painel"
           className="absolute top-1/2 left-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-[25px] lg:flex"
         >
-          {ADMIN_NAV.map((item) => {
+          {ADMIN_NAV.filter((item) => (item.roles ?? ["ADMIN"]).includes(role)).map((item) => {
             const active =
               item.match?.some((prefix) => pathname.startsWith(prefix)) ?? false;
             const baseClass = cn(

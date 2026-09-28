@@ -13,6 +13,11 @@ import type { GamePage, GameTab } from "./types";
  */
 export function GameIdentity({ page }: { page: GamePage }) {
   const { logo, heading, coin } = page.identity;
+  // A moeda muda de lugar conforme o layout da aba: no catálogo (Figma 1116:314)
+  // ela desce até os botões de servidor; no serviço (1708:3266) fica ao lado das
+  // abas, 23px abaixo do topo do logo — lá, na altura dos servidores, está o
+  // card do configurador, e ela ficaria por cima dele.
+  const isService = page.tabs.find((tab) => tab.id === page.activeTabId)?.layout === "SERVICE";
 
   return (
     <div className="relative flex items-start gap-[30px]">
@@ -23,11 +28,14 @@ export function GameIdentity({ page }: { page: GamePage }) {
           {heading}
         </h1>
 
-        <nav className="mt-[25px] flex flex-wrap gap-[15px]">
-          {page.tabs.map((tab) => (
-            <TabLink key={tab.id} tab={tab} active={tab.id === page.activeTabId} />
-          ))}
-        </nav>
+        {/* Jogo sem aba ativa: sem a fileira vazia (e sem o vão de 25px). */}
+        {page.tabs.length > 0 ? (
+          <nav className="mt-[25px] flex flex-wrap gap-[15px]">
+            {page.tabs.map((tab) => (
+              <TabLink key={tab.id} tab={tab} active={tab.id === page.activeTabId} />
+            ))}
+          </nav>
+        ) : null}
       </div>
 
       {coin ? (
@@ -36,7 +44,7 @@ export function GameIdentity({ page }: { page: GamePage }) {
         // `flex` empurraria as abas.
         <Link
           href={coin.href ?? "/fidelidade"}
-          className="absolute top-[150px] -right-[16px] block size-[179px]"
+          className={`absolute -right-[16px] block size-[179px] ${isService ? "top-[23px]" : "top-[150px]"}`}
           aria-label="Programa de fidelidade"
         >
           <Image

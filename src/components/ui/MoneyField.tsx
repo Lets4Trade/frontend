@@ -14,6 +14,11 @@ type MoneyFieldProps = {
   maxCents?: number;
   defaultCents?: number;
   className?: string;
+  /**
+   * Avisa quem precisa do valor ENQUANTO se digita (a prévia de preço de
+   * serviço do cadastro de produto). O `FormData` continua vindo do hidden.
+   */
+  onCentsChange?: (cents: number) => void;
 };
 
 /** 5000 → "R$ 50,00". Aritmética de inteiros: dividir dinheiro por 100 em float erra centavo. */
@@ -60,6 +65,7 @@ export function MoneyField({
   maxCents = 10_000_000,
   defaultCents = 0,
   className,
+  onCentsChange,
 }: MoneyFieldProps) {
   const generatedId = useId();
   const inputId = `${generatedId}-money`;
@@ -82,10 +88,13 @@ export function MoneyField({
     const form = inputRef.current?.form;
     if (!form) return;
 
-    const handleReset = () => setCents(defaultCents);
+    const handleReset = () => {
+      setCents(defaultCents);
+      onCentsChange?.(defaultCents);
+    };
     form.addEventListener("reset", handleReset);
     return () => form.removeEventListener("reset", handleReset);
-  }, [defaultCents]);
+  }, [defaultCents, onCentsChange]);
 
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const digits = event.target.value.replace(/\D/g, "");
@@ -94,13 +103,16 @@ export function MoneyField({
     // de quem vai redigitar o preço.
     if (digits === "") {
       setCents(0);
+      onCentsChange?.(0);
       return;
     }
 
     // `slice` antes do `Number`: um colar de trinta dígitos passaria de
     // `Number.MAX_SAFE_INTEGER` e o teto compararia contra um valor já errado.
     const value = Number(digits.slice(0, 12));
-    setCents(Math.min(value, maxCents));
+    const next = Math.min(value, maxCents);
+    setCents(next);
+    onCentsChange?.(next);
   }
 
   return (

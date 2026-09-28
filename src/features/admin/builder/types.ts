@@ -35,6 +35,33 @@ export type BuilderBanner = {
   href?: string | null;
 };
 
+/** Uma categoria como o backend a devolve no builder. */
+export type BuilderCategoryRow = {
+  id: string;
+  label: string;
+  slug: string;
+  position: number;
+  parentId?: string | null;
+  children?: BuilderCategoryRow[] | null;
+  /**
+   * Escopo (abas por jogo, 2026-09-28). O Builder edita só as GLOBAIS (os dois
+   * nulos); se o backend devolver as de escopo junto, elas ficam de fora do
+   * rascunho — reenviá-las como globais seria mudar o escopo delas.
+   */
+  serverId?: string | null;
+  tabId?: string | null;
+};
+
+/**
+ * Categoria no rascunho: um item de lista com as subcategorias dentro.
+ *
+ * Aninhada, e não plana com `parentId`, porque é assim que a tela desenha e o
+ * payload viaja — e porque uma subcategoria NOVA ainda não tem id de pai para
+ * apontar. Subcategoria não tem `children`: o limite de dois níveis está no
+ * próprio tipo.
+ */
+export type BuilderCategory = BuilderListItem & { children: BuilderListItem[] };
+
 /** O que `GET /api/v1/admin/game-page/:id` devolve. */
 export type BuilderGame = {
   id: string;
@@ -42,13 +69,16 @@ export type BuilderGame = {
   name: string;
   imageUrl?: string | null;
   platforms: string[];
-  productTypes: string[];
   heading?: string | null;
   serversLabel?: string | null;
   categoriesLabel?: string | null;
   description?: string | null;
   servers: { id: string; label: string; slug: string; position: number }[];
-  categories: { id: string; label: string; slug: string; position: number }[];
+  /**
+   * Árvore de dois níveis (contrato C da FASE 4). Aceita raízes com `children`
+   * montado OU lista plana com `parentId` — quem resolve é `toCategoryTree`.
+   */
+  categories: BuilderCategoryRow[];
   banners: { id: string; imageUrl: string; href?: string | null; position: number }[];
   /** Blocos visíveis, na ordem. Vazio = não personalizado. */
   sectionOrder?: string[] | null;
@@ -83,9 +113,8 @@ export type Draft = {
   serversLabel: string;
   categoriesLabel: string;
   description: string;
-  productTypes: string[];
   servers: BuilderListItem[];
-  categories: BuilderListItem[];
+  categories: BuilderCategory[];
   /**
    * Etapa 10 — os blocos VISÍVEIS, na ordem.
    *
@@ -113,3 +142,8 @@ export type BuilderShared = {
   faq: GamePage["faq"];
   coin: GamePage["identity"]["coin"];
 };
+
+/** Categoria GLOBAL: sem servidor e sem aba. Ver `BuilderCategoryRow`. */
+export function isGlobalCategory(row: { serverId?: string | null; tabId?: string | null }): boolean {
+  return !row.serverId && !row.tabId;
+}

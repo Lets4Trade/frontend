@@ -1,5 +1,6 @@
 "use server";
 
+import { selectionSchema, type Selection } from "@/features/pricing/quote";
 import { apiPost } from "@/lib/serverApi";
 
 /**
@@ -32,6 +33,11 @@ import { apiPost } from "@/lib/serverApi";
 export type CheckoutLine = {
   productId: string;
   units: number;
+  /**
+   * Só SERVIÇO: a escolha do configurador. O backend recalcula o preço com ela
+   * (`quote`) — nenhum valor viaja daqui. Presente = `units` tem que ser 1.
+   */
+  selection?: Selection;
 };
 
 export type CheckoutResult =
@@ -72,7 +78,7 @@ export async function checkoutAction(
   }
   if (lines.length > MAX_LINES) return { ok: false, reason: "invalid" };
 
-  const items: { productId: string; units: number }[] = [];
+  const items: { productId: string; units: number; selection?: Selection }[] = [];
 
   for (const line of lines) {
     const units = Math.floor(Number(line.units));
@@ -89,6 +95,16 @@ export async function checkoutAction(
     const productId = line.productId.trim();
     if (productId === "" || productId.length > MAX_ID_LENGTH) {
       return { ok: false, reason: "invalid" };
+    }
+
+    // Escolha de serviço: validada no mesmo schema que o backend usa, e só o
+    // que ele define segue (zod descarta chave desconhecida). Serviço é
+    // sempre 1 unidade — o backend recusaria outra quantidade.
+    if (line.selection !== undefined && line.selection !== null) {
+      const parsed = selectionSchema.safeParse(line.selection);
+      if (!parsed.success || units !== 1) return { ok: false, reason: "invalid" };
+      items.push({ productId, units, selection: parsed.data });
+      continue;
     }
 
     items.push({ productId, units });

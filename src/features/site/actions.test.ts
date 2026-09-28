@@ -16,7 +16,6 @@ import {
   saveItemFieldsAction,
   saveSectionAction,
   saveSectionItemAction,
-  saveTabAction,
   saveVideoLinkAction,
   setSectionItemGameAction,
   uploadItemImageAction,
@@ -76,7 +75,6 @@ describe("guarda de papel", () => {
   const calls = [
     ["saveSectionAction", () => saveSectionAction(form({ key: "home:hero" }))],
     ["resetSectionAction", () => resetSectionAction("home:hero")],
-    ["saveTabAction", () => saveTabAction(form({ key: "gold" }))],
     ["saveSectionItemAction", () => saveSectionItemAction(form({ sectionKey: "home:faq" }))],
     ["deleteSectionItemAction", () => deleteSectionItemAction("home:faq", "i1")],
     ["reorderSectionItemsAction", () => reorderSectionItemsAction("home:faq", ["i1"])],
@@ -128,7 +126,6 @@ describe("recusa de imagem acima de 5 MB (antes de gastar banda)", () => {
 
   it.each([
     ["saveSectionAction", () => saveSectionAction(form({ key: "home:hero", image: bigImage() }))],
-    ["saveTabAction (ícone)", () => saveTabAction(form({ key: "gold", icon: bigImage() }))],
     [
       "saveSectionItemAction (arte)",
       () => saveSectionItemAction(form({ sectionKey: "home:faq", image: bigImage() })),
@@ -196,33 +193,6 @@ describe("resetSectionAction", () => {
     await resetSectionAction("home:hero/../x");
     expect(del).toHaveBeenCalledWith("/admin/sections/home%3Ahero%2F..%2Fx");
     expectStoreRevalidated();
-  });
-});
-
-describe("saveTabAction", () => {
-  it("sem chave → invalid", async () => {
-    expect(await saveTabAction(form({}))).toMatchObject({ ok: false, reason: "invalid" });
-    expect(putForm).not.toHaveBeenCalled();
-  });
-
-  it("só o que veio viaja (trocar rótulo não apaga ícone), e extra não viaja", async () => {
-    await saveTabAction(form({ key: "gold", label: "Ouro", slug: "hack" }));
-    expect(formEntries(putForm.mock.calls[0][1])).toEqual({ key: "gold", label: "Ouro" });
-    expect(putForm.mock.calls[0][0]).toBe("/admin/sections/tabs");
-    expectStoreRevalidated();
-  });
-
-  it.each(["true", "false"])("isActive %s viaja como veio", async (value) => {
-    await saveTabAction(form({ key: "gold", isActive: value }));
-    expect(formEntries(putForm.mock.calls[0][1])).toEqual({ key: "gold", isActive: value });
-  });
-
-  it.each(["on", "1", ""])("isActive %o fora de true/false → invalid, sem API", async (value) => {
-    expect(await saveTabAction(form({ key: "gold", isActive: value }))).toMatchObject({
-      ok: false,
-      reason: "invalid",
-    });
-    expect(putForm).not.toHaveBeenCalled();
   });
 });
 

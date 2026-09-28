@@ -30,7 +30,8 @@ export async function getAdminProducts(
 ): Promise<AdminProductPage> {
   const search = new URLSearchParams();
   if (query.game) search.set("gameId", query.game);
-  if (query.type) search.set("type", query.type);
+  // Aba (`tabId`) só com jogo — `parseProductsQuery` garante.
+  if (query.tab) search.set("tab", query.tab);
   if (query.search) search.set("search", query.search);
   search.set("sort", query.sort);
   search.set("page", String(query.page));

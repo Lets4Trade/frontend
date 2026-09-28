@@ -4,6 +4,8 @@ import { AdminFormCard } from "@/features/admin/AdminFormCard";
 import { getAdminGames } from "@/features/admin/catalog";
 import { ProductForm } from "@/features/admin/products/ProductForm";
 import { getAdminProduct } from "@/features/admin/products/list";
+import { getGameTabs } from "@/features/admin/games/tabs/list";
+import { requireAdminPage } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
   title: "Editar produto | Lets4Trade",
@@ -27,6 +29,7 @@ export default async function EditProductPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdminPage();
   const { id } = await params;
 
   const [product, games] = await Promise.all([
@@ -38,9 +41,13 @@ export default async function EditProductPage({
   // o formulário vazio faria a edição parecer um cadastro novo.
   if (product === null) notFound();
 
+  // As abas do jogo do produto já chegam prontas (o jogo não muda na edição).
+  // Depende do produto para saber o jogo, então vem depois — uma leitura a mais.
+  const tabs = await getGameTabs(product.game.id);
+
   return (
     <AdminFormCard title="EDITAR PRODUTO" headingId="editar-produto-heading">
-      <ProductForm games={games} product={product} />
+      <ProductForm games={games} product={product} initialTabs={tabs} />
     </AdminFormCard>
   );
 }

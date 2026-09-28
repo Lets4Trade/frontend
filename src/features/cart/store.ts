@@ -3,6 +3,8 @@
 import { useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { Selection } from "@/features/pricing/quote";
+import { cartLineId } from "./lineId";
 
 /**
  * Carrinho (Figma 2501:3626).
@@ -21,7 +23,9 @@ import { persist } from "zustand/middleware";
  * carrinho é exatamente onde a soma acontece.
  */
 export type CartItem = {
-  /** Produto + servidor: o MESMO produto em servidores diferentes são linhas diferentes. */
+  /**
+   * Produto + servidor (+ hash da escolha, no serviço) — ver `lineId.ts`.
+   */
   id: string;
   productId: string;
   gameSlug: string;
@@ -36,7 +40,24 @@ export type CartItem = {
   quantity: number;
   /** Quando entrou no carrinho — é a data que o card mostra. */
   addedAt: string;
+  /**
+   * Só SERVIÇO (abas por jogo, 2026-09-28): a escolha do configurador. Vai ao
+   * checkout, onde o BACKEND recalcula o preço — `unitPriceCents` aqui é só a
+   * prévia. Presente = linha de serviço, quantidade fixa em 1.
+   *
+   * Opcional para o carrinho salvo por versões anteriores continuar abrindo.
+   */
+  selection?: Selection;
+  /** Resumo da escolha ("Nível 1 → 50 · Prioridade"), para carrinho e checkout. */
+  summary?: string;
+  /** Horas estimadas do serviço. */
+  hours?: number;
 };
+
+/** Linha de serviço: tem escolha, e a quantidade não muda. */
+export function isServiceItem(item: Pick<CartItem, "selection">): boolean {
+  return Boolean(item.selection);
+}
 
 /** Teto por linha. Sem ele um clique preso monta um pedido absurdo. */
 const MAX_QUANTITY = 99;
@@ -54,9 +75,6 @@ type CartState = {
   clear: () => void;
 };
 
-function lineId(productId: string, platform: string) {
-  return `${productId}::${platform}`;
-}
 
 export const useCart = create<CartState>()(
   persist(
@@ -69,8 +87,25 @@ export const useCart = create<CartState>()(
 
       add: (item, quantity = 1) =>
         set((state) => {
-          const id = lineId(item.productId, item.platform);
+          const id = cartLineId(item.productId, item.platform, item.selection);
           const existing = state.items.find((line) => line.id === id);
+
+          // Serviço: a MESMA escolha de novo substitui a linha (preço de prévia
+          // atualizado), sem somar — um boosting 1 → 50 não vira "2x".
+          if (item.selection) {
+            const line: CartItem = {
+              ...item,
+              id,
+              quantity: 1,
+              addedAt: existing?.addedAt ?? new Date().toISOString(),
+            };
+            return {
+              items: existing
+                ? state.items.map((current) => (current.id === id ? line : current))
+                : [...state.items, line],
+              isOpen: true,
+            };
+          }
 
           // Adicionar o mesmo produto/servidor SOMA na linha existente em vez de
           // criar outra — duas linhas iguais no carrinho é sempre erro de quem
@@ -106,7 +141,11 @@ export const useCart = create<CartState>()(
               ? state.items.filter((line) => line.id !== id)
               : state.items.map((line) =>
                   line.id === id
-                    ? { ...line, quantity: Math.min(quantity, MAX_QUANTITY) }
+                    ? {
+                        ...line,
+                        // Serviço é sempre 1: o backend recusa outra quantidade.
+                        quantity: isServiceItem(line) ? 1 : Math.min(quantity, MAX_QUANTITY),
+                      }
                     : line,
                 ),
         })),
@@ -162,4 +201,9 @@ export function formatCents(cents: number) {
     style: "currency",
     currency: "BRL",
   });
+}
+
+/** Horas estimadas em pt-BR com duas casas: 19 → "19,00". */
+export function formatHours(hours: number) {
+  return hours.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }

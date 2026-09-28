@@ -4,10 +4,12 @@ import {
   PARAM,
   SORT_OPTIONS,
   buildHref,
+  scopedCategories,
   toggleCategory,
   type CatalogQuery,
 } from "./catalog";
-import type { GamePage } from "./types";
+import { pillClassName } from "./pill";
+import type { GameCategory, GamePage } from "./types";
 
 /**
  * Filtros do catálogo (Figma 1471:1798, 1486:1815, 1507:1897, 1184:651).
@@ -47,11 +49,7 @@ export function ServerPicker({
               key={server.slug}
               href={buildHref(page.slug, query, { server: server.slug })}
               aria-current={active ? "true" : undefined}
-              className={`inline-flex h-[50px] min-w-[197px] items-center justify-center rounded-full px-6 font-poppins text-[16px] font-bold tracking-[0.16px] transition-opacity hover:opacity-90 ${
-                active
-                  ? "border border-[var(--brand-stroke-soft)] bg-[image:var(--brand-orange-gradient)] text-black"
-                  : "border border-brand-border bg-[image:var(--brand-surface-fill)] text-white/80"
-              }`}
+              className={pillClassName(active)}
             >
               {server.label}
             </Link>
@@ -76,7 +74,9 @@ export function CategoryPanel({
   page: GamePage;
   query: CatalogQuery;
 }) {
-  if (page.categories.items.length === 0) return null;
+  // Só as do escopo: categoria de outro servidor/aba não filtraria nada aqui.
+  const items = scopedCategories(page, query);
+  if (items.length === 0) return null;
 
   return (
     <section className="rounded-[30px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[49px] pt-[25px] pb-[36px]">
@@ -84,37 +84,28 @@ export function CategoryPanel({
         {page.categories.label}
       </h2>
 
-      <div className="mt-[24px] grid grid-cols-[repeat(auto-fill,282px)] gap-x-[24px] gap-y-[15px]">
-        {page.categories.items.map((category) => {
-          const checked = query.categories.includes(category.id);
+      <div className="mt-[24px] grid grid-cols-[repeat(auto-fill,282px)] items-start gap-x-[24px] gap-y-[15px]">
+        {items.map((category) => {
+          const parentChecked = query.categories.includes(category.id);
           return (
-            <Link
-              key={category.id}
-              href={buildHref(page.slug, query, {
-                categories: toggleCategory(query, category.id),
-              })}
-              // Um link que liga e desliga é uma caixa de seleção para quem
-              // usa leitor de tela — o papel diz isso, o href faz funcionar.
-              role="checkbox"
-              aria-checked={checked}
-              className={`flex h-[40px] w-[282px] items-center gap-[10px] rounded-[8px] border px-[25px] backdrop-blur-[100px] transition-opacity hover:opacity-90 ${
-                checked
-                  ? "border-white/10 bg-[image:var(--brand-orange-gradient)] text-white"
-                  : "border-white/10 bg-[image:var(--brand-surface-fill)] text-white/80"
-              }`}
-            >
-              <span
-                aria-hidden
-                className={`h-[30px] w-[32px] shrink-0 rounded-[8px] border-2 border-white/10 backdrop-blur-[100px] ${
-                  checked
-                    ? "bg-brand-bg/40"
-                    : "bg-[image:var(--brand-surface-fill)]"
-                }`}
-              />
-              <span className="truncate font-poppins text-[13px] leading-none font-bold tracking-[0.13px]">
-                {category.label}
-              </span>
-            </Link>
+            // Cada célula da grade é um bloco (pai + filhas recuadas): a
+            // subcategoria fica colada no pai em vez de solta noutra linha.
+            <div key={category.id} className="flex flex-col gap-[8px]">
+              <CategoryToggle page={page} query={query} category={category} />
+              {category.children.map((child) => (
+                <CategoryToggle
+                  key={child.id}
+                  page={page}
+                  query={query}
+                  category={child}
+                  // Com o pai marcado, a filha já está incluída no filtro (o
+                  // backend soma as filhas ao pai) — o realce diz isso sem
+                  // mudar a URL.
+                  implied={parentChecked}
+                  nested
+                />
+              ))}
+            </div>
           );
         })}
       </div>
@@ -218,5 +209,56 @@ function SearchBox({ page, query }: { page: GamePage; query: CatalogQuery }) {
         className="h-full w-full rounded-full border border-brand-border bg-[image:var(--brand-surface-fill)] pr-[20px] pl-[60px] font-helvetica text-[15px] tracking-[0.15px] text-white outline-none placeholder:text-brand-placeholder focus-visible:border-brand-orange"
       />
     </form>
+  );
+}
+
+function CategoryToggle({
+  page,
+  query,
+  category,
+  implied = false,
+  nested = false,
+}: {
+  page: GamePage;
+  query: CatalogQuery;
+  category: GameCategory;
+  implied?: boolean;
+  nested?: boolean;
+}) {
+  const checked = query.categories.includes(category.id);
+  const lit = checked || implied;
+  return (
+    <Link
+      href={buildHref(page.slug, query, {
+        categories: toggleCategory(query, category.id),
+      })}
+      // Um link que liga e desliga é uma caixa de seleção para quem usa leitor
+      // de tela — o papel diz isso, o href faz funcionar.
+      role="checkbox"
+      aria-checked={checked}
+      className={`flex items-center gap-[10px] rounded-[8px] border border-white/10 backdrop-blur-[100px] transition-opacity hover:opacity-90 ${
+        nested ? "ml-[20px] h-[34px] w-[262px] px-[20px]" : "h-[40px] w-[282px] px-[25px]"
+      } ${
+        checked
+          ? "bg-[image:var(--brand-orange-gradient)] text-white"
+          : lit
+            ? "bg-[image:var(--brand-surface-fill)] text-white ring-1 ring-brand-orange/60"
+            : "bg-[image:var(--brand-surface-fill)] text-white/80"
+      }`}
+    >
+      <span
+        aria-hidden
+        className={`shrink-0 border-2 border-white/10 backdrop-blur-[100px] ${
+          nested ? "h-[22px] w-[24px] rounded-[6px]" : "h-[30px] w-[32px] rounded-[8px]"
+        } ${checked ? "bg-brand-bg/40" : "bg-[image:var(--brand-surface-fill)]"}`}
+      />
+      <span
+        className={`truncate font-poppins leading-none font-bold ${
+          nested ? "text-[12px] tracking-[0.12px]" : "text-[13px] tracking-[0.13px]"
+        }`}
+      >
+        {category.label}
+      </span>
+    </Link>
   );
 }

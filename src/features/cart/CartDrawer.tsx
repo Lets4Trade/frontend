@@ -7,6 +7,8 @@ import type { LoyaltyTierRule } from "@/features/loyalty/data";
 import { tierArt } from "@/features/loyalty/tiers";
 import {
   formatCents,
+  formatHours,
+  isServiceItem,
   subtotalCents,
   useCart,
   type CartItem,
@@ -185,6 +187,14 @@ function CartRow({ item, first }: { item: CartItem; first: boolean }) {
             </span>
           </Field>
 
+          {item.summary ? (
+            <Field label="Serviço" className="mt-[22px]">
+              <span className="min-w-0 truncate font-poppins text-[16px] font-semibold tracking-[0.08px] text-white" title={item.summary}>
+                {item.summary}
+              </span>
+            </Field>
+          ) : null}
+
           <Field label="Preço" className="mt-[22px]">
             {/* O preço da linha é o ÚNICO texto em degradê no arquivo — ele é a
                 informação que a pessoa está procurando na tela. */}
@@ -197,6 +207,13 @@ function CartRow({ item, first }: { item: CartItem; first: boolean }) {
           </Field>
 
           <div className="mt-[27px] flex items-center justify-between">
+            {/* Serviço tem quantidade fixa em 1 (a escolha já diz o tamanho do
+                pedido) — sem contador, só o botão de remover. */}
+            {isServiceItem(item) ? (
+              <span className="font-helvetica text-[14px] tracking-[0.14px] text-white/60">
+                {item.hours ? `Total de Horas: ${formatHours(item.hours)}` : "Serviço"}
+              </span>
+            ) : (
             <div className="flex items-center gap-[37px]">
               <StepButton
                 label={`Diminuir a quantidade de ${item.name}`}
@@ -217,6 +234,7 @@ function CartRow({ item, first }: { item: CartItem; first: boolean }) {
                 +
               </StepButton>
             </div>
+            )}
 
             <button
               type="button"

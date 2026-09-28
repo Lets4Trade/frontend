@@ -1,3 +1,9 @@
+import { gameSectionNodes } from "@/features/game/GamePageSections";
+import { composeBlocks } from "@/features/pages/compose";
+import { BlockColumn } from "@/features/pages/frames";
+import { getPublishedPage } from "@/features/pages/public";
+import { GAME_LEGACY_GAP } from "@/features/pages/registry";
+import { publicApiGet } from "@/lib/publicApi";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -88,6 +94,13 @@ export default async function GamePage({ params, searchParams }: PageProps) {
   const query = parseCatalogQuery(await searchParams, base);
   const page = withActiveTab(base, query.tab);
 
+  // Construtor de páginas (2026-09-25): a página DESTE jogo publicada por
+  // blocos manda na ordem das seções e nos blocos novos. O id vem da mesma
+  // leitura pública que `getGamePage` já fez — o `fetch` do Next memoriza a
+  // chamada idêntica dentro do render, então isto não é uma ida a mais.
+  const game = await publicApiGet<{ id: string }>(`/games/${encodeURIComponent(slug)}`);
+  const published = game?.id ? await getPublishedPage(`jogo-${game.id}`) : null;
+
   return (
     <div className="flex min-h-dvh flex-col bg-brand-bg">
       <SiteHeader />
@@ -112,9 +125,17 @@ export default async function GamePage({ params, searchParams }: PageProps) {
           />
 
           <div className="relative mx-auto w-[1714px] pt-[50px] pb-[100px]">
-            {/* A ORDEM dos blocos é do builder (etapa 10), não deste arquivo.
-                Ver `features/game/GamePageSections.tsx`. */}
-            <GamePageSections page={page} query={query} />
+            {/* A ORDEM dos blocos é do builder (etapa 10) — ou, com a página
+                publicada no construtor, da lista de blocos dela. */}
+            {published ? (
+              <BlockColumn
+                items={composeBlocks(published.blocks, published.refs, gameSectionNodes(page, query), {
+                  legacyGap: GAME_LEGACY_GAP,
+                })}
+              />
+            ) : (
+              <GamePageSections page={page} query={query} />
+            )}
           </div>
         </div>
       </main>

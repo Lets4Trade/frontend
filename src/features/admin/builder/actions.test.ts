@@ -35,7 +35,6 @@ function page(over: Partial<SavePagePayload> = {}): SavePagePayload {
     serversLabel: "Ligas",
     categoriesLabel: "Categorias",
     description: "Texto",
-    productTypes: ["GOLD"],
     servers: [
       { id: "s1", label: " Standard " },
       { label: "   " },
@@ -93,7 +92,6 @@ describe("guarda de papel (todas as actions)", () => {
 describe("savePageAction", () => {
   it.each([
     ["nome vazio", page({ name: "   " })],
-    ["sem categoria principal", page({ productTypes: [] })],
     ["servers que não é lista", { ...page(), servers: "x" } as unknown as SavePagePayload],
     ["corpo nulo", null as unknown as SavePagePayload],
   ])("input inválido (%s) → invalid, sem API", async (_l, payload) => {
@@ -106,6 +104,8 @@ describe("savePageAction", () => {
       ...page(),
       isActive: false,
       createdById: "hack",
+      // Legado (FASE 5): o backend não aceita mais — não pode viajar.
+      productTypes: ["GOLD"],
       servers: [{ id: "s1", label: "A", slug: "x", key: "k" }],
     } as unknown as SavePagePayload;
 
@@ -120,7 +120,6 @@ describe("savePageAction", () => {
       serversLabel: "Ligas",
       categoriesLabel: "Categorias",
       description: "Texto",
-      productTypes: ["GOLD"],
       servers: [{ id: "s1", label: "A" }],
       categories: [],
       sectionOrder: ["banner", "catalog"],
@@ -134,6 +133,31 @@ describe("savePageAction", () => {
       { id: "s1", label: "Standard" },
       { id: undefined, label: "Hardcore" },
     ]);
+  });
+
+  it("categorias viajam em árvore (children sempre presente)", async () => {
+    await savePageAction(
+      "g1",
+      page({
+        categories: [
+          { id: "c1", label: " Moedas ", children: [{ label: "Ouro" }, { label: " " }] },
+          { label: "Itens" },
+        ],
+      }),
+    );
+    expect((put.mock.calls[0][1] as { categories: unknown }).categories).toEqual([
+      { id: "c1", label: "Moedas", children: [{ id: undefined, label: "Ouro" }] },
+      { id: undefined, label: "Itens", children: [] },
+    ]);
+  });
+
+  it("categoria sem nome com subcategoria → invalid, sem API", async () => {
+    const result = await savePageAction(
+      "g1",
+      page({ categories: [{ label: "", children: [{ label: "Ouro" }] }] }),
+    );
+    expect(result).toMatchObject({ ok: false, reason: "invalid" });
+    expect(put).not.toHaveBeenCalled();
   });
 
   it("sucesso invalida vitrine, builder, home (slides do hero) e o menu GAMES", async () => {

@@ -20,6 +20,7 @@
  * para ele. Ver `content.ts`, que é a única fronteira de dados desta página.
  */
 
+import type { Pricing } from "@/features/pricing/quote";
 import type { GameSectionKey } from "./sections";
 
 /** Imagem editável. `width`/`height` são as do arquivo original, para o `next/image`. */
@@ -38,12 +39,27 @@ export type GameBanner = {
   href?: string;
 };
 
-/** Aba de categoria de serviço: MOEDAS, ITENS, GOLD, BOOSTING… */
+/**
+ * Como a aba desenha a página (contrato `.claude/context/game-tabs.md`):
+ *   CATALOG  servidores → categorias → grade (o layout de sempre);
+ *   SERVICE  textos à esquerda + card configurador à direita (Figma 1708:3266);
+ *   LINK     não filtra nada: leva para `href` ("/venda", "/fidelidade").
+ */
+export type GameTabLayout = "CATALOG" | "SERVICE" | "LINK";
+
+/** Os textos da aba SERVICE. Texto PURO — nunca renderizado como HTML. */
+export type ServiceContent = { sections: { title: string; items: string[] }[] };
+
+/** Aba do jogo: MOEDAS, ITENS, GOLD, BOOSTING… */
 export type GameTab = {
+  /** O slug da aba — é o que vai em `?aba=`. */
   id: string;
   label: string;
   icon: ImageRef;
   href: string;
+  layout: GameTabLayout;
+  /** Só SERVICE. */
+  content?: ServiceContent;
 };
 
 /**
@@ -58,10 +74,24 @@ export type GameServer = {
   label: string;
 };
 
-/** Categoria de produto, marcável no painel "Selecionar categoria". */
+/**
+ * Categoria de produto, marcável no painel "Selecionar categoria".
+ *
+ * `id` é o SLUG (é o que vai na URL, `?categoria=<slug>`). Dois níveis no
+ * máximo (contrato C da FASE 4): marcar o pai filtra também os produtos das
+ * filhas — quem inclui é o backend.
+ */
 export type GameCategory = {
   id: string;
   label: string;
+  /** Slug do pai; `null`/ausente na categoria de primeiro nível. */
+  parentId?: string | null;
+  /** Subcategorias. Sempre vazio numa subcategoria. */
+  children: GameCategory[];
+  /** Escopo (abas por jogo): ausente/`null` = vale para todos os servidores. */
+  serverSlug?: string | null;
+  /** Escopo: ausente/`null` = vale para todas as abas. */
+  tabSlug?: string | null;
 };
 
 export type GameProduct = {
@@ -76,8 +106,15 @@ export type GameProduct = {
   /** Ausente enquanto o produto não foi classificado numa categoria. */
   categorySlug?: string;
   categoryLabel?: string;
-  /** A aba em que o produto aparece — derivada do `productType` do backend. */
+  /** A aba em que o produto aparece — o `tabSlug` da API. */
   tabId: string;
+  /**
+   * Regra de preço de SERVIÇO, já validada por `pricingSchema`. Ausente = FIXED
+   * (produto de catálogo, ou serviço sem regra).
+   */
+  pricing?: Pricing;
+  /** A regra veio e NÃO passou na validação: o serviço fica indisponível. */
+  pricingInvalid?: boolean;
 };
 
 export type GameReference = {
@@ -152,6 +189,10 @@ export type GamePage = {
     coin?: ImageRef & { href?: string };
   };
 
+  /**
+   * Abas do BANCO (ativas, por posição). Pode ser VAZIA: jogo sem aba ativa
+   * desenha a página sem catálogo (ver `GamePageSections`).
+   */
   tabs: GameTab[];
   /** Qual aba está ativa nesta página. */
   activeTabId: string;

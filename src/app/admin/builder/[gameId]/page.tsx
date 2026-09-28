@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { BuilderShell } from "@/features/admin/builder/BuilderShell";
 import { getBuilderGame } from "@/features/admin/builder/list";
 import { getGamePage } from "@/features/game/content";
+import { getGameTabs } from "@/features/admin/games/tabs/list";
 
 export const metadata: Metadata = {
   title: "Builder de Páginas — Lets4Trade",
@@ -43,11 +44,14 @@ export default async function BuilderPage({
    * VERDADE em vez de retângulos rotulados. Sem isso a pessoa vê uma página que
    * não é a dela, e a única coisa que um preview não pode ser é diferente.
    */
-  const published = await getGamePage(game.slug);
+  // As abas do jogo (Jogos → Abas) só para a maquete — não são editadas aqui.
+  // Em paralelo com a página publicada: são duas leituras independentes.
+  const [published, tabs] = await Promise.all([getGamePage(game.slug), getGameTabs(game.id)]);
 
   return (
     <BuilderShell
       game={game}
+      tabs={tabs}
       shared={
         published
           ? {

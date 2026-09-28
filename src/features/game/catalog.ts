@@ -1,5 +1,4 @@
-import { tabById } from "./tabs";
-import type { GamePage, GameProduct } from "./types";
+import type { GameCategory, GamePage, GameProduct, GameTab } from "./types";
 
 /**
  * Estado do catálogo. Ele mora na URL, e não em `useState`, por três motivos
@@ -72,12 +71,11 @@ export function parseCatalogQuery(
   page: GamePage,
 ): CatalogQuery {
   const serverSlugs = new Set(page.servers.items.map((item) => item.slug));
-  const categoryIds = new Set(page.categories.items.map((item) => item.id));
-  // Só as abas de PRODUTO filtram catálogo. As de link ("VENDA PRA NÓS",
-  // "FIDELIDADE") estão em `page.tabs` mas levam para outra página — aceitar
-  // `?aba=fidelidade` aqui pediria ao backend um tipo que não existe.
+  // Só as abas CATALOG/SERVICE deste jogo filtram. As de link ("VENDA PRA
+  // NÓS", "FIDELIDADE") estão em `page.tabs` mas levam para outra página —
+  // aceitar `?aba=fidelidade` aqui pediria ao backend uma aba que não filtra.
   const tabIds = new Set(
-    page.tabs.filter((tab) => tabById(tab.id)).map((tab) => tab.id),
+    page.tabs.filter((tab) => tab.layout !== "LINK").map((tab) => tab.id),
   );
   const sortKeys = new Set<string>(SORT_OPTIONS.map((option) => option.key));
 
@@ -86,12 +84,23 @@ export function parseCatalogQuery(
   const rawSort = first(params[PARAM.sort]);
   const rawPage = Number.parseInt(first(params[PARAM.page]) ?? "1", 10);
 
+  const tab = rawTab && tabIds.has(rawTab) ? rawTab : page.activeTabId;
+  const server =
+    rawServer && serverSlugs.has(rawServer)
+      ? rawServer
+      : (page.servers.items[0]?.slug ?? "");
+  // Pais E filhas (contrato C da FASE 4), mas só as do ESCOPO escolhido: uma
+  // categoria de outro servidor/aba na URL não filtra nada aqui.
+  const categoryIds = new Set(
+    scopeCategories(page.categories.items, server, tab).flatMap((item) => [
+      item.id,
+      ...item.children.map((child) => child.id),
+    ]),
+  );
+
   return {
-    tab: rawTab && tabIds.has(rawTab) ? rawTab : page.activeTabId,
-    server:
-      rawServer && serverSlugs.has(rawServer)
-        ? rawServer
-        : (page.servers.items[0]?.slug ?? ""),
+    tab,
+    server,
     categories: all(params[PARAM.category]).filter((id) => categoryIds.has(id)),
     sort: rawSort && sortKeys.has(rawSort) ? (rawSort as SortKey) : null,
     // Corta o texto: a busca vira `ILIKE` no banco, e comprimento sem limite no
@@ -99,6 +108,36 @@ export function parseCatalogQuery(
     search: (first(params[PARAM.search]) ?? "").trim().slice(0, 80),
     page: Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1,
   };
+}
+
+/**
+ * As categorias que valem para (servidor, aba): cada uma casa com o servidor
+ * OU é global, E casa com a aba OU é global. Filha fora do escopo sai; pai fora
+ * do escopo leva as filhas junto.
+ */
+export function scopeCategories(
+  items: readonly GameCategory[],
+  server: string,
+  tab: string,
+): GameCategory[] {
+  const fits = (category: GameCategory) =>
+    (!category.serverSlug || category.serverSlug === server) &&
+    (!category.tabSlug || category.tabSlug === tab);
+
+  return items.filter(fits).map((root) => ({
+    ...root,
+    children: root.children.filter(fits),
+  }));
+}
+
+/** A aba ativa da query (nunca uma LINK). */
+export function activeTab(page: GamePage, query: CatalogQuery): GameTab | undefined {
+  return page.tabs.find((tab) => tab.id === query.tab && tab.layout !== "LINK");
+}
+
+/** As categorias do escopo atual: (servidor OU global) E (aba OU global). */
+export function scopedCategories(page: GamePage, query: CatalogQuery): GameCategory[] {
+  return scopeCategories(page.categories.items, query.server, query.tab);
 }
 
 export type CatalogResult = {
