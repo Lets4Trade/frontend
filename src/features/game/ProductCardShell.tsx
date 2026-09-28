@@ -23,7 +23,8 @@ export function ProductCardShell({
 }: {
   name: string;
   /** Já formatado em BRL — quem formata é quem tem a fonte do valor. */
-  price: string;
+  /** Texto ou nó: a vitrine mostra o total do contador com a quantidade ao lado. */
+  price: React.ReactNode;
   image?: { src: string; alt?: string; width: number; height: number };
   actions: ReactNode;
 }) {
@@ -60,7 +61,7 @@ export function ProductCardShell({
         {name}
       </h3>
 
-      <p className="absolute top-[305px] left-0 w-full text-center font-poppins text-[18px] leading-[27px] font-semibold tracking-[0.36px] text-white">
+      <p className="absolute top-[305px] left-0 w-full truncate px-[10px] text-center font-poppins text-[18px] leading-[27px] font-semibold tracking-[0.36px] text-white">
         {price}
       </p>
 

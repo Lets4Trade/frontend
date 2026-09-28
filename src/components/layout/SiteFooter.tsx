@@ -7,6 +7,7 @@ import {
   resolveCopyright,
   type ContactChannel,
 } from "@/features/site/contacts";
+import { withNewsLink } from "@/features/site/footerLinks";
 import { getLayoutContent } from "@/features/site/layoutContent";
 import { GlowBar } from "./GlowBar";
 
@@ -72,7 +73,8 @@ export async function SiteFooter() {
   const columns = LINK_COLUMNS.map((key) => ({
     key,
     title: text(key).title,
-    links: items(key),
+    // "Notícias" entra na coluna LOJA por código — ver `footerLinks.ts`.
+    links: withNewsLink(key, items(key)),
   })).filter((column) => column.links.length > 0);
 
   return (

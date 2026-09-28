@@ -110,6 +110,42 @@ function GameLogo({ logo, name }: { logo?: { src: string; alt?: string }; name: 
 }
 
 /**
+ * O mesmo halo do `GameLogo` em tamanho LIVRE: altura fixa, largura da própria
+ * arte (`w-auto`). Usado na fileira de filtros de `/noticias` (Figma 1889:864),
+ * onde cada jogo tem uma logo de proporção diferente e caixa fixa deixaria
+ * vãos desiguais entre logo e pílula.
+ *
+ * A cópia borrada fica ABSOLUTA atrás da nítida e com o mesmo tamanho — é a
+ * nítida, em fluxo, que dá a largura. O raio do borrão é proporcional ao do
+ * logo grande (5.92px em 164 de altura).
+ */
+export function LogoHalo({ src, alt, height }: { src: string; alt: string; height: number }) {
+  const blur = Math.max(1.5, (5.92 * height) / LOGO_BOX.height);
+  return (
+    <span className="relative inline-block shrink-0" style={{ height }}>
+      <Image
+        src={src}
+        alt=""
+        aria-hidden
+        width={height * 4}
+        height={height}
+        sizes={`${height * 4}px`}
+        className="absolute inset-0 h-full w-full object-contain"
+        style={{ filter: `blur(${blur}px)` }}
+      />
+      <Image
+        src={src}
+        alt={alt}
+        width={height * 4}
+        height={height}
+        sizes={`${height * 4}px`}
+        className="relative h-full w-auto max-w-[200px] object-contain"
+      />
+    </span>
+  );
+}
+
+/**
  * Aba de serviço. 130×99 no arquivo, com o ícone de 50px em cima e o rótulo
  * embaixo; a ativa troca o vidro pelo degradê laranja.
  *

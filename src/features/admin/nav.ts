@@ -51,6 +51,14 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
     match: ["/admin/paginas", "/admin/sessoes"],
     roles: ["ADMIN", "EDITOR"],
   },
+  // NÃO está no arquivo do Figma: o blog (contrato blog.md, 2026-09-28). É
+  // conteúdo, então o EDITOR também vê — ao lado de "Páginas".
+  {
+    label: "Notícias",
+    href: "/admin/noticias",
+    match: ["/admin/noticias"],
+    roles: ["ADMIN", "EDITOR"],
+  },
   { label: "Usuários", href: "/admin/usuarios", match: ["/admin/usuarios"] },
   {
     label: "Builder de Page",

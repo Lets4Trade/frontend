@@ -1,4 +1,6 @@
 import { backendAsset, publicApiGet } from "@/lib/publicApi";
+import { getGameNews } from "@/features/blog/data";
+import type { BlogCardView } from "@/features/blog/types";
 import type { CatalogQuery, CatalogResult } from "./catalog";
 import { resolveSectionOrder } from "./sections";
 import { getEditorial } from "./seed";
@@ -11,7 +13,7 @@ import {
   type ApiCategory,
   type ApiGameTab,
 } from "./storefrontTabs";
-import type { GamePage, GameProduct } from "./types";
+import type { GameNewsItem, GamePage, GameProduct } from "./types";
 
 /**
  * Os jogos em que o grupo "Dúvidas sobre Orbs" aparece, ACIMA do geral.
@@ -113,7 +115,7 @@ const PAGE_SIZE = 24;
 export async function getGamePage(slug: string): Promise<GamePage | null> {
   // As leituras em paralelo: em série somariam latência à página mais navegada
   // da loja.
-  const [game, section, items] = await Promise.all([
+  const [game, section, items, blogNews] = await Promise.all([
     publicApiGet<StorefrontGame>(`/games/${encodeURIComponent(slug)}`),
     // Os blocos COMPARTILHADOS da página de jogo (referências, notícias,
     // dúvidas) têm o mesmo conteúdo em todos os jogos, então vivem na tela
@@ -123,6 +125,10 @@ export async function getGamePage(slug: string): Promise<GamePage | null> {
     // Em paralelo com o resto, para não somar latência à página mais navegada.
     getSectionsFor("games"),
     getSectionItemsFor("games"),
+    // Notícias do BLOG deste jogo (contrato blog.md). Em paralelo com o resto
+    // — não soma latência — e cacheadas por 60s. Falha vira lista vazia e a
+    // seção cai nos itens editoriais abaixo.
+    getGameNews(slug, 4).catch(() => [] as BlogCardView[]),
   ]);
   if (!game) return null;
 
@@ -241,7 +247,12 @@ export async function getGamePage(slug: string): Promise<GamePage | null> {
     news: {
       ...editorial.news,
       title: section("noticias").title || editorial.news.title,
-      items: items("noticias").length
+      // Prioridade: notícias PUBLICADAS no blog para este jogo → itens da tela
+      // de sessões → conteúdo semente. O blog vence porque tem página própria
+      // (o card leva à matéria) e data de publicação real.
+      items: blogNews.length
+        ? blogNews.map((post) => blogNewsItem(post, game.name))
+        : items("noticias").length
         ? items("noticias").map((item) => ({
             id: item.id,
             title: item.title,
@@ -283,6 +294,23 @@ export async function getGamePage(slug: string): Promise<GamePage | null> {
      * que se publica por engano.
      */
     sections: resolveSectionOrder(game.sectionOrder),
+  };
+}
+
+/**
+ * Notícia do blog → card da seção NOTÍCIAS da página de jogo. A TAG é o nome
+ * do jogo da página (mesma regra dos itens editoriais) e a data, a de
+ * publicação no formato de hoje ("17/04/26").
+ */
+export function blogNewsItem(post: BlogCardView, gameName: string): GameNewsItem {
+  return {
+    id: `blog:${post.slug}`,
+    title: post.title,
+    excerpt: post.excerpt,
+    image: post.cover ? { src: post.cover, width: 400, height: 225, alt: "" } : undefined,
+    tag: gameName,
+    date: post.date,
+    href: post.href,
   };
 }
 

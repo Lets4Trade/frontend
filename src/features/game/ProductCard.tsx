@@ -46,7 +46,22 @@ export function ProductCard({
   return (
     <ProductCardShell
       name={product.name}
-      price={formatPrice(product.priceCents)}
+      // O preço acompanha o contador (2026-09-28, relato do usuário: "escolho 5
+      // e o preço continua como se fosse 1"). Com mais de uma unidade, o total
+      // vira o destaque e o unitário fica como referência — o mesmo número que
+      // a linha do carrinho vai mostrar depois de adicionar.
+      // O unitário completo cabe no leitor de tela (`title`/aria), não nos
+      // 265px do card — "R$ 79.680,00 (5 × R$ 15.936,00)" estouraria a linha.
+      price={
+        quantity > 1 ? (
+          <span title={`${quantity} × ${formatPrice(product.priceCents)}`}>
+            {formatPrice(product.priceCents * quantity)}
+            <span className="ml-[6px] text-[13px] font-medium text-white/60">· {quantity} un.</span>
+          </span>
+        ) : (
+          formatPrice(product.priceCents)
+        )
+      }
       image={product.image}
       actions={
         <div className="flex items-center gap-[15px] pl-[32px]">

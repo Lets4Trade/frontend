@@ -38,9 +38,17 @@ export async function ProductGrid({
   };
 
   if (result.items.length === 0) {
+    // Vazio por FILTRO e vazio por CATÁLOGO dizem coisas diferentes (mesma regra
+    // da listagem do painel): "com esses filtros" numa aba que ainda não tem
+    // produto nenhum faz a pessoa procurar um filtro que não aplicou.
+    const filtering = query.search !== "" || query.categories.length > 0;
     return (
       <p className="py-[80px] text-center font-helvetica text-[18px] text-brand-fg-muted">
-        Nenhum item encontrado com esses filtros.
+        {filtering
+          ? "Nenhum item encontrado com esses filtros."
+          : server && page.servers.items.length > 1
+            ? `Ainda não há produtos em ${server.label}. Veja outro servidor ou fale com o suporte.`
+            : "Ainda não há produtos nesta aba. Fale com o suporte para encomendar."}
       </p>
     );
   }

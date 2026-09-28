@@ -147,13 +147,27 @@ function CartRow({ item, first }: { item: CartItem; first: boolean }) {
     <article className={first ? "pt-[26px]" : "border-t border-white/25 pt-[26px]"}>
       <div className="flex gap-[25px] pb-[25px]">
         <div className="relative size-[146px] h-[189px] shrink-0 overflow-hidden rounded-[12px] border-2 border-white/10 bg-[#2f2f2f]">
+          {/* `eager`: a gaveta abre JÁ com as linhas na tela, e o `lazy` padrão
+              só pedia a arte depois da animação — o card ficava cinza por um
+              instante a cada abertura (relato de 2026-09-28). Produto sem arte
+              mostra a logo do jogo em vez do retângulo vazio. */}
           {item.image ? (
             <Image
               src={item.image}
               alt=""
               width={146}
               height={189}
+              loading="eager"
               className="size-full object-cover"
+            />
+          ) : item.gameLogo ? (
+            <Image
+              src={item.gameLogo}
+              alt=""
+              width={110}
+              height={90}
+              loading="eager"
+              className="size-full object-contain p-[18px] opacity-80"
             />
           ) : null}
         </div>
