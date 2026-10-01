@@ -1,16 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { SelectField } from "@/components/ui/SelectField";
 import { TextAreaField } from "@/components/ui/TextAreaField";
 import { TextField } from "@/components/ui/TextField";
 import {
-  JOGOS,
   PLATAFORMAS,
   SERVIDORES,
   TIPOS_PRODUTO,
-  sellSchema,
+  createSellSchema,
+  sellGameOptions,
   type SellFormValues,
 } from "./schema";
 import { SELL_ERROR_MESSAGES, SellError, submitSellRequest } from "./sellService";
@@ -22,8 +22,18 @@ type FieldErrors = Partial<Record<keyof SellFormValues, string>>;
  *
  * Duas colunas de 315px com 50px de vão — o mesmo grid do cadastro. A área de
  * descrição ocupa só a coluna da esquerda na quarta linha, como no design.
+ *
+ * `game`: o formulário DENTRO da página de um jogo (aba SELL) nasce com esse
+ * jogo escolhido. Mesmo envio, mesma validação e o mesmo anti-spam de `/venda`.
  */
-export function SellForm() {
+export function SellForm({ game }: { game?: { slug: string; name: string } } = {}) {
+  const gameSlug = game?.slug;
+  const gameName = game?.name;
+  const gameOptions = useMemo(
+    () => sellGameOptions(gameSlug && gameName ? { slug: gameSlug, name: gameName } : undefined),
+    [gameSlug, gameName],
+  );
+  const schema = useMemo(() => createSellSchema(gameOptions.options), [gameOptions]);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,7 +48,7 @@ export function SellForm() {
 
     const data = new FormData(event.currentTarget);
     const read = (name: string) => String(data.get(name) ?? "");
-    const parsed = sellSchema.safeParse({
+    const parsed = schema.safeParse({
       jogo: read("jogo"),
       plataforma: read("plataforma"),
       servidor: read("servidor"),
@@ -92,7 +102,8 @@ export function SellForm() {
           name="jogo"
           label="Jogo:"
           placeholder="Path Of Exile 2"
-          options={JOGOS}
+          options={gameOptions.options}
+          defaultValue={gameOptions.defaultValue}
           error={fieldErrors.jogo}
         />
         <SelectField

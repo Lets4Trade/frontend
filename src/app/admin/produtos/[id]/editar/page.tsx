@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { AdminFormCard } from "@/features/admin/AdminFormCard";
 import { getAdminGames } from "@/features/admin/catalog";
 import { ProductForm } from "@/features/admin/products/ProductForm";
+import { RETURN_PARAM, safeReturnPath } from "@/features/admin/products/links";
 import { getAdminProduct } from "@/features/admin/products/list";
 import { getGameTabs } from "@/features/admin/games/tabs/list";
 import { requireAdminPage } from "@/features/admin/guard";
@@ -26,11 +27,16 @@ export const metadata: Metadata = {
  */
 export default async function EditProductPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   await requireAdminPage();
-  const { id } = await params;
+  const [{ id }, query] = await Promise.all([params, searchParams]);
+  // `?volta=` (admin-games-ux.md, Etapa 2): a Central do jogo manda o próprio
+  // endereço para o salvar voltar à aba. Só caminho do painel (`safeReturnPath`).
+  const returnTo = safeReturnPath(query[RETURN_PARAM]);
 
   const [product, games] = await Promise.all([
     getAdminProduct(id),
@@ -47,7 +53,7 @@ export default async function EditProductPage({
 
   return (
     <AdminFormCard title="EDITAR PRODUTO" headingId="editar-produto-heading">
-      <ProductForm games={games} product={product} initialTabs={tabs} />
+      <ProductForm games={games} product={product} initialTabs={tabs} returnTo={returnTo} />
     </AdminFormCard>
   );
 }

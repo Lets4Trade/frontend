@@ -56,3 +56,37 @@ export const createProductSchema = z.object({
 });
 
 export type CreateProductValues = z.infer<typeof createProductSchema>;
+
+/**
+ * "Tópicos do card" de PACOTE (contrato `game-tabs-v2.md`, 2026-09-30) — as
+ * linhas com bolinha do card ("Manual Boosting Guarantee"). Mesmos limites do
+ * backend: até 6 tópicos de até 80 caracteres, TEXTO PURO (a vitrine
+ * renderiza como texto). Normaliza como o backend: trim e vazios removidos —
+ * uma linha em branco no meio do campo não vira tópico vazio.
+ */
+export const MAX_HIGHLIGHTS = 6;
+export const MAX_HIGHLIGHT_CHARS = 80;
+
+export const highlightsSchema = z
+  .array(z.string().max(1000, "Tópico longo demais."))
+  .max(50, "Tópicos demais.")
+  .transform((items) => items.map((item) => item.trim()).filter((item) => item !== ""))
+  .pipe(
+    z
+      .array(
+        z
+          .string()
+          .max(MAX_HIGHLIGHT_CHARS, `Cada tópico do card pode ter no máximo ${MAX_HIGHLIGHT_CHARS} caracteres.`),
+      )
+      .max(MAX_HIGHLIGHTS, `O card aceita no máximo ${MAX_HIGHLIGHTS} tópicos.`),
+  );
+
+/** Texto do campo (uma linha por tópico) → lista normalizada, ou a mensagem do zod. */
+export function parseHighlights(
+  text: string,
+): { ok: true; highlights: string[] } | { ok: false; message: string } {
+  const parsed = highlightsSchema.safeParse(text.split(/\r?\n/));
+  return parsed.success
+    ? { ok: true, highlights: parsed.data }
+    : { ok: false, message: parsed.error.issues[0]?.message ?? "Tópicos inválidos." };
+}

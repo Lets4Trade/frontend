@@ -59,9 +59,6 @@ export function BlockLibrary({
               onClick={() => add(createBlock(type))}
               className="flex w-full items-start gap-[10px] rounded-[12px] px-[10px] py-[9px] text-left hover:bg-white/5"
             >
-              <span aria-hidden className="pt-[1px] text-[18px]">
-                {BLOCKS[type].icon}
-              </span>
               <span>
                 <span className="block font-poppins text-[14px] text-white">{BLOCKS[type].label}</span>
                 <span className="block font-poppins text-[12px] text-brand-fg-subtle">{BLOCKS[type].description}</span>
@@ -81,9 +78,6 @@ export function BlockLibrary({
                   onClick={() => add(createBlock("secao", { key }))}
                   className="flex w-full items-center gap-[10px] rounded-[12px] px-[10px] py-[9px] text-left hover:bg-white/5"
                 >
-                  <span aria-hidden className="text-[18px]">
-                    🧩
-                  </span>
                   <span className="font-poppins text-[14px] text-white">{legacyLabels[key] ?? key}</span>
                 </button>
               ))}

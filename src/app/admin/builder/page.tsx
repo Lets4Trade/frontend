@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { DeleteGameButton } from "@/features/admin/builder/DeleteGameButton";
+import { redirect } from "next/navigation";
 import { getBuilderGames } from "@/features/admin/builder/list";
 import { getSessionRole } from "@/features/auth/session";
 import { backendAsset } from "@/lib/publicApi";
@@ -24,14 +24,24 @@ export const metadata: Metadata = {
  * do arquivo, no estilo do painel, marcada como tal aqui para quem vier depois
  * não procurar o nó correspondente.
  *
- * Fica deliberadamente mínima — uma grade de jogos que leva ao builder. Se o
- * arquivo ganhar uma tela de listagem de jogos (que hoje não existe em lugar
- * nenhum do painel), esta some e vira um link de lá.
+ * Fica deliberadamente mínima — uma grade de jogos que leva ao builder.
+ *
+ * Desde 2026-09-30 (admin-games-ux.md, Etapa 1) só o EDITOR a vê: o ADMIN é
+ * redirecionado para `/admin/jogos`, a lista que já leva ao Builder de cada
+ * jogo. O EDITOR não tem a lista de Jogos (catálogo é só ADMIN), então esta
+ * grade continua sendo a porta dele.
  */
 export default async function BuilderPickerPage() {
-  const [games, role] = await Promise.all([getBuilderGames(), getSessionRole()]);
-  // Excluir jogo é só ADMIN (2026-09-25): o EDITOR edita a página, não o catálogo.
-  const canDelete = role === "ADMIN";
+  // ADMIN → lista de Jogos (2026-09-30, admin-games-ux.md): as duas telas eram
+  // a mesma grade, e cada linha de lá já tem o atalho "Página" para o Builder.
+  // A role é lida ANTES da lista para o redirecionamento não esperar o backend.
+  // O EDITOR fica aqui: ele não tem acesso a `/admin/jogos` (só ADMIN).
+  const role = await getSessionRole();
+  if (role === "ADMIN") redirect("/admin/jogos");
+
+  // Sem lixeira aqui: excluir jogo é só ADMIN (2026-09-25), e o ADMIN já não
+  // chega a esta tela — a lixeira dele está na lista de Jogos.
+  const games = await getBuilderGames();
 
   return (
     <div className={`${ADMIN_SHELL} pb-[100px]`}>
@@ -55,13 +65,10 @@ export default async function BuilderPickerPage() {
           {games.map((game) => {
             const art = backendAsset(game.imageUrl);
             return (
-              // `relative` para a lixeira ficar SOBRE o card sem estar DENTRO do
-              // link: botão aninhado em `<a>` é HTML inválido e o clique nele
-              // também navegaria.
-              <li key={game.id} className="relative">
+              <li key={game.id}>
                 <Link
                   href={`/admin/builder/${game.id}`}
-                  className="flex h-[140px] items-center gap-[20px] rounded-[20px] border border-brand-border bg-[image:var(--brand-surface-fill)] pr-[52px] pl-[25px] transition-opacity hover:opacity-90"
+                  className="flex h-[140px] items-center gap-[20px] rounded-[20px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[25px] transition-opacity hover:opacity-90"
                 >
                   <div className="relative h-[90px] w-[110px] shrink-0">
                     {art ? (
@@ -89,11 +96,6 @@ export default async function BuilderPickerPage() {
                     </span>
                   </span>
                 </Link>
-                {canDelete ? (
-                  <div className="absolute top-[10px] right-[10px]">
-                    <DeleteGameButton id={game.id} name={game.name} />
-                  </div>
-                ) : null}
               </li>
             );
           })}

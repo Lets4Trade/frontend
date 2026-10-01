@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { buttonVariants } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
+import { RichText } from "@/features/site/richText";
 import { VideoPlayer } from "./VideoPlayer";
 import { reveal, revealDelay } from "./reveal";
 import { youtubeId, youtubeWatchUrl } from "./youtube";
@@ -25,10 +26,12 @@ import { youtubeId, youtubeWatchUrl } from "./youtube";
  */
 export function videoTexts(extra: (name: string, fallback: string) => string) {
   return {
-    saudacao: extra("saudacao", "Muito prazer, sou o Eddmax!"),
+    // Negrito no PADRÃO (é como o Figma desenha) — e não mais fixo no código:
+    // o admin pode tirar ou mudar no editor de formatação.
+    saudacao: extra("saudacao", "**Muito prazer, sou o Eddmax!**"),
     apresentacao: extra(
       "apresentacao",
-      "Quer saber se pode confiar no nosso trabalho? Dá uma olhada no nosso vídeo de apresentação no YouTube. Nos comentários, nossos clientes contam um pouco sobre a experiência deles conosco e a dedicação que colocamos em cada serviço prestado. ❤",
+      "Quer saber se pode confiar no nosso trabalho? Dá uma olhada no nosso vídeo de apresentação no YouTube. Nos comentários, nossos clientes contam um pouco sobre a experiência deles conosco e a dedicação que colocamos em cada serviço prestado.",
     ),
     chamada: extra("chamada", "Clique aqui e veja com seus próprios olhos nossos feedbacks:"),
     botao: extra("botao", "VEJA NOSSAS REFERÊNCIAS"),
@@ -90,23 +93,24 @@ export function VideoSection({
       {/* `whitespace-pre-line`: o título vem da tela "Edição de sessões" e a
           quebra dele é uma quebra de linha de verdade no campo, não um `<br>`
           que o admin teria que digitar. O padrão do arquivo tem duas linhas. */}
-      <h2 data-edit-field="home:video:title" {...reveal("mask")} className="absolute top-[93px] left-0 w-[547px] text-center font-poppins text-[65px] leading-none font-semibold whitespace-pre-line text-white">
-        {title}
+      <h2 data-edit-field="home:video:title" data-edit-rich="" {...reveal("mask")} className="absolute top-[93px] left-0 w-[547px] text-center font-poppins text-[65px] leading-none font-semibold whitespace-pre-line text-white">
+        <RichText value={title} />
       </h2>
 
       {/* No arquivo a primeira frase é Bold e branca, e o resto Regular em
           #d8d8d8 — é um único bloco de texto com dois estilos, não dois
-          parágrafos. */}
+          parágrafos. Desde 2026-10-01 o negrito é FORMATAÇÃO do texto (padrão
+          `**…**`), editável no painel, e não mais um `<strong>` fixo. */}
       <p {...reveal("rise")} style={revealDelay(1)} className="absolute top-[254px] left-0 w-[570px] text-center font-helvetica text-[18px] leading-[normal] tracking-[0.18px] whitespace-pre-line text-brand-placeholder">
-        <strong data-edit-field="home:video:extra.saudacao" className="font-bold text-white">
-          {t.saudacao}
-        </strong>{" "}
-        <span data-edit-field="home:video:extra.apresentacao">
-          {t.apresentacao}
+        <span data-edit-field="home:video:extra.saudacao" data-edit-rich="">
+          <RichText value={t.saudacao} />
+        </span>{" "}
+        <span data-edit-field="home:video:extra.apresentacao" data-edit-rich="">
+          <RichText value={t.apresentacao} />
         </span>
         {"\n\n"}
-        <span data-edit-field="home:video:extra.chamada">
-          {t.chamada}
+        <span data-edit-field="home:video:extra.chamada" data-edit-rich="">
+          <RichText value={t.chamada} />
         </span>
       </p>
 
@@ -134,11 +138,12 @@ export function VideoSection({
 
       <p
         data-edit-field="home:video:extra.convite"
+        data-edit-rich=""
         {...reveal("rise")}
         style={revealDelay(3)}
         className="absolute top-[486px] left-[2px] w-[568px] text-center font-helvetica text-[16px] leading-[normal] tracking-[0.16px] text-brand-placeholder"
       >
-        {t.convite}
+        <RichText value={t.convite} />
       </p>
 
       {/* Assinatura do CEO (avatar 529:1068, nome 529:1067, cargo 819:108). */}

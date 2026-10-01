@@ -4,6 +4,7 @@ import { buttonVariants } from "@/components/ui/Button";
 import { CountUp } from "@/components/ui/CountUp";
 import type { SectionItemView, SectionView } from "@/features/site/content";
 import { cn } from "@/lib/cn";
+import { RichText, alignClass, splitAlign } from "@/features/site/richText";
 import { BLOG_CARD } from "../guides";
 import type { HomeBlock } from "../homeBlocks";
 import { getMenuGames, type MenuGame } from "@/features/game/menuGames";
@@ -207,14 +208,14 @@ function MobileVideo({ section }: { section: SectionView }) {
         id="video-title-mobile"
         className="mt-[24px] font-poppins text-[26px] leading-[1.05] font-semibold whitespace-pre-line text-white"
       >
-        {section.title}
+        <RichText value={section.title} />
       </h2>
 
       <p className="mt-[12px] font-helvetica text-[15px] leading-[1.25] whitespace-pre-line text-brand-placeholder">
-        <strong className="font-bold text-white">{t.saudacao}</strong> {t.apresentacao}
+        <RichText value={t.saudacao} /> <RichText value={t.apresentacao} />
       </p>
       <p className="mt-[16px] font-helvetica text-[15px] leading-[1.25] text-brand-placeholder">
-        {t.chamada}
+        <RichText value={t.chamada} />
       </p>
 
       <a
@@ -229,7 +230,7 @@ function MobileVideo({ section }: { section: SectionView }) {
       </a>
 
       <p className="mt-[16px] text-center font-helvetica text-[15px] leading-[1.25] text-brand-placeholder italic">
-        {t.convite}
+        <RichText value={t.convite} />
       </p>
 
       <div className="mt-[24px] flex items-center gap-[14px]">
@@ -279,10 +280,10 @@ function MobileReviews({ section, items }: { section: SectionView; items: Sectio
         id="reviews-title-mobile"
         className="mt-[40px] text-center font-poppins text-[26px] leading-none font-semibold text-white"
       >
-        {section.title || "NOSSAS REVIEWS"}
+        <RichText value={section.title || "NOSSAS REVIEWS"} />
       </h2>
       <p className="mt-[10px] text-center font-helvetica text-[15px] font-bold text-white">
-        {section.subtitle || "O que nossos clientes falam de nós?"}
+        <RichText value={section.subtitle || "O que nossos clientes falam de nós?"} />
       </p>
 
       <div className="relative mx-auto mt-[20px] flex h-[45px] w-[288px] max-w-full items-center justify-center rounded-[30px] border border-white/10">
@@ -324,7 +325,7 @@ function MobileReviews({ section, items }: { section: SectionView; items: Sectio
                 <p className="font-poppins text-[18px] font-bold tracking-[0.36px] text-white">{review.title}</p>
               </div>
               <p className="mt-[24px] font-helvetica text-[15px] leading-[1.25] text-brand-placeholder">
-                {review.body}
+                <RichText value={review.body} />
               </p>
               <Image
                 src="/icons/youtube-color.svg"
@@ -375,14 +376,14 @@ function MobileTeam({ section, items }: { section: SectionView; items: SectionIt
           className="pointer-events-none absolute -top-[20px] -left-[14px] size-[50px] object-cover"
         />
         <h2 {...reveal("mask")} id="team-title-mobile" className="relative font-poppins text-[26px] leading-none font-semibold text-white">
-          {section.title || "EQUIPE LETS 4 TRADE"}
+          <RichText value={section.title || "EQUIPE LETS 4 TRADE"} />
         </h2>
       </div>
       <p className="mt-[12px] font-helvetica text-[15px] font-bold text-white">
-        {section.subtitle || "Especialistas no que há de melhor no mercado relacionado a ARPGs"}
+        <RichText value={section.subtitle || "Especialistas no que há de melhor no mercado relacionado a ARPGs"} />
       </p>
       <p className="mt-[16px] font-helvetica text-[15px] leading-[1.25] whitespace-pre-line text-brand-placeholder">
-        {section.body || TEAM_DEFAULT_BODY}
+        <RichText value={section.body || TEAM_DEFAULT_BODY} />
       </p>
 
       {featured ? (
@@ -442,7 +443,7 @@ function MobileGuides({ title, items }: { title: string; items: SectionItemView[
     <section aria-labelledby="guides-title-mobile" className="relative">
       <Divider />
       <h2 {...reveal("mask")} id="guides-title-mobile" className="mt-[40px] font-poppins text-[26px] leading-none font-semibold text-white">
-        {title || "GUIAS POPULARES"}
+        <RichText value={title || "GUIAS POPULARES"} />
       </h2>
 
       <ul className="mt-[28px] flex flex-col gap-[20px]">
@@ -525,10 +526,12 @@ function GuideCard({ guide, compact = false }: { guide: SectionItemView; compact
 
       <div className="absolute inset-x-[25px] bottom-[20px]">
         {guide.title ? (
-          <h3 className="font-poppins text-[16px] font-semibold text-white">{guide.title}</h3>
+          <h3 className="font-poppins text-[16px] font-semibold text-white">
+            <RichText value={guide.title} />
+          </h3>
         ) : null}
         <p className={cn("mt-[8px] font-helvetica text-[14px] leading-[1.2] text-brand-placeholder", compact && "line-clamp-3")}>
-          {guide.body}
+          <RichText value={guide.body} />
         </p>
       </div>
     </article>
@@ -543,7 +546,7 @@ function MobileFaq({ title, items }: { title: string; items: SectionItemView[] }
       <Divider />
       <div className="mt-[40px] overflow-hidden rounded-[24px] border border-white/20 bg-black/10 px-[25px] pt-[28px] pb-[32px] backdrop-blur-[100px]">
         <h2 {...reveal("mask")} id="faq-title-mobile" className="font-poppins text-[20px] leading-none font-semibold text-white">
-          {title || "DÚVIDAS SOBRE A EMPRESA"}
+          <RichText value={title || "DÚVIDAS SOBRE A EMPRESA"} />
         </h2>
 
         <Image
@@ -558,11 +561,18 @@ function MobileFaq({ title, items }: { title: string; items: SectionItemView[] }
         <dl className="mt-[24px] flex flex-col gap-[24px]">
           {items.map((item) => (
             <div key={item.id} {...reveal("rise")}>
-              <dt className="font-poppins text-[16px] leading-[1.2] font-semibold text-white">{item.title}</dt>
-              <dd className="mt-[10px] font-helvetica text-[14px] leading-[1.25] text-brand-placeholder">
-                {item.body.split(/\n\s*\n/).map((paragraph, i) => (
+              <dt className="font-poppins text-[16px] leading-[1.2] font-semibold text-white">
+                <RichText value={item.title} />
+              </dt>
+              <dd
+                className={cn(
+                  "mt-[10px] font-helvetica text-[14px] leading-[1.25] text-brand-placeholder",
+                  alignClass(splitAlign(item.body).align),
+                )}
+              >
+                {splitAlign(item.body).text.split(/\n\s*\n/).map((paragraph, i) => (
                   <p key={paragraph.slice(0, 32)} className={i > 0 ? "mt-[10px]" : undefined}>
-                    {paragraph}
+                    <RichText value={paragraph} />
                   </p>
                 ))}
               </dd>

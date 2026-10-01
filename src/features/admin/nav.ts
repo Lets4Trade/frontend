@@ -38,7 +38,10 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
   // NÃO está no arquivo do Figma: o CRUD de jogos ganhou tela própria em
   // 2026-09-28 (antes o cadastro ficava sob "Produtos" e editar/excluir, só no
   // Builder). Só ADMIN — o EDITOR mexe na página do jogo, não no catálogo.
-  { label: "Jogos", href: "/admin/jogos", match: ["/admin/jogos"] },
+  //
+  // Desde 2026-09-30 (admin-games-ux.md, Etapa 1) é também a porta do Builder
+  // de cada jogo para o ADMIN — por isso acende em `/admin/builder`.
+  { label: "Jogos", href: "/admin/jogos", match: ["/admin/jogos", "/admin/builder"] },
   // NÃO está no arquivo do Figma: o atendimento (popup de contato + Discord) foi
   // pedido em 2026-09-15. Ao lado de pedidos porque é o mesmo trabalho.
   { label: "Chats", href: "/admin/chats", match: ["/admin/chats"] },
@@ -60,11 +63,15 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
     roles: ["ADMIN", "EDITOR"],
   },
   { label: "Usuários", href: "/admin/usuarios", match: ["/admin/usuarios"] },
+  // Só o EDITOR vê (2026-09-30, admin-games-ux.md): para o ADMIN o item
+  // duplicava a lista de Jogos — lixeira inclusive —, e `/admin/builder`
+  // redireciona para lá. O EDITOR não enxerga "Jogos" (é catálogo, só ADMIN),
+  // então para ele esta continua sendo a única porta do Builder.
   {
     label: "Builder de Page",
     href: "/admin/builder",
     match: ["/admin/builder"],
-    roles: ["ADMIN", "EDITOR"],
+    roles: ["EDITOR"],
   },
   // NÃO está no arquivo do Figma: as cinco abas desenhadas não incluem logs. A
   // tela foi pedida depois, e sem item de menu ela seria inalcançável.

@@ -29,8 +29,9 @@ export type BlocksPageDef = {
    * arte editados no construtor) ou o Builder de jogo (link).
    */
   content: { kind: "sections"; catalogPage: string } | { kind: "gameBuilder"; gameId: string };
-  /** Vão acima de uma seção do desenho quando a anterior é `prev` (null = bloco novo). */
-  legacyGap?: (prev: string | null, key: string) => number | undefined;
+  // Sem funções aqui: a definição vai como prop para Client Components
+  // (PageBuilder). A regra de vão do jogo sai de `frame === "game"` →
+  // GAME_LEGACY_GAP, na página real e na prévia.
 };
 
 export type ContentPageDef = {
@@ -100,7 +101,6 @@ export function gamePageDef(game: { id: string; name: string; slug: string }): B
     legacyKeys: DEFAULT_SECTION_ORDER,
     legacyLabels: GAME_LABELS,
     content: { kind: "gameBuilder", gameId: game.id },
-    legacyGap: GAME_LEGACY_GAP,
   };
 }
 

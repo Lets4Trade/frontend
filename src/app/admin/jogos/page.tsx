@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { DeleteGameButton } from "@/features/admin/builder/DeleteGameButton";
 import { getBuilderGames } from "@/features/admin/builder/list";
+import { centralHref } from "@/features/admin/games/central";
 import { requireAdminPage } from "@/features/admin/guard";
 import { ADMIN_SHELL } from "@/features/admin/layout";
 import { backendAsset } from "@/lib/publicApi";
@@ -17,9 +18,9 @@ export const metadata: Metadata = {
  * só pra jogos, listar e editar/criar").
  *
  * O CRUD do catálogo de jogos num lugar só: cadastrar (`/admin/jogos/novo`),
- * listar e buscar (aqui), editar o cadastro (`/admin/jogos/[id]/editar`) e
- * excluir (lixeira — desativa, igual à de produto). A página do jogo na loja
- * continua no Builder, com atalho em cada linha.
+ * listar e buscar (aqui), abrir a Central do jogo (`/admin/jogos/[id]` —
+ * cadastro, abas, produtos, categorias e atalhos da página; admin-games-ux.md,
+ * Etapa 2) e excluir (lixeira — desativa, igual à de produto).
  *
  * A busca filtra em memória: a lista é a mesma do Builder (jogos ativos, com
  * contagem de produtos), e o catálogo de jogos tem dezenas de linhas, não
@@ -111,7 +112,13 @@ export default async function AdminGamesPage({
               </div>
 
               <div className="min-w-[200px] flex-1">
-                <p className="truncate font-poppins text-[16px] font-bold text-white">{game.name}</p>
+                {/* O nome já leva à Central: é onde se clica por instinto. */}
+                <Link
+                  href={centralHref(game.id)}
+                  className="block truncate font-poppins text-[16px] font-bold text-white transition-colors hover:text-brand-orange"
+                >
+                  {game.name}
+                </Link>
                 <Link
                   href={`/games/${game.slug}`}
                   target="_blank"
@@ -129,32 +136,14 @@ export default async function AdminGamesPage({
               </Link>
 
               <div className="flex flex-wrap items-center gap-[10px]">
-                {/* Abas por jogo (2026-09-28): o atalho mais usado depois da
-                    página, por isso em destaque e antes dela. */}
+                {/* Um botão só (Etapa 2): abas, categorias, cadastro e página
+                    moram na Central, a um clique uma da outra. */}
                 <Link
-                  href={`/admin/jogos/${game.id}/abas`}
-                  className="flex h-[36px] items-center rounded-full border border-brand-orange/50 px-[18px] font-poppins text-[13px] font-bold text-brand-orange transition-opacity hover:opacity-80"
+                  href={centralHref(game.id)}
+                  aria-label={`Abrir ${game.name}`}
+                  className="flex h-[36px] items-center rounded-full border border-brand-orange/50 px-[22px] font-poppins text-[13px] font-bold text-brand-orange transition-opacity hover:opacity-80"
                 >
-                  Abas
-                </Link>
-                <Link
-                  href={`/admin/jogos/${game.id}/categorias`}
-                  className="flex h-[36px] items-center rounded-full border border-white/10 px-[18px] font-poppins text-[13px] font-bold text-white transition-opacity hover:opacity-80"
-                >
-                  Categorias
-                </Link>
-                <Link
-                  href={`/admin/builder/${game.id}`}
-                  className="flex h-[36px] items-center rounded-full border border-white/10 px-[18px] font-poppins text-[13px] font-bold text-white transition-opacity hover:opacity-80"
-                >
-                  Página
-                </Link>
-                <Link
-                  href={`/admin/jogos/${game.id}/editar`}
-                  aria-label={`Editar ${game.name}`}
-                  className="flex size-[36px] items-center justify-center rounded-[8px] border border-white/10 bg-[image:var(--brand-surface-fill)] transition-opacity hover:opacity-90"
-                >
-                  <Image src="/icons/admin/pen.svg" alt="" width={16} height={16} aria-hidden className="size-[16px]" />
+                  Abrir
                 </Link>
                 <DeleteGameButton id={game.id} name={game.name} />
               </div>

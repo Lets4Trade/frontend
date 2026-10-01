@@ -23,6 +23,9 @@ import { uploadSectionVideo, VIDEO_ACCEPT } from "./videoUpload";
 import { VideoToolbar, type VideoSelection } from "./VideoToolbar";
 import { SectionOrderList } from "./SectionOrderList";
 import { useScaledPreview } from "./useScaledPreview";
+import type { RichAlign } from "../richText";
+import { finalValue } from "./richDom";
+import { RichToolbar } from "./RichToolbar";
 
 /**
  * Edição da página no PRÓPRIO desenho dela (2026-09-15) — substitui o
@@ -117,6 +120,8 @@ export function PageEditor({
   const [order, setOrder] = useState(initialOrder);
   const [hidden, setHidden] = useState(initialHidden);
   const [draft, setDraft] = useState<Draft>({});
+  // Campo FORMATADO em edição — mostra a barra de formatação sobre ele.
+  const [richEditing, setRichEditing] = useState<RichEditing | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
@@ -195,10 +200,13 @@ export function PageEditor({
     if (field) {
       if (field.isContentEditable) return;
       event.preventDefault();
-      startEditing(field, field.dataset.editField ?? "", commit, {
-        x: event.clientX,
-        y: event.clientY,
-      });
+      startEditing(
+        field,
+        field.dataset.editField ?? "",
+        commit,
+        { x: event.clientX, y: event.clientY },
+        setRichEditing,
+      );
       return;
     }
 
@@ -222,10 +230,13 @@ export function PageEditor({
       }
       if (item.isContentEditable) return;
       event.preventDefault();
-      startEditing(item, `${ITEM_PREFIX}${sectionKey}|${id}|${itemField}`, commit, {
-        x: event.clientX,
-        y: event.clientY,
-      });
+      startEditing(
+        item,
+        `${ITEM_PREFIX}${sectionKey}|${id}|${itemField}`,
+        commit,
+        { x: event.clientX, y: event.clientY },
+        setRichEditing,
+      );
       return;
     }
 
@@ -763,6 +774,8 @@ export function PageEditor({
         />
       ) : null}
 
+      {richEditing ? <RichToolbar target={richEditing} /> : null}
+
       <input
         ref={videoFileRef}
         type="file"
@@ -797,17 +810,54 @@ export function PageEditor({
  * interceptado e só o texto entra. Enter confirma (é um título, não um editor
  * de texto); Shift+Enter quebra linha, porque respostas do FAQ e o título do
  * vídeo têm mais de uma. Esc desfaz.
+ *
+ * ── Campos FORMATADOS (`data-edit-rich`, 2026-10-01) ───────────────────────
+ * O elemento é editado JÁ formatado (negrito aparece em negrito), com a barra
+ * `RichToolbar`. Na volta, `domToRich` lê o DOM pela allowlist e grava o
+ * formato restrito de `richText.tsx` — nunca HTML. Sem o atributo, o campo
+ * continua TEXTO PURO: números do contador, links e nomes não podem ganhar
+ * marcação que quebraria quem os lê.
  */
+export type RichEditing = {
+  element: HTMLElement;
+  align: RichAlign | null;
+  setAlign: (align: RichAlign | null) => void;
+  /** Encerra a edição (salvando). Usado quando o foco sai pela barra. */
+  finish: () => void;
+};
+
 function startEditing(
   element: HTMLElement,
   draftKey: string,
   commit: (key: string, value: string) => void,
   point?: { x: number; y: number },
+  onRich?: (editing: RichEditing | null) => void,
 ) {
   if (!draftKey || element.isContentEditable) return;
 
-  const original = element.textContent ?? "";
-  element.contentEditable = "plaintext-only";
+  const rich = element.dataset.editRich !== undefined;
+  const originalText = element.textContent ?? "";
+  const originalHtml = element.innerHTML;
+  let align: RichAlign | null = null;
+  let originalValue = originalText.trim();
+
+  if (rich) {
+    // O alinhamento escolhido vem num invólucro (`RichText`); na edição ele
+    // vira o `text-align` do próprio elemento, e o invólucro sai.
+    const wrapper = element.querySelector<HTMLElement>(":scope > [data-rich-align]");
+    if (element.dataset.richAlign) {
+      // Bloco que desenha o alinhamento nele mesmo (resposta do FAQ, em parágrafos).
+      align = element.dataset.richAlign as RichAlign;
+    } else if (wrapper && element.children.length === 1) {
+      align = (wrapper.dataset.richAlign as RichAlign) ?? null;
+      wrapper.replaceWith(...Array.from(wrapper.childNodes));
+    }
+    element.style.textAlign = align ?? "";
+    originalValue = finalValue(element, align);
+    element.contentEditable = "true";
+  } else {
+    element.contentEditable = "plaintext-only";
+  }
   element.spellcheck = false;
   element.dataset.editing = "true";
   element.focus({ preventScroll: true });
@@ -823,23 +873,43 @@ function startEditing(
     }
   }
 
+  let done = false;
   const finish = (save: boolean) => {
+    if (done) return;
+    done = true;
     element.removeEventListener("blur", onBlur);
     element.removeEventListener("keydown", onKey);
     element.removeEventListener("paste", onPaste);
     element.contentEditable = "false";
     delete element.dataset.editing;
+    onRich?.(null);
+
+    if (rich) {
+      const value = finalValue(element, align);
+      if (!save || value === originalValue) {
+        element.innerHTML = originalHtml;
+        element.style.textAlign = "";
+        return;
+      }
+      commit(draftKey, value);
+      return;
+    }
 
     const value = (element.textContent ?? "").replace(/[ \t]+/g, " ").trim();
-    if (!save || value === original.trim()) {
-      element.textContent = original;
+    if (!save || value === originalText.trim()) {
+      element.textContent = originalText;
       return;
     }
     element.textContent = value;
     commit(draftKey, value);
   };
 
-  const onBlur = () => finish(true);
+  // Foco indo para a barra de formatação NÃO encerra a edição.
+  const onBlur = (event: FocusEvent) => {
+    const next = event.relatedTarget as HTMLElement | null;
+    if (rich && next?.closest("[data-rich-toolbar]")) return;
+    finish(true);
+  };
   const onKey = (event: KeyboardEvent) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
@@ -859,6 +929,20 @@ function startEditing(
   element.addEventListener("blur", onBlur);
   element.addEventListener("keydown", onKey);
   element.addEventListener("paste", onPaste);
+
+  if (rich && onRich) {
+    const editing: RichEditing = {
+      element,
+      align,
+      setAlign: (next) => {
+        align = next;
+        element.style.textAlign = next ?? "";
+        onRich({ ...editing, align: next });
+      },
+      finish: () => finish(true),
+    };
+    onRich(editing);
+  }
 }
 
 function orderChanged(

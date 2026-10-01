@@ -62,7 +62,7 @@ export function BlockInspector({
       <div className="flex items-start justify-between gap-[10px]">
         <div>
           <p className="font-poppins text-[11px] font-bold tracking-[1px] text-brand-fg-subtle uppercase">
-            {def.icon} {def.label}
+            {def.label}
           </p>
           <h2 className="mt-[4px] font-helvetica text-[18px] font-bold text-white">
             {block.type === "secao" ? (page.legacyLabels[block.props.key] ?? block.props.key) : "Editar bloco"}

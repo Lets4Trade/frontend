@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { RichText } from "@/features/site/richText";
 import { CountUp } from "@/components/ui/CountUp";
 import { editItem } from "@/features/site/editing/attrs";
 import type { ComponentProps, CSSProperties } from "react";
@@ -78,14 +79,15 @@ export function ReviewsSection({
       <h2
         id="reviews-title"
         data-edit-field="home:reviews:title"
+        data-edit-rich=""
         {...reveal("mask")}
         className="absolute top-0 left-[542px] w-[736px] text-center font-poppins text-[65px] leading-[normal] font-semibold tracking-[0.325px] text-white"
       >
-        {title}
+        <RichText value={title} />
       </h2>
 
-      <p data-edit-field="home:reviews:subtitle" {...reveal("rise")} style={revealDelay(1)} className="absolute top-[104px] left-[687px] w-[446px] text-center font-helvetica text-[18px] leading-[normal] font-bold tracking-[0.18px] text-white">
-        {subtitle}
+      <p data-edit-field="home:reviews:subtitle" data-edit-rich="" {...reveal("rise")} style={revealDelay(1)} className="absolute top-[104px] left-[687px] w-[446px] text-center font-helvetica text-[18px] leading-[normal] font-bold tracking-[0.18px] text-white">
+        <RichText value={subtitle} />
       </p>
 
       <RatingPill />
@@ -303,8 +305,9 @@ function ReviewCard({
 
       <p
         {...editItem("home:reviews", review.id, "body")}
+        data-edit-rich=""
         className="review-body absolute top-[91px] left-[25px] h-[253px] w-[238px] overflow-hidden font-helvetica text-[16px] leading-[normal] tracking-[0.16px] text-brand-placeholder">
-        {review.body}
+        <RichText value={review.body} />
       </p>
 
       <Image

@@ -7,6 +7,7 @@ import { getEditorial } from "./seed";
 import { getSectionItemsFor, getSectionsFor } from "@/features/site/content";
 import {
   defaultTabId,
+  readHighlights,
   readPricing,
   tabsFromApi,
   toGameCategories,
@@ -91,8 +92,10 @@ type StorefrontProductPage = {
     name: string;
     priceCents: number;
     tabSlug?: string | null;
-    /** Só produto de aba SERVICE; nulo/ausente = FIXED. */
+    /** Regra efetiva em aba cotada (`effectivePricing`); nulo/ausente fora dela. */
     pricing?: unknown;
+    /** Tópicos do card de pacote (contrato v2). Ausente no backend antigo. */
+    highlights?: unknown;
     imageUrl?: string | null;
     serverSlug?: string | null;
     serverLabel?: string | null;
@@ -153,7 +156,7 @@ export async function getGamePage(slug: string): Promise<GamePage | null> {
   // backend converte), então basta o falsy — nunca `=== null`.
   const heading =
     game.heading?.trim() ||
-    buildHeading(game.name, tabs.find((tab) => tab.id === activeTabId)?.label);
+    buildHeading(game.name, tabs.find((tab) => tab.id === activeTabId));
   const logo = backendAsset(game.imageUrl);
 
   return {
@@ -341,7 +344,7 @@ export function withActiveTab(page: GamePage, activeTabId: string): GamePage {
       // página. Só o derivado acompanha a aba escolhida.
       heading:
         page.identity.customHeading ??
-        buildHeading(page.name, page.tabs.find((tab) => tab.id === activeTabId)?.label),
+        buildHeading(page.name, page.tabs.find((tab) => tab.id === activeTabId)),
     },
   };
 }
@@ -367,8 +370,11 @@ export async function getCatalog(
   const params = new URLSearchParams();
 
   // Só aba de verdade (e não LINK) filtra. Sem aba válida não há catálogo a
-  // pedir: listar o jogo inteiro misturaria serviço com catálogo.
-  const tab = page.tabs.find((item) => item.id === query.tab && item.layout !== "LINK");
+  // pedir: listar o jogo inteiro misturaria serviço com catálogo. SELL não tem
+  // produto (é o formulário de venda) — nem vai à rede.
+  const tab = page.tabs.find(
+    (item) => item.id === query.tab && item.layout !== "LINK" && item.layout !== "SELL",
+  );
   if (!tab) return { items: [], total: 0, pageCount: 1, page: 1 };
   params.set("tab", tab.id);
   if (query.server) params.set("server", query.server);
@@ -414,6 +420,7 @@ function toProduct(item: StorefrontProductPage["items"][number]): GameProduct {
     categoryLabel: item.categoryLabel ?? undefined,
     tabId: item.tabSlug || "",
     ...readPricing(item.pricing),
+    highlights: readHighlights(item.highlights),
   };
 }
 
@@ -450,13 +457,15 @@ export async function getServiceProducts(
  * painel: a página nasceria sem título. Derivar do nome e da aba ativa faz
  * qualquer jogo novo nascer com o título certo.
  */
-function buildHeading(name: string, tabLabel: string | undefined): string {
-  if (!tabLabel) return `Compre em ${name}`;
+function buildHeading(name: string, tab: { label: string; layout: string } | undefined): string {
+  if (!tab) return `Compre em ${name}`;
 
   // "MOEDAS" → "Moedas". O arquivo escreve o rótulo em caixa alta na aba e em
   // capitalização normal no título.
-  const what =
-    tabLabel.charAt(0) + tabLabel.slice(1).toLocaleLowerCase("pt-BR");
+  const what = tab.label.charAt(0) + tab.label.slice(1).toLocaleLowerCase("pt-BR");
+  // Aba SELL é a pessoa VENDENDO para a loja: "Compre Venda pra nós De X" não
+  // faz sentido. Rótulo da aba + jogo, sem verbo inventado.
+  if (tab.layout === "SELL") return `${what} — ${name}`;
   return `Compre ${what} De ${name}`;
 }
 

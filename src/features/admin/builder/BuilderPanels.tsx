@@ -295,9 +295,16 @@ export function ListPanel({
 export function CategoryTreePanel({
   items,
   onChange,
+  emptyText = "Nenhuma categoria global. As abas ainda podem ter categorias próprias (Central do jogo → Abas e produtos).",
 }: {
   items: BuilderCategory[];
   onChange: (next: BuilderCategory[]) => void;
+  /**
+   * Lista vazia. NÃO pode dizer "o painel não aparece na loja": as categorias
+   * são de três escopos (global, aba, servidor) e esta lista é só um deles —
+   * quem sabe se o painel aparece é o quadro "Na loja mostra" da Central.
+   */
+  emptyText?: string;
 }) {
   function patchCategory(key: string, next: Partial<BuilderCategory>) {
     onChange(items.map((item) => (item.key === key ? { ...item, ...next } : item)));
@@ -318,7 +325,7 @@ export function CategoryTreePanel({
     <>
       {items.length === 0 ? (
         <p className="font-poppins text-[13px] text-brand-fg-subtle">
-          Sem categorias, o painel “Selecionar categoria” não aparece na loja.
+          {emptyText}
         </p>
       ) : null}
 

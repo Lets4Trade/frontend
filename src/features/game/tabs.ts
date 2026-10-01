@@ -20,7 +20,7 @@ export type TabTemplate = {
   slug: string;
   label: string;
   icon: string;
-  layout: "CATALOG" | "SERVICE";
+  layout: "CATALOG" | "SERVICE" | "QUANTITY";
 };
 
 /** Modelos de aba de PRODUTO. A ordem é a do arquivo do Figma. */
@@ -29,7 +29,8 @@ export const TAB_TEMPLATES: readonly TabTemplate[] = [
   // UM arquivo só (2026-09-24): círculo + duas espadas cruzadas — em duas
   // camadas a espada saía minúscula e deslocada.
   { key: "ITENS", slug: "itens", label: "ITENS", icon: "/icons/game/tab-itens.svg", layout: "CATALOG" },
-  { key: "GOLD", slug: "gold", label: "GOLD", icon: "/icons/game/tab-gold.svg", layout: "CATALOG" },
+  // Desde 2026-09-30 (contrato game-tabs-v2) o modelo GOLD nasce QUANTITY.
+  { key: "GOLD", slug: "gold", label: "GOLD", icon: "/icons/game/tab-gold.svg", layout: "QUANTITY" },
   { key: "BUILDS", slug: "builds", label: "BUILDS", icon: "/icons/game/tab-builds.svg", layout: "CATALOG" },
   { key: "BOOSTING", slug: "boosting", label: "BOOSTING", icon: "/icons/game/tab-boosting.svg", layout: "SERVICE" },
   { key: "CARRY", slug: "carry", label: "CARRY", icon: "/icons/game/tab-carry.svg", layout: "SERVICE" },
@@ -37,8 +38,9 @@ export const TAB_TEMPLATES: readonly TabTemplate[] = [
 ];
 
 /**
- * Os modelos de LINK que o backend acrescenta a todo jogo novo. Aqui só servem
- * de ícone de reserva por slug — quem decide se a aba existe é o banco.
+ * Os modelos que o backend acrescenta a todo jogo novo (VENDA nasce SELL desde
+ * 2026-09-30; FIDELIDADE é LINK). Aqui só servem de ícone de reserva por slug —
+ * quem decide se a aba existe (e o layout dela) é o banco.
  */
 export const LINK_TAB_TEMPLATES = [
   { slug: "venda", label: "VENDA PRA NÓS", icon: "/icons/game/tab-venda.svg" },

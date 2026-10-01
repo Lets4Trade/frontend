@@ -9,7 +9,7 @@ import {
 } from "@/features/game/GameSections";
 import { ProductCardShell } from "@/features/game/ProductCardShell";
 import { gapBefore, type GameSectionKey } from "@/features/game/sections";
-import { tabIconSrc, type GameTab } from "@/features/admin/games/tabs/types";
+import { defaultTabIcon, tabIconSrc, type GameTab } from "@/features/admin/games/tabs/types";
 import type { BuilderShared, Draft } from "./types";
 
 /**
@@ -564,7 +564,9 @@ function previewTabs(gameTabs: GameTab[] | null): PreviewTab[] {
     .map((tab) => ({
       id: tab.id,
       label: tab.label,
-      icon: tabIconSrc(tab.iconUrl),
+      // Aba sem ícone salvo (criada antes de o backend gravar o padrão) usa o
+      // mesmo reserva da vitrine e do editor de abas — sem isto, quadrado vazio.
+      icon: tabIconSrc(tab.iconUrl ?? defaultTabIcon(tab.slug, tab.layout)),
       isLink: tab.layout === "LINK",
     }));
 }

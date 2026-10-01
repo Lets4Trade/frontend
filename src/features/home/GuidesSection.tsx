@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { RichText } from "@/features/site/richText";
 import { editItem } from "@/features/site/editing/attrs";
 import Link from "next/link";
 import type { SectionItemView } from "@/features/site/content";
@@ -51,10 +52,11 @@ export function GuidesSection({
         id="guides-title"
 
         data-edit-field="home:guias:title"
+        data-edit-rich=""
         {...reveal("mask")}
         className="absolute top-0 left-0 w-[601px] font-helvetica text-[30px] leading-[normal] font-bold tracking-[0.3px] text-white"
       >
-        {title}
+        <RichText value={title} />
       </h2>
 
       {/*
@@ -207,20 +209,22 @@ function GuideCard({
       {guide.title ? (
         <h3
           {...editItem("home:guias", guide.id, "title")}
+          data-edit-rich=""
           style={{ top: titleTop }}
           className="guide-text absolute left-[26px] font-poppins text-[18px] leading-[normal] font-semibold tracking-[0.09px] text-white"
         >
-          {guide.title}
+          <RichText value={guide.title} />
         </h3>
       ) : null}
 
       <p
         {...editItem("home:guias", guide.id, "body")}
+        data-edit-rich=""
         // No card baixo o resumo corta em duas linhas: não há altura para mais.
         className={`guide-text absolute left-[26px] w-[365px] font-helvetica text-[16px] leading-[normal] tracking-[0.16px] text-brand-placeholder ${compact ? "line-clamp-2" : ""}`}
         style={{ top: bodyTop }}
       >
-        {guide.body}
+        <RichText value={guide.body} />
       </p>
     </li>
   );

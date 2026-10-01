@@ -1,15 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { useId, useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
-import { formatHours, useCart } from "@/features/cart/store";
+import { SelectField } from "@/components/ui/SelectField";
+import { formatHours } from "@/features/cart/store";
 import { quote, type Pricing, type Selection } from "@/features/pricing/quote";
+import { ADDON_SEARCH_THRESHOLD, filterAddons, snapQuantity } from "./configurator";
 import { formatPrice } from "./content";
-import { pillClassName } from "./pill";
 import type { ProductContext } from "./ProductCard";
 import type { GameProduct } from "./types";
+import { useBuyNow } from "./useBuyNow";
 
 /**
  * Card configurador do layout SERVIÇO (Figma 1712:3968, 554×911).
@@ -37,12 +38,13 @@ export function ServiceConfigurator({
 }) {
   const [productId, setProductId] = useState(products[0]?.id ?? "");
   const product = products.find((item) => item.id === productId) ?? products[0];
-  const groupId = useId();
 
   return (
     <div className="relative w-full shrink-0 overflow-hidden rounded-[30px] border border-brand-hairline bg-black lg:w-[554px]">
-      {/* Espaço da arte: a do produto escolhido, ou o cinza do arquivo. */}
-      <div className="relative h-[276px] overflow-hidden rounded-t-[30px] bg-[#2f2f2f]">
+      {/* Foto do produto escolhido no topo (Mentoria 4222:1160: 551×327,
+          cantos 30), ou o cinza do arquivo enquanto o admin não sobe a arte.
+          Proporção no celular para a foto não virar uma faixa fina. */}
+      <div className="relative aspect-[551/327] w-full overflow-hidden rounded-t-[30px] bg-[#2f2f2f] lg:aspect-auto lg:h-[327px]">
         {product?.image ? (
           <Image
             src={product.image.src}
@@ -52,13 +54,13 @@ export function ServiceConfigurator({
             className="object-cover"
           />
         ) : null}
+        {/* Degradê preto de 121px no pé da foto: garante leitura do primeiro
+            título sobre qualquer arte que o admin subir. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-[121px] bg-gradient-to-b from-transparent to-black"
+        />
       </div>
-      {/* Degradê do arquivo (y 225 → 328): apaga a base da arte e passa por
-          trás do primeiro título. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-[225px] h-[103px] bg-gradient-to-b from-transparent to-black"
-      />
 
       <div className="relative px-[24px] pt-[30px] pb-[25px] sm:px-[50px]">
         {filters}
@@ -72,17 +74,12 @@ export function ServiceConfigurator({
           </p>
         ) : (
           <>
+            {/* "Selecionar serviço" (o "Selecionar Jogo" da Mentoria 4222:1160,
+                por decisão do usuário): um select, e só com mais de um
+                produto — com um só, escolher seria cerimônia. */}
             {products.length > 1 ? (
               <div className="mt-[25px] first:mt-0">
-                <h3 id={`${groupId}-product`} className={TITLE}>
-                  Selecionar Serviço:
-                </h3>
-                <PillRadioGroup
-                  labelledBy={`${groupId}-product`}
-                  options={products.map((item) => ({ value: item.id, label: item.name }))}
-                  value={product.id}
-                  onChange={setProductId}
-                />
+                <ProductSelect products={products} value={product.id} onChange={setProductId} />
               </div>
             ) : null}
 
@@ -104,60 +101,26 @@ const VALUE_BOX =
   "h-[56px] w-full max-w-[150px] rounded-[8px] border border-brand-hairline bg-[linear-gradient(180deg,rgba(97,97,97,0.1),rgba(36,36,36,0.1))] text-center font-poppins text-[16px] font-bold text-brand-orange backdrop-blur-[100px] outline-none [appearance:textfield] focus-visible:border-brand-orange [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
 /**
- * Pílulas de escolha única com a semântica de `radiogroup`: Tab entra no
- * grupo pela escolhida, setas trocam — o padrão da WAI-ARIA.
+ * "Selecionar serviço:" — select do tema (Radix, nunca o nativo) com os
+ * produtos do escopo. Exportado para o painel de quantidade usar o mesmo.
  */
-function PillRadioGroup({
-  labelledBy,
-  options,
+export function ProductSelect({
+  products,
   value,
   onChange,
 }: {
-  labelledBy: string;
-  options: { value: string; label: string }[];
+  products: readonly GameProduct[];
   value: string;
-  onChange: (value: string) => void;
+  onChange: (id: string) => void;
 }) {
-  function move(from: number, delta: number, event: React.KeyboardEvent<HTMLDivElement>) {
-    const next = options[(from + delta + options.length) % options.length];
-    onChange(next.value);
-    const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>("[role=radio]");
-    buttons[(from + delta + options.length) % options.length]?.focus();
-  }
-
   return (
-    <div
-      role="radiogroup"
-      aria-labelledby={labelledBy}
-      className="mt-[15px] flex flex-wrap gap-[25px]"
-      onKeyDown={(event) => {
-        const index = options.findIndex((option) => option.value === value);
-        if (event.key === "ArrowRight" || event.key === "ArrowDown") {
-          event.preventDefault();
-          move(index, 1, event);
-        } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
-          event.preventDefault();
-          move(index, -1, event);
-        }
-      }}
-    >
-      {options.map((option) => {
-        const active = option.value === value;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            tabIndex={active ? 0 : -1}
-            onClick={() => onChange(option.value)}
-            className={pillClassName(active, "max-w-full truncate")}
-          >
-            {option.label}
-          </button>
-        );
-      })}
-    </div>
+    <SelectField
+      label="Selecionar serviço:"
+      options={products.map((item) => ({ value: item.id, label: item.name }))}
+      value={value}
+      onValueChange={onChange}
+      className="lg:max-w-[452px]"
+    />
   );
 }
 
@@ -170,9 +133,7 @@ function initialSelection(pricing: Pricing): Selection {
 }
 
 function ProductControls({ product, context }: { product: GameProduct; context: ProductContext }) {
-  const router = useRouter();
-  const addToCart = useCart((state) => state.add);
-  const closeCart = useCart((state) => state.close);
+  const buyNow = useBuyNow(context);
 
   const pricing = product.pricing ?? FIXED;
   const [selection, setSelection] = useState<Selection>(() => initialSelection(pricing));
@@ -191,29 +152,7 @@ function ProductControls({ product, context }: { product: GameProduct; context: 
     );
   }
 
-  function buy() {
-    if (!result.ok) return;
-    addToCart(
-      {
-        productId: product.id,
-        gameSlug: context.gameSlug,
-        name: product.name,
-        image: product.image?.src,
-        gameLogo: context.gameLogo,
-        platform: product.serverLabel ?? context.platform,
-        // PRÉVIA para desenhar o carrinho — o backend recalcula no checkout.
-        unitPriceCents: result.totalCents,
-        selection: result.selection,
-        summary: result.summary,
-        hours: result.hours,
-      },
-      1,
-    );
-    // "Comprar agora" vai direto ao checkout; a gaveta aberta por cima dele
-    // seria um passo a mais.
-    closeCart();
-    router.push("/checkout");
-  }
+  const buy = () => buyNow(product, result);
 
   return (
     <>
@@ -236,7 +175,7 @@ function ProductControls({ product, context }: { product: GameProduct; context: 
       ) : null}
 
       {pricing.addons && pricing.addons.length > 0 ? (
-        <AddonChips
+        <AddonList
           addons={pricing.addons}
           selected={addonIds}
           onToggle={(id) =>
@@ -286,7 +225,7 @@ function clamp(value: number, min: number, max: number) {
 }
 
 /** Campo numérico que só confirma no blur/Enter, já corrigido para a regra. */
-function NumberBox({
+export function NumberBox({
   id,
   value,
   min,
@@ -349,12 +288,7 @@ function QuantityControl({
   const { min, max, step } = pricing;
 
   // Só valores da regra: min, min+step, min+2·step… ≤ max.
-  const snap = (raw: number) => {
-    const bounded = clamp(raw, min, max);
-    let snapped = min + Math.round((bounded - min) / step) * step;
-    if (snapped > max) snapped -= step;
-    return Math.max(snapped, min);
-  };
+  const snap = (raw: number) => snapQuantity(pricing, raw);
 
   const tiers = [...(pricing.tiers ?? [])].sort((a, b) => a.from - b.from);
 
@@ -515,7 +449,16 @@ function LevelRangeControl({
   );
 }
 
-function AddonChips({
+/**
+ * Adicionais como LINHAS marcáveis (Figma 1735:4247): caixinha 33×30 à
+ * esquerda, nome em #d8d8d8 e "+ R$ 180,00" à direita. Acima de
+ * `ADDON_SEARCH_THRESHOLD` itens entra o campo "Pesquisar itens..." — a busca
+ * só FILTRA a lista (os marcados nunca somem); preço continua sendo só `quote`.
+ *
+ * Caixa de seleção NATIVA escondida por baixo do desenho: teclado (espaço),
+ * leitor de tela e o `<label>` clicável vêm de graça.
+ */
+function AddonList({
   addons,
   selected,
   onToggle,
@@ -525,30 +468,75 @@ function AddonChips({
   onToggle: (id: string) => void;
 }) {
   const id = useId();
+  const [search, setSearch] = useState("");
+  const searchable = addons.length > ADDON_SEARCH_THRESHOLD;
+  const visible = searchable ? filterAddons(addons, search, selected) : addons;
+
   return (
     <div className="mt-[25px] first:mt-0">
       <h3 id={id} className={TITLE}>
         Adicionais:
       </h3>
-      <div role="group" aria-labelledby={id} className="mt-[15px] flex flex-wrap gap-[15px]">
-        {addons.map((addon) => {
+
+      {searchable ? (
+        <div role="search" className="relative mt-[15px] h-[50px] w-full">
+          <Image
+            src="/icons/search.svg"
+            alt=""
+            width={20}
+            height={20}
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 left-[25px] size-[20px] -translate-y-1/2"
+          />
+          <input
+            type="search"
+            value={search}
+            maxLength={80}
+            onChange={(event) => setSearch(event.target.value)}
+            aria-label="Pesquisar itens"
+            placeholder="Pesquisar itens..."
+            className="h-full w-full rounded-full border border-brand-border bg-[image:var(--brand-surface-fill)] pr-[20px] pl-[60px] font-helvetica text-[15px] tracking-[0.15px] text-white outline-none placeholder:text-brand-placeholder focus-visible:border-brand-orange"
+          />
+        </div>
+      ) : null}
+
+      <div role="group" aria-labelledby={id} className="mt-[15px] flex flex-col gap-[15px]">
+        {visible.map((addon) => {
           const on = selected.includes(addon.id);
           const suffix =
-            addon.kind === "PERCENT" ? `+${addon.value}%` : `+${formatPrice(addon.value)}`;
+            addon.kind === "PERCENT" ? `+ ${addon.value}%` : `+ ${formatPrice(addon.value)}`;
           return (
-            <button
-              key={addon.id}
-              type="button"
-              aria-pressed={on}
-              onClick={() => onToggle(addon.id)}
-              className={pillClassName(on, "!min-w-0 h-[44px] px-[20px] text-[14px]")}
-            >
-              {addon.label}
-              <span className={`ml-[8px] ${on ? "text-black/70" : "text-brand-orange"}`}>{suffix}</span>
-            </button>
+            <div key={addon.id}>
+              <label className="flex cursor-pointer items-center gap-[15px]">
+                <input
+                  type="checkbox"
+                  checked={on}
+                  onChange={() => onToggle(addon.id)}
+                  className="peer sr-only"
+                />
+                <span
+                  aria-hidden
+                  className={`h-[30px] w-[33px] shrink-0 rounded-[8px] border-2 border-white/10 backdrop-blur-[100px] peer-focus-visible:ring-2 peer-focus-visible:ring-brand-orange ${
+                    on ? "bg-[image:var(--brand-orange-gradient)]" : "bg-[image:var(--brand-surface-fill)]"
+                  }`}
+                />
+                <span className="min-w-0 flex-1 font-helvetica text-[16px] leading-[20px] tracking-[0.16px] break-words text-brand-placeholder">
+                  {addon.label}
+                </span>
+                <span className="shrink-0 font-helvetica text-[16px] leading-none font-bold tracking-[0.16px] text-white">
+                  {suffix}
+                </span>
+              </label>
+            </div>
           );
         })}
       </div>
+
+      {visible.length === 0 ? (
+        <p role="status" className={`${LABEL} mt-[15px] leading-[22px]`}>
+          Nenhum item encontrado.
+        </p>
+      ) : null}
     </div>
   );
 }

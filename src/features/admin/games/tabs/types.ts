@@ -10,7 +10,10 @@ import { z } from "zod";
  * primeira barreira; quem decide é o DTO do backend.
  */
 
-export type TabLayout = "CATALOG" | "SERVICE" | "LINK";
+/** Contrato v2 (`game-tabs-v2.md`, 2026-09-30): + QUANTITY, PACKAGES, SELL. */
+export const TAB_LAYOUT_VALUES = ["CATALOG", "SERVICE", "QUANTITY", "PACKAGES", "SELL", "LINK"] as const;
+
+export type TabLayout = (typeof TAB_LAYOUT_VALUES)[number];
 
 export type TabSection = { title: string; items: string[] };
 
@@ -29,19 +32,32 @@ export type GameTab = {
   productCount: number;
 };
 
+/** Os 6 layouts, com o nome em português e uma linha do que a aba mostra na loja. */
 export const TAB_LAYOUTS: readonly { value: TabLayout; label: string; hint: string }[] = [
-  { value: "CATALOG", label: "Catálogo", hint: "Grade de produtos (moedas, itens, gold...)" },
-  { value: "SERVICE", label: "Serviço", hint: "Textos + configurador de preço (boosting, carry...)" },
-  { value: "LINK", label: "Link", hint: "Leva para outra página (venda, fidelidade...)" },
+  { value: "CATALOG", label: "Catálogo", hint: "Grade de produtos (moedas, itens, builds...)." },
+  { value: "SERVICE", label: "Serviço", hint: "Textos à esquerda + card configurador de preço (boosting, carry, mentoria)." },
+  { value: "QUANTITY", label: "Quantidade (Gold)", hint: "Botões de quantidade pronta + quantidade livre + card de preço." },
+  { value: "PACKAGES", label: "Pacotes", hint: "Cards com tópicos e botão CONTINUAR, que abre o configurador." },
+  { value: "SELL", label: "Venda pra nós", hint: "Formulário de venda dentro da página do jogo. Sem produtos." },
+  { value: "LINK", label: "Link", hint: "Leva para outra página (fidelidade, /venda...). Sem produtos." },
 ];
 
 export function layoutLabel(layout: TabLayout): string {
   return TAB_LAYOUTS.find((option) => option.value === layout)?.label ?? layout;
 }
 
-/** Só estas abas recebem produto (e categorias). LINK só navega. */
+/** Layouts que recebem produto (e categorias). LINK só navega; SELL é o formulário de venda. */
+export const PRODUCT_LAYOUTS: readonly TabLayout[] = ["CATALOG", "SERVICE", "QUANTITY", "PACKAGES"];
+
 export function isProductTab(tab: Pick<GameTab, "layout">): boolean {
-  return tab.layout === "CATALOG" || tab.layout === "SERVICE";
+  return PRODUCT_LAYOUTS.includes(tab.layout);
+}
+
+/** Layouts com os textos da coluna esquerda (`content`). */
+export const CONTENT_LAYOUTS: readonly TabLayout[] = ["SERVICE", "QUANTITY", "PACKAGES"];
+
+export function hasTabContent(layout: TabLayout): boolean {
+  return CONTENT_LAYOUTS.includes(layout);
 }
 
 /**
@@ -63,6 +79,25 @@ export function isValidId(id: unknown): id is string {
  * conversão de `productImage`, repetida aqui porque este módulo é importado
  * pelo navegador e `lib/publicApi` não deve ir junto.
  */
+/**
+ * Ícone de reserva de uma aba sem ícone salvo — o do modelo com esse slug ou o
+ * do layout. Espelha `defaultTabIcon` do backend (que já grava isso na criação
+ * desde 2026-09-30) e o fallback da vitrine; serve às abas criadas antes disso.
+ */
+const MODEL_ICON_SLUGS = new Set(["moedas", "itens", "gold", "builds", "boosting", "carry", "mentoria", "venda", "fidelidade"]);
+const LAYOUT_ICON: Record<TabLayout, string> = {
+  CATALOG: "/icons/game/tab-moedas.svg",
+  SERVICE: "/icons/game/tab-boosting.svg",
+  QUANTITY: "/icons/game/tab-gold.svg",
+  PACKAGES: "/icons/game/tab-itens.svg",
+  SELL: "/icons/game/tab-venda.svg",
+  LINK: "/icons/game/tab-venda.svg",
+};
+
+export function defaultTabIcon(slug: string, layout: TabLayout): string {
+  return MODEL_ICON_SLUGS.has(slug) ? `/icons/game/tab-${slug}.svg` : LAYOUT_ICON[layout];
+}
+
 export function tabIconSrc(iconUrl: string | null | undefined): string | null {
   if (!iconUrl) return null;
   if (iconUrl.startsWith("https://") || iconUrl.startsWith("http://")) return iconUrl;
@@ -121,7 +156,7 @@ export const createTabSchema = z
   .object({
     label,
     slug: slug.optional(),
-    layout: z.enum(["CATALOG", "SERVICE", "LINK"], { message: "Escolha o layout da aba." }),
+    layout: z.enum(TAB_LAYOUT_VALUES, { message: "Escolha o layout da aba." }),
     linkHref: linkHref.optional(),
     content: tabContentSchema.optional(),
     isActive: z.boolean().optional(),
@@ -133,29 +168,54 @@ export const createTabSchema = z
     if (value.layout !== "LINK" && value.linkHref) {
       ctx.addIssue({ code: "custom", path: ["linkHref"], message: "Só aba de link tem endereço." });
     }
-    if (value.layout !== "SERVICE" && value.content) {
-      ctx.addIssue({ code: "custom", path: ["content"], message: "Só aba de serviço tem textos." });
+    if (!hasTabContent(value.layout) && value.content) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["content"],
+        message: "Só abas de Serviço, Quantidade e Pacotes têm textos.",
+      });
     }
   });
 
 export type CreateTabInput = z.input<typeof createTabSchema>;
 
 /**
- * PATCH parcial. O layout NÃO é editável depois de criado: trocar Catálogo por
- * Link com produtos dentro deixaria produto numa aba que não lista nada. Quem
- * errou o layout apaga (se não houver produto) e cria de novo.
+ * PATCH parcial. `linkHref`/`content` com `null` limpam.
  *
- * `linkHref`/`content` com `null` limpam. A coerência com o layout da aba (só
- * LINK tem link, só SERVICE tem textos) é conferida pelo backend, que conhece o
- * layout gravado — aqui a action não faz uma leitura extra só para isso.
+ * O LAYOUT passou a ser editável (v2, 2026-09-30: jogos antigos têm GOLD como
+ * Catálogo e VENDA como Link, e o admin troca na tela). Quem decide se a troca
+ * pode é o BACKEND, que conhece os produtos da aba: virar LINK/SELL com
+ * produto dentro é recusado com a mensagem dele, que a tela mostra como veio.
+ *
+ * Quando o layout vem junto, a coerência (link só LINK, textos só nos layouts
+ * de `CONTENT_LAYOUTS`) é conferida aqui também; sem ele, só o backend sabe o
+ * layout gravado — a action não faz uma leitura extra só para isso.
  */
-export const updateTabSchema = z.object({
-  label: label.optional(),
-  slug: slug.optional(),
-  linkHref: linkHref.nullable().optional(),
-  content: tabContentSchema.nullable().optional(),
-  isActive: z.boolean().optional(),
-});
+export const updateTabSchema = z
+  .object({
+    label: label.optional(),
+    slug: slug.optional(),
+    layout: z.enum(TAB_LAYOUT_VALUES, { message: "Layout de aba inválido." }).optional(),
+    linkHref: linkHref.nullable().optional(),
+    content: tabContentSchema.nullable().optional(),
+    isActive: z.boolean().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.layout === undefined) return;
+    if (value.layout === "LINK" && value.linkHref === null) {
+      ctx.addIssue({ code: "custom", path: ["linkHref"], message: "Aba de link precisa do endereço." });
+    }
+    if (value.layout !== "LINK" && value.linkHref) {
+      ctx.addIssue({ code: "custom", path: ["linkHref"], message: "Só aba de link tem endereço." });
+    }
+    if (!hasTabContent(value.layout) && value.content) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["content"],
+        message: "Só abas de Serviço, Quantidade e Pacotes têm textos.",
+      });
+    }
+  });
 
 export type UpdateTabInput = z.input<typeof updateTabSchema>;
 

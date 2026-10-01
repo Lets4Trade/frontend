@@ -7,7 +7,11 @@ import {
   NewsSection,
   ReferencesSection,
 } from "./GameSections";
+import { SellPageBody } from "@/features/sell/SellPageBody";
+import { catalogBlockFor, showsGenericFilters } from "./layouts";
+import { PackagesSection } from "./PackagesSection";
 import { ProductGrid } from "./ProductGrid";
+import { QuantitySection } from "./QuantitySection";
 import { ServiceSection } from "./ServiceSection";
 import { DEFAULT_GAP, DEFAULT_SECTION_ORDER, gapBefore, type GameSectionKey } from "./sections";
 import { activeTab, scopedCategories, type CatalogQuery } from "./catalog";
@@ -80,14 +84,27 @@ function renderSection(
   page: GamePage,
   query: CatalogQuery,
 ): ReactNode {
-  // Aba SERVICE (abas por jogo, 2026-09-28): servidor, categoria e produto
-  // moram DENTRO do card configurador, que ocupa o lugar do bloco "Lista de
-  // produtos". Os blocos de servidor e categoria somem — o card os tem — e o
-  // resto da página (banner, identidade, referências, FAQ) fica igual.
+  // O layout da aba ativa decide os três blocos que dependem dela (tabela em
+  // `layouts.ts`): SERVICE e QUANTITY levam o servidor para DENTRO do próprio
+  // bloco, SELL não tem produto a filtrar, PACKAGES usa os filtros genéricos.
+  // O resto da página (banner, identidade, referências, FAQ) fica igual.
   const tab = activeTab(page, query);
-  if (tab?.layout === "SERVICE") {
-    if (key === "servers" || key === "categories") return null;
-    if (key === "catalog") return <ServiceSection page={page} query={query} tab={tab} />;
+  if (tab) {
+    if ((key === "servers" || key === "categories") && !showsGenericFilters(tab.layout)) return null;
+    if (key === "catalog") {
+      switch (catalogBlockFor(tab.layout)) {
+        case "service":
+          return <ServiceSection page={page} query={query} tab={tab} />;
+        case "quantity":
+          return <QuantitySection page={page} query={query} tab={tab} />;
+        case "packages":
+          return <PackagesSection page={page} query={query} tab={tab} />;
+        case "sell":
+          return <SellPageBody game={{ slug: page.slug, name: page.name }} />;
+        case "catalog":
+          break;
+      }
+    }
   }
   // Jogo sem nenhuma aba de produto ativa (desde a FASE 5 as abas vêm SÓ do
   // banco): não há catálogo a pedir. Servidor e categoria somem — filtrariam

@@ -3,6 +3,7 @@ import { buildHref, scopedCategories, type CatalogQuery } from "./catalog";
 import { getServiceProducts } from "./content";
 import { pillClassName } from "./pill";
 import { ServiceConfigurator } from "./ServiceConfigurator";
+import { withEffectivePricing } from "./storefrontTabs";
 import type { GamePage, GameTab, ServiceContent } from "./types";
 
 /**
@@ -32,11 +33,16 @@ export async function ServiceSection({
   // o serviço é dividido em categorias.
   const selectedCategory = query.categories[0] ?? categories[0]?.id ?? "";
 
-  const products = await getServiceProducts(page, {
-    tab: tab.id,
-    server: query.server,
-    category: selectedCategory || undefined,
-  });
+  // A regra que VALE (`effectivePricing`): a mesma decisão que o backend usa
+  // para cobrar — produto sem regra salva vira FIXED aqui e lá.
+  const products = withEffectivePricing(
+    await getServiceProducts(page, {
+      tab: tab.id,
+      server: query.server,
+      category: selectedCategory || undefined,
+    }),
+    tab.layout,
+  );
 
   const server = page.servers.items.find((item) => item.slug === query.server);
   const context = {
@@ -135,7 +141,7 @@ const TITLE =
  * React escapa tudo, e nada aqui passa por `dangerouslySetInnerHTML` — o
  * conteúdo é escrito no painel e não pode virar marcação na loja.
  */
-function ServiceText({ content }: { content?: ServiceContent }) {
+export function ServiceText({ content }: { content?: ServiceContent }) {
   if (!content || content.sections.length === 0) return null;
 
   return (

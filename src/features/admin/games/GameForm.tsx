@@ -13,6 +13,7 @@ import {
 import { ACTION_FAILED_UPLOAD_MESSAGE, runAction } from "@/lib/safeAction";
 import { slugify, slugifyDraft } from "@/lib/slugify";
 import { createGameAction, type CreateGameResult } from "./actions";
+import { centralHref } from "./central";
 import {
   ACCEPTED_IMAGE_TYPES,
   MAX_IMAGE_BYTES,
@@ -219,7 +220,7 @@ export function GameForm() {
                 é dar nome, ícone e layout a elas (e criar as demais). */}
             {saved.id ? (
               <Link
-                href={`/admin/jogos/${encodeURIComponent(saved.id)}/abas`}
+                href={centralHref(saved.id, { section: "abas" })}
                 className="font-bold underline"
               >
                 configurar as abas →

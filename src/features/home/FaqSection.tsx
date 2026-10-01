@@ -1,4 +1,6 @@
 import Image from "next/image";
+import { RichText, alignClass, splitAlign } from "@/features/site/richText";
+import { cn } from "@/lib/cn";
 import { editItem } from "@/features/site/editing/attrs";
 import type { SectionItemView } from "@/features/site/content";
 import { reveal, revealDelay } from "./reveal";
@@ -75,10 +77,11 @@ export function FaqSection({
           id="faq-title"
 
           data-edit-field="home:faq:title"
+          data-edit-rich=""
           {...reveal("mask")}
           className="w-[894px] text-center font-poppins text-[65px] leading-[normal] font-semibold tracking-[0.325px] whitespace-nowrap text-white"
         >
-          {title}
+          <RichText value={title} />
         </h2>
 
         {/*
@@ -107,22 +110,30 @@ export function FaqSection({
             >
               <dt
                 {...editItem("home:faq", item.id, "title")}
+                data-edit-rich=""
                 className="w-[601px] font-helvetica text-[20px] leading-[normal] font-bold tracking-[0.2px] text-white"
               >
-                {item.title}
+                <RichText value={item.title} />
               </dt>
               <dd
                 {...editItem("home:faq", item.id, "body")}
-                className="mt-[25px] font-helvetica text-[18px] leading-[normal] tracking-[0.18px] text-brand-placeholder"
+                data-edit-rich=""
+                // Alinhamento da resposta INTEIRA (vários parágrafos) mora no
+                // próprio bloco — o editor o lê daqui (`data-rich-align`).
+                data-rich-align={splitAlign(item.body).align ?? undefined}
+                className={cn(
+                  "mt-[25px] font-helvetica text-[18px] leading-[normal] tracking-[0.18px] text-brand-placeholder",
+                  alignClass(splitAlign(item.body).align),
+                )}
               >
                 {/* Linha em branco separa parágrafos — é como a resposta foi
                   importada e como o campo do painel a mostra. */}
-                {item.body.split(/\n\s*\n/).map((paragraph, i) => (
+                {splitAlign(item.body).text.split(/\n\s*\n/).map((paragraph, i) => (
                   <p
                     key={paragraph.slice(0, 32)}
                     className={i > 0 ? "mt-[9px]" : undefined}
                   >
-                    {paragraph}
+                    <RichText value={paragraph} />
                   </p>
                 ))}
               </dd>

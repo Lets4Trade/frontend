@@ -278,3 +278,61 @@ describe("saveTabCategoriesAction", () => {
     });
   });
 });
+
+describe("layouts v2 (QUANTITY, PACKAGES, SELL)", () => {
+  it.each(["QUANTITY", "PACKAGES", "SELL"] as const)("%s é aceito no cadastro", async (layout) => {
+    expect(await createTabAction("g1", { label: "X", layout })).toMatchObject({ ok: true });
+    expect(post).toHaveBeenCalledWith("/admin/games/g1/tabs", { label: "X", layout });
+  });
+
+  it.each(["QUANTITY", "PACKAGES"] as const)("%s leva os textos da esquerda", async (layout) => {
+    await createTabAction("g1", {
+      label: "Gold",
+      layout,
+      content: { sections: [{ title: " Sobre ", items: [" a "] }] },
+    });
+    expect(post).toHaveBeenCalledWith("/admin/games/g1/tabs", {
+      label: "Gold",
+      layout,
+      content: { sections: [{ title: "Sobre", items: ["a"] }] },
+    });
+  });
+
+  it.each([
+    ["SELL com textos", { label: "X", layout: "SELL", content: { sections: [] } }],
+    ["SELL com link", { label: "X", layout: "SELL", linkHref: "/venda" }],
+    ["QUANTITY com link", { label: "X", layout: "QUANTITY", linkHref: "/venda" }],
+  ])("%s → invalid, sem API", async (_l, input) => {
+    expect(await createTabAction("g1", input as never)).toMatchObject({ ok: false, reason: "invalid" });
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it("troca de layout viaja no PATCH com a limpeza junto", async () => {
+    await updateTabAction("g1", "t1", { layout: "SELL", linkHref: null, content: null });
+    expect(patch).toHaveBeenCalledWith("/admin/games/g1/tabs/t1", {
+      layout: "SELL",
+      linkHref: null,
+      content: null,
+    });
+  });
+
+  it.each([
+    ["layout inventado", { layout: "HTML" }],
+    ["virar LINK limpando o link", { layout: "LINK", linkHref: null }],
+    ["virar CATALOG com textos", { layout: "CATALOG", content: { sections: [] } }],
+    ["virar SELL com link", { layout: "SELL", linkHref: "/venda" }],
+  ])("PATCH %s → invalid, sem API", async (_l, input) => {
+    expect(await updateTabAction("g1", "t1", input as never)).toMatchObject({ ok: false, reason: "invalid" });
+    expect(patch).not.toHaveBeenCalled();
+  });
+
+  it("backend recusa virar LINK com produtos: a mensagem dele chega à tela", async () => {
+    patch.mockResolvedValue(apiFail(400, "Esta aba tem 3 produtos. Mova-os antes de trocar o layout."));
+    expect(await updateTabAction("g1", "t1", { layout: "LINK", linkHref: "/venda" })).toEqual({
+      ok: false,
+      reason: "invalid",
+      message: "Esta aba tem 3 produtos. Mova-os antes de trocar o layout.",
+    });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});

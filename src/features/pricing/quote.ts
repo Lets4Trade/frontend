@@ -12,8 +12,9 @@
  *
  * Modos (o admin escolhe por produto):
  *  - FIXED        preço fechado = `basePriceCents` (o preço do produto).
- *  - QUANTITY     quantidade × preço unitário (horas de mentoria, runs de carry),
- *                 com faixas opcionais: a partir de N unidades, outro unitário.
+ *  - QUANTITY     quantidade × preço unitário (horas de mentoria, runs de carry,
+ *                 gold), com faixas opcionais (a partir de N unidades, outro
+ *                 unitário) e quantidades prontas (`presets`, os botões da aba Gold).
  *  - LEVEL_RANGE  nível inicial → desejado; soma o preço de cada nível pela faixa
  *                 em que ele cai (subir do 90 ao 100 pode custar mais que do 1 ao 10).
  * Em todos: adicionais opcionais (percentual sobre o subtotal ou valor fixo) e
@@ -46,18 +47,24 @@ const common = {
 
 const fixedSchema = z.object({ mode: z.literal("FIXED"), ...common });
 
+/** Teto de quantidade (gold vende em milhares; 2026-09-30 subiu de 10.000). */
+export const MAX_QUANTITY = 1_000_000;
+const quantityValue = z.number().int().min(1).max(MAX_QUANTITY);
+
 const quantitySchema = z.object({
   mode: z.literal("QUANTITY"),
-  /** Como a unidade aparece: "Horas", "Runs". */
+  /** Como a unidade aparece: "Horas", "Runs", "Gold". */
   unitLabel: label,
-  min: z.number().int().min(1).max(10_000),
-  max: z.number().int().min(1).max(10_000),
-  step: z.number().int().min(1).max(10_000),
+  min: quantityValue,
+  max: quantityValue,
+  step: quantityValue,
+  /** Quantidades oferecidas em botão (aba Gold). Cada uma tem que ser escolhível. */
+  presets: z.array(quantityValue).max(24).optional(),
   /** Horas por unidade (mentoria: 1). */
   hoursPerUnit: hours.optional(),
   /** A partir de `from` unidades, o unitário vira `unitPriceCents`. */
   tiers: z
-    .array(z.object({ from: z.number().int().min(1).max(10_000), unitPriceCents: cents }))
+    .array(z.object({ from: quantityValue, unitPriceCents: cents }))
     .max(20)
     .optional(),
   ...common,
@@ -90,6 +97,14 @@ export const pricingSchema = z
     if (value.mode !== "FIXED" && value.min > value.max) {
       ctx.addIssue({ code: "custom", message: "O mínimo não pode passar do máximo." });
     }
+    if (value.mode === "QUANTITY") {
+      for (const preset of value.presets ?? []) {
+        if (preset < value.min || preset > value.max || (preset - value.min) % value.step !== 0) {
+          ctx.addIssue({ code: "custom", message: `A quantidade pronta ${preset} está fora de mínimo/máximo/passo.` });
+          break;
+        }
+      }
+    }
     if (value.mode === "LEVEL_RANGE") {
       if (value.max - value.min > 10_000) {
         ctx.addIssue({ code: "custom", message: "Faixa de níveis grande demais (máx. 10.000)." });
@@ -119,7 +134,7 @@ export type PricingAddon = z.infer<typeof addonSchema>;
 
 /** O que o cliente escolheu. Só os campos do modo contam; o resto é ignorado. */
 export const selectionSchema = z.object({
-  quantity: z.number().int().min(1).max(10_000).optional(),
+  quantity: quantityValue.optional(),
   levelFrom: z.number().int().min(0).max(100_000).optional(),
   levelTo: z.number().int().min(0).max(100_000).optional(),
   addonIds: z.array(z.string().max(40)).max(20).optional(),
@@ -230,4 +245,32 @@ export function quote(basePriceCents: number, pricing: Pricing, rawSelection: Se
     lines,
     selection,
   };
+}
+
+/**
+ * Layouts de aba cujo preço passa por `quote` (2026-09-30): SERVICE (boosting,
+ * mentoria), QUANTITY (gold — botões de quantidade) e PACKAGES (pacotes com
+ * CONTINUAR → configurador). CATALOG segue `preço × unidades`; LINK e SELL não
+ * têm produto.
+ */
+export const QUOTED_LAYOUTS = ["SERVICE", "QUANTITY", "PACKAGES"] as const;
+
+/** Regra usada quando o produto de aba QUANTITY não tem `pricing` salvo. */
+export const DEFAULT_QUANTITY_PRICING: Pricing = {
+  mode: "QUANTITY",
+  unitLabel: "Unidades",
+  min: 1,
+  max: 1000,
+  step: 1,
+};
+
+/**
+ * A regra que VALE para um produto, dado o layout da aba dele. `null` = não é
+ * produto cotado (preço de catálogo). Mesma decisão nos dois lados: o front
+ * mostra e o backend cobra com o resultado desta função.
+ */
+export function effectivePricing(layout: string | null | undefined, pricing: Pricing | null | undefined): Pricing | null {
+  if (!layout || !(QUOTED_LAYOUTS as readonly string[]).includes(layout)) return null;
+  if (pricing) return pricing;
+  return layout === "QUANTITY" ? DEFAULT_QUANTITY_PRICING : { mode: "FIXED" };
 }

@@ -13,6 +13,7 @@ import type { SectionItem } from "@/features/site/list";
 import { SelectField } from "@/components/ui/SelectField";
 import type { GameOption, SiteListDef } from "@/features/site/sections";
 import { cn } from "@/lib/cn";
+import { RichFormInput } from "@/features/site/editing/RichTextField";
 import {
   ACTION_FAILED_MESSAGE,
   ACTION_FAILED_UPLOAD_MESSAGE,
@@ -393,7 +394,14 @@ function ItemRow({
         ) : null}
 
         <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-[15px]">
-          {def.title ? (
+          {def.title && def.rich?.includes("title") ? (
+            <RichFormInput
+              name="title"
+              label={def.title}
+              defaultValue={item?.title ?? ""}
+              maxLength={200}
+            />
+          ) : def.title ? (
             <Field label={def.title}>
               <input
                 name="title"
@@ -417,7 +425,15 @@ function ItemRow({
           ) : null}
         </div>
 
-        {def.body ? (
+        {def.body && def.rich?.includes("body") ? (
+          <RichFormInput
+            name="body"
+            label={def.body}
+            defaultValue={item?.body ?? ""}
+            maxLength={2000}
+            multiline
+          />
+        ) : def.body ? (
           <Field label={def.body}>
             <textarea
               name="body"

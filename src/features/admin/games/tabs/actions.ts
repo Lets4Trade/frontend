@@ -14,6 +14,7 @@ import {
 import { MAX_IMAGE_BYTES } from "../options";
 import {
   createTabSchema,
+  hasTabContent,
   isValidId,
   updateTabSchema,
   type CreateTabInput,
@@ -78,6 +79,10 @@ function revalidate() {
   revalidatePath("/games/[slug]", "page");
 }
 
+/**
+ * Recusa do backend. 400/409 trazem a mensagem ACIONÁVEL (ex.: "a aba tem 3
+ * produtos; mova-os antes de virar Link") e ela vai para a tela como TEXTO.
+ */
 function failure(result: {
   status: number;
   reason: "unauthenticated" | "error";
@@ -125,7 +130,7 @@ export async function createTabAction(
     ...(slug ? { slug } : {}),
     layout,
     ...(layout === "LINK" ? { linkHref } : {}),
-    ...(layout === "SERVICE" && content ? { content: copyContent(content) } : {}),
+    ...(hasTabContent(layout) && content ? { content: copyContent(content) } : {}),
     ...(isActive === undefined ? {} : { isActive }),
   });
   if (!result.ok) return failure(result);
@@ -153,6 +158,7 @@ export async function updateTabAction(
   const body: Record<string, unknown> = {};
   if (data.label !== undefined) body.label = data.label;
   if (data.slug !== undefined) body.slug = data.slug;
+  if (data.layout !== undefined) body.layout = data.layout;
   if (data.linkHref !== undefined) body.linkHref = data.linkHref;
   if (data.content !== undefined) {
     body.content = data.content === null ? null : copyContent(data.content);

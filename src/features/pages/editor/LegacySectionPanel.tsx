@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 import { TextAreaField } from "@/components/ui/TextAreaField";
 import { TextField } from "@/components/ui/TextField";
+import { RichTextField } from "@/features/site/editing/RichTextField";
 import { toastError, toastOk } from "@/components/ui/Toasts";
 import { SectionItemsEditor } from "@/features/admin/sections/SectionItemsEditor";
 import { resetSectionAction, saveSectionAction } from "@/features/site/actions";
@@ -107,7 +108,16 @@ export function LegacySectionPanel({
 
       {hasFields ? (
         <div className="flex flex-col gap-[16px]">
-          {hasTitle ? (
+          {hasTitle && def.rich?.includes("title") ? (
+            <RichTextField
+              label={def.titleLabel ?? "Título"}
+              value={title}
+              placeholder={def.defaultTitle}
+              maxLength={160}
+              hint="Selecione um trecho para formatar · Shift+Enter quebra a linha."
+              onChange={setTitle}
+            />
+          ) : hasTitle ? (
             <TextField
               label={def.titleLabel ?? "Título"}
               value={title}
@@ -116,12 +126,22 @@ export function LegacySectionPanel({
               onChange={(event) => setTitle(event.target.value)}
             />
           ) : null}
-          {hasSubtitle ? (
+          {/* 200, não 300: é o limite do backend (`sections.dto.ts`) — com 300 o
+              campo aceitava texto que o servidor recusava ao salvar. */}
+          {hasSubtitle && def.rich?.includes("subtitle") ? (
+            <RichTextField
+              label={def.subtitleLabel ?? "Subtítulo"}
+              value={subtitle}
+              placeholder={def.defaultSubtitle}
+              maxLength={200}
+              onChange={setSubtitle}
+            />
+          ) : hasSubtitle ? (
             <TextField
               label={def.subtitleLabel ?? "Subtítulo"}
               value={subtitle}
               placeholder={def.defaultSubtitle}
-              maxLength={300}
+              maxLength={200}
               onChange={(event) => setSubtitle(event.target.value)}
             />
           ) : null}
@@ -130,11 +150,20 @@ export function LegacySectionPanel({
               label={def.footnoteLabel ?? "Legenda"}
               value={footnote}
               placeholder={def.defaultFootnote}
-              maxLength={300}
+              maxLength={200}
               onChange={(event) => setFootnote(event.target.value)}
             />
           ) : null}
-          {def.hasBody ? (
+          {def.hasBody && def.rich?.includes("body") ? (
+            <RichTextField
+              label={def.bodyLabel ?? "Texto da seção"}
+              value={body}
+              placeholder={def.defaultBody}
+              maxLength={4000}
+              multiline
+              onChange={setBody}
+            />
+          ) : def.hasBody ? (
             <TextAreaField
               label={def.bodyLabel ?? "Texto da seção"}
               value={body}

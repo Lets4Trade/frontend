@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { quote, type Pricing } from "@/features/pricing/quote";
-import { addonIds, draftToPricing, emptyDraft, pricingToDraft } from "./pricingDraft";
+import { addonIds, draftToPricing, emptyDraft, parsePresets, pricingToDraft } from "./pricingDraft";
+import { parseHighlights } from "./schema";
 
 describe("draftToPricing", () => {
   it("FIXED sem nada extra", () => {
@@ -97,5 +98,62 @@ describe("pricingToDraft ↔ draftToPricing", () => {
 describe("addonIds", () => {
   it("rótulo sem letras vira adicional-N", () => {
     expect(addonIds([{ id: null, label: "!!!" }, { id: null, label: "" }])).toEqual(["adicional-1", "adicional-2"]);
+  });
+});
+
+describe("quantidades prontas (presets)", () => {
+  function goldDraft(presets: string) {
+    const draft = emptyDraft("QUANTITY");
+    draft.unitLabel = "Gold";
+    draft.min = "100";
+    draft.max = "1000000";
+    draft.step = "100";
+    draft.presets = presets;
+    return draft;
+  }
+
+  it("lê vírgula/espaço e ponto de milhar", () => {
+    expect(parsePresets("100, 500;1.000  5.000")).toEqual([100, 500, 1000, 5000]);
+    expect(parsePresets("")).toEqual([]);
+  });
+
+  it("válidos entram no Pricing e voltam ao rascunho", () => {
+    const result = draftToPricing(goldDraft("100, 1.000, 500.000"));
+    expect(result).toMatchObject({ ok: true, pricing: { presets: [100, 1000, 500000] } });
+    if (result.ok) expect(pricingToDraft(result.pricing).presets).toBe("100, 1000, 500000");
+  });
+
+  it("vazio = sem presets", () => {
+    const result = draftToPricing(goldDraft(" "));
+    expect(result.ok && "presets" in result.pricing).toBe(false);
+  });
+
+  it("fora de mínimo/máximo/passo → mensagem do zod", () => {
+    expect(draftToPricing(goldDraft("100, 150"))).toEqual({
+      ok: false,
+      message: "A quantidade pronta 150 está fora de mínimo/máximo/passo.",
+    });
+  });
+
+  it("não-número e lista longa são recusados com o nome do campo", () => {
+    expect(draftToPricing(goldDraft("100, 1x"))).toMatchObject({ ok: false });
+    const many = Array.from({ length: 25 }, (_, i) => (i + 1) * 100).join(",");
+    expect(draftToPricing(goldDraft(many))).toEqual({
+      ok: false,
+      message: "Quantidades prontas: no máximo 24 itens.",
+    });
+  });
+});
+
+describe("parseHighlights (campo Tópicos do card)", () => {
+  it("uma linha por tópico, normalizado", () => {
+    expect(parseHighlights(" a \r\n\r\nb\n")).toEqual({ ok: true, highlights: ["a", "b"] });
+  });
+
+  it("7 linhas → mensagem do zod", () => {
+    expect(parseHighlights("1\n2\n3\n4\n5\n6\n7")).toEqual({
+      ok: false,
+      message: "O card aceita no máximo 6 tópicos.",
+    });
   });
 });

@@ -3,9 +3,10 @@
 import { slugify } from "@/lib/slugify";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useMemo, useState, useTransition } from "react";
+import { useCallback, useMemo, useState, useTransition, type ReactNode } from "react";
 import { toastError, toastOk } from "@/components/ui/Toasts";
 import { ACTION_FAILED_MESSAGE, runAction } from "@/lib/safeAction";
+import { centralHref } from "@/features/admin/games/central";
 import { ADMIN_SHELL } from "@/features/admin/layout";
 import { resolveSectionOrder } from "@/features/game/sections";
 import { toCategoryTree } from "@/features/game/categoryTree";
@@ -15,7 +16,6 @@ import {
   BannerPanel,
   CategoryTreePanel,
   DescriptionPanel,
-  ListPanel,
   LogoPanel,
   NamePanel,
   PanelShell,
@@ -59,8 +59,23 @@ export function BuilderShell({
   game,
   shared,
   tabs,
+  canManage,
+  nav,
+  initialStep = null,
 }: {
   game: BuilderGame;
+  /**
+   * Etapa aberta ao chegar (`?etapa=`, vinda do mapa da página na Central).
+   * Já validada pela página: só etapa que edita aqui (sem `href`).
+   */
+  initialStep?: BuilderStepId | null;
+  /**
+   * Cargo ADMIN. O EDITOR abre o Builder, mas não a Central do jogo nem
+   * Produtos (404 para ele): os atalhos para lá não aparecem.
+   */
+  canManage: boolean;
+  /** A navegação da Central (`GameAdminNav` na forma `bar`), montada na página. */
+  nav?: ReactNode;
   /**
    * As abas do jogo (Jogos → Abas). `null` = leitura falhou ou o backend ainda
    * não as tem: a maquete volta a desenhar as abas pelos tipos antigos.
@@ -71,7 +86,7 @@ export function BuilderShell({
   shared: BuilderShared | null;
 }) {
   const router = useRouter();
-  const [step, setStep] = useState<BuilderStepId | null>(null);
+  const [step, setStep] = useState<BuilderStepId | null>(initialStep);
   const [draft, setDraft] = useState<Draft>(() => toDraft(game));
   const [saved, setSaved] = useState<Draft>(() => toDraft(game));
   const [pending, startTransition] = useTransition();
@@ -144,6 +159,7 @@ export function BuilderShell({
 
   return (
     <div className={`${ADMIN_SHELL} pb-[100px]`}>
+      {nav ? <div className="mb-[30px]">{nav}</div> : null}
       <header className="flex flex-wrap items-start justify-between gap-[25px]">
         <div>
           <h1 className="font-helvetica text-[30px] leading-none font-bold tracking-[0.3px] text-white">
@@ -183,6 +199,7 @@ export function BuilderShell({
           active={step}
           onSelect={(id) => setStep((atual) => (atual === id ? null : id))}
           dirtySteps={dirtySteps}
+          canManage={canManage}
         />
 
         <div className="min-w-0 flex-1">
@@ -202,6 +219,7 @@ export function BuilderShell({
                   draft,
                   patch,
                   derivedHeading,
+                  canManage,
                 })}
               </PanelShell>
             </>
@@ -221,9 +239,10 @@ function renderPanel(
     draft: Draft;
     patch: (next: Partial<Draft>) => void;
     derivedHeading: string;
+    canManage: boolean;
   },
 ) {
-  const { game, draft, patch, derivedHeading } = ctx;
+  const { game, draft, patch, derivedHeading, canManage } = ctx;
 
   switch (id) {
     case "titulos":
@@ -247,27 +266,30 @@ function renderPanel(
     case "nome":
       return <NamePanel draft={draft} patch={patch} publishedSlug={game.slug} />;
     case "servidores":
-      return (
-        <ListPanel
-          items={draft.servers}
-          onChange={(servers) => patch({ servers })}
-          addLabel="+ Adicionar servidor"
-          itemLabel="Servidor"
-          emptyHint="Sem servidores, a loja do game não mostra o filtro de servidor."
-        />
-      );
+      // Só leitura desde a Etapa 2 (admin-games-ux.md): os servidores moram
+      // na Visão geral da Central. O `PUT` do Builder ainda EXIGE a lista
+      // (`servers` é obrigatório no DTO e é troca completa), então o rascunho
+      // continua levando a lista como veio — intocada aqui, nunca apaga nada.
+      return <ServersReadOnly servers={draft.servers} gameId={game.id} canManage={canManage} />;
     case "categorias":
       return (
         <>
           <p className="font-poppins text-[13px] text-brand-fg-subtle">
             Estas são as categorias GLOBAIS do jogo: aparecem em todos os servidores e em todas as
-            abas. As de um servidor ou de uma aba específica ficam em{" "}
-            <Link
-              href={`/admin/jogos/${encodeURIComponent(game.id)}/categorias`}
-              className="font-bold text-brand-orange underline"
-            >
-              Jogos → Categorias
-            </Link>
+            abas. As de um servidor ou de uma aba específica ficam na Central do jogo
+            {canManage ? (
+              <>
+                {" "}
+                (
+                <Link
+                  href={centralHref(game.id, { section: "abas" })}
+                  className="font-bold text-brand-orange underline"
+                >
+                  Abas e produtos
+                </Link>
+                )
+              </>
+            ) : null}
             .
           </p>
           <CategoryTreePanel
@@ -369,4 +391,48 @@ function sameItems(a: BuilderListItem[], b: BuilderListItem[]) {
 /** Mesma regra de `sameItems`, nos dois níveis. */
 function sameCategories(a: BuilderCategory[], b: BuilderCategory[]) {
   return sameItems(a, b) && a.every((item, index) => sameItems(item.children, b[index].children));
+}
+
+/** Etapa 6 só de leitura: a lista e, para o ADMIN, o atalho para editá-la. */
+function ServersReadOnly({
+  servers,
+  gameId,
+  canManage,
+}: {
+  servers: BuilderListItem[];
+  gameId: string;
+  canManage: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-[15px]">
+      {servers.length === 0 ? (
+        <p className="font-poppins text-[14px] text-brand-fg-subtle">
+          Sem servidores, a loja do game não mostra o filtro de servidor.
+        </p>
+      ) : (
+        <ul className="flex flex-wrap gap-[10px]">
+          {servers.map((server) => (
+            <li
+              key={server.key}
+              className="rounded-full border border-white/10 px-[16px] py-[8px] font-poppins text-[13px] text-white"
+            >
+              {server.label}
+            </li>
+          ))}
+        </ul>
+      )}
+      {canManage ? (
+        <Link
+          href={centralHref(gameId, { section: "visao-geral" })}
+          className="font-poppins text-[14px] font-bold text-brand-orange transition-opacity hover:opacity-80"
+        >
+          Editar servidores →
+        </Link>
+      ) : (
+        <p className="font-poppins text-[13px] text-brand-fg-subtle">
+          Os servidores são editados por um administrador, no cadastro do jogo.
+        </p>
+      )}
+    </div>
+  );
 }

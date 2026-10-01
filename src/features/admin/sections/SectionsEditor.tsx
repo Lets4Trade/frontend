@@ -5,6 +5,7 @@ import { useRef, useState, useTransition } from "react";
 import { SelectField } from "@/components/ui/SelectField";
 import { toastError, toastOk } from "@/components/ui/Toasts";
 import { TextField } from "@/components/ui/TextField";
+import { RichTextField } from "@/features/site/editing/RichTextField";
 import { resetSectionAction, saveSectionAction } from "@/features/site/actions";
 import type { SectionContent } from "@/features/site/list";
 import {
@@ -261,6 +262,15 @@ export function SectionsEditor({
                   Esta sessão não tem título.
                 </span>
               </div>
+            ) : section.rich?.includes("title") ? (
+              <RichTextField
+                label={section.titleLabel ?? "Alterar título da sessão"}
+                value={title}
+                maxLength={160}
+                placeholder={section.defaultTitle ?? `${page.label} - ${section.label}`}
+                hint="Selecione um trecho para formatar · Shift+Enter quebra a linha."
+                onChange={setTitle}
+              />
             ) : (
               <TextField
                 // O rótulo vem do catálogo quando a sessão tem um nome próprio
@@ -288,7 +298,15 @@ export function SectionsEditor({
       */}
         {hasSubtitle || hasFootnote || section.hasBody ? (
           <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-[25px]">
-            {hasSubtitle ? (
+            {hasSubtitle && section.rich?.includes("subtitle") ? (
+              <RichTextField
+                label={section.subtitleLabel ?? "Subtítulo"}
+                value={subtitle}
+                maxLength={200}
+                placeholder={section.defaultSubtitle || undefined}
+                onChange={setSubtitle}
+              />
+            ) : hasSubtitle ? (
               <TextField
                 label={section.subtitleLabel ?? "Subtítulo"}
                 value={subtitle}
@@ -311,7 +329,16 @@ export function SectionsEditor({
           </div>
         ) : null}
 
-        {section.hasBody ? (
+        {section.hasBody && section.rich?.includes("body") ? (
+          <RichTextField
+            label={section.bodyLabel ?? "Texto da sessão"}
+            value={body}
+            maxLength={4000}
+            multiline
+            placeholder="Deixe em branco para usar o texto padrão da página."
+            onChange={setBody}
+          />
+        ) : section.hasBody ? (
           <label className="flex flex-col gap-[8px]">
             <span className="font-helvetica text-[16px] font-bold tracking-[0.16px] text-white">
               {section.bodyLabel ?? "Texto da sessão"}

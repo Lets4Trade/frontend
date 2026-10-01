@@ -63,7 +63,15 @@ export function ScopedCategoriesEditor({
 
   return (
     <div className="flex max-w-[900px] flex-col gap-[25px]">
-      <CategoryTreePanel items={draft} onChange={setDraft} />
+      <CategoryTreePanel
+        items={draft}
+        onChange={setDraft}
+        emptyText={
+          serverId
+            ? "Nenhuma categoria só deste servidor. As da aba inteira e as globais continuam valendo aqui."
+            : "Nenhuma categoria da aba inteira ainda."
+        }
+      />
       <div className="flex flex-wrap items-center gap-[15px]">
         <button
           type="button"

@@ -55,7 +55,17 @@ export type SiteListDef = {
    * link do jogo no builder leva o item junto. Hoje: os slides do hero.
    */
   game?: string;
+  /**
+   * Campos do ITEM com texto formatado (negrito, destaque, alinhamento… —
+   * `richText.tsx`, 2026-10-01). Só onde o componente da loja desenha com
+   * `<RichText>`: marcação num campo que a loja mostra cru apareceria como
+   * `**`. Nome, número de contador e link ficam de fora — de propósito.
+   */
+  rich?: readonly ("title" | "body")[];
 };
+
+/** Textos da SEÇÃO que aceitam formatação (ver `SiteListDef.rich`). */
+export type RichSectionField = "title" | "subtitle" | "footnote" | "body";
 
 /** Um jogo como o seletor do painel precisa dele. */
 export type GameOption = { id: string; name: string; slug: string };
@@ -137,6 +147,8 @@ export type SiteSectionDef = {
    * painel mostra o editor de itens abaixo do formulário da seção.
    */
   list?: SiteListDef;
+  /** Textos da seção com formatação (ver `SiteListDef.rich`). */
+  rich?: readonly RichSectionField[];
 };
 
 export type SitePageDef = {
@@ -217,6 +229,8 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         // Vazio, cai no link do player; sem nenhum dos dois, nas reviews.
         defaultSubtitle: "",
         subtitleLabel: "Link do botão “Veja nossas referências” (YouTube)",
+        // Subtítulo e legenda são LINKS — só o título é texto formatado.
+        rich: ["title"],
       },
       {
         key: "reviews",
@@ -227,11 +241,13 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         // o número de cards — por isso é texto editável e não `items.length`.
         defaultFootnote: "515 Reviews",
         hasImage: false,
+        rich: ["title", "subtitle"],
         list: {
           itemLabel: "review",
           title: "Nome de quem avaliou",
           body: "Depoimento",
           image: "Avatar (quadrado)",
+          rich: ["body"],
         },
       },
       // O render da equipe tem 86×86 — é ornamento, não banner. Ver `hasImage`.
@@ -245,6 +261,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         // são quase mil caracteres.
         hasBody: true,
         hasImage: false,
+        rich: ["title", "subtitle", "body"],
         list: {
           itemLabel: "membro",
           title: "Nome",
@@ -257,6 +274,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         label: "Guias",
         defaultTitle: "GUIAS POPULARES",
         hasImage: false,
+        rich: ["title"],
         list: {
           itemLabel: "guia",
           title: "Título do guia",
@@ -264,6 +282,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
           image: "Arte de fundo",
           secondaryImage: "Logo do jogo",
           href: "Link do guia",
+          rich: ["title", "body"],
         },
       },
       {
@@ -271,12 +290,14 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         label: "Dúvidas",
         defaultTitle: "DÚVIDAS SOBRE A EMPRESA",
         hasImage: false,
+        rich: ["title"],
         list: {
           itemLabel: "pergunta",
           title: "Pergunta",
           // Linha em branco separa parágrafos — é como a resposta foi importada
           // e como o componente a divide de volta.
           body: "Resposta (linha em branco separa parágrafos)",
+          rich: ["title", "body"],
         },
       },
     ],

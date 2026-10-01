@@ -1,13 +1,15 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getSessionRole } from "@/features/auth/session";
-import { apiDelete, apiPatchFormData, apiPostFormData, apiPut } from "@/lib/serverApi";
+import { apiDelete, apiPatchFormData, apiPost, apiPostFormData, apiPut } from "@/lib/serverApi";
 import { revalidatePath } from "next/cache";
 import { apiFail, apiOk, bigImage, formEntries, smallImage } from "@/test/actionFixtures";
 import {
   createProductAction,
   deleteProductAction,
+  reactivateProductAction,
   saveProductOrderAction,
+  saveProductPricesAction,
   updateProductAction,
 } from "./actions";
 
@@ -15,6 +17,7 @@ vi.mock("@/features/auth/session", () => ({ getSessionRole: vi.fn() }));
 vi.mock("@/lib/serverApi", () => ({
   apiDelete: vi.fn(),
   apiPatchFormData: vi.fn(),
+  apiPost: vi.fn(),
   apiPostFormData: vi.fn(),
   apiPut: vi.fn(),
 }));
@@ -25,6 +28,7 @@ const post = vi.mocked(apiPostFormData);
 const patch = vi.mocked(apiPatchFormData);
 const del = vi.mocked(apiDelete);
 const put = vi.mocked(apiPut);
+const postJson = vi.mocked(apiPost);
 
 const CREATED = apiOk({ name: "500M Divine", game: { name: "Path of Exile 2" } });
 
@@ -48,6 +52,7 @@ beforeEach(() => {
   patch.mockResolvedValue(CREATED);
   del.mockResolvedValue(apiOk({ id: "p1" }));
   put.mockResolvedValue(apiOk({ count: 2 }));
+  postJson.mockResolvedValue(apiOk({ id: "p1" }));
 });
 
 describe("createProductAction", () => {
@@ -318,5 +323,145 @@ describe("saveProductOrderAction", () => {
       message: expect.stringContaining("Não conseguimos salvar a ordem"),
     });
     expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("highlights (tópicos do card de PACOTE)", () => {
+  it("normalizados: trim, vazios fora, enviados como JSON", async () => {
+    await createProductAction(
+      productForm({ highlights: JSON.stringify([" Manual Boosting ", "", "  ", "Entrega 24h"]) }),
+    );
+    const entries = formEntries(post.mock.calls[0][1]);
+    expect(JSON.parse(String(entries.highlights))).toEqual(["Manual Boosting", "Entrega 24h"]);
+  });
+
+  it("ausente não viaja; \"[]\" limpa na edição", async () => {
+    await createProductAction(productForm());
+    expect(formEntries(post.mock.calls[0][1])).not.toHaveProperty("highlights");
+    await updateProductAction("p1", productForm({ highlights: "[]" }));
+    expect(formEntries(patch.mock.calls[0][1])).toHaveProperty("highlights", "[]");
+  });
+
+  it.each([
+    ["7 tópicos", JSON.stringify(Array.from({ length: 7 }, (_, i) => `t${i}`)), "no máximo 6"],
+    ["tópico de 81", JSON.stringify(["x".repeat(81)]), "80 caracteres"],
+    ["não é JSON", "[", "inválidos"],
+    ["não é lista de texto", JSON.stringify([{ html: "<b>" }]), ""],
+    ["gigante", "x".repeat(4_001), "inválidos"],
+  ])("%s → invalid, sem API", async (_l, highlights, message) => {
+    const result = await updateProductAction("p1", productForm({ highlights }));
+    expect(result).toMatchObject({ ok: false, reason: "invalid" });
+    if (message) expect(result.ok ? "" : result.message).toContain(message);
+    expect(patch).not.toHaveBeenCalled();
+  });
+
+  it("linhas vazias não contam para o teto de 6", async () => {
+    const list = Array.from({ length: 6 }, (_, i) => [`t${i}`, ""]).flat();
+    await createProductAction(productForm({ highlights: JSON.stringify(list) }));
+    expect(JSON.parse(String(formEntries(post.mock.calls[0][1]).highlights))).toHaveLength(6);
+  });
+});
+
+describe("pricing de QUANTITY com presets", () => {
+  const rule = { mode: "QUANTITY", unitLabel: "Gold", min: 100, max: 1_000_000, step: 100 };
+
+  it("presets válidos viajam", async () => {
+    await createProductAction(productForm({ pricing: JSON.stringify({ ...rule, presets: [100, 1000, 500_000] }) }));
+    expect(JSON.parse(String(formEntries(post.mock.calls[0][1]).pricing)).presets).toEqual([100, 1000, 500_000]);
+  });
+
+  it.each([
+    ["fora do passo", [150], "150"],
+    ["acima do máximo", [2_000_000], ""],
+    ["25 presets", Array.from({ length: 25 }, (_, i) => (i + 1) * 100), ""],
+  ])("preset %s → invalid, sem API", async (_l, presets, message) => {
+    const result = await createProductAction(productForm({ pricing: JSON.stringify({ ...rule, presets }) }));
+    expect(result).toMatchObject({ ok: false, reason: "invalid" });
+    if (message) expect(result.ok ? "" : result.message).toContain(message);
+    expect(post).not.toHaveBeenCalled();
+  });
+});
+
+describe("reactivateProductAction", () => {
+  it.each([[null], ["USER" as const]])("sessão %s não chama a API", async (r) => {
+    role.mockResolvedValue(r);
+    expect(await reactivateProductAction("p1")).toMatchObject({ ok: false });
+    expect(postJson).not.toHaveBeenCalled();
+  });
+
+  it("id inválido não chama a API", async () => {
+    expect(await reactivateProductAction("../x")).toMatchObject({ ok: false });
+    expect(postJson).not.toHaveBeenCalled();
+  });
+
+  it("caminho feliz chama POST /reactivate e revalida Central e listagem", async () => {
+    expect(await reactivateProductAction("p1")).toEqual({ ok: true });
+    expect(postJson).toHaveBeenCalledWith("/admin/products/p1/reactivate", {});
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/jogos", "layout");
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/produtos", "layout");
+  });
+
+  it.each([
+    [404, "Este produto já não existe."],
+    [400, "O jogo deste produto está desativado. Reative o jogo antes."],
+    [500, "Não conseguimos reativar agora. Tente novamente em instantes."],
+  ])("status %i → mensagem própria", async (status, message) => {
+    postJson.mockResolvedValue(apiFail(status));
+    expect(await reactivateProductAction("p1")).toEqual({ ok: false, message });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("saveProductPricesAction", () => {
+  const items = [
+    { id: "a", priceCents: 410, expectedPriceCents: 390 },
+    { id: "b", priceCents: 3675, expectedPriceCents: 3500 },
+  ];
+
+  it.each([[null], ["USER" as const], ["EDITOR" as const]])("sessão %s não chama a API", async (r) => {
+    role.mockResolvedValue(r);
+    expect(await saveProductPricesAction("g1", items)).toMatchObject({ ok: false });
+    expect(put).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["lista vazia", []],
+    ["acima de 300", Array.from({ length: 301 }, (_, i) => ({ id: `p${i}`, priceCents: 1, expectedPriceCents: 1 }))],
+    ["preço zero", [{ id: "a", priceCents: 0, expectedPriceCents: 1 }]],
+    ["preço com fração", [{ id: "a", priceCents: 4.1, expectedPriceCents: 1 }]],
+    ["id com barra", [{ id: "../x", priceCents: 1, expectedPriceCents: 1 }]],
+  ])("lista inválida (%s) → recusa sem API", async (_l, list) => {
+    role.mockResolvedValue("ADMIN");
+    expect(await saveProductPricesAction("g1", list as typeof items)).toEqual({
+      ok: false,
+      message: "Lista de preços inválida.",
+    });
+    expect(put).not.toHaveBeenCalled();
+  });
+
+  it("manda só os campos do DTO e revalida as telas", async () => {
+    role.mockResolvedValue("ADMIN");
+    put.mockResolvedValue(apiOk({ saved: 2 }));
+    const extra = items.map((item) => ({ ...item, injected: true }));
+    expect(await saveProductPricesAction("g1", extra)).toEqual({ ok: true, saved: 2 });
+    expect(put).toHaveBeenCalledWith("/admin/products/prices", { gameId: "g1", items });
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/jogos", "layout");
+  });
+
+  it("409 repassa a mensagem do backend (diz qual preço mudou)", async () => {
+    role.mockResolvedValue("ADMIN");
+    put.mockResolvedValue(apiFail(409, "Nada foi salvo: um preço mudou — 1K Chaos Orb (Hardcore)."));
+    expect(await saveProductPricesAction("g1", items)).toEqual({
+      ok: false,
+      message: "Nada foi salvo: um preço mudou — 1K Chaos Orb (Hardcore).",
+    });
+  });
+
+  it("erro 500 vira mensagem genérica", async () => {
+    role.mockResolvedValue("ADMIN");
+    put.mockResolvedValue(apiFail(500, "stack interno"));
+    const result = await saveProductPricesAction("g1", items);
+    expect(result).toMatchObject({ ok: false });
+    expect(JSON.stringify(result)).not.toContain("stack");
   });
 });

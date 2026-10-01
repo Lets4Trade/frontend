@@ -40,14 +40,19 @@ export type GameBanner = {
 };
 
 /**
- * Como a aba desenha a página (contrato `.claude/context/game-tabs.md`):
- *   CATALOG  servidores → categorias → grade (o layout de sempre);
- *   SERVICE  textos à esquerda + card configurador à direita (Figma 1708:3266);
- *   LINK     não filtra nada: leva para `href` ("/venda", "/fidelidade").
+ * Como a aba desenha a página (contratos `.claude/context/game-tabs.md` e
+ * `game-tabs-v2.md`):
+ *   CATALOG   servidores → categorias → grade (o layout de sempre);
+ *   SERVICE   textos à esquerda + card configurador à direita (Figma 1708:3266);
+ *   QUANTITY  gold: quantidades prontas + quantidade livre + card "Preço" (1629:631);
+ *   PACKAGES  categorias + grade de pacotes; CONTINUAR abre o configurador (1690:2010);
+ *   SELL      "Venda pra nós" DENTRO da página do jogo (1798:772) — sem produto;
+ *   LINK      não filtra nada: leva para `href` ("/fidelidade").
+ * SERVICE, QUANTITY e PACKAGES são COTADOS (`QUOTED_LAYOUTS` em `quote.ts`).
  */
-export type GameTabLayout = "CATALOG" | "SERVICE" | "LINK";
+export type GameTabLayout = "CATALOG" | "SERVICE" | "QUANTITY" | "PACKAGES" | "SELL" | "LINK";
 
-/** Os textos da aba SERVICE. Texto PURO — nunca renderizado como HTML. */
+/** Os textos da aba (SERVICE/QUANTITY/PACKAGES). Texto PURO — nunca HTML. */
 export type ServiceContent = { sections: { title: string; items: string[] }[] };
 
 /** Aba do jogo: MOEDAS, ITENS, GOLD, BOOSTING… */
@@ -58,7 +63,7 @@ export type GameTab = {
   icon: ImageRef;
   href: string;
   layout: GameTabLayout;
-  /** Só SERVICE. */
+  /** SERVICE, QUANTITY e PACKAGES. */
   content?: ServiceContent;
 };
 
@@ -115,6 +120,12 @@ export type GameProduct = {
   pricing?: Pricing;
   /** A regra veio e NÃO passou na validação: o serviço fica indisponível. */
   pricingInvalid?: boolean;
+  /**
+   * Tópicos do card de PACOTE ("Manual Boosting Guarantee"). Texto puro, já
+   * saneado (≤ 6 × 80). Vazio quando a API não manda — inclusive o backend
+   * anterior a 2026-09-30, que nem conhece o campo.
+   */
+  highlights: string[];
 };
 
 export type GameReference = {

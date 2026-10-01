@@ -52,8 +52,6 @@ export type BlockDefinition<T extends BlockType = BlockType> = {
   type: T;
   label: string;
   description: string;
-  /** Emoji-ícone da biblioteca — sem dependência de arte para cada tipo. */
-  icon: string;
   fields: FieldSpec[];
   defaults: () => BlockPropsMap[T];
 };
@@ -74,7 +72,6 @@ export const BLOCKS: { [K in BlockType]: BlockDefinition<K> } = {
     type: "secao",
     label: "Seção existente",
     description: "Uma das seções atuais da home, com o desenho original.",
-    icon: "🧩",
     fields: [],
     defaults: () => ({ key: "hero" }),
   },
@@ -82,7 +79,6 @@ export const BLOCKS: { [K in BlockType]: BlockDefinition<K> } = {
     type: "hero",
     label: "Destaque",
     description: "Título grande, texto, imagem e botão.",
-    icon: "✨",
     fields: [
       { kind: "text", name: "eyebrow", label: "Chamada acima do título", max: 60, placeholder: "NOVIDADE" },
       { kind: "text", name: "title", label: "Título", max: 120, required: true },
@@ -109,7 +105,6 @@ export const BLOCKS: { [K in BlockType]: BlockDefinition<K> } = {
     type: "textImage",
     label: "Texto e imagem",
     description: "Um bloco de texto com imagem ao lado.",
-    icon: "📰",
     fields: [
       { kind: "text", name: "title", label: "Título", max: 120, required: true },
       {
@@ -143,7 +138,6 @@ export const BLOCKS: { [K in BlockType]: BlockDefinition<K> } = {
     type: "gameGrid",
     label: "Grade de jogos",
     description: "Cards dos jogos cadastrados, com link para cada página.",
-    icon: "🎮",
     fields: [
       { kind: "text", name: "title", label: "Título", max: 120 },
       {
@@ -170,7 +164,6 @@ export const BLOCKS: { [K in BlockType]: BlockDefinition<K> } = {
     type: "productGrid",
     label: "Produtos",
     description: "Produtos de um jogo, filtrados por aba ou categoria.",
-    icon: "🛒",
     fields: [
       { kind: "text", name: "title", label: "Título", max: 120 },
       { kind: "game", name: "gameId", label: "Jogo" },
@@ -195,7 +188,6 @@ export const BLOCKS: { [K in BlockType]: BlockDefinition<K> } = {
     type: "faq",
     label: "Perguntas",
     description: "Perguntas frequentes que abrem e fecham.",
-    icon: "❓",
     fields: [
       { kind: "text", name: "title", label: "Título", max: 120 },
       {
@@ -228,7 +220,6 @@ export const BLOCKS: { [K in BlockType]: BlockDefinition<K> } = {
     type: "banner",
     label: "Banner",
     description: "Uma imagem larga, clicável — campanha, promoção.",
-    icon: "🖼️",
     fields: [
       { kind: "image", name: "image", label: "Imagem (computador)", hint: "Larga, ex.: 1820×500." },
       { kind: "image", name: "mobileImage", label: "Imagem no celular (opcional)", hint: "Mais alta, ex.: 800×800. Sem ela, usa a do computador." },
@@ -243,7 +234,6 @@ export const BLOCKS: { [K in BlockType]: BlockDefinition<K> } = {
     type: "video",
     label: "Vídeo",
     description: "Um vídeo do YouTube com título e legenda.",
-    icon: "🎬",
     fields: [
       { kind: "text", name: "title", label: "Título", max: 120 },
       { kind: "video", name: "videoId", label: "Link do vídeo no YouTube" },
@@ -255,7 +245,6 @@ export const BLOCKS: { [K in BlockType]: BlockDefinition<K> } = {
     type: "stats",
     label: "Contadores",
     description: "Números em destaque: clientes, anos, pedidos.",
-    icon: "📊",
     fields: [
       {
         kind: "items",
@@ -283,7 +272,6 @@ export const BLOCKS: { [K in BlockType]: BlockDefinition<K> } = {
     type: "reviews",
     label: "Depoimentos",
     description: "O que os clientes dizem, com nota em estrelas.",
-    icon: "⭐",
     fields: [
       { kind: "text", name: "title", label: "Título", max: 120 },
       {
@@ -311,7 +299,6 @@ export const BLOCKS: { [K in BlockType]: BlockDefinition<K> } = {
     type: "richText",
     label: "Texto formatado",
     description: "Texto longo com títulos, negrito, listas e links.",
-    icon: "📝",
     fields: [
       { kind: "text", name: "title", label: "Título", max: 120 },
       {
@@ -333,7 +320,6 @@ export const BLOCKS: { [K in BlockType]: BlockDefinition<K> } = {
     type: "cta",
     label: "Chamada",
     description: "Faixa com título, texto e um botão em destaque.",
-    icon: "📣",
     fields: [
       { kind: "text", name: "title", label: "Título", max: 120, required: true },
       { kind: "textarea", name: "text", label: "Texto", max: 300, rows: 2 },

@@ -113,6 +113,27 @@ export function PricingEditor({
       )}
 
       {draft.mode === "QUANTITY" ? (
+        <label className="flex max-w-[700px] flex-col gap-[6px]">
+          <span className="font-poppins text-[12px] font-bold text-white/70">Quantidades prontas (opcional)</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            value={draft.presets}
+            maxLength={400}
+            placeholder="100, 500, 1.000, 5.000"
+            // Só dígitos e separadores; a conversão e a recusa são do `draftToPricing`.
+            onChange={(event) => patch({ presets: event.target.value.replace(/[^\d.,;\s]/g, "") })}
+            className={MINI_INPUT}
+          />
+          <span className="font-poppins text-[12px] text-brand-fg-subtle">
+            Viram os botões de quantidade da aba (até {MAX_PRESETS}). Cada uma tem que respeitar mínimo, máximo e
+            passo. Separe por vírgula; ponto é milhar (1.000 = mil).
+          </span>
+        </label>
+      ) : null}
+
+      {draft.mode === "QUANTITY" ? (
         <Table
           title="Faixas de preço (opcional)"
           hint="A partir de N unidades, o unitário vira outro. Sem faixas, o unitário é o preço do produto."
@@ -398,6 +419,9 @@ function PricePreview({ draft, basePriceCents }: { draft: PricingDraft; basePric
     </section>
   );
 }
+
+/** Espelha o `.max(24)` de `presets` no `pricingSchema` (só para o texto de ajuda). */
+const MAX_PRESETS = 24;
 
 // ── Peças compactas ────────────────────────────────────────────────────────
 // As pílulas de 50px do formulário não cabem numa tabela de faixas; estes

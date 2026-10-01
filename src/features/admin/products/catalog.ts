@@ -22,8 +22,10 @@ export type AdminProduct = {
   /** Aba do jogo (contrato `game-tabs.md`). */
   tabId?: string | null;
   tabLabel?: string | null;
-  /** Regra de preço de SERVIÇO; `null` em aba CATALOG. */
+  /** Regra de preço de aba cotada (`QUOTED_LAYOUTS`); `null` em aba CATALOG. */
   pricing?: Pricing | null;
+  /** Tópicos do card de PACOTE (v2). Ausente (backend antigo) = `[]`. */
+  highlights?: string[];
   /** Caminho servido pelo BACKEND (`/uploads/products/…`), não pelo Next. */
   imageUrl: string | null;
   serverId: string | null;

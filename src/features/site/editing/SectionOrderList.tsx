@@ -160,8 +160,13 @@ function SortableRow({
       <button type="button" onClick={() => onMove(1)} aria-label={`Descer ${label}`} className="px-[4px] text-white/50 hover:text-white">
         ↓
       </button>
-      <button type="button" onClick={onHide} aria-label={`Esconder ${label}`} className="px-[4px] text-white/50 hover:text-white">
-        👁
+      <button
+        type="button"
+        onClick={onHide}
+        aria-label={`Esconder ${label}`}
+        className="px-[4px] font-poppins text-[11px] font-bold text-white/50 hover:text-white"
+      >
+        ocultar
       </button>
     </li>
   );

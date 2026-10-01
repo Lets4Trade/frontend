@@ -3,18 +3,18 @@
 import * as Popover from "@radix-ui/react-popover";
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useTransition } from "react";
-import { SelectField } from "@/components/ui/SelectField";
+import { useRouter } from "next/navigation";
+import { useId, useState, useTransition } from "react";
 import { TextField } from "@/components/ui/TextField";
 import { toastError, toastOk } from "@/components/ui/Toasts";
-import { RowButton } from "@/features/admin/builder/BuilderPanels";
 import { ACTION_FAILED_MESSAGE, ACTION_FAILED_UPLOAD_MESSAGE, runAction } from "@/lib/safeAction";
 import { slugify, slugifyDraft } from "@/lib/slugify";
+import { centralHref } from "../central";
+import { tabWarnings } from "../centralView";
 import { ACCEPTED_IMAGE_TYPES, MAX_IMAGE_BYTES } from "../options";
 import {
   createTabAction,
   deleteTabAction,
-  reorderTabsAction,
   updateTabAction,
   uploadTabIconAction,
   type TabsResult,
@@ -25,66 +25,48 @@ import {
   toSectionDrafts,
   type SectionDraft,
 } from "./ServiceSectionsEditor";
-import { TAB_LAYOUTS, layoutLabel, tabIconSrc, type GameTab, type TabLayout } from "./types";
+import {
+  TAB_LAYOUTS,
+  hasTabContent,
+  isProductTab,
+  layoutLabel,
+  defaultTabIcon,
+  tabIconSrc,
+  type GameTab,
+  type TabLayout,
+} from "./types";
+import { cn } from "@/lib/cn";
 
 /**
- * Editor das ABAS de um jogo (contrato `game-tabs.md`, 2026-09-28).
+ * Peças do editor das ABAS de um jogo (contrato `game-tabs.md`, 2026-09-28),
+ * montadas na Central do jogo (`/admin/jogos/[id]?secao=abas`, Etapa 2 de
+ * admin-games-ux.md) — a lista à esquerda é `TabsMasterList`; aqui ficam o
+ * detalhe da aba escolhida (`TabDetailPanel`), a nova aba e a lixeira.
  *
  * ── Grava a cada gesto, não num SALVAR geral ───────────────────────────────
  * Cada aba é um recurso próprio no backend (POST/PATCH/DELETE por aba, ícone
  * por upload, ordem num PUT). Criar, ativar, trocar ícone e apagar valem na
- * hora — é o mesmo modelo da sessão de abas do "Edição de sessões". A única
- * coisa que junta rascunho é a ORDEM: ↑ ↓ mexem na lista local e "Salvar ordem"
- * manda tudo num PUT, para não gravar cinco ordens intermediárias.
- *
- * Por isso a tela é uma ROTA própria (`/admin/jogos/[id]/abas`) e não uma
- * seção do formulário de cadastro: lá tudo é rascunho até "SALVAR ALTERAÇÕES",
- * e dois modelos de gravação no mesmo formulário fariam a pessoa achar que o
- * botão de baixo salva as abas também.
+ * hora. Depois de cada gravação a página é revalidada (`router.refresh()`): a
+ * lista da esquerda, as contagens e os produtos vêm de novo do servidor.
  */
-export function GameTabsEditor({
+export function TabDetailPanel({
   gameId,
   gameSlug,
-  initialTabs,
+  tab,
 }: {
   gameId: string;
   gameSlug: string;
-  initialTabs: GameTab[];
+  tab: GameTab;
 }) {
-  const [tabs, setTabs] = useState(initialTabs);
-  const [savedOrder, setSavedOrder] = useState(() => initialTabs.map((tab) => tab.id));
-  const [editing, setEditing] = useState<string | null>(null);
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
+  // Configuração é coisa de uma vez; produto e preço são do dia a dia. Fechada
+  // por padrão, a aba mostra um resumo de uma linha e os produtos sobem.
+  const [editing, setEditing] = useState(false);
+  const warnings = tabWarnings(tab);
+  const sectionCount = tab.content?.sections.length ?? 0;
 
-  const orderDirty =
-    tabs.length !== savedOrder.length || tabs.some((tab, index) => tab.id !== savedOrder[index]);
-
-  function replaceTab(next: GameTab) {
-    setTabs((current) => current.map((tab) => (tab.id === next.id ? { ...tab, ...next } : tab)));
-  }
-
-  function move(index: number, direction: -1 | 1) {
-    const target = index + direction;
-    if (target < 0 || target >= tabs.length) return;
-    const next = [...tabs];
-    [next[index], next[target]] = [next[target], next[index]];
-    setTabs(next);
-  }
-
-  function saveOrder() {
-    const ids = tabs.map((tab) => tab.id);
-    startTransition(async () => {
-      const result = await runAction(() => reorderTabsAction(gameId, ids), FAILED);
-      if (!result.ok) {
-        toastError(result.message ?? MESSAGES[result.reason]);
-        return;
-      }
-      setSavedOrder(ids);
-      toastOk("Ordem das abas salva.");
-    });
-  }
-
-  function toggleActive(tab: GameTab) {
+  function toggleActive() {
     startTransition(async () => {
       const result = await runAction(
         () => updateTabAction(gameId, tab.id, { isActive: !tab.isActive }),
@@ -94,159 +76,142 @@ export function GameTabsEditor({
         toastError(result.message ?? MESSAGES[result.reason]);
         return;
       }
-      replaceTab(result.data);
+      toastOk(result.data.isActive ? "Aba ativada." : "Aba oculta da loja.");
+      router.refresh();
     });
   }
 
   return (
-    <div className="flex flex-col gap-[30px]">
-      <div className="flex flex-wrap items-center justify-between gap-[15px]">
-        <p className="max-w-[760px] font-poppins text-[14px] text-brand-fg-subtle">
-          As abas aparecem na página do jogo nesta ordem. <b className="text-white">Catálogo</b> mostra a
-          grade de produtos, <b className="text-white">Serviço</b> mostra os textos e o configurador de preço,
-          e <b className="text-white">Link</b> leva para outra página. Criar, ativar, trocar ícone e excluir
-          valem na hora; a ordem só depois de “Salvar ordem”.
-        </p>
+    <section
+      aria-labelledby="aba-detalhe"
+      className="rounded-[20px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[20px] py-[20px]"
+    >
+      <div className="flex flex-wrap items-center gap-x-[20px] gap-y-[12px]">
+        <TabIconUpload gameId={gameId} tab={tab} onUploaded={() => router.refresh()} />
+
+        <div className="min-w-[180px] flex-1">
+          <h3
+            id="aba-detalhe"
+            className="flex flex-wrap items-center gap-[10px] font-poppins text-[18px] font-bold text-white"
+          >
+            {tab.label}
+            <LayoutBadge layout={tab.layout} />
+            {tab.isActive ? null : <HiddenBadge />}
+          </h3>
+          <p className="mt-[4px] font-poppins text-[12px] text-brand-fg-subtle">
+            ?aba={tab.slug}
+            {tab.layout === "LINK" ? ` → ${tab.linkHref ?? "—"}` : null}
+          </p>
+        </div>
+
+        <label className="flex cursor-pointer items-center gap-[8px] font-poppins text-[13px] font-bold text-white/80">
+          <input
+            type="checkbox"
+            checked={tab.isActive}
+            disabled={pending}
+            onChange={toggleActive}
+            className="size-[18px] accent-[var(--brand-orange)]"
+          />
+          Ativa na loja
+        </label>
+
         <Link
-          href={`/games/${encodeURIComponent(gameSlug)}`}
+          href={`/games/${encodeURIComponent(gameSlug)}?aba=${encodeURIComponent(tab.slug)}`}
           target="_blank"
-          className="font-poppins text-[14px] font-bold text-brand-orange transition-opacity hover:opacity-80"
+          rel="noopener"
+          className="font-poppins text-[13px] font-bold text-brand-orange transition-opacity hover:opacity-80"
         >
           Ver na loja ↗
         </Link>
+
+        <DeleteTabButton
+          gameId={gameId}
+          tab={tab}
+          onDeleted={() => {
+            router.push(centralHref(gameId, { section: "abas" }), { scroll: false });
+            router.refresh();
+          }}
+        />
       </div>
 
-      {tabs.length === 0 ? (
-        <p className="font-poppins text-[14px] text-brand-fg-subtle">
-          Este jogo ainda não tem abas. Sem nenhuma, a página dele abre sem catálogo.
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-[15px]">
-          {tabs.map((tab, index) => (
+      {warnings.length > 0 ? (
+        <ul className="mt-[15px] flex flex-col gap-[6px]">
+          {warnings.map((warning) => (
             <li
-              key={tab.id}
-              className="rounded-[20px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[20px] py-[15px]"
+              key={warning.code}
+              className="rounded-[12px] border border-brand-orange/40 bg-brand-orange/10 px-[14px] py-[8px] font-poppins text-[13px] text-white"
             >
-              <div className="flex flex-wrap items-center gap-x-[20px] gap-y-[12px]">
-                <TabIconUpload
-                  gameId={gameId}
-                  tab={tab}
-                  onUploaded={(iconUrl) => replaceTab({ ...tab, iconUrl })}
-                />
-
-                <div className="min-w-[180px] flex-1">
-                  <p className="flex flex-wrap items-center gap-[10px] font-poppins text-[16px] font-bold text-white">
-                    {tab.label}
-                    <LayoutBadge layout={tab.layout} />
-                    {tab.isActive ? null : (
-                      <span className="rounded-full border border-white/15 px-[10px] py-[2px] font-poppins text-[11px] font-bold text-white/50">
-                        OCULTA
-                      </span>
-                    )}
-                  </p>
-                  <p className="mt-[4px] font-poppins text-[12px] text-brand-fg-subtle">
-                    ?aba={tab.slug}
-                    {tab.layout === "LINK" ? ` → ${tab.linkHref ?? "—"}` : null}
-                    {tab.layout === "LINK"
-                      ? null
-                      : ` · ${tab.productCount} produto${tab.productCount === 1 ? "" : "s"}`}
-                  </p>
-                </div>
-
-                <label className="flex cursor-pointer items-center gap-[8px] font-poppins text-[13px] font-bold text-white/80">
-                  <input
-                    type="checkbox"
-                    checked={tab.isActive}
-                    disabled={pending}
-                    onChange={() => toggleActive(tab)}
-                    className="size-[18px] accent-[var(--brand-orange)]"
-                  />
-                  Ativa
-                </label>
-
-                <div className="flex items-center gap-[8px]">
-                  <RowButton label={`Mover ${tab.label} para cima`} onClick={() => move(index, -1)} disabled={index === 0}>
-                    ↑
-                  </RowButton>
-                  <RowButton
-                    label={`Mover ${tab.label} para baixo`}
-                    onClick={() => move(index, 1)}
-                    disabled={index === tabs.length - 1}
-                  >
-                    ↓
-                  </RowButton>
-                  <button
-                    type="button"
-                    onClick={() => setEditing((current) => (current === tab.id ? null : tab.id))}
-                    aria-expanded={editing === tab.id}
-                    className="h-[50px] rounded-full border border-white/10 px-[20px] font-poppins text-[13px] font-bold text-white transition-opacity hover:opacity-80"
-                  >
-                    {editing === tab.id ? "Fechar" : "Editar"}
-                  </button>
-                  <DeleteTabButton
-                    gameId={gameId}
-                    tab={tab}
-                    onDeleted={() => {
-                      setTabs((current) => current.filter((item) => item.id !== tab.id));
-                      setSavedOrder((current) => current.filter((id) => id !== tab.id));
-                    }}
-                  />
-                </div>
-              </div>
-
-              {editing === tab.id ? (
-                <TabEditPanel
-                  gameId={gameId}
-                  tab={tab}
-                  onSaved={(next) => {
-                    replaceTab(next);
-                    setEditing(null);
-                  }}
-                />
-              ) : null}
+              {warning.detail}
             </li>
           ))}
         </ul>
-      )}
-
-      {orderDirty ? (
-        <div className="flex flex-wrap items-center gap-[15px]">
-          <button
-            type="button"
-            onClick={saveOrder}
-            disabled={pending}
-            className="h-[50px] w-[315px] rounded-full bg-[image:var(--brand-orange-gradient)] font-poppins text-[14px] font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
-          >
-            {pending ? "SALVANDO…" : "SALVAR ORDEM"}
-          </button>
-          <p className="font-poppins text-[13px] text-brand-orange">A nova ordem ainda não foi salva.</p>
-        </div>
       ) : null}
 
-      <NewTabForm gameId={gameId} onCreated={(tab) => {
-        setTabs((current) => [...current, tab]);
-        setSavedOrder((current) => [...current, tab.id]);
-      }} />
-    </div>
+      <div className="mt-[15px] flex flex-wrap items-center gap-x-[20px] gap-y-[8px] border-t border-white/10 pt-[15px]">
+        <p className="min-w-0 flex-1 font-poppins text-[13px] text-brand-fg-subtle">
+          <span className="font-bold text-white">{layoutLabel(tab.layout)}</span>
+          {" — "}
+          {TAB_LAYOUTS.find((option) => option.value === tab.layout)?.hint}
+          {hasTabContent(tab.layout)
+            ? ` · ${sectionCount} seç${sectionCount === 1 ? "ão" : "ões"} de texto`
+            : null}
+        </p>
+        <button
+          type="button"
+          onClick={() => setEditing((open) => !open)}
+          aria-expanded={editing}
+          className="h-[36px] rounded-full border border-white/15 px-[16px] font-poppins text-[12px] font-bold text-white transition-colors hover:bg-white/5"
+        >
+          {editing ? "Fechar configurações" : hasTabContent(tab.layout) ? "Editar nome, layout e textos" : "Editar nome e layout"}
+        </button>
+      </div>
+
+      {editing ? (
+        <TabEditPanel
+          // Remonta com o que o servidor devolveu depois de salvar (ou de outra
+          // aba escolhida): o rascunho nunca fica com o valor velho.
+          key={tabSignature(tab)}
+          gameId={gameId}
+          tab={tab}
+          onSaved={() => {
+            setEditing(false);
+            router.refresh();
+          }}
+        />
+      ) : null}
+    </section>
   );
 }
 
-const MESSAGES = {
+/** Tudo o que o formulário da aba mostra — muda = remonta com o valor novo. */
+export function tabSignature(tab: GameTab): string {
+  return JSON.stringify([tab.id, tab.label, tab.slug, tab.layout, tab.linkHref, tab.content]);
+}
+
+export function HiddenBadge() {
+  return (
+    <span className="rounded-full border border-white/15 px-[10px] py-[2px] font-poppins text-[11px] font-bold text-white/50">
+      OCULTA
+    </span>
+  );
+}
+
+export const MESSAGES = {
   unauthenticated: "Sua sessão expirou. Entre de novo para continuar.",
   forbidden: "Sua conta não tem permissão para editar as abas.",
   invalid: "Confira os campos e tente de novo.",
   error: "Não conseguimos salvar agora. Tente novamente em instantes.",
 } as const;
 
-const FAILED = { ok: false, reason: "error", message: ACTION_FAILED_MESSAGE } as const satisfies TabsResult<never>;
+export const FAILED = { ok: false, reason: "error", message: ACTION_FAILED_MESSAGE } as const satisfies TabsResult<never>;
 
-function LayoutBadge({ layout }: { layout: TabLayout }) {
-  const tone =
-    layout === "SERVICE"
-      ? "border-brand-orange/50 text-brand-orange"
-      : layout === "LINK"
-        ? "border-white/40 text-white"
-        : "border-white/20 text-white/70";
+export function LayoutBadge({ layout }: { layout: TabLayout }) {
+  // Laranja = aba de preço cotado; branco = aba sem produto; cinza = catálogo.
+  const tone = hasTabContent(layout)
+    ? "border-brand-orange/50 text-brand-orange"
+    : layout === "LINK" || layout === "SELL"
+      ? "border-white/40 text-white"
+      : "border-white/20 text-white/70";
   return (
     <span className={`rounded-full border px-[10px] py-[2px] font-poppins text-[11px] font-bold ${tone}`}>
       {layoutLabel(layout).toUpperCase()}
@@ -255,11 +220,61 @@ function LayoutBadge({ layout }: { layout: TabLayout }) {
 }
 
 /**
+ * Escolha do layout: os 6 como cartões (nome + uma linha do que a aba mostra
+ * na loja), em vez de um select com texto comprido que não cabe na pílula.
+ * São `<input type="radio">` de verdade dentro de `<label>`: setas, Tab e
+ * leitor de tela funcionam sem código à mão.
+ */
+function LayoutPicker({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: TabLayout;
+  onChange: (layout: TabLayout) => void;
+  disabled?: boolean;
+}) {
+  const name = useId();
+  return (
+    <fieldset disabled={disabled} className="min-w-0">
+      <legend className="mb-[12px] pl-[25px] font-poppins text-[15px] font-bold text-white">Layout</legend>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,250px),1fr))] gap-[10px]">
+        {TAB_LAYOUTS.map((option) => {
+          const active = option.value === value;
+          return (
+            <label
+              key={option.value}
+              className={cn(
+                "flex cursor-pointer flex-col gap-[4px] rounded-[16px] border px-[16px] py-[12px] transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-brand-orange",
+                active ? "border-brand-orange bg-brand-orange/15" : "border-white/10 hover:border-white/30",
+              )}
+            >
+              <input
+                type="radio"
+                name={name}
+                value={option.value}
+                checked={active}
+                onChange={() => onChange(option.value)}
+                className="sr-only"
+              />
+              <span className={cn("font-poppins text-[14px] font-bold", active ? "text-white" : "text-white/80")}>
+                {option.label}
+              </span>
+              <span className="font-poppins text-[12px] leading-[17px] text-brand-fg-subtle">{option.hint}</span>
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+/**
  * O ícone É o botão de trocar: clicar abre o seletor e sobe na hora. O
  * `<input type="file">` fica no DOM dentro do `<label>` (foco, Tab e leitor de
  * tela), mesma decisão do `FileField`.
  */
-function TabIconUpload({
+export function TabIconUpload({
   gameId,
   tab,
   onUploaded,
@@ -269,7 +284,7 @@ function TabIconUpload({
   onUploaded: (iconUrl: string) => void;
 }) {
   const [pending, startTransition] = useTransition();
-  const src = tabIconSrc(tab.iconUrl);
+  const src = tabIconSrc(tab.iconUrl ?? defaultTabIcon(tab.slug, tab.layout));
 
   function send(file: File) {
     if (file.size > MAX_IMAGE_BYTES) {
@@ -325,8 +340,16 @@ function TabIconUpload({
   );
 }
 
-/** Nome, endereço, link (LINK) e textos (SERVICE) de uma aba existente. */
-function TabEditPanel({
+/**
+ * Nome, endereço, layout, link (LINK) e textos (SERVICE/QUANTITY/PACKAGES) de
+ * uma aba existente.
+ *
+ * Trocar o layout manda junto a limpeza do que o layout novo não tem (`null`
+ * em `linkHref`/`content`), senão o backend recusaria a combinação. Virar
+ * LINK/SELL com produto dentro é recusado pelo BACKEND — a mensagem dele
+ * aparece embaixo do botão, como texto.
+ */
+export function TabEditPanel({
   gameId,
   tab,
   onSaved,
@@ -337,8 +360,12 @@ function TabEditPanel({
 }) {
   const [label, setLabel] = useState(tab.label);
   const [slug, setSlug] = useState(tab.slug);
+  const [layout, setLayout] = useState<TabLayout>(tab.layout);
   const [linkHref, setLinkHref] = useState(tab.linkHref ?? "");
   const [sections, setSections] = useState<SectionDraft[]>(() => toSectionDrafts(tab.content?.sections));
+  // Trocar de layout é raro e muda o que a aba É na loja: os 6 cartões só
+  // aparecem a pedido, para não serem clicados de passagem.
+  const [pickingLayout, setPickingLayout] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -348,8 +375,17 @@ function TabEditPanel({
     const input = {
       label,
       ...(finalSlug && finalSlug !== tab.slug ? { slug: finalSlug } : {}),
-      ...(tab.layout === "LINK" ? { linkHref: linkHref.trim() } : {}),
-      ...(tab.layout === "SERVICE" ? { content: { sections: fromSectionDrafts(sections) } } : {}),
+      ...(layout !== tab.layout ? { layout } : {}),
+      ...(layout === "LINK"
+        ? { linkHref: linkHref.trim() }
+        : tab.layout === "LINK"
+          ? { linkHref: null }
+          : {}),
+      ...(hasTabContent(layout)
+        ? { content: { sections: fromSectionDrafts(sections) } }
+        : tab.content
+          ? { content: null }
+          : {}),
     };
     startTransition(async () => {
       const result = await runAction(() => updateTabAction(gameId, tab.id, input), FAILED);
@@ -379,7 +415,7 @@ function TabEditPanel({
             </p>
           ) : null}
         </div>
-        {tab.layout === "LINK" ? (
+        {layout === "LINK" ? (
           <TextField
             label="Link"
             value={linkHref}
@@ -390,7 +426,31 @@ function TabEditPanel({
         ) : null}
       </div>
 
-      {tab.layout === "SERVICE" ? (
+      <div className="max-w-[1100px]">
+        {pickingLayout || layout !== tab.layout ? (
+          <LayoutPicker value={layout} onChange={setLayout} disabled={pending} />
+        ) : (
+          <div className="flex flex-wrap items-center gap-[12px] pl-[25px]">
+            <span className="font-poppins text-[15px] font-bold text-white">Layout:</span>
+            <LayoutBadge layout={tab.layout} />
+            <button
+              type="button"
+              onClick={() => setPickingLayout(true)}
+              className="font-poppins text-[13px] font-bold text-brand-orange transition-opacity hover:opacity-80"
+            >
+              Trocar layout
+            </button>
+          </div>
+        )}
+        {layout !== tab.layout && !isProductTab({ layout }) && tab.productCount > 0 ? (
+          <p className="mt-[10px] pl-[25px] font-helvetica text-[13px] text-brand-orange">
+            Esta aba tem {tab.productCount} produto{tab.productCount === 1 ? "" : "s"}. “{layoutLabel(layout)}” não
+            mostra produtos: mova-os para outra aba antes, ou o servidor vai recusar a troca.
+          </p>
+        ) : null}
+      </div>
+
+      {hasTabContent(layout) ? (
         <div className="max-w-[900px]">
           <p className="mb-[15px] font-poppins text-[15px] font-bold text-white">Textos da aba (coluna esquerda)</p>
           <ServiceSectionsEditor sections={sections} onChange={setSections} />
@@ -416,11 +476,12 @@ function TabEditPanel({
   );
 }
 
-function NewTabForm({ gameId, onCreated }: { gameId: string; onCreated: (tab: GameTab) => void }) {
+export function NewTabForm({ gameId, onCreated }: { gameId: string; onCreated: (tab: GameTab) => void }) {
   const [label, setLabel] = useState("");
   const [layout, setLayout] = useState<TabLayout>("CATALOG");
   const [linkHref, setLinkHref] = useState("");
-  const [formKey, setFormKey] = useState(0);
+  // Textos já no cadastro (Etapa 1): antes era criar e depois "Editar".
+  const [sections, setSections] = useState<SectionDraft[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -431,10 +492,15 @@ function NewTabForm({ gameId, onCreated }: { gameId: string; onCreated: (tab: Ga
       return;
     }
     // O endereço sai do nome, aqui e no backend (que resolve colisão com 409).
+    // Só o que o layout ESCOLHIDO tem: textos digitados num layout e
+    // abandonados ao trocar para outro ficam no rascunho, mas não viajam (o
+    // schema recusaria `content` num Catálogo). Sem seção nenhuma, nem vai.
+    const content = hasTabContent(layout) ? fromSectionDrafts(sections) : [];
     const input = {
       label,
       layout,
       ...(layout === "LINK" ? { linkHref: linkHref.trim() } : {}),
+      ...(content.length > 0 ? { content: { sections: content } } : {}),
     };
     startTransition(async () => {
       const result = await runAction(() => createTabAction(gameId, input), FAILED);
@@ -445,13 +511,9 @@ function NewTabForm({ gameId, onCreated }: { gameId: string; onCreated: (tab: Ga
       onCreated(result.data);
       setLabel("");
       setLinkHref("");
+      setSections([]);
       setLayout("CATALOG");
-      setFormKey((key) => key + 1);
-      toastOk(
-        result.data.layout === "SERVICE"
-          ? "Aba criada. Abra “Editar” para escrever os textos dela."
-          : "Aba criada.",
-      );
+      toastOk("Aba criada.");
     });
   }
 
@@ -460,9 +522,9 @@ function NewTabForm({ gameId, onCreated }: { gameId: string; onCreated: (tab: Ga
       aria-labelledby="nova-aba"
       className="rounded-[20px] border border-dashed border-white/20 px-[20px] py-[25px]"
     >
-      <h2 id="nova-aba" className="font-poppins text-[16px] font-bold text-white">
+      <h3 id="nova-aba" className="font-poppins text-[16px] font-bold text-white">
         Nova aba
-      </h2>
+      </h3>
       <div className="mt-[20px] grid grid-cols-[repeat(auto-fit,minmax(0,315px))] items-end gap-x-[50px] gap-y-[25px]">
         <TextField
           label="Nome"
@@ -470,13 +532,6 @@ function NewTabForm({ gameId, onCreated }: { gameId: string; onCreated: (tab: Ga
           maxLength={60}
           placeholder="Boosting"
           onChange={(e) => setLabel(e.target.value)}
-        />
-        <SelectField
-          key={formKey}
-          label="Layout"
-          options={TAB_LAYOUTS.map((option) => ({ value: option.value, label: `${option.label} — ${option.hint}` }))}
-          defaultValue="CATALOG"
-          onValueChange={(value) => setLayout(value as TabLayout)}
         />
         {layout === "LINK" ? (
           <TextField
@@ -496,8 +551,18 @@ function NewTabForm({ gameId, onCreated }: { gameId: string; onCreated: (tab: Ga
           {pending ? "CRIANDO…" : "+ CRIAR ABA"}
         </button>
       </div>
+      <div className="mt-[25px] max-w-[1100px]">
+        <LayoutPicker value={layout} onChange={setLayout} disabled={pending} />
+      </div>
+      {hasTabContent(layout) ? (
+        <div className="mt-[25px] max-w-[900px]">
+          <p className="mb-[15px] font-poppins text-[15px] font-bold text-white">Textos da aba (coluna esquerda)</p>
+          <ServiceSectionsEditor sections={sections} onChange={setSections} />
+        </div>
+      ) : null}
       <p className="mt-[12px] font-poppins text-[12px] text-brand-fg-subtle">
-        O ícone é enviado depois, clicando no quadrado da aba criada. O layout não muda depois de criado.
+        O ícone é enviado depois, clicando no quadrado da aba criada.
+        {hasTabContent(layout) ? " Os textos podem ficar para depois, no painel da aba." : null}
       </p>
       {error ? (
         <p role="alert" className="mt-[10px] font-helvetica text-[14px] text-red-9">
@@ -513,7 +578,7 @@ function NewTabForm({ gameId, onCreated }: { gameId: string; onCreated: (tab: Ga
  * Com produto ativo dentro o backend recusa com 409, e a mensagem dele aparece
  * aqui dentro — é ela que diz quantos produtos mover.
  */
-function DeleteTabButton({
+export function DeleteTabButton({
   gameId,
   tab,
   onDeleted,
@@ -563,7 +628,7 @@ function DeleteTabButton({
             Excluir a aba <span className="font-bold">{tab.label}</span>?
           </p>
           <p className="mt-[6px] font-helvetica text-[13px] leading-[18px] text-brand-fg-subtle">
-            {tab.layout === "LINK"
+            {!isProductTab(tab)
               ? "O botão some da página do jogo."
               : "As categorias desta aba vão junto. Com produto ativo dentro, a exclusão é recusada."}
           </p>
@@ -592,5 +657,19 @@ function DeleteTabButton({
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
+  );
+}
+
+/**
+ * "+ Nova aba" da Central: criada a aba, a Central já a abre à direita (com
+ * "+ Produto nesta aba" e categorias) — o passo seguinte natural.
+ */
+export function NewTabPanel({ gameId }: { gameId: string }) {
+  const router = useRouter();
+  return (
+    <NewTabForm
+      gameId={gameId}
+      onCreated={(tab) => router.push(centralHref(gameId, { section: "abas", tabId: tab.id }), { scroll: false })}
+    />
   );
 }

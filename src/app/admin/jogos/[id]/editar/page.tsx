@@ -1,30 +1,19 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { AdminFormCard } from "@/features/admin/AdminFormCard";
-import { getBuilderGame } from "@/features/admin/builder/list";
-import { GameEditForm } from "@/features/admin/games/GameEditForm";
+import { redirect } from "next/navigation";
+import { legacyCentralHref } from "@/features/admin/games/central";
 import { requireAdminPage } from "@/features/admin/guard";
 
-export const metadata: Metadata = {
-  title: "Editar jogo | Lets4Trade",
-  robots: { index: false, follow: false },
-};
-
 /**
- * Painel → Jogos → lápis (2026-09-28, fora do Figma). Edita o CADASTRO do
- * jogo; a página dele na loja é do Builder. Ver `GameEditForm`.
+ * `/admin/jogos/[id]/editar` virou uma seção da Central do jogo
+ * (admin-games-ux.md, Etapa 2). A rota fica só para links salvos e favoritos
+ * continuarem abrindo. A guarda vem antes: para o EDITOR, 404 aqui também —
+ * redirecionar confirmaria que a tela existe.
  */
-export default async function EditGamePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function LegacyGameRoute({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   await requireAdminPage();
   const { id } = await params;
-
-  // Jogo inexistente, desativado ou leitura que falhou: 404, como no produto.
-  const game = await getBuilderGame(id);
-  if (game === null) notFound();
-
-  return (
-    <AdminFormCard title="EDITAR JOGO" headingId="editar-jogo-heading">
-      <GameEditForm game={game} />
-    </AdminFormCard>
-  );
+  redirect(legacyCentralHref(id, "editar"));
 }

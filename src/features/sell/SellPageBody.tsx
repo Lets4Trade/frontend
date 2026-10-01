@@ -16,8 +16,13 @@ const SECTION_HEADING =
  * card de contato. Saiu de `app/venda/page.tsx` em 2026-09-25 para ser uma
  * "seção do desenho" no construtor de páginas — a mesma peça aparece na página
  * real e na prévia do editor, e blocos novos podem entrar antes ou depois dela.
+ *
+ * Desde 2026-09-30 também é o layout SELL de uma aba de jogo (Figma 1798:772):
+ * com `game`, o formulário nasce com o jogo da página escolhido e o título
+ * "VENDA PRA NÓS" + divisor saem — a página do jogo já tem o próprio título e
+ * as abas logo acima.
  */
-export async function SellPageBody() {
+export async function SellPageBody({ game }: { game?: { slug: string; name: string } } = {}) {
   // O título vem da tela "Edição de sessões"; vazio devolve o do arquivo.
   const [section, items, contacts] = await Promise.all([
     getSectionsFor("venda"),
@@ -62,20 +67,29 @@ export async function SellPageBody() {
 
   return (
     <>
-      <h1 className={SECTION_HEADING}>
-        {section("formulario").title || "VENDA PRA NÓS"}
-      </h1>
+      {game ? null : (
+        <>
+          <h1 className={SECTION_HEADING}>
+            {section("formulario").title || "VENDA PRA NÓS"}
+          </h1>
 
-      <hr className="mt-[25px] border-0 border-t border-brand-hairline" />
+          <hr className="mt-[25px] border-0 border-t border-brand-hairline" />
+        </>
+      )}
 
       {/* 63px até os títulos de seção — medido no design (divisor em 101,
-          títulos em 165). É o único vão da tela que foge dos 25px. */}
-      <div className="mt-[63px] grid items-stretch gap-[50px] lg:grid-cols-[780px_365px]">
+          títulos em 165). É o único vão da tela que foge dos 25px. Dentro do
+          jogo não há divisor: o vão é o da página. `minmax(0, …)` para as
+          colunas encolherem em vez de estourar a faixa. Dentro do jogo o par fica
+          CENTRALIZADO na faixa de 1715 (Figma 1798:772: formulário em x=363). */}
+      <div
+        className={`${game ? "lg:justify-center " : "mt-[63px] "}grid items-stretch gap-[50px] lg:grid-cols-[minmax(0,780px)_minmax(0,365px)]`}
+      >
         <section className="flex flex-col">
           <h2 className={SECTION_HEADING}>{tituloFormulario}</h2>
 
           <div className="mt-[25px] flex-1 rounded-[30px] border border-white/10 bg-brand-surface p-[25px] sm:p-[50px]">
-            <SellForm />
+            <SellForm game={game} />
           </div>
         </section>
 

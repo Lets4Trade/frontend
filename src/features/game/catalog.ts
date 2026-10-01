@@ -71,9 +71,10 @@ export function parseCatalogQuery(
   page: GamePage,
 ): CatalogQuery {
   const serverSlugs = new Set(page.servers.items.map((item) => item.slug));
-  // Só as abas CATALOG/SERVICE deste jogo filtram. As de link ("VENDA PRA
-  // NÓS", "FIDELIDADE") estão em `page.tabs` mas levam para outra página —
-  // aceitar `?aba=fidelidade` aqui pediria ao backend uma aba que não filtra.
+  // Toda aba que não é LINK é desta página (CATALOG, SERVICE, QUANTITY,
+  // PACKAGES e SELL — esta última sem produto). As de link ("FIDELIDADE")
+  // levam para outra página — aceitar `?aba=fidelidade` aqui pediria ao
+  // backend uma aba que não filtra.
   const tabIds = new Set(
     page.tabs.filter((tab) => tab.layout !== "LINK").map((tab) => tab.id),
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BUILDER_STEPS, type BuilderStepId } from "./steps";
+import { visibleSteps, type BuilderStepId } from "./steps";
 
 /**
  * "Estrutura da página" — a lateral do builder (Figma 3909:2804).
@@ -26,6 +26,7 @@ export function BuilderSidebar({
   active,
   onSelect,
   dirtySteps,
+  canManage,
 }: {
   gameId: string;
   gameSlug: string;
@@ -33,6 +34,8 @@ export function BuilderSidebar({
   onSelect: (id: BuilderStepId) => void;
   /** Etapas com alteração ainda não publicada — ganham um ponto laranja. */
   dirtySteps: ReadonlySet<BuilderStepId>;
+  /** ADMIN. O EDITOR não vê os atalhos para telas só-ADMIN (`adminOnly`). */
+  canManage: boolean;
 }) {
   return (
     <nav
@@ -47,7 +50,7 @@ export function BuilderSidebar({
       </p>
 
       <ul className="mt-[25px] flex flex-col gap-[15px]">
-        {BUILDER_STEPS.map((step) => {
+        {visibleSteps(canManage).map((step) => {
           const isActive = step.id === active;
           const isDirty = dirtySteps.has(step.id);
 

@@ -1,5 +1,5 @@
 import { backendAsset } from "@/lib/publicApi";
-import { pricingSchema } from "@/features/pricing/quote";
+import { effectivePricing, pricingSchema } from "@/features/pricing/quote";
 import { toCategoryTree } from "./categoryTree";
 export { scopeCategories } from "./catalog";
 import { templateIcon } from "./tabs";
@@ -34,13 +34,19 @@ export type ApiCategory = {
   tabSlug?: string | null;
 };
 
-const LAYOUTS = new Set<GameTabLayout>(["CATALOG", "SERVICE", "LINK"]);
+const LAYOUTS = new Set<GameTabLayout>(["CATALOG", "SERVICE", "QUANTITY", "PACKAGES", "SELL", "LINK"]);
+
+/** Layouts que levam os textos da esquerda (`content`) — contrato v2. */
+const CONTENT_LAYOUTS = new Set<GameTabLayout>(["SERVICE", "QUANTITY", "PACKAGES"]);
 const SLUG = /^[a-z0-9-]{1,60}$/;
 
 /** Ícone de reserva: o do modelo com esse slug; aba nova sem ícone usa o do layout. */
 const LAYOUT_ICON: Record<GameTabLayout, string> = {
   CATALOG: "/icons/game/tab-moedas.svg",
   SERVICE: "/icons/game/tab-boosting.svg",
+  QUANTITY: "/icons/game/tab-gold.svg",
+  PACKAGES: "/icons/game/tab-itens.svg",
+  SELL: "/icons/game/tab-venda.svg",
   LINK: "/icons/game/tab-venda.svg",
 };
 
@@ -68,7 +74,7 @@ export function safeLinkHref(value: string | null | undefined): string | null {
   return null;
 }
 
-/** `content` da aba SERVICE, saneado: só texto, nos limites do contrato. */
+/** `content` da aba (SERVICE/QUANTITY/PACKAGES), saneado: só texto, nos limites do contrato. */
 export function parseServiceContent(raw: unknown): ServiceContent | undefined {
   if (!raw || typeof raw !== "object") return undefined;
   const sections = (raw as { sections?: unknown }).sections;
@@ -124,7 +130,7 @@ export function tabsFromApi(gameSlug: string, raw: readonly ApiGameTab[]): GameT
       icon: { src: iconSrc(tab.iconUrl, tab.slug, layout), width: 50, height: 50 },
       href,
       layout,
-      content: layout === "SERVICE" ? parseServiceContent(tab.content) : undefined,
+      content: CONTENT_LAYOUTS.has(layout) ? parseServiceContent(tab.content) : undefined,
     });
   }
 
@@ -163,4 +169,36 @@ export function readPricing(raw: unknown): Pick<GameProduct, "pricing" | "pricin
   if (raw === null || raw === undefined) return {};
   const parsed = pricingSchema.safeParse(raw);
   return parsed.success ? { pricing: parsed.data } : { pricingInvalid: true };
+}
+
+/**
+ * Tópicos do card de pacote, saneados como o backend (≤ 6 × 80, trim, sem
+ * vazios). Ausente/formato estranho = `[]`: o backend anterior ao contrato v2
+ * não manda o campo, e o card simplesmente sai sem tópicos.
+ */
+export function readHighlights(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim().slice(0, 80))
+    .filter(Boolean)
+    .slice(0, 6);
+}
+
+/**
+ * Aplica a regra que VALE (`effectivePricing`) aos produtos de uma aba cotada.
+ *
+ * O backend já manda `pricing` efetivo (contrato v2), mas o front não depende
+ * disso: um backend mais antigo manda `null` para produto de aba QUANTITY, e
+ * sem este passo o gold viraria FIXED na tela e QUANTITY na cobrança. Com a
+ * MESMA função dos dois lados, a prévia e a conta do pedido não divergem.
+ *
+ * Regra inválida continua inválida (serviço indisponível) — nunca vira padrão.
+ */
+export function withEffectivePricing(products: readonly GameProduct[], layout: GameTabLayout): GameProduct[] {
+  return products.map((product) => {
+    if (product.pricingInvalid) return product;
+    const pricing = effectivePricing(layout, product.pricing);
+    return pricing ? { ...product, pricing } : product;
+  });
 }

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/Button";
 import { AdminSearchBox, FilterMenu } from "@/features/admin/AdminFilters";
 import type { AdminGame } from "@/features/admin/catalog";
+import { centralHref } from "@/features/admin/games/central";
 import { cn } from "@/lib/cn";
 import {
   PARAM,
@@ -77,6 +78,20 @@ export function ProductFilters({
         className={cn(buttonVariants({ variant: "outline" }), "w-[201px] px-0")}
       >
         Organizar ordem
+      </Link>
+
+      {/* Mesmo jogo/aba: o "Editar preços" também é por aba de um jogo. */}
+      <Link
+        href={`/admin/produtos/precos${
+          query.game
+            ? `?${PARAM.game}=${encodeURIComponent(query.game)}${
+                query.tab ? `&${PARAM.tab}=${encodeURIComponent(query.tab)}` : ""
+              }`
+            : ""
+        }`}
+        className={cn(buttonVariants({ variant: "outline" }), "w-[201px] px-0")}
+      >
+        Editar preços
       </Link>
 
       <FilterMenu
@@ -173,7 +188,7 @@ export function GameTabFilter({
     return (
       <p className="text-center font-poppins text-[14px] text-brand-fg-subtle">
         Este jogo não tem abas de produto.{" "}
-        <Link href={`/admin/jogos/${encodeURIComponent(query.game)}/abas`} className="font-bold text-brand-orange">
+        <Link href={centralHref(query.game, { section: "abas" })} className="font-bold text-brand-orange">
           Configurar abas →
         </Link>
       </p>

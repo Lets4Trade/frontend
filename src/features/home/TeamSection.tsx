@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { RichText } from "@/features/site/richText";
 import { editItem } from "@/features/site/editing/attrs";
 import type { SectionItemView } from "@/features/site/content";
 import { reveal, revealDelay } from "./reveal";
@@ -94,10 +95,11 @@ export function TeamSection({
       <h2
         id="team-title"
         data-edit-field="home:equipe:title"
+        data-edit-rich=""
         {...reveal("mask")}
         className="absolute top-0 left-[542px] w-[736px] text-center font-poppins text-[65px] leading-[normal] font-semibold tracking-[0.325px] text-white"
       >
-        {title}
+        <RichText value={title} />
       </h2>
 
       {/* No arquivo o subtítulo ocupa uma linha dentro dos 601px da caixa, e
@@ -105,8 +107,8 @@ export function TeamSection({
           fica como seguro: as linhas abaixo têm posição absoluta, então uma
           quebra inesperada — durante a troca de fonte, ou se ela falhar — não
           empurraria nada, iria POR CIMA. */}
-      <p data-edit-field="home:equipe:subtitle" {...reveal("rise")} style={revealDelay(1)} className="absolute top-[104px] left-[581px] w-[601px] text-center font-helvetica text-[18px] leading-[normal] font-bold tracking-[0.18px] whitespace-nowrap text-white">
-        {subtitle}
+      <p data-edit-field="home:equipe:subtitle" data-edit-rich="" {...reveal("rise")} style={revealDelay(1)} className="absolute top-[104px] left-[581px] w-[601px] text-center font-helvetica text-[18px] leading-[normal] font-bold tracking-[0.18px] whitespace-nowrap text-white">
+        <RichText value={subtitle} />
       </p>
 
       {/* Os dois primeiros membros, nas laterais do texto. */}
@@ -130,7 +132,9 @@ export function TeamSection({
           altura do desenho. */}
       <div className="pt-[153px]" style={{ minHeight: DIVIDER_TOP }}>
         <p {...reveal("rise")} style={revealDelay(2)} className="mx-auto w-[601px] font-helvetica text-[18px] leading-[normal] tracking-[0.18px] whitespace-pre-line text-brand-placeholder">
-          <span data-edit-field="home:equipe:body">{body || TEAM_DEFAULT_BODY}</span>
+          <span data-edit-field="home:equipe:body" data-edit-rich="">
+            <RichText value={body || TEAM_DEFAULT_BODY} />
+          </span>
         </p>
       </div>
 

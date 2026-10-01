@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_QUANTITY_PRICING } from "@/features/pricing/quote";
 import {
   defaultTabId,
   parseServiceContent,
+  readHighlights,
   readPricing,
   safeLinkHref,
   scopeCategories,
   tabsFromApi,
   toGameCategories,
+  withEffectivePricing,
 } from "./storefrontTabs";
+import type { GameProduct } from "./types";
 
 describe("tabsFromApi", () => {
   const tabs = tabsFromApi("poe2", [
@@ -113,5 +117,65 @@ describe("helpers", () => {
     expect(readPricing(null)).toEqual({});
     expect(readPricing({ mode: "FIXED" })).toEqual({ pricing: { mode: "FIXED" } });
     expect(readPricing({ mode: "QUANTITY" })).toEqual({ pricingInvalid: true });
+  });
+});
+
+describe("layouts v2 (QUANTITY, PACKAGES, SELL)", () => {
+  const tabs = tabsFromApi("poe2", [
+    { slug: "gold", label: "GOLD", layout: "QUANTITY", content: { sections: [{ title: "Entrega", items: ["Rápida"] }] } },
+    { slug: "pacotes", label: "PACOTES", layout: "PACKAGES", content: { sections: [{ title: "T", items: ["x"] }] } },
+    { slug: "venda", label: "VENDA PRA NÓS", layout: "SELL", linkHref: "/venda", content: { sections: [{ title: "T", items: ["x"] }] } },
+  ]);
+
+  it("aceita os três; SELL é aba da própria página (não navega para fora)", () => {
+    expect(tabs.map((tab) => [tab.id, tab.layout, tab.href])).toEqual([
+      ["gold", "QUANTITY", "/games/poe2"],
+      ["pacotes", "PACKAGES", "/games/poe2?aba=pacotes"],
+      ["venda", "SELL", "/games/poe2?aba=venda"],
+    ]);
+  });
+
+  it("textos da esquerda valem para QUANTITY e PACKAGES, não para SELL", () => {
+    expect(tabs[0].content?.sections[0].title).toBe("Entrega");
+    expect(tabs[1].content).toBeDefined();
+    expect(tabs[2].content).toBeUndefined();
+  });
+
+  it("ícone de reserva por layout", () => {
+    const [custom] = tabsFromApi("poe2", [{ slug: "ouro-x", label: "OURO", layout: "QUANTITY" }]);
+    expect(custom.icon.src).toBe("/icons/game/tab-gold.svg");
+  });
+});
+
+describe("readHighlights", () => {
+  it("ausente/estranho = []; saneia como o backend", () => {
+    expect(readHighlights(undefined)).toEqual([]);
+    expect(readHighlights("x")).toEqual([]);
+    expect(readHighlights(["  a  ", "", 3, "b".repeat(100), "c", "d", "e", "f", "g"])).toEqual([
+      "a",
+      "b".repeat(80),
+      "c",
+      "d",
+      "e",
+      "f",
+    ]);
+  });
+});
+
+describe("withEffectivePricing", () => {
+  const base: GameProduct = { id: "p", name: "Gold", priceCents: 10, tabId: "gold", highlights: [] };
+
+  it("QUANTITY sem regra usa o padrão; SERVICE/PACKAGES sem regra = FIXED", () => {
+    expect(withEffectivePricing([base], "QUANTITY")[0].pricing).toEqual(DEFAULT_QUANTITY_PRICING);
+    expect(withEffectivePricing([base], "PACKAGES")[0].pricing).toEqual({ mode: "FIXED" });
+    expect(withEffectivePricing([base], "SERVICE")[0].pricing).toEqual({ mode: "FIXED" });
+  });
+
+  it("regra salva vence; CATALOG não ganha regra; inválida continua inválida", () => {
+    const saved = { ...base, pricing: { mode: "FIXED" as const, baseHours: 2 } };
+    expect(withEffectivePricing([saved], "QUANTITY")[0].pricing).toEqual({ mode: "FIXED", baseHours: 2 });
+    expect(withEffectivePricing([base], "CATALOG")[0].pricing).toBeUndefined();
+    const invalid = { ...base, pricingInvalid: true };
+    expect(withEffectivePricing([invalid], "QUANTITY")[0]).toEqual(invalid);
   });
 });

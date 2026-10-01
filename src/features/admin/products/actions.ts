@@ -2,10 +2,11 @@
 
 import { getSessionRole } from "@/features/auth/session";
 import { revalidatePath } from "next/cache";
-import { apiDelete, apiPatchFormData, apiPostFormData, apiPut } from "@/lib/serverApi";
+import { apiDelete, apiPatchFormData, apiPost, apiPostFormData, apiPut } from "@/lib/serverApi";
 import { MAX_IMAGE_BYTES } from "../games/options";
 import { pricingSchema, type Pricing } from "@/features/pricing/quote";
-import { createProductSchema } from "./schema";
+import { MAX_PRICE_BATCH, MAX_PRICE_CENTS } from "./prices";
+import { createProductSchema, highlightsSchema } from "./schema";
 
 /**
  * Cadastro de produto — "SALVAR E ANUNCIAR" (Figma 3806:7072).
@@ -59,6 +60,8 @@ export async function createProductAction(
 
   const pricing = readPricing(form);
   if (!pricing.ok) return { ok: false, reason: "invalid", message: pricing.message };
+  const highlights = readHighlights(form);
+  if (!highlights.ok) return { ok: false, reason: "invalid", message: highlights.message };
 
   const payload = new FormData();
   payload.set("gameId", parsed.data.gameId);
@@ -72,6 +75,9 @@ export async function createProductAction(
   // Cadastro: só vai quando há regra (aba SERVIÇO). `null` num cadastro seria
   // o mesmo que não mandar.
   if (pricing.value) payload.set("pricing", JSON.stringify(pricing.value));
+  // Tópicos do card (aba PACOTES). Em multipart vão como TEXTO com o JSON da
+  // lista dentro — mesmo formato do `pricing`.
+  if (highlights.value !== undefined) payload.set("highlights", JSON.stringify(highlights.value));
   // Só manda se houver: o DTO trata ausente e vazio da mesma forma, mas mandar
   // string vazia deixaria o campo parecer preenchido em qualquer log.
   if (parsed.data.serverId !== "") payload.set("serverId", parsed.data.serverId);
@@ -160,6 +166,38 @@ export async function deleteProductAction(
 }
 
 /**
+ * "Reativar" dos desativados na Central do jogo — desfaz a lixeira.
+ * Revalida as duas árvores: a Central (`/admin/jogos/...`) e a listagem.
+ */
+export async function reactivateProductAction(
+  id: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const role = await getSessionRole();
+  if (role !== "ADMIN") {
+    return { ok: false, message: "Sua conta não tem permissão para reativar produtos." };
+  }
+
+  if (!isValidId(id)) return { ok: false, message: "Produto inválido." };
+
+  const response = await apiPost(`/admin/products/${encodeURIComponent(id)}/reactivate`, {});
+  if (!response.ok) {
+    return {
+      ok: false,
+      message:
+        response.status === 404
+          ? "Este produto já não existe."
+          : response.status === 400
+            ? "O jogo deste produto está desativado. Reative o jogo antes."
+            : "Não conseguimos reativar agora. Tente novamente em instantes.",
+    };
+  }
+
+  revalidatePath("/admin/jogos", "layout");
+  revalidatePath("/admin/produtos", "layout");
+  return { ok: true };
+}
+
+/**
  * Lápis do card: salva a edição.
  *
  * O `gameId` NÃO viaja — trocar o jogo mudaria junto o significado de
@@ -197,6 +235,8 @@ export async function updateProductAction(
 
   const pricing = readPricing(form);
   if (!pricing.ok) return { ok: false, reason: "invalid", message: pricing.message };
+  const highlights = readHighlights(form);
+  if (!highlights.ok) return { ok: false, reason: "invalid", message: highlights.message };
 
   const payload = new FormData();
   payload.set("name", parsed.data.name);
@@ -208,6 +248,8 @@ export async function updateProductAction(
   if (pricing.value !== undefined) {
     payload.set("pricing", pricing.value === null ? "null" : JSON.stringify(pricing.value));
   }
+  // Tópicos: ausente mantém; `[]` limpa (produto que saiu de uma aba PACOTES).
+  if (highlights.value !== undefined) payload.set("highlights", JSON.stringify(highlights.value));
   // Na EDIÇÃO os dois vão SEMPRE, inclusive vazios — diferente do cadastro.
   // No PATCH, ausente significa "manter" e `""` significa "remover" (o backend
   // grava nulo). Omitir o vazio, como o cadastro faz, deixava o admin sem jeito
@@ -297,6 +339,60 @@ export async function saveProductOrderAction(
 }
 
 /**
+ * "Editar preços" (2026-10-01): vários preços de um jogo numa gravação só.
+ *
+ * Tudo ou nada no backend: cada item leva o preço que a tela leu, e se algum
+ * mudou no meio do caminho a resposta é 409 com os nomes — essa mensagem é
+ * repassada como veio, porque é ela que diz o que conferir.
+ */
+export async function saveProductPricesAction(
+  gameId: string,
+  items: { id: string; priceCents: number; expectedPriceCents: number }[],
+): Promise<{ ok: true; saved: number } | { ok: false; message: string }> {
+  const role = await getSessionRole();
+  if (role !== "ADMIN") {
+    return { ok: false, message: "Sua conta não tem permissão para alterar preços." };
+  }
+  const cents = (value: unknown, min: number) =>
+    Number.isInteger(value) && (value as number) >= min && (value as number) <= MAX_PRICE_CENTS;
+  if (
+    !isValidId(gameId) ||
+    !Array.isArray(items) ||
+    items.length === 0 ||
+    items.length > MAX_PRICE_BATCH ||
+    !items.every(
+      (item) =>
+        typeof item === "object" &&
+        item !== null &&
+        isValidId(item.id) &&
+        cents(item.priceCents, 1) &&
+        cents(item.expectedPriceCents, 0),
+    )
+  ) {
+    return { ok: false, message: "Lista de preços inválida." };
+  }
+
+  // Remontado: só os campos do `SaveProductPricesDto` viajam.
+  const response = await apiPut<{ saved: number }>("/admin/products/prices", {
+    gameId,
+    items: items.map(({ id, priceCents, expectedPriceCents }) => ({ id, priceCents, expectedPriceCents })),
+  });
+  if (!response.ok) {
+    return {
+      ok: false,
+      message:
+        (response.status === 409 || response.status === 400) && response.message
+          ? response.message
+          : "Não conseguimos salvar os preços agora. Tente novamente em instantes.",
+    };
+  }
+
+  revalidatePath("/admin/produtos", "layout");
+  revalidatePath("/admin/jogos", "layout");
+  return { ok: true, saved: response.data?.saved ?? items.length };
+}
+
+/**
  * O id vai para o CAMINHO da URL. Sem conferir o formato, um `../` vindo do
  * cliente viraria outra rota do backend no `fetch` (que normaliza o caminho) —
  * com a sessão de admin de quem chamou.
@@ -333,6 +429,36 @@ function readPricing(
   const parsed = pricingSchema.safeParse(json);
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Regra de preço inválida." };
+  }
+  return { ok: true, value: parsed.data };
+}
+
+/** Teto do JSON dos tópicos: 6 × 80 caracteres cabem com folga em 4 KB. */
+const MAX_HIGHLIGHTS_CHARS = 4_000;
+
+/**
+ * Lê o campo `highlights` (JSON de `string[]`): ausente/vazio = `undefined`
+ * (não mexer). O resto passa pelo `highlightsSchema` — trim, vazios fora, até
+ * 6 × 80 — e vai adiante REMONTADO (a lista do zod).
+ */
+function readHighlights(
+  form: FormData,
+): { ok: true; value: string[] | undefined } | { ok: false; message: string } {
+  const raw = form.get("highlights");
+  if (raw === null || raw === "") return { ok: true, value: undefined };
+  if (typeof raw !== "string" || raw.length > MAX_HIGHLIGHTS_CHARS) {
+    return { ok: false, message: "Tópicos do card inválidos." };
+  }
+
+  let json: unknown;
+  try {
+    json = JSON.parse(raw);
+  } catch {
+    return { ok: false, message: "Tópicos do card inválidos." };
+  }
+  const parsed = highlightsSchema.safeParse(json);
+  if (!parsed.success) {
+    return { ok: false, message: parsed.error.issues[0]?.message ?? "Tópicos do card inválidos." };
   }
   return { ok: true, value: parsed.data };
 }

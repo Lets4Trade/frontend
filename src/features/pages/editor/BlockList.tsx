@@ -20,7 +20,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
-import { BLOCKS, blockTitle } from "../catalog";
+import { blockTitle } from "../catalog";
 import type { Block } from "../types";
 
 const onlyVertical: Modifier = ({ transform }) => ({ ...transform, x: 0 });
@@ -183,9 +183,6 @@ function Row({
           className="flex min-w-0 flex-1 items-center gap-[8px] text-left"
           aria-current={selected ? "true" : undefined}
         >
-          <span aria-hidden className="text-[15px]">
-            {BLOCKS[block.type].icon}
-          </span>
           <span className="truncate font-poppins text-[13px] text-white">{title}</span>
           {block.hidden ? (
             <span className="shrink-0 rounded-full bg-white/10 px-[6px] py-[1px] font-poppins text-[10px] text-white/70">

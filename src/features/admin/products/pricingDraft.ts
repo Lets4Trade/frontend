@@ -46,6 +46,11 @@ export type PricingDraft = {
   min: string;
   max: string;
   step: string;
+  /**
+   * QUANTITY: "Quantidades prontas" (botões da aba Gold), como a pessoa
+   * digitou — "100, 500, 1.000". Vazio = sem botões.
+   */
+  presets: string;
   hoursPerUnit: string;
   tiers: TierDraft[];
   bands: BandDraft[];
@@ -81,6 +86,7 @@ export function emptyDraft(mode: PricingMode = "FIXED"): PricingDraft {
     min: "1",
     max: mode === "LEVEL_RANGE" ? "100" : "10",
     step: "1",
+    presets: "",
     hoursPerUnit: "",
     tiers: [],
     bands: mode === "LEVEL_RANGE" ? [{ key: newKey(), from: "1", to: "100", pricePerLevelCents: 0, hoursPerLevel: "0" }] : [],
@@ -108,6 +114,7 @@ export function pricingToDraft(pricing: Pricing | null | undefined): PricingDraf
     draft.min = String(pricing.min);
     draft.max = String(pricing.max);
     draft.step = String(pricing.step);
+    draft.presets = (pricing.presets ?? []).join(", ");
     draft.hoursPerUnit = numText(pricing.hoursPerUnit);
     draft.tiers = (pricing.tiers ?? []).map((tier) => ({
       key: newKey(),
@@ -179,6 +186,7 @@ export function draftToPricing(
       min: toInt(draft.min),
       max: toInt(draft.max),
       step: toInt(draft.step),
+      ...(parsePresets(draft.presets).length > 0 ? { presets: parsePresets(draft.presets) } : {}),
       ...(draft.hoursPerUnit.trim() === "" ? {} : { hoursPerUnit: toNumber(draft.hoursPerUnit) }),
       ...(draft.tiers.length > 0
         ? { tiers: draft.tiers.map((tier) => ({ from: toInt(tier.from), unitPriceCents: tier.unitPriceCents })) }
@@ -204,7 +212,10 @@ export function draftToPricing(
   const parsed = pricingSchema.safeParse(raw);
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
-    return { ok: false, message: describeIssue(issue?.path ?? [], translateIssue(issue)) };
+    return {
+      ok: false,
+      message: describeIssue(issue?.path ?? [], translateIssue(issue as Parameters<typeof translateIssue>[0])),
+    };
   }
   return { ok: true, pricing: parsed.data };
 }
@@ -215,6 +226,7 @@ const FIELD_NAMES: Record<string, string> = {
   min: "Mínimo",
   max: "Máximo",
   step: "Passo",
+  presets: "Quantidades prontas",
   hoursPerUnit: "Horas por unidade",
   baseHours: "Horas base",
   tiers: "Faixas de quantidade",
@@ -227,8 +239,14 @@ const FIELD_NAMES: Record<string, string> = {
  * received NaN" para um campo vazio) — o painel é em português. As `custom` já
  * são nossas (em `quote.ts`) e passam como estão.
  */
-function translateIssue(issue: { code?: string; message?: string } | undefined): string {
+function translateIssue(
+  issue: { code?: string; message?: string; origin?: string; maximum?: unknown } | undefined,
+): string {
   if (!issue) return "Regra de preço inválida.";
+  // Lista longa demais (ex.: 25 quantidades prontas): diz o teto, não "um valor".
+  if (issue.code === "too_big" && issue.origin === "array") {
+    return `no máximo ${String(issue.maximum)} itens.`;
+  }
   switch (issue.code) {
     case "custom":
       return issue.message ?? "Regra de preço inválida.";
@@ -249,6 +267,19 @@ function translateIssue(issue: { code?: string; message?: string } | undefined):
 function describeIssue(path: PropertyKey[], message: string): string {
   const field = path.find((part): part is string => typeof part === "string" && part in FIELD_NAMES);
   return field ? `${FIELD_NAMES[field]}: ${message}` : message;
+}
+
+/**
+ * "Quantidades prontas" → números. Separadas por vírgula, ponto e vírgula ou
+ * espaço; o PONTO é separador de milhar (pt-BR: "1.000" = mil), porque
+ * quantidade é inteira. O que não for número vira NaN, e o `pricingSchema`
+ * recusa com a mensagem dele — nada é descartado em silêncio.
+ */
+export function parsePresets(text: string): number[] {
+  return text
+    .split(/[\s,;]+/)
+    .filter((part) => part !== "")
+    .map((part) => (/^\d[\d.]*$/.test(part) ? Number(part.replace(/\./g, "")) : Number.NaN));
 }
 
 /** "1,5" e "1.5" valem; vazio vira NaN para o zod recusar com a mensagem dele. */

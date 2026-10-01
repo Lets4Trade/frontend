@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useRef, useState, useTransition, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { FileField } from "@/components/ui/FileField";
 import { MoneyField } from "@/components/ui/MoneyField";
 import { SelectField } from "@/components/ui/SelectField";
+import { TextAreaField } from "@/components/ui/TextAreaField";
 import { TextField } from "@/components/ui/TextField";
+import { toastOk } from "@/components/ui/Toasts";
+import { QUOTED_LAYOUTS, effectivePricing } from "@/features/pricing/quote";
 import { AdminFieldGrid, AdminFormActions } from "@/features/admin/AdminFormCard";
 import type { AdminGame } from "@/features/admin/catalog";
 import {
@@ -17,7 +20,7 @@ import {
   labelFor,
 } from "../games/options";
 import { listGameTabsAction } from "../games/tabs/actions";
-import { isProductTab, type GameTab } from "../games/tabs/types";
+import { isProductTab, layoutLabel, type GameTab, type TabLayout } from "../games/tabs/types";
 import { PricingEditor } from "./PricingEditor";
 import { draftToPricing, pricingToDraft, type PricingDraft } from "./pricingDraft";
 import {
@@ -26,8 +29,9 @@ import {
   type CreateProductResult,
 } from "./actions";
 import { ACTION_FAILED_UPLOAD_MESSAGE, runAction } from "@/lib/safeAction";
-import { createProductSchema } from "./schema";
+import { MAX_HIGHLIGHTS, createProductSchema, parseHighlights } from "./schema";
 import type { AdminProduct } from "./catalog";
+import type { ProductPrefill } from "./links";
 import { categorySelectOptions } from "./categoryOptions";
 
 type ErrorField =
@@ -37,7 +41,8 @@ type ErrorField =
   | "platform"
   | "tabId"
   | "serverId"
-  | "categoryId";
+  | "categoryId"
+  | "highlights";
 type FieldErrors = Partial<Record<ErrorField, string>>;
 
 type FailureReason = Extract<CreateProductResult, { ok: false }>["reason"];
@@ -80,6 +85,14 @@ const ERROR_MESSAGES: Record<FailureReason, string> = {
  * `pricingSchema` aqui, na action e no backend. As categorias do select são as
  * do servidor + aba escolhidos, mais as globais.
  *
+ * ── Layouts v2 (contrato `game-tabs-v2.md`, 2026-09-30) ────────────────────
+ * Abas LINK e SELL não recebem produto e ficam fora do select
+ * (`isProductTab`). O editor de preço vale para toda aba de `QUOTED_LAYOUTS`
+ * (Serviço, Quantidade, Pacotes) e parte de `effectivePricing` — a MESMA
+ * regra que a vitrine e o backend usam, então produto de aba Quantidade sem
+ * regra salva abre mostrando o padrão que já vale na loja. Aba PACOTES ganha
+ * os "Tópicos do card" (`highlights`).
+ *
  * ── "Nome do produto" NÃO está no arquivo ───────────────────────────────────
  * Entrou porque os consumidores exigem: o card da vitrine mostra o nome
  * (`ProductCard`) e o pedido o congela (`Order.productName`). Sem ele, dois
@@ -91,17 +104,72 @@ export function ProductForm({
   games,
   product,
   initialTabs,
+  prefill,
+  returnTo = null,
 }: {
   games: AdminGame[];
   /** Presente = EDIÇÃO. Ausente = cadastro novo. */
   product?: AdminProduct;
-  /** Abas do jogo do produto, lidas no servidor (só na edição). */
+  /**
+   * Abas do jogo, lidas no servidor: o do produto (edição) ou o do
+   * pré-preenchimento (cadastro com `?jogo=`).
+   */
   initialTabs?: GameTab[] | null;
+  /**
+   * Cadastro com o contexto já escolhido pela URL (`links.ts`), JÁ conferido
+   * contra `games`/`initialTabs` pela página. Ignorado na edição.
+   */
+  prefill?: ProductPrefill;
+  /**
+   * `?volta=` JÁ conferido (`safeReturnPath`, só `/admin/...`): para onde ir
+   * depois de salvar — a Central do jogo manda o próprio endereço. Na edição
+   * troca a listagem; no cadastro, o "SALVAR E ANUNCIAR" volta para lá (o
+   * "Salvar e cadastrar outro" continua aqui, como sempre).
+   */
+  returnTo?: string | null;
 }) {
   const router = useRouter();
   const isEditing = product !== undefined;
+  const seed = isEditing ? null : (prefill ?? null);
+  const initialGameId = product?.game.id ?? seed?.gameId ?? "";
+  const initialGame = games.find((game) => game.id === initialGameId) ?? null;
+  // Mesma regra dos selects: uma opção só já vem escolhida.
+  const initialProductTabs = initialTabs?.filter(isProductTab) ?? [];
+  const initialTabId =
+    product?.tabId ??
+    (seed?.tabId || (initialProductTabs.length === 1 ? initialProductTabs[0].id : ""));
+  const initialServerId =
+    product?.serverId ??
+    (seed?.serverId || (initialGame?.servers.length === 1 ? initialGame.servers[0].id : ""));
 
   const formRef = useRef<HTMLFormElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  /**
+   * Qual botão enviou: "SALVAR E ANUNCIAR" (zera tudo, como sempre) ou
+   * "Salvar e cadastrar outro" (mantém o contexto). Ref e não estado: é lido
+   * uma vez, no submit, e não desenha nada. O Enter num campo dispara o
+   * PRIMEIRO botão de envio — o de sempre.
+   */
+  const submitIntent = useRef<"announce" | "again">("announce");
+  /**
+   * Muda a cada "cadastrar outro": remonta nome, preço e imagem, os três
+   * campos que se limpam (os dois últimos guardam estado próprio que só o
+   * `reset()` do form alcançaria — e ele levaria os selects junto).
+   */
+  const [entryKey, setEntryKey] = useState(0);
+  /**
+   * Muda a cada "SALVAR E ANUNCIAR" bem-sucedido, que zera o formulário. Com
+   * pré-preenchimento o select de jogo nasce com `defaultValue`, e o `reset()`
+   * do form o devolveria a ele (o Radix escuta o reset) com o estado já
+   * vazio; remontar sem valor mantém tela e estado de acordo.
+   */
+  const [resetCount, setResetCount] = useState(0);
+
+  // Depois de "cadastrar outro", o foco volta ao nome: é o próximo campo a
+  // mudar, e o teclado não precisa voltar do botão até lá.
+  useEffect(() => {
+    if (entryKey > 0) nameRef.current?.focus();
+  }, [entryKey]);
   const [isSubmitting, startSubmit] = useTransition();
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -112,26 +180,53 @@ export function ProductForm({
     gameSlug: string | null;
   } | null>(null);
 
-  const [gameId, setGameId] = useState(product?.game.id ?? "");
+  const [gameId, setGameId] = useState(initialGameId);
   const selectedGame = games.find((game) => game.id === gameId) ?? null;
 
   // Abas do jogo escolhido. `null` = ainda não lidas (ou a leitura falhou —
   // `tabsError` diz qual). Só as de catálogo/serviço recebem produto.
   const [tabs, setTabs] = useState<GameTab[] | null>(initialTabs ?? null);
-  const [tabsError, setTabsError] = useState(isEditing && !initialTabs);
+  const [tabsError, setTabsError] = useState(initialGameId !== "" && !initialTabs);
   const [loadingTabs, startLoadTabs] = useTransition();
   const tabsRequest = useRef(0);
   const productTabs = tabs?.filter(isProductTab) ?? [];
 
-  const [tabId, setTabId] = useState(product?.tabId ?? "");
-  const [serverId, setServerId] = useState(product?.serverId ?? "");
+  const [tabId, setTabId] = useState(initialTabId);
+  const [serverId, setServerId] = useState(initialServerId);
   const selectedTab = productTabs.find((tab) => tab.id === tabId) ?? null;
-  const isService = selectedTab?.layout === "SERVICE";
+  const isQuoted = selectedTab !== null && isQuotedLayout(selectedTab.layout);
+  const isPackages = selectedTab?.layout === "PACKAGES";
 
   // Preço do produto acompanhado AO VIVO só para a prévia do serviço.
   const [priceCents, setPriceCents] = useState(product?.priceCents ?? 0);
   const onPriceChange = useCallback((cents: number) => setPriceCents(cents), []);
-  const [pricingDraft, setPricingDraft] = useState<PricingDraft>(() => pricingToDraft(product?.pricing));
+  // A regra que VALE hoje para o produto (`effectivePricing`): a salva, ou o
+  // padrão do layout da aba (Quantidade sem regra = 1..1000).
+  const [pricingDraft, setPricingDraft] = useState<PricingDraft>(() => {
+    const layout = initialTabs?.find((tab) => tab.id === initialTabId)?.layout;
+    return pricingToDraft(effectivePricing(layout, product?.pricing) ?? product?.pricing);
+  });
+  // Mexeu no editor? Então trocar de aba não pode apagar o que foi digitado.
+  const pricingTouched = useRef(false);
+  const onPricingChange = useCallback((next: PricingDraft) => {
+    pricingTouched.current = true;
+    setPricingDraft(next);
+  }, []);
+
+  // Tópicos do card (aba PACOTES), uma linha por tópico.
+  const [highlightsText, setHighlightsText] = useState(() => (product?.highlights ?? []).join("\n"));
+
+  /**
+   * Escolhe a aba. Sem regra digitada nem salva, o editor passa a mostrar o
+   * padrão do layout novo (Quantidade → "Por quantidade" 1..1000; Serviço e
+   * Pacotes → preço fixo) — o mesmo que a loja usaria sem regra.
+   */
+  function selectTab(id: string, list: GameTab[] | null = tabs) {
+    setTabId(id);
+    if (pricingTouched.current || product?.pricing) return;
+    const layout = list?.find((tab) => tab.id === id)?.layout;
+    setPricingDraft(pricingToDraft(effectivePricing(layout, null)));
+  }
 
   /**
    * Lê as abas do jogo recém-escolhido. O contador descarta respostas
@@ -154,7 +249,7 @@ export function ProductForm({
       setTabs(result.data);
       const options = result.data.filter(isProductTab);
       // Uma aba só já vem escolhida — mesma regra dos outros selects.
-      setTabId(options.length === 1 ? options[0].id : "");
+      selectTab(options.length === 1 ? options[0].id : "", result.data);
     });
   }
 
@@ -188,7 +283,7 @@ export function ProductForm({
 
   const tabOptions = productTabs.map((tab) => ({
     value: tab.id,
-    label: `${tab.label}${tab.layout === "SERVICE" ? " — serviço" : ""}${tab.isActive ? "" : " (oculta)"}`,
+    label: `${tab.label}${tab.layout === "CATALOG" ? "" : ` — ${layoutLabel(tab.layout).toLowerCase()}`}${tab.isActive ? "" : " (oculta)"}`,
   }));
 
   const serverOptions =
@@ -216,10 +311,10 @@ export function ProductForm({
       : undefined;
 
   /**
-   * O que vai no hidden `pricing`: a regra (aba SERVIÇO), `"null"` para LIMPAR
-   * a de um produto que saiu de uma aba de serviço, ou nada.
+   * O que vai no hidden `pricing`: a regra (aba cotada), `"null"` para LIMPAR
+   * a de um produto que saiu de uma aba cotada, ou nada.
    */
-  const pricingCheck = isService ? draftToPricing(pricingDraft) : null;
+  const pricingCheck = isQuoted ? draftToPricing(pricingDraft) : null;
   const pricingField = pricingCheck
     ? pricingCheck.ok
       ? JSON.stringify(pricingCheck.pricing)
@@ -228,12 +323,27 @@ export function ProductForm({
       ? "null"
       : "";
 
+  /**
+   * O hidden `highlights`: a lista (aba PACOTES), `"[]"` para LIMPAR os de um
+   * produto que saiu de uma aba de pacotes, ou nada (não mexe).
+   */
+  const highlightsCheck = isPackages ? parseHighlights(highlightsText) : null;
+  const highlightsField = highlightsCheck
+    ? highlightsCheck.ok
+      ? JSON.stringify(highlightsCheck.highlights)
+      : ""
+    : isEditing && (product?.highlights?.length ?? 0) > 0
+      ? "[]"
+      : "";
+
   /** Uma opção só já vem escolhida; várias abrem com o placeholder. */
   const onlyOption = (options: { value: string }[]) =>
     options.length === 1 ? options[0].value : undefined;
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const again = !isEditing && submitIntent.current === "again";
+    submitIntent.current = "announce";
 
     const data = new FormData(event.currentTarget);
 
@@ -271,6 +381,13 @@ export function ProductForm({
       return;
     }
 
+    if (highlightsCheck && !highlightsCheck.ok) {
+      setFieldErrors({ highlights: highlightsCheck.message });
+      setFormError(null);
+      setSaved(null);
+      return;
+    }
+
     // Regra de preço inválida não sai daqui: o erro já está escrito embaixo
     // do editor, e este aviso aponta para ele.
     if (pricingCheck && !pricingCheck.ok) {
@@ -301,12 +418,34 @@ export function ProductForm({
       // Editando, a tela cumpriu o papel e o lugar de conferir o resultado é a
       // listagem. Cadastrando, fica-se aqui: é uma tela de cadastrar em série.
       if (isEditing) {
-        router.push("/admin/produtos");
+        // Voltando para a Central, o aviso vai junto (o toaster é do layout
+        // do painel e sobrevive à navegação); a listagem já mostra o produto.
+        if (returnTo) toastOk(`${result.name} salvo.`);
+        router.push(returnTo ?? "/admin/produtos");
+        return;
+      }
+
+      if (returnTo && !again) {
+        toastOk(`${result.name} cadastrado em ${result.gameName}.`);
+        router.push(returnTo);
         return;
       }
 
       setSaved({ name: result.name, gameName: result.gameName, gameSlug });
+
+      // "Salvar e cadastrar outro": o próximo produto é do MESMO jogo, aba,
+      // servidor, plataforma e categoria, com a mesma regra de preço — só o
+      // que descreve o item (nome, preço, imagem, tópicos) volta em branco.
+      // Os selects não são tocados (nem remontados: as `key` deles não mudam).
+      if (again) {
+        setEntryKey((key) => key + 1);
+        setPriceCents(0);
+        setHighlightsText("");
+        return;
+      }
+
       formRef.current?.reset();
+      setResetCount((count) => count + 1);
       // O `reset()` nativo devolve os campos ao estado inicial do DOM, mas o
       // jogo escolhido também vive em estado React (é ele que monta os três
       // selects dependentes). Sem esta linha, os dropdowns continuariam com as
@@ -315,6 +454,8 @@ export function ProductForm({
       loadTabs("");
       setServerId("");
       setPricingDraft(pricingToDraft(null));
+      pricingTouched.current = false;
+      setHighlightsText("");
     });
   }
 
@@ -322,11 +463,12 @@ export function ProductForm({
     <form ref={formRef} onSubmit={handleSubmit} noValidate className="px-[50px] pt-[33px]">
       <AdminFieldGrid>
         <SelectField
+          key={`game-${resetCount}`}
           label="Jogo:"
           name="gameId"
           placeholder="Selecione o jogo"
           options={gameOptions}
-          defaultValue={product?.game.id}
+          defaultValue={resetCount === 0 && initialGameId ? initialGameId : undefined}
           // Editando, o jogo é FIXO: trocá-lo mudaria junto o significado de
           // plataforma, servidor e tipo, e o backend nem aceita o campo no PATCH.
           disabled={isEditing}
@@ -340,7 +482,10 @@ export function ProductForm({
           name="platform"
           placeholder="Plataforma"
           options={platformOptions}
-          defaultValue={product?.platform ?? onlyOption(platformOptions)}
+          defaultValue={
+            product?.platform ??
+            (gameId === initialGameId && seed?.platform ? seed.platform : onlyOption(platformOptions))
+          }
           disabled={selectedGame === null}
           error={fieldErrors.platform}
         />
@@ -357,7 +502,9 @@ export function ProductForm({
               : "Servidor"
           }
           options={serverOptions}
-          defaultValue={product?.serverId ?? onlyOption(serverOptions)}
+          // O estado já nasce com o do produto, o do pré-preenchimento ou a
+          // opção única — e `selectGame` o repõe a cada troca de jogo.
+          defaultValue={serverId || undefined}
           onValueChange={setServerId}
           disabled={selectedGame === null || serverOptions.length === 0}
           error={fieldErrors.serverId}
@@ -400,7 +547,7 @@ export function ProductForm({
           }
           options={tabOptions}
           defaultValue={tabId || undefined}
-          onValueChange={setTabId}
+          onValueChange={(id) => selectTab(id)}
           disabled={selectedGame === null || tabOptions.length === 0}
           error={
             fieldErrors.tabId ??
@@ -409,11 +556,12 @@ export function ProductForm({
         />
 
         <MoneyField
+          key={`price-${entryKey}`}
           // Em serviço o "preço" muda de papel conforme o modo — o rótulo diz qual.
           label={
-            isService && pricingDraft.mode === "QUANTITY"
+            isQuoted && pricingDraft.mode === "QUANTITY"
               ? "Preço unitário padrão"
-              : isService && pricingDraft.mode === "LEVEL_RANGE"
+              : isQuoted && pricingDraft.mode === "LEVEL_RANGE"
                 ? "Taxa base do serviço"
                 : "Preço"
           }
@@ -425,6 +573,7 @@ export function ProductForm({
         />
 
         <FileField
+          key={`image-${entryKey}`}
           label="Imagem do produto"
           // Editando sem anexar nada, o backend mantém a arte atual — o texto diz
           // isso para ninguém achar que salvar vai apagar a imagem que já existe.
@@ -435,6 +584,8 @@ export function ProductForm({
         />
 
         <TextField
+          key={`name-${entryKey}`}
+          ref={nameRef}
           label="Nome do produto"
           name="name"
           placeholder="500M Divine Orbs"
@@ -446,20 +597,82 @@ export function ProductForm({
       </AdminFieldGrid>
 
       <input type="hidden" name="pricing" value={pricingField} />
-      {isService ? (
+      <input type="hidden" name="highlights" value={highlightsField} />
+
+      {isPackages ? (
+        <div className="mt-[49px] max-w-[660px]">
+          <TextAreaField
+            label="Tópicos do card"
+            value={highlightsText}
+            onChange={(event) => {
+              setHighlightsText(event.target.value);
+              setFieldErrors((previous) => ({ ...previous, highlights: undefined }));
+            }}
+            placeholder={"Manual Boosting Guarantee\nEntrega em até 24h"}
+            // Folga para as quebras de linha; o teto real (6 × 80) é do zod.
+            maxLength={(MAX_HIGHLIGHTS + 2) * 81}
+            error={fieldErrors.highlights}
+          />
+          <p className="mt-[6px] pl-[25px] font-helvetica text-[12px] text-brand-fg-subtle">
+            Um tópico por linha, até {MAX_HIGHLIGHTS} linhas de até 80 caracteres. Aparecem com bolinha no card do
+            pacote. Linhas em branco são ignoradas.
+          </p>
+        </div>
+      ) : null}
+
+      {isQuoted ? (
         <div className="mt-[49px] max-w-[1100px]">
-          <PricingEditor draft={pricingDraft} onChange={setPricingDraft} basePriceCents={priceCents} />
+          {selectedTab?.layout === "QUANTITY" && pricingDraft.mode !== "QUANTITY" ? (
+            <p className="mb-[15px] font-helvetica text-[13px] text-brand-orange">
+              Aba de Quantidade: use “Por quantidade” — as quantidades prontas viram os botões da loja.
+            </p>
+          ) : null}
+          <PricingEditor draft={pricingDraft} onChange={onPricingChange} basePriceCents={priceCents} />
         </div>
       ) : null}
 
       <AdminFormActions>
-        <Button type="submit" variant="primary" fullWidth disabled={isSubmitting}>
+        <Button
+          type="submit"
+          variant="primary"
+          fullWidth
+          disabled={isSubmitting}
+          onClick={() => {
+            submitIntent.current = "announce";
+          }}
+        >
           {isSubmitting
             ? "SALVANDO…"
             : isEditing
               ? "SALVAR ALTERAÇÕES"
               : "SALVAR E ANUNCIAR"}
         </Button>
+
+        {/* Cadastro em série (admin-games-ux.md, Etapa 1): mantém jogo,
+            plataforma, servidor, aba, categoria e regra de preço; limpa nome,
+            preço, imagem e tópicos. Só no cadastro — na edição não há "outro". */}
+        {isEditing ? null : (
+          <Button
+            type="submit"
+            variant="outline"
+            fullWidth
+            disabled={isSubmitting}
+            onClick={() => {
+              submitIntent.current = "again";
+            }}
+          >
+            Salvar e cadastrar outro
+          </Button>
+        )}
+
+        {returnTo ? (
+          <Link
+            href={returnTo}
+            className="font-poppins text-[14px] font-bold text-white/70 transition-opacity hover:opacity-80"
+          >
+            ← Voltar sem salvar
+          </Link>
+        ) : null}
 
         {formError ? (
           <p role="alert" className="font-helvetica text-[14px] text-red-9">
@@ -491,4 +704,9 @@ export function ProductForm({
       </AdminFormActions>
     </form>
   );
+}
+
+/** A aba cobra por `quote` (Serviço, Quantidade, Pacotes)? Fonte: `QUOTED_LAYOUTS`. */
+function isQuotedLayout(layout: TabLayout): boolean {
+  return (QUOTED_LAYOUTS as readonly string[]).includes(layout);
 }

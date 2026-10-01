@@ -10,6 +10,8 @@
  * português como todo endereço voltado ao usuário — a mesma regra do `?pagina=`
  * da vitrine.
  */
+import { centralHref } from "@/features/admin/games/central";
+
 export type BuilderStepId =
   | "titulos"
   | "banner"
@@ -36,6 +38,11 @@ export type BuilderStep = {
    * dentro do builder seria manter duas telas de produto que precisam concordar.
    */
   href?: (gameId: string, gameSlug: string) => string;
+  /**
+   * Atalho para tela só-ADMIN (Central do jogo, Produtos). O EDITOR abre o
+   * Builder, mas essas telas dariam 404 para ele — a lateral não as oferece.
+   */
+  adminOnly?: boolean;
 };
 
 export const BUILDER_STEPS: readonly BuilderStep[] = [
@@ -51,14 +58,18 @@ export const BUILDER_STEPS: readonly BuilderStep[] = [
     id: "categorias-principais",
     number: 5,
     title: "Abas da loja",
-    hint: "Configuradas em Jogos → Abas",
-    href: (gameId) => `/admin/jogos/${encodeURIComponent(gameId)}/abas`,
+    hint: "Configuradas na Central do jogo",
+    href: (gameId) => centralHref(gameId, { section: "abas" }),
+    adminOnly: true,
   },
   {
+    // Desde 2026-09-30 (admin-games-ux.md, Etapa 2) os servidores são editados
+    // na Visão geral da Central; aqui só aparecem (o salvamento do Builder
+    // ainda os envia — ver `BuilderShell`).
     id: "servidores",
     number: 6,
     title: "Servidores",
-    hint: "Crie os tipos de servidores",
+    hint: "Editados na visão geral do jogo",
   },
   {
     id: "categorias",
@@ -74,12 +85,18 @@ export const BUILDER_STEPS: readonly BuilderStep[] = [
     title: "Lista de produtos",
     hint: "Altere a lista de produtos",
     href: (gameId) => `/admin/produtos?jogo=${encodeURIComponent(gameId)}`,
+    adminOnly: true,
   },
   { id: "descricao", number: 9, title: "Descrição", hint: "Altere a descrição da page" },
   // NÃO está no arquivo do Figma, que desenha nove. Entrou a pedido do usuário:
   // "tenho que poder arrastar a lista de produtos pra cima do banner principal".
   { id: "ordem", number: 10, title: "Ordem da página", hint: "Arraste e esconda blocos" },
 ];
+
+/** As etapas que a lateral mostra para o cargo (ver `adminOnly`). */
+export function visibleSteps(canManage: boolean): readonly BuilderStep[] {
+  return canManage ? BUILDER_STEPS : BUILDER_STEPS.filter((step) => !step.adminOnly);
+}
 
 export function stepById(id: string): BuilderStep | undefined {
   return BUILDER_STEPS.find((step) => step.id === id);

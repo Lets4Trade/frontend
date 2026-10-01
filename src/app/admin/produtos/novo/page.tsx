@@ -2,6 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AdminFormCard } from "@/features/admin/AdminFormCard";
 import { getAdminGames } from "@/features/admin/catalog";
+import { getGameTabs } from "@/features/admin/games/tabs/list";
+import {
+  RETURN_PARAM,
+  parseProductPrefill,
+  resolvePrefillTab,
+  safeReturnPath,
+} from "@/features/admin/products/links";
 import { ProductForm } from "@/features/admin/products/ProductForm";
 import { requireAdminPage } from "@/features/admin/guard";
 
@@ -20,13 +27,31 @@ export const metadata: Metadata = {
  * alternativa — buscar no cliente ao abrir o select — custaria um "carregando"
  * em cima de um dado que o servidor já tinha na mão ao renderizar a página.
  */
-export default async function NewProductPage() {
+export default async function NewProductPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   await requireAdminPage();
-  const games = await getAdminGames();
+  const [games, params] = await Promise.all([getAdminGames(), searchParams]);
+
+  // Pré-preenchimento pela URL (admin-games-ux.md, Etapa 1): `?jogo&aba&servidor
+  // &plataforma`, cada um conferido contra o que foi carregado — inválido cai.
+  // Com jogo escolhido, as abas dele já vêm do servidor (o formulário as leria
+  // por action logo em seguida; aqui economiza a ida e volta e o "carregando").
+  const parsed = parseProductPrefill(params, games);
+  const tabs = parsed.gameId ? await getGameTabs(parsed.gameId) : null;
+  const prefill = resolvePrefillTab(parsed, tabs);
+  // `?volta=` (Etapa 2): só caminho do painel — ver `safeReturnPath`.
+  const returnTo = safeReturnPath(params[RETURN_PARAM]);
 
   return (
     <AdminFormCard title="CADASTRO DE PRODUTO" headingId="cadastro-produto-heading">
-      {games.length === 0 ? <NoGames /> : <ProductForm games={games} />}
+      {games.length === 0 ? (
+        <NoGames />
+      ) : (
+        <ProductForm games={games} prefill={prefill} initialTabs={tabs} returnTo={returnTo} />
+      )}
     </AdminFormCard>
   );
 }

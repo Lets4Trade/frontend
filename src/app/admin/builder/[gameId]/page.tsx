@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BuilderShell } from "@/features/admin/builder/BuilderShell";
 import { getBuilderGame } from "@/features/admin/builder/list";
+import { stepById, visibleSteps } from "@/features/admin/builder/steps";
 import { getGamePage } from "@/features/game/content";
+import { GameAdminNav } from "@/features/admin/games/GameAdminNav";
 import { getGameTabs } from "@/features/admin/games/tabs/list";
+import { getSessionRole } from "@/features/auth/session";
 
 export const metadata: Metadata = {
   title: "Builder de Páginas — Lets4Trade",
@@ -25,10 +28,12 @@ export const metadata: Metadata = {
  */
 export default async function BuilderPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ gameId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { gameId } = await params;
+  const [{ gameId }, query] = await Promise.all([params, searchParams]);
   const game = await getBuilderGame(gameId);
   if (!game) notFound();
 
@@ -46,12 +51,29 @@ export default async function BuilderPage({
    */
   // As abas do jogo (Jogos → Abas) só para a maquete — não são editadas aqui.
   // Em paralelo com a página publicada: são duas leituras independentes.
-  const [published, tabs] = await Promise.all([getGamePage(game.slug), getGameTabs(game.id)]);
+  const [published, tabs, role] = await Promise.all([
+    getGamePage(game.slug),
+    getGameTabs(game.id),
+    // Memorizada por requisição: o layout do painel já a leu.
+    getSessionRole(),
+  ]);
+  // O EDITOR abre o Builder, mas a Central e Produtos são só-ADMIN: a
+  // navegação e os atalhos que dariam 404 somem para ele.
+  const canManage = role === "ADMIN";
+
+  // `?etapa=` (mapa da página na Central): só etapa que EDITA aqui e que o
+  // cargo enxerga — atalho (`href`) ou valor inventado abre a pré-visualização.
+  const wanted = stepById(String(Array.isArray(query.etapa) ? query.etapa[0] : (query.etapa ?? "")));
+  const initialStep =
+    wanted && !wanted.href && visibleSteps(canManage).some((step) => step.id === wanted.id) ? wanted.id : null;
 
   return (
     <BuilderShell
       game={game}
       tabs={tabs}
+      canManage={canManage}
+      initialStep={initialStep}
+      nav={<GameAdminNav game={game} active={null} canManage={canManage} variant="bar" />}
       shared={
         published
           ? {
