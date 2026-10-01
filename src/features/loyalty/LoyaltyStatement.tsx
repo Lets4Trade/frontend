@@ -90,7 +90,7 @@ export function LoyaltyStatement({
  */
 function formatDate(iso: string) {
   const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) return "-";
   return date.toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "2-digit",

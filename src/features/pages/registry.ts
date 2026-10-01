@@ -41,6 +41,16 @@ export type ContentPageDef = {
   href: string;
   /** Página do catálogo de sessões (`features/site/sections.ts`). */
   catalogPage: string;
+  /**
+   * Só estas sessões do catálogo (sufixos), nesta ordem. Ausente = todas.
+   * Existe porque o catálogo `layout` serve a DUAS páginas do painel
+   * (Cabeçalho e Rodapé) e ainda cede parte das sessões a Configurações.
+   */
+  sectionKeys?: readonly string[];
+  /** Página real que mostra estas sessões, para a prévia. `null` = sem prévia. */
+  previewPath: string | null;
+  /** Onde a prévia abre: no topo (cabeçalho) ou no fim (rodapé). */
+  previewAnchor?: "top" | "bottom";
 };
 
 export type BuilderPageDef = BlocksPageDef | ContentPageDef;
@@ -53,7 +63,7 @@ const HOME: BlocksPageDef = {
   frame: "home",
   legacyKeys: ["hero", "navegacao", "video", "reviews", "equipe", "guias", "faq"],
   legacyLabels: {
-    hero: "Hero — carrossel de jogos",
+    hero: "Hero (carrossel de jogos)",
     navegacao: "Contadores e atalhos",
     video: "Vídeo",
     reviews: "Reviews",
@@ -95,7 +105,7 @@ export function gamePageDef(game: { id: string; name: string; slug: string }): B
   return {
     kind: "blocks",
     slug: `jogo-${game.id}`,
-    label: `Jogo — ${game.name}`,
+    label: `Jogo: ${game.name}`,
     href: `/games/${game.slug}`,
     frame: "game",
     legacyKeys: DEFAULT_SECTION_ORDER,
@@ -112,21 +122,42 @@ export function gamePageDef(game: { id: string; name: string; slug: string }): B
 export const GAME_LEGACY_GAP = (prev: string | null, key: string) =>
   gapBefore([(prev ?? "__novo") as GameSectionKey, key as GameSectionKey], 1);
 
-const LAYOUT: ContentPageDef = {
+/**
+ * Cabeçalho e Rodapé eram UMA página ("Cabeçalho e rodapé") com 13 sessões
+ * misturadas — inclusive WhatsApp, logo e CNPJ. Desde 2026-10-01 são duas, e
+ * os dados da loja foram para Configurações (`features/admin/settings`).
+ * O slug antigo `layout` redireciona para `cabecalho` (ver `/admin/paginas`).
+ */
+const CABECALHO: ContentPageDef = {
   kind: "content",
-  slug: "layout",
-  label: "Cabeçalho e rodapé",
+  slug: "cabecalho",
+  label: "Cabeçalho",
   href: "/",
   catalogPage: "layout",
+  sectionKeys: ["header-acoes", "header-busca", "header-selo"],
+  previewPath: "/previa/home",
+  previewAnchor: "top",
+};
+
+const RODAPE: ContentPageDef = {
+  kind: "content",
+  slug: "rodape",
+  label: "Rodapé",
+  href: "/",
+  catalogPage: "layout",
+  sectionKeys: ["footer-coluna-1", "footer-coluna-2", "footer-coluna-3", "footer-sobre"],
+  previewPath: "/previa/home",
+  previewAnchor: "bottom",
 };
 
 /** Referências, notícias e dúvidas que aparecem em TODAS as páginas de jogo. */
 const GAMES_SHARED: ContentPageDef = {
   kind: "content",
   slug: "jogos-compartilhado",
-  label: "Páginas de jogo — conteúdo comum",
+  label: "Textos comuns dos jogos",
   href: "/",
   catalogPage: "games",
+  previewPath: null,
 };
 
 const LEGAL: ContentPageDef = {
@@ -135,9 +166,10 @@ const LEGAL: ContentPageDef = {
   label: "Termos e privacidade",
   href: "/termos",
   catalogPage: "legal",
+  previewPath: null,
 };
 
-export const STATIC_PAGES: readonly BuilderPageDef[] = [HOME, VENDA, FIDELIDADE, LAYOUT, GAMES_SHARED, LEGAL];
+export const STATIC_PAGES: readonly BuilderPageDef[] = [HOME, VENDA, FIDELIDADE, CABECALHO, RODAPE, GAMES_SHARED, LEGAL];
 
 /** Resolve o slug (inclusive `jogo-<id>`, com a lista de jogos). */
 export function builderPage(

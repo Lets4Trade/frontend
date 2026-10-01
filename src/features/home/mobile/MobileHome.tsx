@@ -3,6 +3,7 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/Button";
 import { CountUp } from "@/components/ui/CountUp";
 import type { SectionItemView, SectionView } from "@/features/site/content";
+import { MAX_HOME_STATS } from "@/features/site/sections";
 import { cn } from "@/lib/cn";
 import { RichText, alignClass, splitAlign } from "@/features/site/richText";
 import { BLOG_CARD } from "../guides";
@@ -119,9 +120,11 @@ async function MobileNav({ stats }: { stats: SectionItemView[] }) {
       </div>
 
       {stats.length > 0 ? (
-        <dl className="grid grid-cols-2 gap-[12px] py-[20px] text-center">
-          {stats.slice(0, 2).map((stat) => (
-            <div key={stat.id}>
+        // Dois por linha; com 3, o último fica centrado embaixo. Mesmo teto do
+        // desktop (`MAX_HOME_STATS`) — antes só os 2 primeiros apareciam.
+        <dl className="flex flex-wrap justify-center gap-y-[16px] py-[20px] text-center">
+          {stats.slice(0, MAX_HOME_STATS).map((stat) => (
+            <div key={stat.id} className="w-1/2 px-[6px]">
               <dt className="sr-only">{stat.body}</dt>
               <dd className="font-poppins text-[32px] leading-[40px] font-semibold text-brand-orange">
                 <CountUp value={stat.title} />

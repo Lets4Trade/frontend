@@ -37,7 +37,7 @@ export function HomeGamesMenu({
       <DropdownMenu.Trigger asChild>
         <button
           type="button"
-          aria-label={`${label} — ver todos os jogos`}
+          aria-label={`${label}: ver todos os jogos`}
           {...revealAttrs}
           className="nav-item absolute top-[50px] cursor-pointer outline-none focus-visible:rounded-[12px] focus-visible:ring-2 focus-visible:ring-brand-orange"
           style={style}

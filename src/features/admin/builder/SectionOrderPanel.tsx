@@ -157,7 +157,7 @@ export function SectionOrderPanel({
         <a href="/admin/paginas" className="text-brand-orange hover:underline">
           Páginas
         </a>{" "}
-        → &quot;Jogo — …&quot;. Depois de publicada lá, a ordem de lá é a que vale.
+        → &quot;Jogo: …&quot;. Depois de publicada lá, a ordem de lá é a que vale.
       </p>
       <DndContext
         accessibility={{ announcements }}
@@ -218,7 +218,7 @@ export function SectionOrderPanel({
       <div className="flex flex-wrap items-center justify-between gap-[15px]">
         <p className="max-w-[520px] font-poppins text-[13px] text-brand-fg-subtle">
           Arraste pela alça (⠿) ou use os botões ↑ e ↓ para mover uma posição. A
-          pré-visualização mostra o resultado na hora — nada é publicado até
+          pré-visualização mostra o resultado na hora, e nada é publicado até
           apertar “SALVAR E PUBLICAR PAGE”.
         </p>
 
@@ -249,7 +249,7 @@ export function SectionOrderPanel({
           role="alert"
           className="rounded-[12px] border border-brand-orange/40 bg-brand-orange/10 px-[20px] py-[15px] font-poppins text-[13px] text-white"
         >
-          A lista de produtos está escondida — a loja deste game vai abrir sem
+          A lista de produtos está escondida: a loja deste game vai abrir sem
           nada para comprar. É permitido, mas raramente é o que se quer.
         </p>
       )}

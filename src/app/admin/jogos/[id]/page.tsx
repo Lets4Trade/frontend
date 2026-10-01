@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getBuilderGame } from "@/features/admin/builder/list";
 import { parseCentralQuery } from "@/features/admin/games/central";
@@ -47,19 +48,34 @@ export default async function GameCentralPage({ params, searchParams }: PageProp
 
   return (
     <div className={`${ADMIN_SHELL} pb-[120px]`}>
-      <header className="flex flex-wrap items-end justify-between gap-[15px]">
+      {/* Cabeçalho "clean" (2026-10-01): voltar, nome, ver na loja e as seções
+          como abas logo abaixo — antes eram uma coluna à esquerda, que somada à
+          coluna de abas deixava três colunas na tela. */}
+      <header className="flex flex-col gap-[16px]">
         <div className="min-w-0">
-          <p className="font-poppins text-[13px] font-bold tracking-[0.5px] text-brand-fg-subtle uppercase">Jogo</p>
-          <h1 className="mt-[6px] truncate font-helvetica text-[30px] leading-none font-bold tracking-[0.3px] text-white">
-            {game.name}
-          </h1>
+          <Link
+            href="/admin/jogos"
+            className="font-poppins text-[13px] font-bold text-brand-orange transition-opacity hover:opacity-80"
+          >
+            ← Jogos
+          </Link>
+          <div className="mt-[4px] flex flex-wrap items-baseline gap-x-[14px]">
+            <h1 className="truncate font-helvetica text-[28px] leading-tight font-bold text-white">{game.name}</h1>
+            <a
+              href={`/games/${encodeURIComponent(game.slug)}`}
+              target="_blank"
+              rel="noopener"
+              className="font-poppins text-[13px] text-white/60 transition-colors hover:text-white"
+            >
+              Ver na loja ↗
+            </a>
+          </div>
         </div>
+        <GameAdminNav game={game} active={query.section} variant="bar" showExtras={false} />
       </header>
 
-      <div className="mt-[30px] flex flex-col gap-[30px] lg:flex-row lg:items-start">
-        <GameAdminNav game={game} active={query.section} />
-
-        <div className="min-w-0 flex-1">
+      <div className="mt-[28px]">
+        <div className="min-w-0">
           {query.section === "visao-geral" ? (
             <OverviewSection game={game} />
           ) : query.section === "pagina" ? (

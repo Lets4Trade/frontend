@@ -8,7 +8,7 @@ import { getLayoutContent } from "./layoutContent";
  * Até 2026-09-14 cada tela tinha o seu: "Venda pra nós" mostrava o placeholder
  * `+55 11 90000-0000` e o botão "fechar pelo WhatsApp" do checkout apontava
  * para `#`. O valor agora vem da sessão `layout:contatos`, editada em
- * "Cabeçalho e rodapé → Contato e atendimento", e toda tela que precisa de um
+ * "Configurações da loja → Atendimento" (`/admin/configuracoes`), e toda tela que precisa de um
  * canal pergunta AQUI.
  *
  * ── Leitura cacheada ───────────────────────────────────────────────────────

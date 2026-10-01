@@ -100,7 +100,7 @@ export function ProductOrderBoard({
       <div className="sticky top-[12px] z-20 flex flex-wrap items-center gap-[16px] rounded-[20px] border border-brand-border bg-brand-surface/95 px-[20px] py-[14px] backdrop-blur-[10px]">
         <p className="font-helvetica text-[14px] text-brand-fg-muted">
           <strong className="font-bold text-white">{order.length} produtos.</strong> Arraste para
-          mudar a ordem — os {ROW} primeiros formam a <strong className="text-white">1ª fileira</strong> da
+          mudar a ordem. Os {ROW} primeiros formam a <strong className="text-white">1ª fileira</strong> da
           vitrine.
         </p>
 

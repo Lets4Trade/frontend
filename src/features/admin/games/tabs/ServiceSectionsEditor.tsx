@@ -43,9 +43,12 @@ export function fromSectionDrafts(drafts: readonly SectionDraft[]): TabSection[]
 export function ServiceSectionsEditor({
   sections,
   onChange,
+  emptyText = "Nenhum texto ainda. A coluna da esquerda da aba fica vazia na loja.",
 }: {
   sections: SectionDraft[];
   onChange: (next: SectionDraft[]) => void;
+  /** O que dizer sem nenhuma seção — o efeito muda conforme quem usa o editor. */
+  emptyText?: string;
 }) {
   function patchSection(key: string, next: Partial<SectionDraft>) {
     onChange(sections.map((section) => (section.key === key ? { ...section, ...next } : section)));
@@ -55,7 +58,7 @@ export function ServiceSectionsEditor({
     <div className="flex flex-col gap-[20px]">
       {sections.length === 0 ? (
         <p className="font-poppins text-[13px] text-brand-fg-subtle">
-          Nenhum texto ainda. A coluna da esquerda da aba fica vazia na loja.
+          {emptyText}
         </p>
       ) : null}
 
@@ -169,7 +172,7 @@ export function ServiceSectionsEditor({
         + Adicionar seção de texto
       </button>
       <p className="-mt-[10px] font-poppins text-[12px] text-brand-fg-subtle">
-        Até {MAX_SECTIONS} seções com {MAX_ITEMS} itens cada. Texto simples — sem formatação nem links.
+        Até {MAX_SECTIONS} seções com {MAX_ITEMS} itens cada. Texto simples, sem formatação nem links.
       </p>
     </div>
   );

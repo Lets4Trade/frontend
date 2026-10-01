@@ -126,6 +126,11 @@ export type GameProduct = {
    * anterior a 2026-09-30, que nem conhece o campo.
    */
   highlights: string[];
+  /**
+   * Textos da página do PACOTE (à esquerda, "What you will get"...) — POR
+   * produto desde 2026-10-01. Ausente = a página usa os textos da aba.
+   */
+  content?: ServiceContent;
 };
 
 export type GameReference = {

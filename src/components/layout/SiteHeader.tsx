@@ -32,7 +32,7 @@ import { UserMenu } from "./UserMenu";
  *
  * ── O que é editável, e onde ──────────────────────────────────────────────
  * Logo, rótulos dos três botões, texto de exemplo da busca e o selo saem da
- * página "Cabeçalho e rodapé" em `/admin/sessoes`. A leitura é cacheada com
+ * página "Cabeçalho" em `/admin/paginas` e em Configurações da loja. A leitura é cacheada com
  * invalidação por etiqueta (`features/site/layoutContent.ts`): o cabeçalho
  * renderiza em TODA requisição do site e não pode custar uma ida ao backend por
  * página.
@@ -76,7 +76,7 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
   ]);
 
   // Os rótulos e a marca vêm do painel ("Cabeçalho e rodapé" em
-  // `/admin/sessoes`). A leitura é cacheada com invalidação por etiqueta — ver
+  // Páginas → Cabeçalho). A leitura é cacheada com invalidação por etiqueta — ver
   // `features/site/layoutContent.ts`.
   const brand = layout.text("marca");
   const badge = layout.text("header-selo");
@@ -92,7 +92,9 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
       <GlowBar className="-top-[2px]" />
 
       <div className="relative mx-auto flex h-full max-w-[1920px] items-center gap-[12px] px-[25px] md:gap-[25px] md:px-6 lg:px-[50px]">
-        <Link href="/" aria-label="Lets4Trade — página inicial" className="shrink-0">
+        {/* `data-admin-section`: na prévia do painel, clicar aqui abre o campo
+            certo (ver `features/pages/editor/previewPick.ts`). Na loja é inerte. */}
+        <Link href="/" aria-label="Lets4Trade, página inicial" className="shrink-0" data-admin-section="layout:marca">
           <Image
             src={brand.imageUrl ?? "/images/lets4trade-logo.png"}
             alt="Lets4Trade"
@@ -119,10 +121,14 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
             header inteiro, não ao espaço que sobra, então ele não se move. */}
         {/* GAMES abre a lista de todos os jogos ativos. É o único pedaço
             client desta metade do header — ver `GamesMenu`. */}
-        <GamesMenu label={actions.title} games={games} />
+        <div className="contents" data-admin-section="layout:header-acoes">
+          <GamesMenu label={actions.title} games={games} />
+        </div>
 
         {/* Busca com sugestões de jogos e produtos — client, ver `HeaderSearch`. */}
-        <HeaderSearch placeholder={search.title} />
+        <div className="contents" data-admin-section="layout:header-busca">
+          <HeaderSearch placeholder={search.title} />
+        </div>
 
         {/* Selo "+1000 REFERÊNCIAS" — o número usa o degradê laranja recortado
             no texto (bg-clip-text), como no design.
@@ -134,7 +140,10 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
             do header e não se move, seja qual for a largura dos lados. */}
         {/* No celular o selo volta (o desenho mobile o tem no centro, menor); só
             some na faixa md–xl, onde os botões do desktop ocupam o meio. */}
-        <div className="pointer-events-none absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center leading-none md:hidden xl:flex">
+        <div
+          data-admin-section="layout:header-selo"
+          className="pointer-events-none absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center leading-none md:hidden xl:flex"
+        >
           <div className="flex items-center gap-2">
             <span className="bg-gradient-to-b from-brand-orange to-brand-orange-deep bg-clip-text font-korataki text-[15px] font-bold tracking-[0.2px] text-transparent md:text-[20px]">
               <CountUp value={badge.title} />
@@ -154,6 +163,7 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
                   motivo de o cabeçalho parecer "morto" para login e cadastro. */}
               <Link
                 href="/criar-conta"
+                data-admin-section="layout:header-acoes"
                 className={cn(
                   buttonVariants({ variant: "outline" }),
                   "hidden min-w-[197px] px-[20px] lg:inline-flex",
@@ -163,6 +173,7 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
               </Link>
               <Link
                 href="/login"
+                data-admin-section="layout:header-acoes"
                 className={cn(
                   buttonVariants({ variant: "cta" }),
                   // No celular o login vai para dentro do menu (`MobileMenu`).

@@ -209,7 +209,7 @@ function QuantityPanel({
 
         <div className="mt-[15px] flex min-h-[115px] items-center justify-between gap-[15px] rounded-[8px] border-2 border-white/10 bg-[image:var(--brand-surface-fill)] px-[20px] py-[20px] backdrop-blur-[100px]">
           <p aria-live="polite" className="min-w-0 font-poppins text-[18px] leading-[27px] font-bold tracking-[0.18px] break-words text-white">
-            {unavailable ? "—" : result.ok ? formatPrice(result.totalCents) : "—"}
+            {unavailable ? "-" : result.ok ? formatPrice(result.totalCents) : "-"}
           </p>
           <div className="relative h-[65px] w-[95px] shrink-0 overflow-hidden rounded-[8px] bg-[#2f2f2f]">
             {product.image ? (

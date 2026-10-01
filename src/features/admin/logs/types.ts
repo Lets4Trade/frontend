@@ -79,7 +79,7 @@ export function actorTypeLabel(type: AuditActorType): string {
  */
 export function formatEventTime(iso: string): string {
   const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) return "-";
 
   return new Intl.DateTimeFormat("pt-BR", {
     timeZone: "America/Sao_Paulo",

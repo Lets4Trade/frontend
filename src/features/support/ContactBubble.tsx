@@ -37,7 +37,8 @@ import { listTime, type ConversationSummary } from "./types";
 
 type View = { name: "list" } | { name: "new" } | { name: "thread"; conversation: ConversationSummary };
 
-const HIDDEN_PREFIXES = ["/admin", "/checkout"];
+// `/previa`: a prévia do painel (iframe) mostra a página, não o atendimento.
+const HIDDEN_PREFIXES = ["/admin", "/checkout", "/previa"];
 /** Âncora que o login devolve para reabrir o popup onde a pessoa estava. */
 const OPEN_HASH = "#atendimento";
 
@@ -171,7 +172,7 @@ export function ContactBubble({ whatsappHref }: { whatsappHref?: string }) {
         type="button"
         onClick={() => (open ? close() : setOpen(true))}
         aria-expanded={open}
-        aria-label={unread > 0 ? `Atendimento — ${unread} conversa(s) com resposta nova` : "Atendimento"}
+        aria-label={unread > 0 ? `Atendimento: ${unread} conversa(s) com resposta nova` : "Atendimento"}
         className={cn(
           "contact-float fixed right-[16px] bottom-[16px] z-40 flex size-[72px] items-center justify-center rounded-full border border-white/10 bg-black/10 backdrop-blur-[10.8px] transition-[border-color,background-color] duration-[var(--dur-micro,160ms)] hover:border-brand-orange/60 hover:bg-black/30 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none sm:right-[24px] sm:bottom-[24px]",
           open && "border-brand-orange/60 bg-black/40",

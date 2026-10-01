@@ -41,4 +41,4 @@ export const ACTION_FAILED_UPLOAD_MESSAGE =
 
 /** Aviso para as ações sem arquivo — rede, sessão da página, servidor. */
 export const ACTION_FAILED_MESSAGE =
-  "Não foi possível concluir agora. Confira sua conexão e tente de novo — se persistir, recarregue a página.";
+  "Não foi possível concluir agora. Confira sua conexão e tente de novo. Se persistir, recarregue a página.";

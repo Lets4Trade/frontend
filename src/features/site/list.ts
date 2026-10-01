@@ -43,12 +43,14 @@ export type SectionItem = {
  */
 export type SectionsSnapshot = {
   sections: SectionContent[];
+  /** A leitura falhou — lista vazia aqui NÃO quer dizer "nada preenchido". */
+  failed?: true;
 };
 
 /** As sessões que a tela do painel edita. */
 export async function getSectionsAdmin(): Promise<SectionsSnapshot> {
   const result = await apiGet<SectionsSnapshot>("/admin/sections");
-  if (!result.ok) return { sections: [] };
+  if (!result.ok) return { sections: [], failed: true };
 
   return {
     sections: (result.data.sections ?? []).map((section) => ({

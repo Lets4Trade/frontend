@@ -91,12 +91,12 @@ export function LogsTable({ entries }: { entries: AuditEntry[] }) {
                     {entry.entityId ? ` ${entry.entityId.slice(0, 8)}…` : ""}
                   </span>
                 ) : (
-                  "—"
+                  "-"
                 )}
               </Cell>
 
-              <Cell>{entry.path ?? "—"}</Cell>
-              <Cell>{entry.ip ?? "—"}</Cell>
+              <Cell>{entry.path ?? "-"}</Cell>
+              <Cell>{entry.ip ?? "-"}</Cell>
             </tr>
           ))}
         </tbody>

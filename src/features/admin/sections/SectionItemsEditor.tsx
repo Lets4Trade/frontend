@@ -76,7 +76,7 @@ export function SectionItemsEditor({
    * anterior sob o nome da nova — e é o que a regra `set-state-in-effect` existe
    * para evitar. Comparar a chave durante o render é o padrão que o próprio
    * React documenta para "estado derivado de prop", e o mesmo já usado no campo
-   * de título do `SectionsEditor`.
+   * de título do formulário da seção (`SectionContentForm`).
    */
   if (askedKey !== sectionKey) {
     setAskedKey(sectionKey);
@@ -240,6 +240,20 @@ export function SectionItemsEditor({
             ))}
           </ul>
 
+          {def.max !== undefined ? (
+            <p
+              className={
+                items.filter((item) => item.isActive).length > def.max
+                  ? "mt-[14px] rounded-[12px] border border-brand-orange/50 bg-brand-orange/10 px-[12px] py-[9px] font-helvetica text-[13px] text-white"
+                  : "mt-[14px] font-helvetica text-[13px] text-brand-fg-subtle"
+              }
+            >
+              {items.filter((item) => item.isActive).length > def.max ? "⚠ " : ""}A loja mostra até {def.max} itens
+              visíveis, na ordem desta lista
+              {items.filter((item) => item.isActive).length > def.max ? ": os de baixo estão fora da loja." : "."}
+            </p>
+          ) : null}
+
           {items.length === 0 ? (
             <p className="mt-[10px] font-poppins text-[14px] text-brand-fg-subtle">
               Nenhum {def.itemLabel} nesta sessão. A loja mostra o bloco vazio
@@ -317,7 +331,7 @@ function ItemRow({
           <span className="font-poppins text-[13px] font-bold tracking-[0.13px] text-brand-fg-subtle uppercase">
             {isNew
               ? `Adicionar ${def.itemLabel}`
-              : `${def.itemLabel} ${index + 1}${item && !item.isActive ? " — escondido" : ""}`}
+              : `${def.itemLabel} ${index + 1}${item && !item.isActive ? " (escondido)" : ""}`}
           </span>
 
           {!isNew && item ? (
@@ -383,11 +397,11 @@ function ItemRow({
                 o admin precisar procurar — ele mora no cadastro do jogo. */}
             <p className="mt-[6px] font-poppins text-[12px] text-brand-fg-subtle">
               {item?.game
-                ? `Link: /games/${item.game.slug} — para mudar, edite o jogo no Builder.`
+                ? `Link: /games/${item.game.slug} (para mudar, edite o jogo no Builder).`
                 : item?.gameRemoved
-                  ? `O jogo deste ${def.itemLabel} foi excluído — ele está FORA da loja. Escolha outro jogo.`
+                  ? `O jogo deste ${def.itemLabel} foi excluído e está FORA da loja. Escolha outro jogo.`
                   : item?.title
-                    ? `Sem jogo ligado — hoje mostra "${item.title}"${item.href ? ` → ${item.href}` : ""}.`
+                    ? `Sem jogo ligado. Hoje mostra "${item.title}"${item.href ? ` → ${item.href}` : ""}.`
                     : "Nome e link vêm do jogo escolhido."}
             </p>
           </div>

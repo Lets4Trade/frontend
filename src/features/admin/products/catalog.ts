@@ -26,6 +26,8 @@ export type AdminProduct = {
   pricing?: Pricing | null;
   /** Tópicos do card de PACOTE (v2). Ausente (backend antigo) = `[]`. */
   highlights?: string[];
+  /** Textos da página do PACOTE (2026-10-01). Nulo/ausente = usa os da aba. */
+  content?: { sections: { title: string; items: string[] }[] } | null;
   /** Caminho servido pelo BACKEND (`/uploads/products/…`), não pelo Next. */
   imageUrl: string | null;
   serverId: string | null;
@@ -45,29 +47,20 @@ export type AdminProductPage = {
 };
 
 /**
- * Ordenações. As quatro últimas são as MESMAS do `SORT_OPTIONS` da vitrine, e
- * é de propósito: o arquivo desenha as mesmas quatro caixinhas nas duas telas.
- *
- * O select "Mais recente" e as caixinhas são o mesmo estado, com seis valores.
- * Dois controles de ordenação independentes deixariam a tela sem resposta para
- * "ordenado por quê, afinal?" — e o arquivo desenha os dois lado a lado.
+ * Ordenações — UM controle só desde 2026-10-01 ("deixar clean"). Antes eram um
+ * select (recente/antigo) e quatro caixinhas (A-Z, preço) lado a lado, que
+ * mexiam no mesmo estado: dois controles para uma pergunta só.
  */
-export const SORT_SELECT = [
-  { value: "recente", label: "Mais recente" },
-  { value: "antigo", label: "Mais antigo" },
-] as const;
-
-export const SORT_BOXES = [
-  { value: "az", label: "De A a Z" },
-  { value: "za", label: "De Z a A" },
+export const SORT_OPTIONS = [
+  { value: "recente", label: "Mais recentes" },
+  { value: "antigo", label: "Mais antigos" },
+  { value: "az", label: "Nome (A–Z)" },
+  { value: "za", label: "Nome (Z–A)" },
   { value: "menor", label: "Menor preço" },
   { value: "maior", label: "Maior preço" },
 ] as const;
 
-const SORTS = new Set<string>([
-  ...SORT_SELECT.map((o) => o.value),
-  ...SORT_BOXES.map((o) => o.value),
-]);
+const SORTS = new Set<string>(SORT_OPTIONS.map((o) => o.value));
 
 /** Nomes dos parâmetros, num lugar só porque links e leitura usam os dois. */
 export const PARAM = {
@@ -77,6 +70,8 @@ export const PARAM = {
    * Não há mais filtro por "tipo" sem jogo (FASE 5): aba é coisa de UM jogo.
    */
   tab: "aba",
+  /** Servidor (id) — só com jogo escolhido (2026-10-01). */
+  server: "servidor",
   sort: "ordem",
   search: "busca",
   page: "pagina",
@@ -86,6 +81,8 @@ export type ProductsQuery = {
   game: string;
   /** Aba do jogo. Validada contra as abas do jogo na PÁGINA, que as lê. */
   tab: string;
+  /** Servidor do jogo. Validado contra os servidores do jogo na página. */
+  server: string;
   sort: string;
   search: string;
   page: number;
@@ -112,6 +109,7 @@ export function parseProductsQuery(
 ): ProductsQuery {
   const rawGame = first(params[PARAM.game]) ?? "";
   const rawTab = first(params[PARAM.tab]) ?? "";
+  const rawServer = first(params[PARAM.server]) ?? "";
   const rawSort = first(params[PARAM.sort]) ?? "";
   const rawPage = Number.parseInt(first(params[PARAM.page]) ?? "1", 10);
 
@@ -121,6 +119,7 @@ export function parseProductsQuery(
     // Aba só existe dentro de um jogo. Aqui só o FORMATO (é id opaco); se ela é
     // mesmo deste jogo, a página confere com a lista de abas que ela lê.
     tab: game !== "" && /^[A-Za-z0-9_-]{1,100}$/.test(rawTab) ? rawTab : "",
+    server: game !== "" && /^[A-Za-z0-9_-]{1,100}$/.test(rawServer) ? rawServer : "",
     sort: SORTS.has(rawSort) ? rawSort : "recente",
     search: (first(params[PARAM.search]) ?? "").slice(0, 80),
     page: Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1,
@@ -143,9 +142,13 @@ export function buildHref(
 
   const search = new URLSearchParams();
   if (next.game) search.set(PARAM.game, next.game);
-  // Trocar de jogo zera a aba: ela é de UM jogo só.
-  if (patch.game !== undefined && patch.game !== query.game && patch.tab === undefined) next.tab = "";
+  // Trocar de jogo zera aba e servidor: são de UM jogo só.
+  if (patch.game !== undefined && patch.game !== query.game) {
+    if (patch.tab === undefined) next.tab = "";
+    if (patch.server === undefined) next.server = "";
+  }
   if (next.tab) search.set(PARAM.tab, next.tab);
+  if (next.server) search.set(PARAM.server, next.server);
   // "recente" é o padrão do backend; omiti-lo mantém a URL limpa.
   if (next.sort && next.sort !== "recente") search.set(PARAM.sort, next.sort);
   if (next.search) search.set(PARAM.search, next.search);

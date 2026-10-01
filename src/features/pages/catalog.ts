@@ -58,7 +58,7 @@ export type BlockDefinition<T extends BlockType = BlockType> = {
 
 /** Nome de cada sessão ATUAL da home, como o cliente a reconhece. */
 export const LEGACY_LABELS: Record<string, string> = {
-  hero: "Hero — carrossel de jogos",
+  hero: "Hero (carrossel de jogos)",
   navegacao: "Contadores e atalhos",
   video: "Vídeo",
   reviews: "Reviews",
@@ -219,7 +219,7 @@ export const BLOCKS: { [K in BlockType]: BlockDefinition<K> } = {
   banner: {
     type: "banner",
     label: "Banner",
-    description: "Uma imagem larga, clicável — campanha, promoção.",
+    description: "Uma imagem larga e clicável: campanha, promoção.",
     fields: [
       { kind: "image", name: "image", label: "Imagem (computador)", hint: "Larga, ex.: 1820×500." },
       { kind: "image", name: "mobileImage", label: "Imagem no celular (opcional)", hint: "Mais alta, ex.: 800×800. Sem ela, usa a do computador." },
@@ -380,7 +380,7 @@ export function blockTitle(block: Block, legacyLabels: Record<string, string> = 
   if (block.type === "secao") return legacyLabels[block.props.key] ?? block.props.key;
   const def = BLOCKS[block.type];
   const title = "title" in block.props ? block.props.title?.trim() : "";
-  return title ? `${def.label} — ${title}` : def.label;
+  return title ? `${def.label}: ${title}` : def.label;
 }
 
 /** Vão acima do bloco, em pixels, por opção de espaçamento. */

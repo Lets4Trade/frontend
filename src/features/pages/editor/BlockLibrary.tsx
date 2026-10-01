@@ -36,7 +36,7 @@ export function BlockLibrary({
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger className="flex h-[42px] w-full items-center justify-center gap-[8px] rounded-[14px] border border-dashed border-white/25 font-poppins text-[13px] font-bold text-white transition-colors hover:border-brand-orange hover:bg-brand-orange/5">
-        + Adicionar bloco
+        + Adicionar seção
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content

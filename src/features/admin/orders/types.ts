@@ -129,14 +129,14 @@ const dateTimeFormatter = new Intl.DateTimeFormat("pt-BR", {
 
 export function formatDateTime(iso: string) {
   const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) return "-";
   // O `Intl` devolve "17/04/26, 05:34"; o arquivo não tem a vírgula.
   return dateTimeFormatter.format(date).replace(",", "");
 }
 
 /** Célula vazia vira travessão — coluna em branco parece defeito de carga. */
 export function orDash(value: string | null | undefined) {
-  return value && value.trim() !== "" ? value : "—";
+  return value && value.trim() !== "" ? value : "-";
 }
 
 /** "499.80" → "R$ 499,80". Converte uma vez só, para exibir. */

@@ -16,7 +16,7 @@ import { getSessionUserId } from "@/features/auth/session";
 import { requireAdminPage } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
-  title: "Chats — Lets4Trade",
+  title: "Chats | Lets4Trade",
   robots: { index: false, follow: false },
 };
 

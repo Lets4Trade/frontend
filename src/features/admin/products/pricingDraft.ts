@@ -188,9 +188,7 @@ export function draftToPricing(
       step: toInt(draft.step),
       ...(parsePresets(draft.presets).length > 0 ? { presets: parsePresets(draft.presets) } : {}),
       ...(draft.hoursPerUnit.trim() === "" ? {} : { hoursPerUnit: toNumber(draft.hoursPerUnit) }),
-      ...(draft.tiers.length > 0
-        ? { tiers: draft.tiers.map((tier) => ({ from: toInt(tier.from), unitPriceCents: tier.unitPriceCents })) }
-        : {}),
+      // `tiers` (desconto por quantidade) não é mais gravado — 2026-10-01.
       ...common,
     };
   } else {

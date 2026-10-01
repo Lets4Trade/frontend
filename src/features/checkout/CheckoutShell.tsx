@@ -53,7 +53,7 @@ export async function CheckoutShell({ children }: { children: ReactNode }) {
               painel, que é um bloco comum. O painel declara `z-10` do outro
               lado (ver `CheckoutSidePanel`). */}
           <header className="absolute top-0 left-0 z-0 flex h-[83px] w-[1077px] items-center bg-black/50 px-[50px] backdrop-blur-[9px]">
-            <Link href="/" aria-label="Lets4Trade — início">
+            <Link href="/" aria-label="Lets4Trade, início">
               <Image
                 src={brand.imageUrl ?? "/images/lets4trade-logo.png"}
                 alt=""

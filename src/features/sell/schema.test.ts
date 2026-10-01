@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { JOGOS, createSellSchema, sellGameOptions } from "./schema";
+import { JOGOS, OUTROS, PLATAFORMAS, SERVIDORES, TIPOS_PRODUTO, createSellSchema, sellGameOptions } from "./schema";
 
 const valid = {
   plataforma: "steam",
@@ -37,5 +37,21 @@ describe("createSellSchema", () => {
     expect(schema.safeParse({ ...valid, jogo: "inventado" }).success).toBe(false);
     // Sem o jogo da página, a lista padrão não o aceita.
     expect(createSellSchema().safeParse({ ...valid, jogo: "diablo-4" }).success).toBe(false);
+  });
+});
+
+describe("opção Outros", () => {
+  it("todo select termina com Outros", () => {
+    for (const list of [JOGOS, PLATAFORMAS, SERVIDORES, TIPOS_PRODUTO]) expect(list.at(-1)).toEqual(OUTROS);
+  });
+
+  it("continua no fim quando o jogo da página entra no topo", () => {
+    const { options } = sellGameOptions({ slug: "diablo-4", name: "Diablo IV" });
+    expect(options.at(-1)).toEqual(OUTROS);
+  });
+
+  it("é aceito em todos os campos", () => {
+    const outros = { ...valid, jogo: "outros", plataforma: "outros", servidor: "outros", tipoProduto: "outros" };
+    expect(createSellSchema().safeParse(outros).success).toBe(true);
   });
 });

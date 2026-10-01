@@ -179,3 +179,15 @@ describe("withEffectivePricing", () => {
     expect(withEffectivePricing([invalid], "QUANTITY")[0]).toEqual(invalid);
   });
 });
+
+describe("tabHrefWithServer (servidor se mantém ao trocar de aba)", async () => {
+  const { tabHrefWithServer } = await import("./storefrontTabs");
+  it("anexa o servidor nas abas da página e não mexe em aba de link", () => {
+    expect(tabHrefWithServer({ href: "/games/poe2?aba=boosting", layout: "PACKAGES" }, "hardcore")).toBe(
+      "/games/poe2?aba=boosting&servidor=hardcore",
+    );
+    expect(tabHrefWithServer({ href: "/games/poe2", layout: "CATALOG" }, "hardcore")).toBe("/games/poe2?servidor=hardcore");
+    expect(tabHrefWithServer({ href: "/fidelidade", layout: "LINK" }, "hardcore")).toBe("/fidelidade");
+    expect(tabHrefWithServer({ href: "/games/poe2", layout: "CATALOG" }, "")).toBe("/games/poe2");
+  });
+});

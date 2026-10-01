@@ -10,7 +10,7 @@ import { ACTION_FAILED_MESSAGE, runAction } from "@/lib/safeAction";
  * Lixeira do card de jogo em `/admin/builder` (2026-09-25, fora do Figma — o
  * arquivo não desenha exclusão de jogo em lugar nenhum).
  *
- * Mesma confirmação por popover da lixeira de produto (`AdminProductCard`), e
+ * Mesma confirmação por popover da lixeira de produto (`ProductTable`), e
  * pelo mesmo motivo: o botão fica em cima de um card que é LINK, e um clique
  * um pouco fora do alvo não pode tirar um jogo inteiro da loja sem aviso.
  *
@@ -41,7 +41,7 @@ export function DeleteGameButton({ id, name }: { id: string; name: string }) {
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger
         aria-label={`Excluir ${name}`}
-        className="flex size-[32px] items-center justify-center rounded-[8px] border border-white/10 bg-[image:var(--brand-surface-fill)] transition-opacity hover:opacity-90"
+        className="flex size-[36px] items-center justify-center rounded-[10px] border border-white/10 transition-colors hover:bg-white/5"
       >
         <Image
           src="/icons/admin/trash.svg"

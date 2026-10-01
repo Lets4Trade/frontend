@@ -9,7 +9,7 @@ import { getGameTabs } from "@/features/admin/games/tabs/list";
 import { getSessionRole } from "@/features/auth/session";
 
 export const metadata: Metadata = {
-  title: "Builder de Páginas — Lets4Trade",
+  title: "Builder de Páginas | Lets4Trade",
   // O painel inteiro é `noindex`: são telas atrás de sessão, e o que elas
   // revelam no título já é informação interna.
   robots: { index: false, follow: false },

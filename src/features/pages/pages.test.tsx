@@ -35,7 +35,7 @@ describe("catálogo de blocos", () => {
   });
 
   it("rótulo da lista usa o título quando há", () => {
-    expect(blockTitle(createBlock("hero", { title: "Promo", align: "left" }))).toBe("Destaque — Promo");
+    expect(blockTitle(createBlock("hero", { title: "Promo", align: "left" }))).toBe("Destaque: Promo");
     expect(blockTitle(createBlock("secao", { key: "reviews" }))).toBe("Reviews");
   });
 });
@@ -176,7 +176,8 @@ describe("fase 4 — várias páginas", async () => {
 
   it("resolve páginas fixas, de jogo (pelo ID) e recusa o resto", () => {
     expect(builderPage("venda", games)?.kind).toBe("blocks");
-    expect(builderPage("layout", games)?.kind).toBe("content");
+    expect(builderPage("cabecalho", games)?.kind).toBe("content");
+    expect(builderPage("rodape", games)?.kind).toBe("content");
     const game = builderPage("jogo-g1", games);
     expect(game).toMatchObject({ kind: "blocks", frame: "game", href: "/games/diablo" });
     expect(builderPage("jogo-nao-existe", games)).toBeNull();

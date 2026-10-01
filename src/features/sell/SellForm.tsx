@@ -149,7 +149,7 @@ export function SellForm({ game }: { game?: { slug: string; name: string } } = {
         <TextAreaField
           name="descricao"
           label="Descrição Sobre o Produto Vendido:"
-          placeholder="Descrição"
+          placeholder="Descrição (se escolheu “Outros”, diga qual)"
           error={fieldErrors.descricao}
         />
       </div>

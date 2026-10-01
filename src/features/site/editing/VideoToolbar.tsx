@@ -49,7 +49,7 @@ export function VideoToolbar({
       ? "Tocando: vídeo enviado"
       : current === "link"
         ? "Tocando: link do YouTube"
-        : "Sem vídeo — só a capa aparece";
+        : "Sem vídeo: só a capa aparece";
 
   return (
     <div

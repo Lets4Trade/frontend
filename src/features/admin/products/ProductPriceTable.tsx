@@ -402,9 +402,9 @@ export function ProductPriceTable({
                         "pr-[10px] py-[6px] text-right text-[12px] sm:pr-[14px]",
                         isInvalid ? "text-red-9" : big ? "font-bold text-red-9" : changed ? "text-brand-orange" : "text-white/30",
                       )}
-                      title={big ? "Variação grande — confira se não sobrou ou faltou um zero." : undefined}
+                      title={big ? "Variação grande. Confira se não sobrou ou faltou um zero." : undefined}
                     >
-                      {isInvalid ? "inválido" : changed ? pct.format(ratio) : "—"}
+                      {isInvalid ? "inválido" : changed ? pct.format(ratio) : "-"}
                     </td>
                   </tr>
                 );

@@ -37,7 +37,7 @@ export function BlogFilters({ games, query }: { games: BlogGameRef[]; query: Blo
                 aria-current={active ? "page" : undefined}
                 // Rótulo explícito: sem ele o leitor de tela leria o `alt` da
                 // logo e o nome da pílula, o mesmo jogo duas vezes.
-                aria-label={active ? `${game.name} (filtro ativo — remover)` : `Notícias de ${game.name}`}
+                aria-label={active ? `${game.name} (filtro ativo, clique para remover)` : `Notícias de ${game.name}`}
                 className="group flex shrink-0 items-center gap-[15px] rounded-full outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg"
               >
                 {game.logo ? <LogoHalo src={game.logo} alt="" height={50} /> : null}

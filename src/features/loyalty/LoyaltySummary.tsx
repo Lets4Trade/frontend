@@ -84,7 +84,7 @@ export function LoyaltySummary({
         >
           {/* O equivalente em dinheiro fica NA MESMA LINHA do número, alinhado
               pela base. Sem ele, "1.750" não diz nada a quem nunca leu a regra —
-              e a regra (1 coin = R$ 0,10) vem do backend, não de uma constante
+              e a regra (1 coin = R$ 0,01) vem do backend, não de uma constante
               desta tela. O `StatValue` é um `<p>`, então os dois precisam de um
               flex em volta para não empilhar. */}
           <span className="flex flex-wrap items-baseline gap-x-[12px]">

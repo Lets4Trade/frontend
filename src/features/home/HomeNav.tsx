@@ -1,4 +1,5 @@
 import { editItem } from "@/features/site/editing/attrs";
+import { MAX_HOME_STATS } from "@/features/site/sections";
 import type { SectionItemView } from "@/features/site/content";
 import Link from "next/link";
 import { CountUp } from "@/components/ui/CountUp";
@@ -35,17 +36,31 @@ export const NAV_ITEMS = [
 ];
 
 /**
- * O CENTRO de cada contador, do arquivo (x=390 e x=1494,75 no frame).
+ * O CENTRO de cada contador.
  *
- * Só a posição fica aqui — o número e a legenda vêm do banco, editados em
- * "Edição de sessões" → Home → Contadores. Eram fixos no código, com
- * "EXPÊRIENCIA" escrito errado no ar desde sempre; agora se corrige sem deploy.
+ * O número e a legenda vêm do banco (Páginas → Home → Contadores). Com DOIS,
+ * vale o arquivo: um de cada lado, centrados em x=390 e x=1494,75 do frame.
  *
- * Dois centros para dois contadores: um terceiro não teria onde ficar, então a
- * lista é cortada em dois. É o mesmo compromisso do hero — conteúdo editável,
- * apresentação do arquivo.
+ * Até 2026-10-01 a lista era CORTADA em dois — o terceiro contador salvo no
+ * painel simplesmente não aparecia. Agora cabem até `MAX_HOME_STATS` (4): a
+ * primeira metade (arredondada para cima) à esquerda do menu, o resto à
+ * direita, espaçados por igual no vão livre de cada lado (medido: os
+ * ladrilhos ocupam 679–1135 na faixa de 1820). Um sozinho num lado fica no
+ * centro do arquivo.
  */
-const STAT_CENTERS = [340, 1444.75];
+const SIDE_CENTER = { left: 340, right: 1444.75 } as const;
+const SIDE_SPAN = { left: [20, 640], right: [1175, 1800] } as const;
+
+export function statCenters(count: number): number[] {
+  const n = Math.min(Math.max(count, 0), MAX_HOME_STATS);
+  const leftCount = Math.ceil(n / 2);
+  const side = (which: "left" | "right", k: number) => {
+    if (k === 1) return [SIDE_CENTER[which]];
+    const [from, to] = SIDE_SPAN[which];
+    return Array.from({ length: k }, (_, i) => from + ((to - from) * (i + 0.5)) / k);
+  };
+  return [...side("left", leftCount), ...side("right", n - leftCount)];
+}
 
 /**
  * ASSÍNCRONO desde 2026-09-24: lê a lista de jogos do dropdown do GAMES — a
@@ -56,13 +71,13 @@ export async function HomeNav({ stats = [] }: { stats?: SectionItemView[] }) {
 
   return (
     <section className="relative h-[129px]">
-      {stats.slice(0, STAT_CENTERS.length).map((stat, index) => (
+      {statCenters(stats.length).map((center, index) => (
         <Stat
-          key={stat.id}
-          id={stat.id}
-          center={STAT_CENTERS[index]}
-          value={stat.title}
-          label={stat.body}
+          key={stats[index].id}
+          id={stats[index].id}
+          center={center}
+          value={stats[index].title}
+          label={stats[index].body}
         />
       ))}
 

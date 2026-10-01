@@ -90,7 +90,6 @@ type PendingImage =
 
 export function PageEditor({
   page,
-  pageLabel,
   blocks,
   initialOrder,
   initialHidden,
@@ -98,7 +97,6 @@ export function PageEditor({
   orderLocked = false,
 }: {
   page: string;
-  pageLabel: string;
   blocks: EditorBlock[];
   initialOrder: string[];
   initialHidden: string[];
@@ -579,17 +577,20 @@ export function PageEditor({
       {/* Barra de ações: fica ACIMA e atravessa a largura toda, então a área da
           página não perde espaço para ela — era o que mais apertava a maquete. */}
       <div className="sticky top-[12px] z-20 flex flex-wrap items-center gap-[12px] rounded-[16px] border border-brand-border bg-brand-surface/95 px-[16px] py-[12px] backdrop-blur-[10px]">
-        <button
-          type="button"
-          onClick={toggleSidebar}
-          aria-expanded={sidebarOpen}
-          className="flex h-[38px] items-center gap-[8px] rounded-full border border-white/15 px-[14px] font-poppins text-[13px] text-white transition-colors hover:bg-white/5"
-        >
-          <span aria-hidden>{sidebarOpen ? "◀" : "▶"}</span>
-          Sessões
-        </button>
-
-        <span className="font-poppins text-[14px] text-white/70">{pageLabel}</span>
+        {/* Com a ordem travada (a ordem mora em "Organizar seções") o painel
+            lateral só teria explicações — some, junto com o botão (2026-10-01,
+            "deixar clean"). O nome da página já está no cabeçalho. */}
+        {orderLocked ? null : (
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            aria-expanded={sidebarOpen}
+            className="flex h-[38px] items-center gap-[8px] rounded-full border border-white/15 px-[14px] font-poppins text-[13px] text-white transition-colors hover:bg-white/5"
+          >
+            <span aria-hidden>{sidebarOpen ? "◀" : "▶"}</span>
+            Seções
+          </button>
+        )}
 
         <div className="flex items-center gap-[6px] rounded-full border border-white/15 p-[3px]">
           {(["fit", "100"] as const).map((level) => (
@@ -635,12 +636,12 @@ export function PageEditor({
       </div>
 
       <div className="flex items-start gap-[16px]">
-        {sidebarOpen ? (
+        {sidebarOpen && !orderLocked ? (
           // `sticky`: a lista acompanha a rolagem da página em vez de exigir uma
           // rolagem própria — foi o que tirou a segunda barra de rolagem.
           <aside className="sticky top-[84px] w-[290px] shrink-0">
             <div className="scrollbar-orange max-h-[calc(100dvh-140px)] overflow-y-auto rounded-[20px] border border-brand-border bg-[image:var(--brand-surface-fill)] p-[16px]">
-              <h2 className="font-helvetica text-[15px] font-bold text-white">Sessões</h2>
+              <h2 className="font-helvetica text-[15px] font-bold text-white">Seções</h2>
               <p className="mt-[6px] font-helvetica text-[12px] leading-[17px] text-brand-fg-subtle">
                 Arraste para reordenar; o olho esconde da loja. Na página, clique no texto para editar
                 e na imagem para trocar.

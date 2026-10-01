@@ -69,7 +69,7 @@ export function ConversationThread({
           <p className="truncate font-poppins text-[14px] font-semibold text-white">{conversation.subject}</p>
           <p className="truncate font-helvetica text-[12px] text-brand-fg-subtle">
             {conversation.orderReference ? `Pedido ${conversation.orderReference} · ` : ""}
-            {closed ? "Encerrada — escreva para reabrir" : "Equipe Lets4Trade"}
+            {closed ? "Encerrada. Escreva para reabrir" : "Equipe Lets4Trade"}
           </p>
         </div>
       </div>
@@ -126,7 +126,7 @@ export function ConversationThread({
           <p role="alert" className="mt-[8px] font-helvetica text-[12px] text-red-9">{error}</p>
         ) : status !== "online" ? (
           <p role="status" className="mt-[8px] font-helvetica text-[12px] text-brand-fg-subtle">
-            {status === "conectando" ? "Conectando…" : "Sem tempo real — você ainda pode enviar."}
+            {status === "conectando" ? "Conectando…" : "Sem tempo real, mas você ainda pode enviar."}
           </p>
         ) : null}
       </form>

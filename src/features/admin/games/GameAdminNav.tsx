@@ -20,14 +20,18 @@ export function GameAdminNav({
   active,
   canManage = true,
   variant = "sidebar",
+  showExtras = true,
 }: {
   game: { id: string; slug: string; name: string };
   /** Seção aberta; `null` fora da Central (no Builder). */
   active: CentralSection | null;
   canManage?: boolean;
   variant?: "sidebar" | "bar";
+  /** Falso quando a página já mostra "← Jogos" e "Ver na loja" no cabeçalho. */
+  showExtras?: boolean;
 }) {
-  const { sections, extras } = centralNavLinks(game, canManage);
+  const { sections, extras: allExtras } = centralNavLinks(game, canManage);
+  const extras = showExtras ? allExtras : [];
   const sidebar = variant === "sidebar";
 
   return (

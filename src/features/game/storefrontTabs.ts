@@ -202,3 +202,15 @@ export function withEffectivePricing(products: readonly GameProduct[], layout: G
     return pricing ? { ...product, pricing } : product;
   });
 }
+
+/**
+ * O link da aba MANTENDO o servidor escolhido (2026-10-01, pedido do usuário:
+ * "o servidor tem que se manter enquanto troco de abas"). O `href` da aba é
+ * montado uma vez, sem servidor; aqui ele ganha o `?servidor=` atual. Aba de
+ * LINK leva para outra página e fica como está.
+ */
+export function tabHrefWithServer(tab: Pick<GameTab, "href" | "layout">, server: string): string {
+  if (!server || tab.layout === "LINK") return tab.href;
+  const separator = tab.href.includes("?") ? "&" : "?";
+  return `${tab.href}${separator}servidor=${encodeURIComponent(server)}`;
+}

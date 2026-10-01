@@ -8,7 +8,7 @@ describe("draftToPricing", () => {
     expect(draftToPricing(emptyDraft("FIXED"))).toEqual({ ok: true, pricing: { mode: "FIXED" } });
   });
 
-  it("QUANTITY com faixas, horas e adicionais (ids derivados do rótulo)", () => {
+  it("QUANTITY com horas e adicionais (ids derivados do rótulo); faixas não são gravadas", () => {
     const draft = emptyDraft("QUANTITY");
     draft.unitLabel = " Horas ";
     draft.min = "1";
@@ -31,7 +31,6 @@ describe("draftToPricing", () => {
         max: 20,
         step: 1,
         hoursPerUnit: 1,
-        tiers: [{ from: 10, unitPriceCents: 4000 }],
         baseHours: 0.5,
         addons: [
           { id: "prioridade", label: "Prioridade", kind: "PERCENT", value: 20 },
@@ -42,7 +41,8 @@ describe("draftToPricing", () => {
     // O que o editor gera o `quote` aceita.
     if (result.ok) {
       const q = quote(5000, result.pricing, { quantity: 10, addonIds: ["prioridade"] });
-      expect(q).toMatchObject({ ok: true, totalCents: 48000 });
+      // 10 × R$ 50 (sem faixa) + 20% de prioridade.
+      expect(q).toMatchObject({ ok: true, totalCents: 60000 });
     }
   });
 

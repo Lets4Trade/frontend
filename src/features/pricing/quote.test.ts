@@ -52,9 +52,12 @@ describe("quote — quantidade", () => {
     tiers: [{ from: 5, unitPriceCents: 8000 }],
   };
 
-  it("usa o unitário do produto abaixo da faixa e o da faixa acima", () => {
+  it("é sempre quantidade × preço — faixa salva é IGNORADA (sem desconto por quantidade, 2026-10-01)", () => {
     expect(quote(10000, HOURS, { quantity: 4 })).toMatchObject({ ok: true, totalCents: 40000, hours: 4 });
-    expect(quote(10000, HOURS, { quantity: 5 })).toMatchObject({ ok: true, totalCents: 40000, hours: 5 });
+    expect(quote(10000, HOURS, { quantity: 5 })).toMatchObject({ ok: true, totalCents: 50000, hours: 5 });
+    // O caso do usuário: 10 itens de R$ 10 = R$ 100, mesmo com uma faixa antiga.
+    const withTier = { ...HOURS, max: 20, tiers: [{ from: 10, unitPriceCents: 910 }] };
+    expect(quote(1000, withTier, { quantity: 10 })).toMatchObject({ ok: true, totalCents: 10000 });
   });
 
   it("respeita o passo", () => {

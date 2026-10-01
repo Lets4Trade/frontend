@@ -7,6 +7,7 @@ import { MAX_IMAGE_BYTES } from "../games/options";
 import { pricingSchema, type Pricing } from "@/features/pricing/quote";
 import { MAX_PRICE_BATCH, MAX_PRICE_CENTS } from "./prices";
 import { createProductSchema, highlightsSchema } from "./schema";
+import { tabContentSchema, type TabContent } from "../games/tabs/types";
 
 /**
  * Cadastro de produto — "SALVAR E ANUNCIAR" (Figma 3806:7072).
@@ -62,6 +63,8 @@ export async function createProductAction(
   if (!pricing.ok) return { ok: false, reason: "invalid", message: pricing.message };
   const highlights = readHighlights(form);
   if (!highlights.ok) return { ok: false, reason: "invalid", message: highlights.message };
+  const content = readContent(form);
+  if (!content.ok) return { ok: false, reason: "invalid", message: content.message };
 
   const payload = new FormData();
   payload.set("gameId", parsed.data.gameId);
@@ -78,6 +81,8 @@ export async function createProductAction(
   // Tópicos do card (aba PACOTES). Em multipart vão como TEXTO com o JSON da
   // lista dentro — mesmo formato do `pricing`.
   if (highlights.value !== undefined) payload.set("highlights", JSON.stringify(highlights.value));
+  // Textos da página do pacote (2026-10-01): no cadastro, só quando há.
+  if (content.value) payload.set("content", JSON.stringify(content.value));
   // Só manda se houver: o DTO trata ausente e vazio da mesma forma, mas mandar
   // string vazia deixaria o campo parecer preenchido em qualquer log.
   if (parsed.data.serverId !== "") payload.set("serverId", parsed.data.serverId);
@@ -237,6 +242,8 @@ export async function updateProductAction(
   if (!pricing.ok) return { ok: false, reason: "invalid", message: pricing.message };
   const highlights = readHighlights(form);
   if (!highlights.ok) return { ok: false, reason: "invalid", message: highlights.message };
+  const content = readContent(form);
+  if (!content.ok) return { ok: false, reason: "invalid", message: content.message };
 
   const payload = new FormData();
   payload.set("name", parsed.data.name);
@@ -250,6 +257,10 @@ export async function updateProductAction(
   }
   // Tópicos: ausente mantém; `[]` limpa (produto que saiu de uma aba PACOTES).
   if (highlights.value !== undefined) payload.set("highlights", JSON.stringify(highlights.value));
+  // Textos do pacote: ausente mantém; `null` limpa (volta aos textos da aba).
+  if (content.value !== undefined) {
+    payload.set("content", content.value === null ? "null" : JSON.stringify(content.value));
+  }
   // Na EDIÇÃO os dois vão SEMPRE, inclusive vazios — diferente do cadastro.
   // No PATCH, ausente significa "manter" e `""` significa "remover" (o backend
   // grava nulo). Omitir o vazio, como o cadastro faz, deixava o admin sem jeito
@@ -431,6 +442,39 @@ function readPricing(
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Regra de preço inválida." };
   }
   return { ok: true, value: parsed.data };
+}
+
+/** Teto do JSON dos textos do pacote: 10 seções × 20 itens × 300 cabem em 80 KB. */
+const MAX_CONTENT_CHARS = 80_000;
+
+/**
+ * Lê o campo `content` (textos da página do PACOTE, 2026-10-01): ausente/vazio
+ * = `undefined` (não mexer); `"null"` ou nenhuma seção = `null` (limpar, a
+ * página usa os textos da aba). O resto passa pelo MESMO schema dos textos da
+ * aba (`tabContentSchema`) — texto puro, nos mesmos limites que o backend
+ * confere de novo.
+ */
+function readContent(
+  form: FormData,
+): { ok: true; value: TabContent | null | undefined } | { ok: false; message: string } {
+  const raw = form.get("content");
+  if (raw === null || raw === "") return { ok: true, value: undefined };
+  if (typeof raw !== "string" || raw.length > MAX_CONTENT_CHARS) {
+    return { ok: false, message: "Textos do pacote inválidos." };
+  }
+  if (raw === "null") return { ok: true, value: null };
+
+  let json: unknown;
+  try {
+    json = JSON.parse(raw);
+  } catch {
+    return { ok: false, message: "Textos do pacote inválidos." };
+  }
+  const parsed = tabContentSchema.safeParse(json);
+  if (!parsed.success) {
+    return { ok: false, message: `Textos do pacote: ${parsed.error.issues[0]?.message ?? "inválidos."}` };
+  }
+  return { ok: true, value: parsed.data.sections.length > 0 ? parsed.data : null };
 }
 
 /** Teto do JSON dos tópicos: 6 × 80 caracteres cabem com folga em 4 KB. */

@@ -20,7 +20,7 @@ import {
 import { requireAdminPage } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
-  title: "Vendas e pedidos — Lets4Trade",
+  title: "Vendas e pedidos | Lets4Trade",
   robots: { index: false, follow: false },
 };
 

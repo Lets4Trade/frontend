@@ -46,7 +46,7 @@ export default async function AdminBlogPage({
         <div>
           <h1 className="font-helvetica text-[30px] leading-none font-bold tracking-[0.3px] text-white">Notícias</h1>
           <p className="mt-[12px] font-poppins text-[15px] text-brand-fg-muted">
-            {page ? `${page.total} notícia${page.total === 1 ? "" : "s"}${filtering ? " encontradas" : ""}` : "—"}
+            {page ? `${page.total} notícia${page.total === 1 ? "" : "s"}${filtering ? " encontradas" : ""}` : "-"}
           </p>
         </div>
 

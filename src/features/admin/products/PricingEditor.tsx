@@ -31,11 +31,18 @@ export function PricingEditor({
   draft,
   onChange,
   basePriceCents,
+  hideModes = false,
 }: {
   draft: PricingDraft;
   onChange: (next: PricingDraft) => void;
   /** O "Preço" do produto — base de todos os modos. */
   basePriceCents: number;
+  /**
+   * Esconde a escolha de modo quando outro controle já a faz (o "Depois do
+   * CONTINUAR" da aba PACOTES, `PackageLayoutPicker`): duas escolhas na mesma
+   * tela para a mesma coisa só confundiriam.
+   */
+  hideModes?: boolean;
 }) {
   const patch = (next: Partial<PricingDraft>) => onChange({ ...draft, ...next });
   const validation = useMemo(() => draftToPricing(draft), [draft]);
@@ -52,31 +59,35 @@ export function PricingEditor({
     <fieldset className="flex flex-col gap-[25px] rounded-[20px] border border-brand-orange/30 bg-black/20 p-[25px]">
       <legend className="px-[8px] font-poppins text-[16px] font-bold text-white">Preço do serviço</legend>
 
-      <div role="radiogroup" aria-label="Como o preço é calculado" className="flex flex-wrap gap-[10px]">
-        {PRICING_MODES.map((mode) => {
-          const active = draft.mode === mode.value;
-          return (
-            <button
-              key={mode.value}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              onClick={() => switchMode(mode.value)}
-              className={cn(
-                "h-[42px] rounded-full border px-[20px] font-poppins text-[13px] font-bold transition-colors",
-                active
-                  ? "border-brand-orange bg-brand-orange/15 text-white"
-                  : "border-white/10 text-white/70 hover:border-white/30 hover:text-white",
-              )}
-            >
-              {mode.label}
-            </button>
-          );
-        })}
-      </div>
-      <p className="-mt-[12px] font-poppins text-[12px] text-brand-fg-subtle">
-        {PRICING_MODES.find((mode) => mode.value === draft.mode)?.hint}
-      </p>
+      {hideModes ? null : (
+        <div role="radiogroup" aria-label="Como o preço é calculado" className="flex flex-wrap gap-[10px]">
+          {PRICING_MODES.map((mode) => {
+            const active = draft.mode === mode.value;
+            return (
+              <button
+                key={mode.value}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => switchMode(mode.value)}
+                className={cn(
+                  "h-[42px] rounded-full border px-[20px] font-poppins text-[13px] font-bold transition-colors",
+                  active
+                    ? "border-brand-orange bg-brand-orange/15 text-white"
+                    : "border-white/10 text-white/70 hover:border-white/30 hover:text-white",
+                )}
+              >
+                {mode.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {hideModes ? null : (
+        <p className="-mt-[12px] font-poppins text-[12px] text-brand-fg-subtle">
+          {PRICING_MODES.find((mode) => mode.value === draft.mode)?.hint}
+        </p>
+      )}
 
       {draft.mode === "FIXED" ? null : (
         <div className="flex flex-wrap gap-[15px]">
@@ -133,42 +144,8 @@ export function PricingEditor({
         </label>
       ) : null}
 
-      {draft.mode === "QUANTITY" ? (
-        <Table
-          title="Faixas de preço (opcional)"
-          hint="A partir de N unidades, o unitário vira outro. Sem faixas, o unitário é o preço do produto."
-          headers={["A partir de", "Preço unitário", ""]}
-          addLabel="+ Adicionar faixa"
-          canAdd={draft.tiers.length < 20}
-          onAdd={() => patch({ tiers: [...draft.tiers, { key: newKey(), from: "", unitPriceCents: 0 }] })}
-          rowKeys={draft.tiers.map((tier) => tier.key)}
-          rows={draft.tiers.map((tier, index) => [
-            <TextInput
-              key="from"
-              ariaLabel={`Faixa ${index + 1}: a partir de`}
-              value={tier.from}
-              numeric
-              onChange={(from) =>
-                patch({ tiers: draft.tiers.map((t) => (t.key === tier.key ? { ...t, from } : t)) })
-              }
-            />,
-            <CentsInput
-              key="price"
-              ariaLabel={`Faixa ${index + 1}: preço unitário`}
-              cents={tier.unitPriceCents}
-              onChange={(unitPriceCents) =>
-                patch({ tiers: draft.tiers.map((t) => (t.key === tier.key ? { ...t, unitPriceCents } : t)) })
-              }
-            />,
-            <RemoveButton
-              key="rm"
-              label={`Remover faixa ${index + 1}`}
-              onClick={() => patch({ tiers: draft.tiers.filter((t) => t.key !== tier.key) })}
-            />,
-          ])}
-        />
-      ) : null}
-
+      {/* "Faixas de preço" por quantidade saíram em 2026-10-01: o cliente paga
+          sempre quantidade × preço; o benefício é o cashback em Lets Coins. */}
       {draft.mode === "LEVEL_RANGE" ? (
         <Table
           title="Faixas de nível"
@@ -356,7 +333,7 @@ function PricePreview({ draft, basePriceCents }: { draft: PricingDraft; basePric
       className="rounded-[16px] border border-white/10 bg-[image:var(--brand-surface-fill)] p-[20px]"
     >
       <h3 id="previa-preco" className="font-poppins text-[14px] font-bold text-white">
-        Prévia — como o cliente vê
+        Prévia: como o cliente vê
       </h3>
 
       <div className="mt-[12px] flex flex-wrap items-end gap-[15px]">

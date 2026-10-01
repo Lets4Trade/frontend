@@ -108,9 +108,9 @@ export function roleLabel(role: AdminUserRole): string {
  * daqui.
  */
 export function formatDateTime(iso: string | null | undefined): string {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) return "-";
 
   return new Intl.DateTimeFormat("pt-BR", {
     timeZone: "America/Sao_Paulo",
@@ -134,7 +134,7 @@ export function formatDateTime(iso: string | null | undefined): string {
  */
 export function phoneOrDash(whatsapp: string | null | undefined): string {
   // Cadastros anteriores à máscara estão só em dígitos: exibe formatado.
-  return whatsapp && whatsapp.trim() !== "" ? formatPhone(whatsapp) : "—";
+  return whatsapp && whatsapp.trim() !== "" ? formatPhone(whatsapp) : "-";
 }
 
 /** Centavos → "R$ 1.234,56". Inteiros: dividir dinheiro em float erra centavo. */

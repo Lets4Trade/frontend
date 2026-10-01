@@ -330,7 +330,7 @@ function renderBlock(key: GameSectionKey, ctx: BlockContext) {
               ))}
               {!tabs.some((tab) => !tab.isLink) ? (
                 <span className="font-poppins text-[15px] text-white/40">
-                  Nenhuma aba de produto ativa — a loja abriria sem catálogo. Configure em Jogos → Abas.
+                  Nenhuma aba de produto ativa: a loja abriria sem catálogo. Configure em Jogos → Abas.
                 </span>
               ) : null}
             </div>
@@ -372,7 +372,7 @@ function renderBlock(key: GameSectionKey, ctx: BlockContext) {
                       : "border border-brand-border bg-[image:var(--brand-surface-fill)] text-white/80"
                   }`}
                 >
-                  {server.label || "—"}
+                  {server.label || "-"}
                 </span>
               ))
             )}
@@ -393,7 +393,7 @@ function renderBlock(key: GameSectionKey, ctx: BlockContext) {
                 <span className="flex h-[40px] w-[282px] items-center gap-[10px] rounded-[8px] border border-white/10 bg-[image:var(--brand-surface-fill)] px-[25px]">
                   <span className="h-[30px] w-[32px] shrink-0 rounded-[8px] border-2 border-white/10" />
                   <span className="truncate font-poppins text-[13px] leading-none font-bold text-white/80">
-                    {category.label || "—"}
+                    {category.label || "-"}
                   </span>
                 </span>
                 {/* Mesmo desenho da vitrine (`CategoryPanel`): filhas recuadas sob o pai. */}
@@ -404,7 +404,7 @@ function renderBlock(key: GameSectionKey, ctx: BlockContext) {
                   >
                     <span className="h-[22px] w-[24px] shrink-0 rounded-[6px] border-2 border-white/10" />
                     <span className="truncate font-poppins text-[12px] leading-none font-bold text-white/70">
-                      {child.label || "—"}
+                      {child.label || "-"}
                     </span>
                   </span>
                 ))}

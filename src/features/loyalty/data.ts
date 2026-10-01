@@ -138,7 +138,7 @@ function normalize(api: ApiSummary): LoyaltySummary {
     // Ausente = já está no topo. Ver a nota sobre campos vazios acima.
     nextTierName: api.nextTierName || null,
     missingToNextCents: num(api.missingToNextCents),
-    coinCents: num(api.coinCents, 10),
+    coinCents: num(api.coinCents, 1),
     tiers,
   };
 }

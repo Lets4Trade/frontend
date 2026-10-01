@@ -8,6 +8,7 @@ import { UserMenu } from "@/components/layout/UserMenu";
 import type { SessionUser } from "@/features/auth/session";
 import { cn } from "@/lib/cn";
 import { ADMIN_NAV } from "./nav";
+import { AdminSearch } from "./search/AdminSearch";
 
 /**
  * Cabeçalho do painel administrativo (Figma 4468:1879).
@@ -25,6 +26,10 @@ import { ADMIN_NAV } from "./nav";
  *
  * O bloco da direita é o mesmo `UserMenu` da loja: no arquivo é exatamente o
  * avatar de 50px com a bolinha de status e a seta de 18px a 15px dele.
+ *
+ * Desde 2026-10-01 o menu só aparece a partir de xl (1280px): com 9 itens
+ * centrados ele já encostava na logo em 1024. Abaixo disso a busca (Ctrl+K,
+ * botão ao lado do avatar) cobre a navegação.
  *
  * Client component só por causa do `usePathname()`, que é o que acende a seção
  * atual. O layout continua sendo servidor e é ele quem lê a sessão — o `user`
@@ -48,7 +53,7 @@ export function AdminHeader({
       <GlowBar className="-top-[2px]" />
 
       <div className="relative mx-auto flex h-full max-w-[1920px] items-center px-4 sm:px-6 lg:px-[50px]">
-        <Link href="/" aria-label="Lets4Trade — ir para a loja" className="shrink-0">
+        <Link href="/" aria-label="Lets4Trade, ir para a loja" className="shrink-0">
           <Image
             src={logoUrl ?? "/images/lets4trade-logo.png"}
             alt="Lets4Trade"
@@ -64,7 +69,7 @@ export function AdminHeader({
             item novo. Mesma solução do selo "+1000" no cabeçalho da loja. */}
         <nav
           aria-label="Seções do painel"
-          className="absolute top-1/2 left-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-[25px] lg:flex"
+          className="absolute top-1/2 left-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-[22px] xl:flex"
         >
           {ADMIN_NAV.filter((item) => (item.roles ?? ["ADMIN"]).includes(role)).map((item) => {
             const active =
@@ -98,7 +103,9 @@ export function AdminHeader({
           })}
         </nav>
 
-        <div className="ml-auto flex shrink-0 items-center">
+        {/* Busca (Ctrl+K). Abaixo de xl o menu não cabe e ela vira a navegação. */}
+        <div className="ml-auto flex shrink-0 items-center gap-[16px]">
+          <AdminSearch role={role} />
           <UserMenu user={user} />
         </div>
       </div>

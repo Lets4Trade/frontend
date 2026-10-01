@@ -12,7 +12,8 @@ import { BlockLibrary } from "./BlockLibrary";
 import { BlockList } from "./BlockList";
 import type { EditorGame } from "./fields";
 import { PreviewFrame } from "./PreviewFrame";
-import { PagePicker, type PageOption } from "./PagePicker";
+import { EditorHeader } from "./EditorHeader";
+import { editorBack, editorTabs } from "./editorNav";
 import { RevisionsPanel } from "./RevisionsPanel";
 import type { BlocksPageDef } from "../registry";
 
@@ -35,15 +36,12 @@ const RESOLVE_MS = 450;
  */
 export function PageBuilder({
   page,
-  pages,
   initial,
   games,
   sections: initialSections,
 }: {
   /** A página em edição (registro do construtor). */
   page: BlocksPageDef;
-  /** Todas as páginas, para o seletor do topo. */
-  pages: PageOption[];
   initial: AdminPage;
   games: EditorGame[];
   /** Conteúdo salvo das seções do desenho (editável no painel de `secao`). */
@@ -251,24 +249,15 @@ export function PageBuilder({
 
   return (
     <div className="flex flex-col gap-[16px] px-[24px] pt-[24px] pb-[24px]">
-      <header className="flex flex-wrap items-center gap-[16px]">
-        <div className="min-w-0">
-          <h1 className="font-helvetica text-[24px] leading-none font-bold text-white">Construtor de páginas</h1>
-          <p className="mt-[8px] font-poppins text-[14px] text-brand-fg-muted">
-            {pageLabel} · {version > 0 ? `versão ${version} no ar` : "ainda não publicada (a loja mostra o desenho padrão)"}
-            {" · "}
-            <a href={page.href} target="_blank" rel="noreferrer" className="text-brand-orange hover:underline">
-              ver na loja
-            </a>
-          </p>
-        </div>
-
-        <PagePicker current={slug} pages={pages} beforeLeave={flush} />
-
+      <EditorHeader
+        title={pageLabel}
+        back={editorBack(slug)}
+        storeHref={page.href}
+        tabs={editorTabs(slug, "organizar")}
+        beforeLeave={flush}
+      >
         <StatusLine status={status} message={message} hasUnpublished={hasUnpublished} />
-
-        <div className="ml-auto flex items-center gap-[10px]">
-          <RevisionsPanel slug={slug} disabled={publishing} onRestore={(target) => void restore(target)} />
+        <RevisionsPanel slug={slug} disabled={publishing} onRestore={(target) => void restore(target)} />
           <button
             type="button"
             onClick={() => void publish()}
@@ -277,8 +266,7 @@ export function PageBuilder({
           >
             {publishing ? "PUBLICANDO…" : "PUBLICAR"}
           </button>
-        </div>
-      </header>
+      </EditorHeader>
 
       <div className="grid h-[calc(100dvh-210px)] min-h-[560px] grid-cols-[320px_minmax(0,1fr)] gap-[16px] xl:grid-cols-[320px_minmax(0,1fr)_380px]">
         <aside className="scrollbar-orange min-h-0 overflow-y-auto rounded-[20px] border border-brand-border bg-[image:var(--brand-surface-fill)] p-[14px]">
@@ -286,9 +274,9 @@ export function PageBuilder({
           {inspector ? <div className="xl:hidden">{inspector}</div> : null}
           <div className={cn("flex flex-col gap-[12px]", inspector && "hidden xl:flex")}>
             <div>
-              <h2 className="font-helvetica text-[15px] font-bold text-white">Blocos da página</h2>
+              <h2 className="font-helvetica text-[15px] font-bold text-white">Seções da página</h2>
               <p className="mt-[4px] font-poppins text-[12px] leading-[17px] text-brand-fg-subtle">
-                De cima para baixo, como na loja. Clique para editar; arraste para mudar a ordem.
+                Na ordem da loja. Arraste para mudar a ordem; clique para editar.
               </p>
             </div>
             <BlockList
@@ -321,9 +309,9 @@ export function PageBuilder({
         <aside className="scrollbar-orange hidden min-h-0 overflow-y-auto rounded-[20px] border border-brand-border bg-[image:var(--brand-surface-fill)] p-[18px] xl:block">
           {inspector ?? (
             <div className="flex h-full flex-col items-center justify-center gap-[8px] text-center">
-              <p className="font-helvetica text-[16px] font-bold text-white">Nenhum bloco selecionado</p>
+              <p className="font-helvetica text-[16px] font-bold text-white">Nenhuma seção selecionada</p>
               <p className="max-w-[260px] font-poppins text-[13px] leading-[19px] text-brand-fg-subtle">
-                Clique num bloco na lista ou na própria página para editar.
+                Clique numa seção da lista ou na própria página.
               </p>
             </div>
           )}

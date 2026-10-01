@@ -450,10 +450,10 @@ describe("saveProductPricesAction", () => {
 
   it("409 repassa a mensagem do backend (diz qual preço mudou)", async () => {
     role.mockResolvedValue("ADMIN");
-    put.mockResolvedValue(apiFail(409, "Nada foi salvo: um preço mudou — 1K Chaos Orb (Hardcore)."));
+    put.mockResolvedValue(apiFail(409, "Nada foi salvo: um preço mudou: 1K Chaos Orb (Hardcore)."));
     expect(await saveProductPricesAction("g1", items)).toEqual({
       ok: false,
-      message: "Nada foi salvo: um preço mudou — 1K Chaos Orb (Hardcore).",
+      message: "Nada foi salvo: um preço mudou: 1K Chaos Orb (Hardcore).",
     });
   });
 

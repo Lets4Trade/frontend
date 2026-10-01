@@ -133,26 +133,22 @@ describe("TabsMasterList", () => {
     expect(links[0]).toHaveAttribute("aria-current", "page");
   });
 
-  it("↑ ↓ só mexem no rascunho; 'Salvar ordem' grava e revalida", async () => {
+  it("↑ ↓ (em 'Reordenar abas') só mexem no rascunho; 'Salvar ordem' grava e revalida", async () => {
     reorderTabsAction.mockResolvedValue({ ok: true, data: undefined });
     render(<TabsMasterList gameId="g1" tabs={tabs} selectedId="t1" serverId="" />);
+    // A fileira de abas é só navegação: as setas moram no "Reordenar abas".
     const nav = screen.getByRole("navigation", { name: "Abas do jogo" });
-    expect(within(nav).queryByRole("button", { name: "SALVAR ORDEM" })).toBeNull();
+    expect(within(nav).queryByRole("button")).toBeNull();
+    expect(screen.queryByRole("button", { name: "SALVAR ORDEM" })).toBeNull();
 
-    fireEvent.click(within(nav).getByRole("button", { name: "Mover Venda para cima" }));
+    fireEvent.click(screen.getByRole("button", { name: "Mover Venda para cima", hidden: true }));
     expect(reorderTabsAction).not.toHaveBeenCalled();
 
     await act(async () => {
-      fireEvent.click(within(nav).getByRole("button", { name: "SALVAR ORDEM" }));
+      fireEvent.click(screen.getByRole("button", { name: "SALVAR ORDEM" }));
     });
     await waitFor(() => expect(reorderTabsAction).toHaveBeenCalledWith("g1", ["t2", "t1"]));
     expect(refresh).toHaveBeenCalled();
-  });
-
-  it("o select (telas estreitas) navega sem rolar", () => {
-    render(<TabsMasterList gameId="g1" tabs={tabs} selectedId="t1" serverId="" />);
-    fireEvent.change(screen.getByLabelText("Aba"), { target: { value: "t2" } });
-    expect(push).toHaveBeenCalledWith("/admin/jogos/g1?secao=abas&aba=t2", { scroll: false });
   });
 });
 

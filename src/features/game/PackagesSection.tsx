@@ -2,6 +2,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import { buildHref, type CatalogQuery } from "./catalog";
 import { getCatalog } from "./content";
 import { PackageCard } from "./PackageCard";
+import { PackageDetail } from "./PackageDetail";
 import { ServiceText } from "./ServiceSection";
 import { withEffectivePricing } from "./storefrontTabs";
 import type { GamePage, GameTab } from "./types";
@@ -24,18 +25,14 @@ export async function PackagesSection({
   query: CatalogQuery;
   tab: GameTab;
 }) {
+  // CONTINUAR num card (2026-10-01): a página do pacote SUBSTITUI a grade.
+  if (query.pkg) return <PackageDetail page={page} query={query} tab={tab} pkg={query.pkg} />;
+
   const result = await getCatalog(page, query);
   const products = withEffectivePricing(result.items, tab.layout);
 
-  const server = page.servers.items.find((item) => item.slug === query.server);
-  const context = {
-    gameSlug: page.slug,
-    platform: server?.label ?? page.name,
-    gameLogo: page.identity.logo?.src,
-  };
-
   return (
-    <section aria-label={tab.label}>
+    <section id="pacotes" aria-label={tab.label} className="scroll-mt-[100px]">
       {products.length === 0 ? (
         <p className="py-[80px] text-center font-helvetica text-[18px] text-brand-fg-muted">
           {query.categories.length > 0
@@ -49,7 +46,13 @@ export async function PackagesSection({
               reduz as colunas — nada rola na horizontal. */}
           <div className="grid grid-cols-[repeat(auto-fill,minmax(min(265px,100%),265px))] justify-center gap-x-[24px] gap-y-[25px] lg:justify-between">
             {products.map((product) => (
-              <PackageCard key={product.id} product={product} context={context} />
+              <PackageCard
+                key={product.id}
+                product={product}
+                // A página guarda o número da grade: "Voltar aos pacotes" cai
+                // na mesma página da grade de onde a pessoa saiu.
+                href={`${buildHref(page.slug, query, { pkg: product.id, page: query.page })}#pacote`}
+              />
             ))}
           </div>
 

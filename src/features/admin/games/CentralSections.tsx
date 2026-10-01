@@ -136,7 +136,7 @@ export function TabsSection({
   const server = servers.find((item) => item.id === query.serverId) ?? null;
 
   return (
-    <div className="flex flex-col gap-[25px] xl:grid xl:grid-cols-[280px_minmax(0,1fr)] xl:items-start">
+    <div className="flex flex-col gap-[25px]">
       <TabsMasterList
         gameId={game.id}
         tabs={tabs}
@@ -161,8 +161,8 @@ export function TabsSection({
             ) : (
               <Notice>
                 {tab.layout === "LINK"
-                  ? "Aba de link só leva para outra página — não tem produtos nem categorias."
-                  : "Aba de venda mostra o formulário de venda — não tem produtos nem categorias."}
+                  ? "Aba de link só leva para outra página, sem produtos nem categorias."
+                  : "Aba de venda mostra o formulário de venda, sem produtos nem categorias."}
               </Notice>
             )}
           </>
@@ -221,7 +221,7 @@ async function TabProductsAndCategories({
             <p className="mt-[4px] font-poppins text-[12px] text-brand-fg-subtle">
               {ordering.ok
                 ? `${ordering.items.length}${ordering.truncated ? "+" : ""} produto${ordering.items.length === 1 ? "" : "s"}`
-                : "—"}
+                : "-"}
               {grid && grid.rows.length > 0 && servers.length > 1 ? ` · ${grid.rows.length} por servidor` : ""} · na ordem da loja
               {quoted ? " · o preço é a base da regra de cada produto" : ""}
             </p>
@@ -302,7 +302,7 @@ async function TabProductsAndCategories({
                           )}
                         >
                           {cell.length === 0 ? (
-                            <span className="text-white/25">—</span>
+                            <span className="text-white/25">-</span>
                           ) : (
                             <>
                               <Link
@@ -438,8 +438,8 @@ async function TabProductsAndCategories({
 }
 
 const ORIGIN_LABEL = {
-  global: "Globais — todas as abas",
-  tab: "Desta aba — todos os servidores",
+  global: "Globais (todas as abas)",
+  tab: "Desta aba (todos os servidores)",
   server: "Só neste servidor",
 } as const;
 
@@ -483,7 +483,7 @@ function CategoriesOnStore({
       </p>
       {total === 0 ? (
         <p className="mt-[8px] font-poppins text-[13px] text-brand-fg-subtle">
-          Nenhuma categoria — o painel “Selecionar categoria” não aparece{server ? " neste servidor" : ""}.
+          Nenhuma categoria: o painel “Selecionar categoria” não aparece{server ? " neste servidor" : ""}.
         </p>
       ) : (
         <div className="mt-[10px] grid gap-[12px] sm:grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">

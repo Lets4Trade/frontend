@@ -7,12 +7,13 @@ import {
   getSectionLayout,
   getSectionsFor,
 } from "@/features/site/content";
+import { EditorHeader } from "@/features/pages/editor/EditorHeader";
+import { editorBack, editorTabs } from "@/features/pages/editor/editorNav";
 import { PageEditor, type EditorBlock } from "@/features/site/editing/PageEditor";
-import { SITE_PAGES, sitePage } from "@/features/site/sections";
-import Link from "next/link";
+import { sitePage } from "@/features/site/sections";
 
 export const metadata: Metadata = {
-  title: "Páginas — Lets4Trade",
+  title: "Páginas | Lets4Trade",
   robots: { index: false, follow: false },
 };
 
@@ -22,6 +23,7 @@ type PageProps = {
 
 /** Páginas que já têm edição inline. As demais entram conforme forem migradas. */
 const EDITABLE_PAGES = ["home"] as const;
+
 
 /**
  * Edição no próprio desenho da página (2026-09-15) — desde 2026-09-25 em
@@ -65,56 +67,21 @@ export default async function AdminPagesPage({ searchParams }: PageProps) {
 
   return (
     <div className={`${ADMIN_SHELL} pb-[60px]`}>
-      <header className="flex flex-wrap items-start justify-between gap-[25px]">
-        <div>
-          <h1 className="font-helvetica text-[25px] leading-none font-bold tracking-[0.25px] text-white">
-            Textos e imagens das seções
-          </h1>
-          <p className="mt-[14px] font-poppins text-[16px] text-brand-fg-muted">
-            Clique no texto da página para editar. A ordem e os blocos ficam no{" "}
-            <Link href="/admin/paginas" className="text-brand-orange hover:underline">
-              construtor
-            </Link>
-          </p>
-        </div>
-
-        <nav aria-label="Páginas do site" className="flex flex-wrap gap-[10px]">
-          {SITE_PAGES.map((item) => {
-            const editable = (EDITABLE_PAGES as readonly string[]).includes(item.key);
-            const active = item.key === pageKey;
-            return editable ? (
-              <Link
-                key={item.key}
-                href={`/admin/paginas/desenho?pagina=${item.key}`}
-                aria-current={active ? "page" : undefined}
-                className={`flex h-[40px] items-center rounded-full border px-[18px] font-poppins text-[14px] transition-colors ${
-                  active
-                    ? "border-brand-orange bg-brand-orange/10 text-white"
-                    : "border-white/15 text-white/70 hover:text-white"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ) : (
-              // Ainda no formulário antigo: link que leva para lá, em vez de um
-              // item morto.
-              <Link
-                key={item.key}
-                href={`/admin/sessoes?pagina=${item.key}`}
-                className="flex h-[40px] items-center rounded-full border border-white/10 px-[18px] font-poppins text-[14px] text-white/40 transition-colors hover:text-white/70"
-                title="Esta página ainda usa o formulário de sessões"
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-      </header>
+      {/* Mesmo cabeçalho dos outros editores (2026-10-01): voltar, nome, "Ver na
+          loja" e as abas da Home. Trocar de página é voltar à lista. */}
+      <EditorHeader
+        title={catalog?.label ?? "Home"}
+        back={editorBack(pageKey)}
+        storeHref={catalog?.href ?? "/"}
+        tabs={editorTabs(pageKey, "desenho")}
+      />
+      <p className="mt-[10px] font-poppins text-[14px] text-brand-fg-muted">
+        Clique no texto ou na imagem para editar. Textos vão para a loja em Publicar; imagens trocam na hora.
+      </p>
 
       <div className="mt-[30px]">
         <PageEditor
           page={pageKey}
-          pageLabel={catalog?.label ?? pageKey}
           blocks={blocks}
           initialOrder={layout.visible}
           initialHidden={layout.hidden}

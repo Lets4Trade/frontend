@@ -176,6 +176,10 @@ function ProductControls({ product, context }: { product: GameProduct; context: 
 
       {pricing.addons && pricing.addons.length > 0 ? (
         <AddonList
+          // Preço fixo + serviços marcáveis é o layout "Lista de serviços"
+          // (Figma 1735:4247, "Select Service"): ali eles SÃO o serviço, não
+          // um extra. Nos outros modos continuam "Adicionais".
+          title={pricing.mode === "FIXED" ? "Selecionar serviços:" : "Adicionais:"}
           addons={pricing.addons}
           selected={addonIds}
           onToggle={(id) =>
@@ -459,10 +463,12 @@ function LevelRangeControl({
  * leitor de tela e o `<label>` clicável vêm de graça.
  */
 function AddonList({
+  title,
   addons,
   selected,
   onToggle,
 }: {
+  title: string;
   addons: NonNullable<Pricing["addons"]>;
   selected: string[];
   onToggle: (id: string) => void;
@@ -475,7 +481,7 @@ function AddonList({
   return (
     <div className="mt-[25px] first:mt-0">
       <h3 id={id} className={TITLE}>
-        Adicionais:
+        {title}
       </h3>
 
       {searchable ? (

@@ -62,7 +62,13 @@ const quantitySchema = z.object({
   presets: z.array(quantityValue).max(24).optional(),
   /** Horas por unidade (mentoria: 1). */
   hoursPerUnit: hours.optional(),
-  /** A partir de `from` unidades, o unitário vira `unitPriceCents`. */
+  /**
+   * DESATIVADO em 2026-10-01 (pedido do usuário: "coloquei 10 itens e eu
+   * deveria pagar 100"): não há mais desconto por quantidade — o benefício é
+   * só o cashback em Lets Coins. Ainda ACEITO no schema para uma regra antiga
+   * não quebrar a validação, mas `quote` IGNORA; a migration
+   * `20261001150000_coin_one_cent_no_quantity_tiers` tirou as faixas salvas.
+   */
   tiers: z
     .array(z.object({ from: quantityValue, unitPriceCents: cents }))
     .max(20)
@@ -181,12 +187,8 @@ export function quote(basePriceCents: number, pricing: Pricing, rawSelection: Se
     if (quantity < pricing.min || quantity > pricing.max || (quantity - pricing.min) % pricing.step !== 0) {
       return { ok: false, message: `Escolha de ${pricing.min} a ${pricing.max} ${pricing.unitLabel.toLowerCase()}.` };
     }
-    // A maior faixa cujo início já foi alcançado.
-    const tier = [...(pricing.tiers ?? [])]
-      .sort((a, b) => b.from - a.from)
-      .find((candidate) => quantity >= candidate.from);
-    const unit = tier ? tier.unitPriceCents : basePriceCents;
-    subtotal = unit * quantity;
+    // Sempre quantidade × preço do produto — sem faixa de desconto (2026-10-01).
+    subtotal = basePriceCents * quantity;
     totalHours += (pricing.hoursPerUnit ?? 0) * quantity;
     selection.quantity = quantity;
     summary = `${quantity} ${pricing.unitLabel}`;

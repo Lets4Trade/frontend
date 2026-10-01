@@ -33,6 +33,13 @@ export type CatalogQuery = {
   sort: SortKey | null;
   search: string;
   page: number;
+  /**
+   * Pacote aberto na aba PACKAGES (`?pacote=<productId>`, 2026-10-01): o
+   * CONTINUAR troca a grade pela página do pacote. Opcional e EFÊMERO — só
+   * sobrevive num link que o pede de novo (`buildHref` com `pkg`); trocar de
+   * aba, servidor ou categoria volta à grade.
+   */
+  pkg?: string;
 };
 
 /** Nomes dos parâmetros. Ficam num só lugar porque links e leitura usam os dois. */
@@ -43,7 +50,11 @@ export const PARAM = {
   sort: "ordem",
   search: "busca",
   page: "pagina",
+  pkg: "pacote",
 } as const;
+
+/** Id de produto (cuid ou id legível da semente) — mesma regra do backend; o resto é ignorado. */
+const PRODUCT_ID = /^[A-Za-z0-9_-]{1,100}$/;
 
 type RawParams = Record<string, string | string[] | undefined>;
 
@@ -108,6 +119,7 @@ export function parseCatalogQuery(
     // boundary é convite para consulta cara.
     search: (first(params[PARAM.search]) ?? "").trim().slice(0, 80),
     page: Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1,
+    ...(PRODUCT_ID.test(first(params[PARAM.pkg]) ?? "") ? { pkg: first(params[PARAM.pkg]) } : {}),
   };
 }
 
@@ -169,6 +181,8 @@ export function buildHref(
 
   const page = patch.page ?? 1;
   if (page > 1) params.set(PARAM.page, String(page));
+  // Só quando o link PEDE o pacote — qualquer outro link volta à grade.
+  if (patch.pkg) params.set(PARAM.pkg, patch.pkg);
 
   const qs = params.toString();
   return qs ? `/games/${slug}?${qs}` : `/games/${slug}`;

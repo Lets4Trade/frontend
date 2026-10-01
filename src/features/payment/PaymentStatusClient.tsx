@@ -94,7 +94,7 @@ export function PaymentStatusClient({ initial }: { initial: PaymentView }) {
           </Notice>
         ) : (
           <Notice title="Pagamento em análise">
-            A operadora está conferindo a compra. Esta tela atualiza sozinha — em
+            A operadora está conferindo a compra. Esta tela atualiza sozinha. Em
             geral leva poucos minutos.
           </Notice>
         )}

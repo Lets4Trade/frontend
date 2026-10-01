@@ -19,7 +19,7 @@ import { SellPageBody } from "@/features/sell/SellPageBody";
 import { getSectionItemsFor, getSectionsFor } from "@/features/site/content";
 
 export const metadata: Metadata = {
-  title: "Prévia — Lets4Trade",
+  title: "Prévia | Lets4Trade",
   robots: { index: false, follow: false },
 };
 

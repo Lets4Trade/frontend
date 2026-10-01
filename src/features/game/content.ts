@@ -7,6 +7,7 @@ import { getEditorial } from "./seed";
 import { getSectionItemsFor, getSectionsFor } from "@/features/site/content";
 import {
   defaultTabId,
+  parseServiceContent,
   readHighlights,
   readPricing,
   tabsFromApi,
@@ -96,6 +97,8 @@ type StorefrontProductPage = {
     pricing?: unknown;
     /** Tópicos do card de pacote (contrato v2). Ausente no backend antigo. */
     highlights?: unknown;
+    /** Textos da página do pacote (2026-10-01). Ausente no backend antigo. */
+    content?: unknown;
     imageUrl?: string | null;
     serverSlug?: string | null;
     serverLabel?: string | null;
@@ -163,7 +166,7 @@ export async function getGamePage(slug: string): Promise<GamePage | null> {
     slug: game.slug,
     name: game.name,
     seo: {
-      title: `${game.name} — Lets4Trade`,
+      title: `${game.name} | Lets4Trade`,
       description: `${heading} na Lets4Trade: entrega rápida, suporte e preço justo.`,
     },
 
@@ -421,7 +424,22 @@ function toProduct(item: StorefrontProductPage["items"][number]): GameProduct {
     tabId: item.tabSlug || "",
     ...readPricing(item.pricing),
     highlights: readHighlights(item.highlights),
+    content: parseServiceContent(item.content),
   };
+}
+
+/**
+ * Um PACOTE e seus irmãos — o mesmo pacote (mesmo nome, mesma aba) em cada
+ * servidor (`?package=`, 2026-10-01). Cada servidor tem preço próprio, então
+ * "trocar de servidor" na página do pacote é trocar de PRODUTO. Uma chamada;
+ * falha ou pacote inexistente viram lista vazia.
+ */
+export async function getPackageVariants(page: GamePage, productId: string): Promise<GameProduct[]> {
+  const params = new URLSearchParams({ package: productId });
+  const result = await publicApiGet<StorefrontProductPage>(
+    `/games/${encodeURIComponent(page.slug)}/products?${params.toString()}`,
+  );
+  return result ? result.items.map(toProduct) : [];
 }
 
 /**
@@ -465,7 +483,7 @@ function buildHeading(name: string, tab: { label: string; layout: string } | und
   const what = tab.label.charAt(0) + tab.label.slice(1).toLocaleLowerCase("pt-BR");
   // Aba SELL é a pessoa VENDENDO para a loja: "Compre Venda pra nós De X" não
   // faz sentido. Rótulo da aba + jogo, sem verbo inventado.
-  if (tab.layout === "SELL") return `${what} — ${name}`;
+  if (tab.layout === "SELL") return `${what}: ${name}`;
   return `Compre ${what} De ${name}`;
 }
 

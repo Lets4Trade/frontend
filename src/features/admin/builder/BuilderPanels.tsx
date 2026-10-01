@@ -133,7 +133,7 @@ export function NamePanel({
         {changing ? (
           <>
             {" "}
-            — ao publicar, <span className="text-white">/games/{publishedSlug}</span> deixa de
+            Ao publicar, <span className="text-white">/games/{publishedSlug}</span> deixa de
             funcionar. Os slides da home que usam este game acompanham sozinhos; links
             digitados à mão em outros lugares (rodapé, guias) precisam ser trocados.
           </>

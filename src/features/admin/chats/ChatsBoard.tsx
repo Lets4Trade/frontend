@@ -146,7 +146,7 @@ export function ChatsBoard({
           )}
         </div>
         <p className="border-t border-brand-hairline px-[25px] py-[10px] font-helvetica text-[12px] text-brand-fg-subtle" role="status">
-          {status === "online" ? "Atualizando em tempo real" : status === "conectando" ? "Conectando…" : "Sem tempo real — recarregue para ver novidades"}
+          {status === "online" ? "Atualizando em tempo real" : status === "conectando" ? "Conectando…" : "Sem tempo real. Recarregue para ver novidades"}
         </p>
       </aside>
 

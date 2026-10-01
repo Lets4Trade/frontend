@@ -6,28 +6,40 @@ import { z } from "zod";
  * existir — provavelmente vindo da API, já que jogos e servidores mudam sem
  * deploy. Ver .claude/context/open-questions.md.
  */
+/**
+ * "Outros" no FIM de todo select (pedido em 2026-10-01): o cliente que vende
+ * algo fora da lista não pode ficar travado no formulário. É um valor FIXO
+ * (`outros`), não texto livre — o schema continua recusando o resto; o que
+ * ele é de fato vai na descrição, que é obrigatória.
+ */
+export const OUTROS = { value: "outros", label: "Outros" } as const;
+
 export const JOGOS = [
   { value: "poe2", label: "Path Of Exile 2" },
   { value: "wow", label: "World of Warcraft" },
   { value: "lol", label: "League of Legends" },
+  OUTROS,
 ] as const;
 
 export const PLATAFORMAS = [
   { value: "steam", label: "Steam" },
   { value: "epic", label: "Epic Games" },
   { value: "battlenet", label: "Battle.net" },
+  OUTROS,
 ] as const;
 
 export const SERVIDORES = [
   { value: "sa", label: "América do Sul" },
   { value: "na", label: "América do Norte" },
   { value: "eu", label: "Europa" },
+  OUTROS,
 ] as const;
 
 export const TIPOS_PRODUTO = [
   { value: "gold", label: "Gold" },
   { value: "conta", label: "Conta" },
   { value: "item", label: "Item" },
+  OUTROS,
 ] as const;
 
 const opcaoDe = (opcoes: readonly { value: string }[], mensagem: string) =>

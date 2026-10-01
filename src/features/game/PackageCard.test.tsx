@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
@@ -25,23 +25,16 @@ const pack: GameProduct = {
 
 describe("PackageCard", () => {
   it("mostra nome e tópicos, sem preço no card", () => {
-    render(<PackageCard product={pack} context={{ gameSlug: "poe2", platform: "SC" }} />);
+    render(<PackageCard product={pack} href="/games/poe2?aba=pacotes&pacote=k1#pacote" />);
     expect(screen.getByRole("heading", { name: "Pacote Campanha" })).toBeInTheDocument();
     expect(screen.getAllByRole("listitem").map((item) => item.textContent)).toEqual(pack.highlights);
     expect(screen.queryByText(/R\$/)).not.toBeInTheDocument();
   });
 
-  it("CONTINUAR abre o configurador num diálogo; Esc fecha", () => {
-    render(<PackageCard product={pack} context={{ gameSlug: "poe2", platform: "SC" }} />);
-    fireEvent.click(screen.getByRole("button", { name: "Continuar: Pacote Campanha" }));
-
-    const dialog = screen.getByRole("dialog", { name: "Pacote Campanha" });
-    expect(dialog).toBeInTheDocument();
-    // Preço só dentro do configurador (quote): R$ 150,00.
-    expect(screen.getByText(/R\$\s?150,00/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "COMPRAR AGORA" })).toBeEnabled();
-
-    fireEvent.keyDown(dialog, { key: "Escape" });
+  it("CONTINUAR é um link para a página do pacote (não abre diálogo)", () => {
+    render(<PackageCard product={pack} href="/games/poe2?aba=pacotes&pacote=k1#pacote" />);
+    const link = screen.getByRole("link", { name: "Continuar: Pacote Campanha" });
+    expect(link).toHaveAttribute("href", "/games/poe2?aba=pacotes&pacote=k1#pacote");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });

@@ -90,7 +90,7 @@ function renderSection(
   // O resto da página (banner, identidade, referências, FAQ) fica igual.
   const tab = activeTab(page, query);
   if (tab) {
-    if ((key === "servers" || key === "categories") && !showsGenericFilters(tab.layout)) return null;
+    if ((key === "servers" || key === "categories") && !showsGenericFilters(tab.layout, Boolean(query.pkg))) return null;
     if (key === "catalog") {
       switch (catalogBlockFor(tab.layout)) {
         case "service":
@@ -122,7 +122,7 @@ function renderSection(
       return page.banners.length > 0 ? <BannerSection banners={page.banners} /> : null;
 
     case "identity":
-      return <GameIdentity page={page} />;
+      return <GameIdentity page={page} server={query.server} />;
 
     case "servers":
       return page.servers.items.length > 0 ? (

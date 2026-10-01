@@ -47,8 +47,8 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
   { label: "Chats", href: "/admin/chats", match: ["/admin/chats"] },
   {
     // Desde 2026-09-15 a edição é NA PRÓPRIA PÁGINA (`/admin/paginas`). O
-    // formulário antigo (`/admin/sessoes`) continua alcançável a partir dela,
-    // para as páginas que ainda não foram migradas.
+    // formulário antigo (`/admin/sessoes`) foi aposentado em 2026-10-01 — a rota
+    // só redireciona, e por isso ainda acende este item.
     label: "Páginas",
     href: "/admin/paginas",
     match: ["/admin/paginas", "/admin/sessoes"],
@@ -60,6 +60,15 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
     label: "Notícias",
     href: "/admin/noticias",
     match: ["/admin/noticias"],
+    roles: ["ADMIN", "EDITOR"],
+  },
+  // NÃO está no Figma (2026-10-01): WhatsApp, logo, CNPJ e redes estavam
+  // escondidos como "sessões" de Páginas → Cabeçalho e rodapé. Mesmos cargos de
+  // antes (o EDITOR já editava esses campos lá).
+  {
+    label: "Configurações",
+    href: "/admin/configuracoes",
+    match: ["/admin/configuracoes"],
     roles: ["ADMIN", "EDITOR"],
   },
   { label: "Usuários", href: "/admin/usuarios", match: ["/admin/usuarios"] },

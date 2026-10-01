@@ -8,7 +8,7 @@ import { RichToolbar } from "./RichToolbar";
 
 /**
  * Campo de FORMULÁRIO com texto formatado (2026-10-01) — o mesmo editor visual
- * da edição na página, para `/admin/sessoes` e o painel lateral do Construtor.
+ * da edição na página, para o painel lateral do Construtor e Configurações.
  *
  * Não controlado por dentro: o React não reescreve o conteúdo editável a cada
  * tecla (isso jogaria o cursor para o início). O valor sobe por `onChange` no
@@ -113,7 +113,7 @@ export function RichTextField({
         <span className="text-brand-fg-subtle">{hint ?? "Selecione um trecho para formatar."}</span>
         <span className={over ? "font-bold text-red-9" : "text-brand-fg-subtle"}>
           {length}/{maxLength}
-          {over ? " — texto longo demais, não vai salvar" : ""}
+          {over ? ": texto longo demais, não vai salvar" : ""}
         </span>
       </div>
     </div>

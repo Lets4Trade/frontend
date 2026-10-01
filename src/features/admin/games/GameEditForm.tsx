@@ -130,7 +130,7 @@ export function GameEditForm({ game }: { game: BuilderGame }) {
           />
           <p className="mt-[6px] pl-[25px] font-helvetica text-[12px] text-brand-fg-subtle">
             /games/{slugify(slug) || "…"}
-            {slugify(slug) !== game.slug ? " — o link antigo deixa de funcionar" : ""}
+            {slugify(slug) !== game.slug ? " (o link antigo deixa de funcionar)" : ""}
           </p>
         </div>
 

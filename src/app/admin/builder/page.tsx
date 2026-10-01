@@ -8,7 +8,7 @@ import { backendAsset } from "@/lib/publicApi";
 import { ADMIN_SHELL } from "@/features/admin/layout";
 
 export const metadata: Metadata = {
-  title: "Builder de Páginas — Lets4Trade",
+  title: "Builder de Páginas | Lets4Trade",
   robots: { index: false, follow: false },
 };
 

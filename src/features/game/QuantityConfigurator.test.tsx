@@ -75,10 +75,10 @@ describe("QuantityConfigurator", () => {
     expect(screen.getByText(/R\$\s?100,00/)).toBeInTheDocument();
     expect(screen.getByText("5.000 Gold")).toBeInTheDocument();
 
-    // 10.000 cai na faixa de R$ 0,01.
+    // 10.000 × R$ 0,02 — sem desconto por quantidade (2026-10-01), mesmo com faixa salva.
     fireEvent.click(screen.getByRole("button", { name: "10.000" }));
     expect(screen.getByRole("button", { name: "10.000" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByText(/R\$\s?100,00/)).toBeInTheDocument();
+    expect(screen.getByText(/R\$\s?200,00/)).toBeInTheDocument();
   });
 
   it("−/+ andam pelo passo e o campo livre é preso à regra", () => {

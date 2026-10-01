@@ -166,7 +166,7 @@ export function BuilderShell({
             Builder de Páginas
           </h1>
           <p className="mt-[15px] font-poppins text-[16px] text-brand-fg-muted">
-            Crie a página personalizada — {game.name}
+            Crie a página personalizada de {game.name}
           </p>
         </div>
 

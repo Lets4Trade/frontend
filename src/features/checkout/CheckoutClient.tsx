@@ -44,7 +44,7 @@ import { cardSchema, pixSchema } from "./schema";
  * cotação não chega a ser usada para nada. Manter os dois evita um `?? 10`
  * espalhado por quatro contas.
  */
-const FALLBACK_COIN_CENTS = 10;
+const FALLBACK_COIN_CENTS = 1;
 
 type Method = "credit" | "debit" | "pix";
 type FieldErrors = Record<string, string>;
@@ -402,7 +402,7 @@ export function CheckoutClient({
           ) : (
             <p className="mt-[28px] rounded-[15px] border border-white/10 bg-[image:var(--brand-surface-fill)] px-[25px] py-[20px] font-helvetica text-[16px] leading-[24px] text-brand-fg-muted">
               Ao confirmar, geramos o QR Code do PIX. Você tem 30 minutos para
-              pagar — a aprovação é automática.
+              pagar, e a aprovação é automática.
             </p>
           )}
 

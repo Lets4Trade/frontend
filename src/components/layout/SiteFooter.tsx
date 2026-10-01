@@ -21,7 +21,7 @@ import { GlowBar } from "./GlowBar";
  * Trocar qualquer um deles exigia alterar este arquivo e implantar.
  *
  * Agora são sessões da página `layout` do catálogo (`features/site/sections.ts`),
- * editáveis em `/admin/sessoes`. A leitura é CACHEADA com invalidação por
+ * editáveis em Páginas → Rodapé e em Configurações da loja. A leitura é CACHEADA com invalidação por
  * etiqueta — o rodapé renderiza em toda requisição do site e não pode custar uma
  * ida ao backend por página. Ver `features/site/layoutContent.ts`.
  *
@@ -82,6 +82,7 @@ export async function SiteFooter() {
       <div className="mx-auto max-w-[1720px] px-4 py-11 sm:px-6 lg:px-[100px]">
         <div className="flex flex-wrap items-center justify-between gap-8">
           <Image
+            data-admin-section="layout:marca"
             // A arte padrão continua no `public/`: ela é a identidade da loja e
             // precisa desenhar mesmo com o backend fora do ar.
             src={brand.imageUrl ?? "/images/lets4trade-logo.png"}
@@ -93,7 +94,7 @@ export async function SiteFooter() {
           />
 
           {social.length > 0 ? (
-            <ul className="flex flex-wrap items-center gap-[25px]">
+            <ul className="flex flex-wrap items-center gap-[25px]" data-admin-section="layout:footer-redes">
               {social.map((network) => (
                 <li key={network.id}>
                   <Link
@@ -139,7 +140,7 @@ export async function SiteFooter() {
 
             <div className="mt-11 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3 lg:gap-[122px] lg:[grid-template-columns:repeat(3,174px)]">
               {columns.map((column) => (
-                <nav key={column.key} aria-label={column.title}>
+                <nav key={column.key} aria-label={column.title} data-admin-section={`layout:${column.key}`}>
                   <h2 className="font-poppins text-[16px] font-bold tracking-[0.16px] text-white">
                     {column.title}
                   </h2>
@@ -168,7 +169,10 @@ export async function SiteFooter() {
             {/* Parágrafo em Helvetica Neue Medium no design — não Poppins.
                 `whitespace-pre-line` porque o campo do painel é um `textarea`:
                 quem escreve em dois parágrafos espera ver dois parágrafos. */}
-            <p className="mt-10 max-w-[772px] font-helvetica text-[16px] font-medium tracking-[0.16px] whitespace-pre-line text-brand-fg-subtle">
+            <p
+              data-admin-section="layout:footer-sobre"
+              className="mt-10 max-w-[772px] font-helvetica text-[16px] font-medium tracking-[0.16px] whitespace-pre-line text-brand-fg-subtle"
+            >
               {about}
             </p>
           </>
@@ -178,7 +182,10 @@ export async function SiteFooter() {
           <>
             <hr className="mt-11 border-0 border-t border-brand-hairline" />
 
-            <div className="mt-8 flex flex-col gap-4 font-poppins text-[14px] tracking-[0.14px] text-brand-fg-subtle lg:flex-row lg:items-center lg:justify-between">
+            <div
+              data-admin-section="layout:footer-empresa"
+              className="mt-8 flex flex-col gap-4 font-poppins text-[14px] tracking-[0.14px] text-brand-fg-subtle lg:flex-row lg:items-center lg:justify-between"
+            >
               {copyright ? <p>{copyright}</p> : <span />}
 
               <ul className="flex flex-wrap items-center gap-x-[25px] gap-y-2">

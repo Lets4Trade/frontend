@@ -100,7 +100,7 @@ export function TabDetailPanel({
           </h3>
           <p className="mt-[4px] font-poppins text-[12px] text-brand-fg-subtle">
             ?aba={tab.slug}
-            {tab.layout === "LINK" ? ` → ${tab.linkHref ?? "—"}` : null}
+            {tab.layout === "LINK" ? ` → ${tab.linkHref ?? "-"}` : null}
           </p>
         </div>
 
@@ -150,7 +150,7 @@ export function TabDetailPanel({
       <div className="mt-[15px] flex flex-wrap items-center gap-x-[20px] gap-y-[8px] border-t border-white/10 pt-[15px]">
         <p className="min-w-0 flex-1 font-poppins text-[13px] text-brand-fg-subtle">
           <span className="font-bold text-white">{layoutLabel(tab.layout)}</span>
-          {" — "}
+          {": "}
           {TAB_LAYOUTS.find((option) => option.value === tab.layout)?.hint}
           {hasTabContent(tab.layout)
             ? ` · ${sectionCount} seç${sectionCount === 1 ? "ão" : "ões"} de texto`

@@ -13,7 +13,8 @@ import type { GameTabLayout } from "./types";
  *   SERVICE   —          —            textos + card configurador (servidor e
  *                                     categoria DENTRO do card)
  *   QUANTITY  —          —            servidores + painel de quantidade + "Preço"
- *   PACKAGES  genérico   genérico     grade de pacotes (CONTINUAR → configurador)
+ *   PACKAGES  genérico   genérico     grade de pacotes; com `?pacote=`, a página
+ *                                     do pacote no lugar (filtros genéricos somem)
  *   SELL      —          —            formulário "Venda pra nós" + contato
  *
  * "—" = o bloco SOME (e o vão dele junto): no SERVICE e no QUANTITY o servidor
@@ -37,9 +38,14 @@ export function catalogBlockFor(layout: GameTabLayout): CatalogBlock {
   }
 }
 
-/** Os blocos genéricos de servidor e categoria aparecem com este layout? */
-export function showsGenericFilters(layout: GameTabLayout): boolean {
-  return layout === "CATALOG" || layout === "PACKAGES";
+/**
+ * Os blocos genéricos de servidor e categoria aparecem com este layout?
+ *
+ * Com um PACOTE aberto (`?pacote=`, 2026-10-01) não: a página do pacote leva
+ * o servidor para dentro do card (Figma 1735:4247) e categoria não se aplica.
+ */
+export function showsGenericFilters(layout: GameTabLayout, packageOpen = false): boolean {
+  return layout === "CATALOG" || (layout === "PACKAGES" && !packageOpen);
 }
 
 /** Os blocos que dependem da aba. */

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useTransition, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { FileField } from "@/components/ui/FileField";
 import { MoneyField } from "@/components/ui/MoneyField";
@@ -11,7 +11,6 @@ import { TextAreaField } from "@/components/ui/TextAreaField";
 import { TextField } from "@/components/ui/TextField";
 import { toastOk } from "@/components/ui/Toasts";
 import { QUOTED_LAYOUTS, effectivePricing } from "@/features/pricing/quote";
-import { AdminFieldGrid, AdminFormActions } from "@/features/admin/AdminFormCard";
 import type { AdminGame } from "@/features/admin/catalog";
 import {
   ACCEPTED_IMAGE_TYPES,
@@ -21,6 +20,8 @@ import {
 } from "../games/options";
 import { listGameTabsAction } from "../games/tabs/actions";
 import { isProductTab, layoutLabel, type GameTab, type TabLayout } from "../games/tabs/types";
+import { ServiceSectionsEditor, fromSectionDrafts, toSectionDrafts, type SectionDraft } from "../games/tabs/ServiceSectionsEditor";
+import { PackageLayoutPicker } from "./PackageLayoutPicker";
 import { PricingEditor } from "./PricingEditor";
 import { draftToPricing, pricingToDraft, type PricingDraft } from "./pricingDraft";
 import {
@@ -30,7 +31,10 @@ import {
 } from "./actions";
 import { ACTION_FAILED_UPLOAD_MESSAGE, runAction } from "@/lib/safeAction";
 import { MAX_HIGHLIGHTS, createProductSchema, parseHighlights } from "./schema";
-import type { AdminProduct } from "./catalog";
+import { productImage, type AdminProduct } from "./catalog";
+import { formatPrice } from "@/features/game/content";
+import { PackageCard } from "@/features/game/PackageCard";
+import { ProductCardShell } from "@/features/game/ProductCardShell";
 import type { ProductPrefill } from "./links";
 import { categorySelectOptions } from "./categoryOptions";
 
@@ -216,6 +220,30 @@ export function ProductForm({
   // Tópicos do card (aba PACOTES), uma linha por tópico.
   const [highlightsText, setHighlightsText] = useState(() => (product?.highlights ?? []).join("\n"));
 
+  // Prévia do card: nome e arte acompanham o que se digita/anexa. A arte nova
+  // é um `blob:` local (nada sobe antes de salvar), liberado ao trocar.
+  const [previewName, setPreviewName] = useState(product?.name ?? "");
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  useEffect(
+    () => () => {
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+    },
+    [imagePreview],
+  );
+
+  function onFormChange(event: FormEvent<HTMLFormElement>) {
+    const target = event.target as HTMLInputElement;
+    if (target.name === "name") setPreviewName(target.value);
+    if (target.name === "image") {
+      const file = target.files?.[0];
+      setImagePreview(file && file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
+    }
+  }
+  // Textos da página do pacote (aba PACOTES, 2026-10-01). Vazio = os da aba.
+  const [packageSections, setPackageSections] = useState<SectionDraft[]>(() =>
+    toSectionDrafts(product?.content?.sections),
+  );
+
   /**
    * Escolhe a aba. Sem regra digitada nem salva, o editor passa a mostrar o
    * padrão do layout novo (Quantidade → "Por quantidade" 1..1000; Serviço e
@@ -283,7 +311,7 @@ export function ProductForm({
 
   const tabOptions = productTabs.map((tab) => ({
     value: tab.id,
-    label: `${tab.label}${tab.layout === "CATALOG" ? "" : ` — ${layoutLabel(tab.layout).toLowerCase()}`}${tab.isActive ? "" : " (oculta)"}`,
+    label: `${tab.label}${tab.layout === "CATALOG" ? "" : ` (${layoutLabel(tab.layout).toLowerCase()})`}${tab.isActive ? "" : " (oculta)"}`,
   }));
 
   const serverOptions =
@@ -335,6 +363,22 @@ export function ProductForm({
     : isEditing && (product?.highlights?.length ?? 0) > 0
       ? "[]"
       : "";
+
+  /**
+   * O hidden `content` (textos da página do pacote): na aba PACOTES, o JSON das
+   * seções, ou `"null"` sem nenhuma (volta aos textos da aba); fora dela, vazio
+   * = não mexer — trocar o produto de aba não apaga o que foi escrito.
+   */
+  const contentSections = fromSectionDrafts(packageSections).filter(
+    (section) => section.title !== "" || section.items.length > 0,
+  );
+  const contentField = isPackages
+    ? contentSections.length > 0
+      ? JSON.stringify({ sections: contentSections })
+      : isEditing
+        ? "null"
+        : ""
+    : "";
 
   /** Uma opção só já vem escolhida; várias abrem com o placeholder. */
   const onlyOption = (options: { value: string }[]) =>
@@ -441,6 +485,8 @@ export function ProductForm({
         setEntryKey((key) => key + 1);
         setPriceCents(0);
         setHighlightsText("");
+        setPreviewName("");
+        setImagePreview(null);
         return;
       }
 
@@ -456,253 +502,421 @@ export function ProductForm({
       setPricingDraft(pricingToDraft(null));
       pricingTouched.current = false;
       setHighlightsText("");
+      setPreviewName("");
+      setImagePreview(null);
     });
   }
 
-  return (
-    <form ref={formRef} onSubmit={handleSubmit} noValidate className="px-[50px] pt-[33px]">
-      <AdminFieldGrid>
-        <SelectField
-          key={`game-${resetCount}`}
-          label="Jogo:"
-          name="gameId"
-          placeholder="Selecione o jogo"
-          options={gameOptions}
-          defaultValue={resetCount === 0 && initialGameId ? initialGameId : undefined}
-          // Editando, o jogo é FIXO: trocá-lo mudaria junto o significado de
-          // plataforma, servidor e tipo, e o backend nem aceita o campo no PATCH.
-          disabled={isEditing}
-          onValueChange={selectGame}
-          error={fieldErrors.gameId}
-        />
+  // Prévia ao vivo do card (2026-10-01): nome e imagem são campos NÃO
+  // controlados, então a prévia escuta o `onChange` do formulário.
+  const highlightsPreview = highlightsText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, MAX_HIGHLIGHTS);
+  const previewImage = imagePreview
+    ? { src: imagePreview, alt: "", width: 263, height: 276 }
+    : productImage(product?.imageUrl ?? null);
+  const sections = [
+    { id: "onde", label: "Onde aparece" },
+    { id: "card", label: "Card" },
+    { id: "preco", label: "Preço" },
+    ...(isPackages ? [{ id: "pagina", label: "Página do pacote" }] : []),
+  ];
 
-        <SelectField
-          key={`platform-${gameId}`}
-          label="Plataforma:"
-          name="platform"
-          placeholder="Plataforma"
-          options={platformOptions}
-          defaultValue={
-            product?.platform ??
-            (gameId === initialGameId && seed?.platform ? seed.platform : onlyOption(platformOptions))
-          }
-          disabled={selectedGame === null}
-          error={fieldErrors.platform}
-        />
+  const submitButtons = (
+    <>
+      <Button
+        type="submit"
+        variant="primary"
+        fullWidth
+        disabled={isSubmitting}
+        onClick={() => {
+          submitIntent.current = "announce";
+        }}
+      >
+        {isSubmitting ? "SALVANDO…" : isEditing ? "SALVAR ALTERAÇÕES" : "SALVAR E ANUNCIAR"}
+      </Button>
 
-        <SelectField
-          key={`server-${gameId}`}
-          label="Servidor:"
-          name="serverId"
-          // Placeholder diferente quando o jogo não tem servidor nenhum: um
-          // campo vazio e desabilitado sem explicação parece defeito.
-          placeholder={
-            selectedGame !== null && serverOptions.length === 0
-              ? "Este jogo não tem servidores"
-              : "Servidor"
-          }
-          options={serverOptions}
-          // O estado já nasce com o do produto, o do pré-preenchimento ou a
-          // opção única — e `selectGame` o repõe a cada troca de jogo.
-          defaultValue={serverId || undefined}
-          onValueChange={setServerId}
-          disabled={selectedGame === null || serverOptions.length === 0}
-          error={fieldErrors.serverId}
-        />
-
-        <SelectField
-          key={`category-${gameId}-${serverId}-${tabId}`}
-          label="Categoria:"
-          name="categoryId"
-          // Placeholder diferente quando o jogo não tem categoria nenhuma —
-          // mesma razão do servidor: campo vazio e desabilitado sem explicação
-          // parece defeito. Aqui o texto ainda diz ONDE se cria uma.
-          placeholder={
-            selectedGame !== null && categoryOptions.length === 0
-              ? "Nenhuma neste servidor/aba"
-              : "Categoria (opcional)"
-          }
-          options={categoryOptions}
-          defaultValue={categoryDefault}
-          disabled={selectedGame === null || categoryOptions.length === 0}
-          error={fieldErrors.categoryId}
-        />
-
-        <SelectField
-          // Remonta quando as abas chegam: o `defaultValue` do Radix só vale
-          // na montagem.
-          key={`tab-${gameId}-${tabs === null ? "loading" : tabs.length}`}
-          label="Aba:"
-          name="tabId"
-          placeholder={
-            selectedGame === null
-              ? "Aba"
-              : loadingTabs
-                ? "Carregando abas…"
-                : tabsError
-                  ? "Não foi possível ler as abas"
-                  : tabOptions.length === 0
-                    ? "Nenhuma — crie em Jogos → Abas"
-                    : "Aba do produto"
-          }
-          options={tabOptions}
-          defaultValue={tabId || undefined}
-          onValueChange={(id) => selectTab(id)}
-          disabled={selectedGame === null || tabOptions.length === 0}
-          error={
-            fieldErrors.tabId ??
-            (tabsError ? "Recarregue a página para tentar ler as abas de novo." : undefined)
-          }
-        />
-
-        <MoneyField
-          key={`price-${entryKey}`}
-          // Em serviço o "preço" muda de papel conforme o modo — o rótulo diz qual.
-          label={
-            isQuoted && pricingDraft.mode === "QUANTITY"
-              ? "Preço unitário padrão"
-              : isQuoted && pricingDraft.mode === "LEVEL_RANGE"
-                ? "Taxa base do serviço"
-                : "Preço"
-          }
-          name="priceCents"
-          placeholder="R$ 0,00"
-          defaultCents={product?.priceCents}
-          onCentsChange={onPriceChange}
-          error={fieldErrors.priceCents}
-        />
-
-        <FileField
-          key={`image-${entryKey}`}
-          label="Imagem do produto"
-          // Editando sem anexar nada, o backend mantém a arte atual — o texto diz
-          // isso para ninguém achar que salvar vai apagar a imagem que já existe.
-          placeholder={isEditing ? "Trocar imagem (opcional)" : "Anexar imagem"}
-          name="image"
-          accept={ACCEPTED_IMAGE_TYPES}
-          maxBytes={MAX_IMAGE_BYTES}
-        />
-
-        <TextField
-          key={`name-${entryKey}`}
-          ref={nameRef}
-          label="Nome do produto"
-          name="name"
-          placeholder="500M Divine Orbs"
-          defaultValue={product?.name}
-          autoComplete="off"
-          maxLength={160}
-          error={fieldErrors.name}
-        />
-      </AdminFieldGrid>
-
-      <input type="hidden" name="pricing" value={pricingField} />
-      <input type="hidden" name="highlights" value={highlightsField} />
-
-      {isPackages ? (
-        <div className="mt-[49px] max-w-[660px]">
-          <TextAreaField
-            label="Tópicos do card"
-            value={highlightsText}
-            onChange={(event) => {
-              setHighlightsText(event.target.value);
-              setFieldErrors((previous) => ({ ...previous, highlights: undefined }));
-            }}
-            placeholder={"Manual Boosting Guarantee\nEntrega em até 24h"}
-            // Folga para as quebras de linha; o teto real (6 × 80) é do zod.
-            maxLength={(MAX_HIGHLIGHTS + 2) * 81}
-            error={fieldErrors.highlights}
-          />
-          <p className="mt-[6px] pl-[25px] font-helvetica text-[12px] text-brand-fg-subtle">
-            Um tópico por linha, até {MAX_HIGHLIGHTS} linhas de até 80 caracteres. Aparecem com bolinha no card do
-            pacote. Linhas em branco são ignoradas.
-          </p>
-        </div>
-      ) : null}
-
-      {isQuoted ? (
-        <div className="mt-[49px] max-w-[1100px]">
-          {selectedTab?.layout === "QUANTITY" && pricingDraft.mode !== "QUANTITY" ? (
-            <p className="mb-[15px] font-helvetica text-[13px] text-brand-orange">
-              Aba de Quantidade: use “Por quantidade” — as quantidades prontas viram os botões da loja.
-            </p>
-          ) : null}
-          <PricingEditor draft={pricingDraft} onChange={onPricingChange} basePriceCents={priceCents} />
-        </div>
-      ) : null}
-
-      <AdminFormActions>
+      {/* Cadastro em série (admin-games-ux.md, Etapa 1): mantém jogo,
+          plataforma, servidor, aba, categoria e regra de preço; limpa nome,
+          preço, imagem e tópicos. Só no cadastro — na edição não há "outro". */}
+      {isEditing ? null : (
         <Button
           type="submit"
-          variant="primary"
+          variant="outline"
           fullWidth
           disabled={isSubmitting}
           onClick={() => {
-            submitIntent.current = "announce";
+            submitIntent.current = "again";
           }}
         >
-          {isSubmitting
-            ? "SALVANDO…"
-            : isEditing
-              ? "SALVAR ALTERAÇÕES"
-              : "SALVAR E ANUNCIAR"}
+          Salvar e cadastrar outro
         </Button>
+      )}
+    </>
+  );
 
-        {/* Cadastro em série (admin-games-ux.md, Etapa 1): mantém jogo,
-            plataforma, servidor, aba, categoria e regra de preço; limpa nome,
-            preço, imagem e tópicos. Só no cadastro — na edição não há "outro". */}
-        {isEditing ? null : (
-          <Button
-            type="submit"
-            variant="outline"
-            fullWidth
-            disabled={isSubmitting}
-            onClick={() => {
-              submitIntent.current = "again";
-            }}
+  return (
+    <form
+      ref={formRef}
+      onSubmit={handleSubmit}
+      onChange={onFormChange}
+      noValidate
+      className="px-[20px] pt-[28px] pb-[90px] sm:px-[40px] lg:pb-0"
+    >
+      {/* Formulário "clean" (2026-10-01, aprovado pelo usuário): blocos na
+          ordem do trabalho — onde aparece, card, preço, página do pacote — e,
+          à direita e fixo ao rolar, a prévia do card, atalhos para os blocos
+          e o Salvar sempre à vista. Antes era uma página de 4 telas com os
+          campos fora de ordem e o Salvar só no fim. */}
+      {/* O que não é campo visível viaja nestes três (regra de preço, tópicos,
+          textos do pacote) — validados de novo na action e no backend. */}
+      <input type="hidden" name="pricing" value={pricingField} />
+      <input type="hidden" name="highlights" value={highlightsField} />
+      <input type="hidden" name="content" value={contentField} />
+
+      <div className="grid gap-[30px] lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+        <div className="flex min-w-0 flex-col gap-[22px]">
+          <FormSection
+            id="onde"
+            number={1}
+            title="Onde aparece"
+            hint="Jogo, aba e servidor definem em que lugar da loja o produto entra."
           >
-            Salvar e cadastrar outro
-          </Button>
-        )}
+            <div className="grid gap-x-[24px] gap-y-[22px] sm:grid-cols-2">
+              <SelectField
+                key={`game-${resetCount}`}
+                label="Jogo:"
+                name="gameId"
+                placeholder="Selecione o jogo"
+                options={gameOptions}
+                defaultValue={resetCount === 0 && initialGameId ? initialGameId : undefined}
+                // Editando, o jogo é FIXO: trocá-lo mudaria junto o significado de
+                // plataforma, servidor e aba, e o backend nem aceita o campo no PATCH.
+                disabled={isEditing}
+                onValueChange={selectGame}
+                error={fieldErrors.gameId}
+              />
 
-        {returnTo ? (
-          <Link
-            href={returnTo}
-            className="font-poppins text-[14px] font-bold text-white/70 transition-opacity hover:opacity-80"
-          >
-            ← Voltar sem salvar
-          </Link>
-        ) : null}
+              <SelectField
+                // Remonta quando as abas chegam: o `defaultValue` do Radix só vale
+                // na montagem.
+                key={`tab-${gameId}-${tabs === null ? "loading" : tabs.length}`}
+                label="Aba:"
+                name="tabId"
+                placeholder={
+                  selectedGame === null
+                    ? "Escolha o jogo antes"
+                    : loadingTabs
+                      ? "Carregando abas…"
+                      : tabsError
+                        ? "Não foi possível ler as abas"
+                        : tabOptions.length === 0
+                          ? "Nenhuma. Crie em Jogos → Abas"
+                          : "Aba do produto"
+                }
+                options={tabOptions}
+                defaultValue={tabId || undefined}
+                onValueChange={(id) => selectTab(id)}
+                disabled={selectedGame === null || tabOptions.length === 0}
+                error={
+                  fieldErrors.tabId ??
+                  (tabsError ? "Recarregue a página para tentar ler as abas de novo." : undefined)
+                }
+              />
 
-        {formError ? (
-          <p role="alert" className="font-helvetica text-[14px] text-red-9">
-            {formError}
-          </p>
-        ) : null}
+              <SelectField
+                key={`server-${gameId}`}
+                label="Servidor:"
+                name="serverId"
+                // Placeholder diferente quando o jogo não tem servidor nenhum: um
+                // campo vazio e desabilitado sem explicação parece defeito.
+                placeholder={
+                  selectedGame !== null && serverOptions.length === 0 ? "Este jogo não tem servidores" : "Servidor"
+                }
+                options={serverOptions}
+                // O estado já nasce com o do produto, o do pré-preenchimento ou a
+                // opção única — e `selectGame` o repõe a cada troca de jogo.
+                defaultValue={serverId || undefined}
+                onValueChange={setServerId}
+                disabled={selectedGame === null || serverOptions.length === 0}
+                error={fieldErrors.serverId}
+              />
 
-        {saved ? (
-          <div role="status" className="flex flex-col gap-1">
-            <p className="font-helvetica text-[14px] text-brand-rating">
-              {saved.name} cadastrado em {saved.gameName}
-            </p>
-            {/* Até 2026-09-10 aqui havia um aviso de que a vitrine não lia o
-                banco. Ela lê desde então, e o aviso passou a MENTIR — fazia o
-                admin achar que o cadastro não tinha efeito. No lugar, o atalho
-                para conferir o produto onde o cliente vai vê-lo. */}
-            {saved.gameSlug ? (
-              <Link
-                href={`/games/${encodeURIComponent(saved.gameSlug)}`}
-                target="_blank"
-                rel="noopener"
-                className="font-helvetica text-[13px] text-brand-fg-subtle underline underline-offset-2 hover:text-white"
-              >
-                Ver na loja
-              </Link>
+              <SelectField
+                key={`category-${gameId}-${serverId}-${tabId}`}
+                label="Categoria:"
+                name="categoryId"
+                // Mesma razão do servidor: campo vazio e desabilitado sem
+                // explicação parece defeito.
+                placeholder={
+                  selectedGame !== null && categoryOptions.length === 0
+                    ? "Nenhuma neste servidor/aba"
+                    : "Categoria (opcional)"
+                }
+                options={categoryOptions}
+                defaultValue={categoryDefault}
+                disabled={selectedGame === null || categoryOptions.length === 0}
+                error={fieldErrors.categoryId}
+              />
+
+              <SelectField
+                key={`platform-${gameId}`}
+                label="Plataforma:"
+                name="platform"
+                placeholder="Plataforma"
+                options={platformOptions}
+                defaultValue={
+                  product?.platform ??
+                  (gameId === initialGameId && seed?.platform ? seed.platform : onlyOption(platformOptions))
+                }
+                disabled={selectedGame === null}
+                error={fieldErrors.platform}
+              />
+            </div>
+          </FormSection>
+
+          <FormSection id="card" number={2} title="Card" hint="O que o cliente vê na lista de produtos.">
+            <div className="grid gap-x-[24px] gap-y-[22px] sm:grid-cols-2">
+              <TextField
+                key={`name-${entryKey}`}
+                ref={nameRef}
+                label="Nome do produto"
+                name="name"
+                placeholder="500M Divine Orbs"
+                defaultValue={product?.name}
+                autoComplete="off"
+                maxLength={160}
+                error={fieldErrors.name}
+              />
+
+              <FileField
+                key={`image-${entryKey}`}
+                label="Imagem do produto"
+                // Editando sem anexar nada, o backend mantém a arte atual — o texto diz
+                // isso para ninguém achar que salvar vai apagar a imagem que já existe.
+                placeholder={isEditing ? "Trocar imagem (opcional)" : "Anexar imagem"}
+                name="image"
+                accept={ACCEPTED_IMAGE_TYPES}
+                maxBytes={MAX_IMAGE_BYTES}
+              />
+            </div>
+
+            {isPackages ? (
+              <div className="mt-[22px]">
+                <TextAreaField
+                  label="Tópicos do card"
+                  value={highlightsText}
+                  onChange={(event) => {
+                    setHighlightsText(event.target.value);
+                    setFieldErrors((previous) => ({ ...previous, highlights: undefined }));
+                  }}
+                  placeholder={"Manual Boosting Guarantee\nEntrega em até 24h"}
+                  // Folga para as quebras de linha; o teto real (6 × 80) é do zod.
+                  maxLength={(MAX_HIGHLIGHTS + 2) * 81}
+                  error={fieldErrors.highlights}
+                />
+                <p className="mt-[6px] pl-[25px] font-helvetica text-[12px] text-brand-fg-subtle">
+                  Um por linha, até {MAX_HIGHLIGHTS} linhas de até 80 caracteres. Aparecem com bolinha no card.
+                </p>
+              </div>
             ) : null}
+          </FormSection>
+
+          <FormSection
+            id="preco"
+            number={3}
+            title="Preço"
+            hint={
+              isQuoted
+                ? "O preço base entra na regra abaixo; a prévia mostra o que o cliente paga."
+                : "O preço do produto na loja."
+            }
+          >
+            <div className="max-w-[340px]">
+              <MoneyField
+                key={`price-${entryKey}`}
+                // Em serviço o "preço" muda de papel conforme o modo — o rótulo diz qual.
+                label={
+                  isQuoted && pricingDraft.mode === "QUANTITY"
+                    ? "Preço unitário padrão"
+                    : isQuoted
+                      ? "Preço base"
+                      : "Preço"
+                }
+                name="priceCents"
+                placeholder="R$ 0,00"
+                defaultCents={product?.priceCents}
+                onCentsChange={onPriceChange}
+                error={fieldErrors.priceCents}
+              />
+            </div>
+
+            {isPackages ? (
+              <div className="mt-[26px]">
+                <PackageLayoutPicker draft={pricingDraft} onChange={onPricingChange} />
+              </div>
+            ) : null}
+
+            {isQuoted ? (
+              <div className="mt-[26px]">
+                {selectedTab?.layout === "QUANTITY" && pricingDraft.mode !== "QUANTITY" ? (
+                  <p className="mb-[15px] font-helvetica text-[13px] text-brand-orange">
+                    Aba de Quantidade: use “Por quantidade”, as quantidades prontas viram os botões da loja.
+                  </p>
+                ) : null}
+                <PricingEditor
+                  draft={pricingDraft}
+                  onChange={onPricingChange}
+                  basePriceCents={priceCents}
+                  // Na aba PACOTES o modo vem do "Depois do CONTINUAR".
+                  hideModes={isPackages}
+                />
+              </div>
+            ) : null}
+          </FormSection>
+
+          {isPackages ? (
+            <FormSection
+              id="pagina"
+              number={4}
+              title="Página do pacote"
+              hint="Coluna da esquerda depois do CONTINUAR (ex.: “What you will get”). A imagem é a do card."
+            >
+              <ServiceSectionsEditor
+                sections={packageSections}
+                onChange={setPackageSections}
+                emptyText="Nenhum texto próprio: a página do pacote mostra os textos da aba."
+              />
+            </FormSection>
+          ) : null}
+        </div>
+
+        <aside className="flex flex-col gap-[16px] lg:sticky lg:top-[24px]">
+          <div className="rounded-[20px] border border-brand-border bg-black/30 p-[16px]">
+            <p className="mb-[12px] font-poppins text-[12px] font-bold tracking-[0.06em] text-brand-fg-subtle uppercase">
+              Prévia do card
+            </p>
+            {/* Só para olhar: nada dentro navega nem recebe foco. */}
+            <div aria-hidden inert className="pointer-events-none flex justify-center">
+              {isPackages ? (
+                <PackageCard
+                  href="#"
+                  product={{
+                    id: product?.id ?? "novo",
+                    name: previewName || "Nome do produto",
+                    priceCents,
+                    tabId: tabId,
+                    highlights: highlightsPreview,
+                    image: previewImage,
+                  }}
+                />
+              ) : (
+                <div className="w-full max-w-[265px]">
+                  <ProductCardShell
+                    name={previewName || "Nome do produto"}
+                    price={formatPrice(priceCents)}
+                    image={previewImage}
+                    actions={null}
+                  />
+                </div>
+              )}
+            </div>
           </div>
-        ) : null}
-      </AdminFormActions>
+
+          <nav
+            aria-label="Partes do formulário"
+            className="hidden rounded-[20px] border border-brand-border bg-black/30 p-[8px] lg:block"
+          >
+            {sections.map((section, index) => (
+              <a
+                key={section.id}
+                href={`#${section.id}`}
+                className="flex items-center gap-[10px] rounded-[12px] px-[10px] py-[8px] font-poppins text-[13px] text-white/75 transition-colors hover:bg-white/5 hover:text-white"
+              >
+                <span className="flex size-[22px] items-center justify-center rounded-full border border-white/15 text-[11px] font-bold">
+                  {index + 1}
+                </span>
+                {section.label}
+              </a>
+            ))}
+          </nav>
+
+          {/* Um Salvar só: no celular/tablet é uma barra fixa embaixo; no
+              desktop fica aqui, fixo ao rolar junto com a lateral. */}
+          <div className="fixed inset-x-0 bottom-0 z-30 flex gap-[10px] border-t border-white/10 bg-brand-bg/95 px-[16px] py-[12px] backdrop-blur-[10px] lg:static lg:flex-col lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
+            {submitButtons}
+          </div>
+
+          {returnTo ? (
+            <Link
+              href={returnTo}
+              className="font-poppins text-[14px] font-bold text-white/70 transition-opacity hover:opacity-80"
+            >
+              ← Voltar sem salvar
+            </Link>
+          ) : null}
+
+          {formError ? (
+            <p role="alert" className="font-helvetica text-[14px] text-red-9">
+              {formError}
+            </p>
+          ) : null}
+
+          {saved ? (
+            <div role="status" className="flex flex-col gap-1">
+              <p className="font-helvetica text-[14px] text-brand-rating">
+                {saved.name} cadastrado em {saved.gameName}
+              </p>
+              {saved.gameSlug ? (
+                <Link
+                  href={`/games/${encodeURIComponent(saved.gameSlug)}`}
+                  target="_blank"
+                  rel="noopener"
+                  className="font-helvetica text-[13px] text-brand-fg-subtle underline underline-offset-2 hover:text-white"
+                >
+                  Ver na loja
+                </Link>
+              ) : null}
+            </div>
+          ) : null}
+        </aside>
+      </div>
+
     </form>
+  );
+}
+
+/** Um bloco numerado do formulário, com âncora para os atalhos da lateral. */
+function FormSection({
+  id,
+  number,
+  title,
+  hint,
+  children,
+}: {
+  id: string;
+  number: number;
+  title: string;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section
+      id={id}
+      aria-labelledby={`${id}-titulo`}
+      className="scroll-mt-[24px] rounded-[20px] border border-brand-border bg-[image:var(--brand-surface-fill)] p-[20px] sm:p-[24px]"
+    >
+      <h2 id={`${id}-titulo`} className="flex items-center gap-[10px] font-poppins text-[18px] font-semibold text-white">
+        <span className="flex size-[26px] items-center justify-center rounded-full bg-brand-orange/15 text-[13px] font-bold text-brand-orange">
+          {number}
+        </span>
+        {title}
+      </h2>
+      {hint ? <p className="mt-[4px] mb-[18px] font-helvetica text-[13px] text-brand-fg-subtle">{hint}</p> : <div className="mb-[18px]" />}
+      {children}
+    </section>
   );
 }
 

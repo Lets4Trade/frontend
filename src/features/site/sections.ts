@@ -62,7 +62,15 @@ export type SiteListDef = {
    * `**`. Nome, número de contador e link ficam de fora — de propósito.
    */
   rich?: readonly ("title" | "body")[];
+  /**
+   * Quantos itens VISÍVEIS a loja desenha (2026-10-01). Ausente = todos. O
+   * painel avisa quando há mais que isso — antes o excedente sumia calado.
+   */
+  max?: number;
 };
+
+/** Contadores da faixa da home: 2 de cada lado do menu, no desktop. */
+export const MAX_HOME_STATS = 4;
 
 /** Textos da SEÇÃO que aceitam formatação (ver `SiteListDef.rich`). */
 export type RichSectionField = "title" | "subtitle" | "footnote" | "body";
@@ -181,7 +189,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         // usuário apontou. Agora é esta legenda.
         defaultTitle: "Sua Loja de Gamecoins",
         hasImage: true,
-        imageHint: "Arte do topo da home — 859×758.",
+        imageHint: "Arte do topo da home (859×758).",
         list: {
           itemLabel: "slide",
           // Nome e link vêm do JOGO escolhido (2026-09-25) — antes eram dois
@@ -205,6 +213,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
           itemLabel: "contador",
           title: "Número (ex.: +4000)",
           body: "Legenda (ex.: CLIENTES ATENDIDOS)",
+          max: MAX_HOME_STATS,
         },
       },
       {
@@ -215,7 +224,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         // linha de verdade no campo, e o componente a respeita.
         defaultTitle: "CLIENTES 100%\nSATISFEITOS",
         hasImage: true,
-        imageHint: "Capa do vídeo — 1146×609.",
+        imageHint: "Capa do vídeo (1146×609).",
         // O LINK do vídeo mora na legenda (`footnote`), com rótulo próprio. O
         // botão de play existia e não fazia nada: não havia vídeo nenhum. Vazio,
         // a capa aparece sem o botão — play que não toca é promessa falsa.
@@ -461,11 +470,11 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         // parte porque é outra arte: quadrada e legível em 16px, enquanto a
         // logo é horizontal. Lido pelo `generateMetadata` do layout raiz.
         key: "icone",
-        label: "Ícone do site",
+        label: "Ícone da aba do navegador",
         hasTitle: false,
         hasImage: true,
         imageHint:
-          "Ícone da aba do navegador e do atalho no celular. Quadrado (512×512), PNG com fundo transparente. Navegadores guardam o ícone em cache — pode demorar a aparecer para quem já visitou.",
+          "Ícone da aba do navegador e do atalho no celular. Quadrado (512×512), PNG com fundo transparente. Navegadores guardam o ícone em cache, então pode demorar a aparecer para quem já visitou.",
       },
       {
         // Os canais de atendimento OFICIAIS, num lugar só. Antes o WhatsApp de
@@ -476,7 +485,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         // SEM valor padrão, de propósito: número inventado no ar é pior que
         // canal ausente. Vazio, o canal simplesmente não aparece.
         key: "contatos",
-        label: "Contato e atendimento",
+        label: "WhatsApp e Discord",
         defaultTitle: "",
         // Curto: a coluna do título tem 315px e o rótulo longo vazava do card.
         titleLabel: "WhatsApp (DDI + DDD)",
@@ -487,7 +496,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
       },
       {
         key: "header-selo",
-        label: "Cabeçalho · Selo",
+        label: "Selo “+1000 referências”",
         // O "+1000 REFERÊNCIAS" centrado. O número usa o degradê laranja
         // recortado no texto; a legenda, branco. São dois textos e não um
         // porque o arquivo os desenha em tamanhos e cores diferentes.
@@ -499,14 +508,14 @@ export const SITE_PAGES: readonly SitePageDef[] = [
       },
       {
         key: "header-busca",
-        label: "Cabeçalho · Busca",
+        label: "Texto da busca",
         defaultTitle: "O que você busca?",
         titleLabel: "Texto de exemplo do campo",
         hasImage: false,
       },
       {
         key: "header-acoes",
-        label: "Cabeçalho · Botões",
+        label: "Botões do topo",
         // Os três rótulos. Cada um tem nome próprio no formulário: "título",
         // "subtítulo" e "legenda" não diriam a ninguém qual botão é qual.
         defaultTitle: "GAMES",
@@ -519,7 +528,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
       },
       {
         key: "footer-redes",
-        label: "Rodapé · Redes sociais",
+        label: "Redes sociais",
         hasTitle: false,
         hasImage: false,
         list: {
@@ -542,7 +551,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
       // dizendo "CATEGORIA" sobre elas seria trocar um placeholder por outro.
       {
         key: "footer-coluna-1",
-        label: "Rodapé · Coluna 1",
+        label: "Links · 1ª coluna",
         defaultTitle: "LOJA",
         titleLabel: "Título da coluna",
         hasImage: false,
@@ -550,7 +559,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
       },
       {
         key: "footer-coluna-2",
-        label: "Rodapé · Coluna 2",
+        label: "Links · 2ª coluna",
         defaultTitle: "CONTA",
         titleLabel: "Título da coluna",
         hasImage: false,
@@ -562,7 +571,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
       // mortos que esta mudança veio tirar.
       {
         key: "footer-coluna-3",
-        label: "Rodapé · Coluna 3",
+        label: "Links · 3ª coluna",
         defaultTitle: "AJUDA",
         titleLabel: "Título da coluna",
         hasImage: false,
@@ -579,7 +588,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         // ano corrente na renderização — ninguém precisa lembrar de editar em
         // janeiro.
         key: "footer-empresa",
-        label: "Rodapé · Dados da empresa",
+        label: "Dados da empresa",
         defaultTitle: "",
         titleLabel: "CNPJ",
         titleMask: "cnpj",
@@ -595,7 +604,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
       },
       {
         key: "footer-sobre",
-        label: "Rodapé · Texto",
+        label: "Texto sobre a loja",
         // SEM texto padrão, de propósito: o que estava no código era Lorem
         // Ipsum, e manter um placeholder como "padrão" é garantir que ele volte
         // a aparecer toda vez que alguém limpar o campo. Vazio, o parágrafo

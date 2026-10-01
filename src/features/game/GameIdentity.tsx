@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { GamePage, GameTab } from "./types";
+import { tabHrefWithServer } from "./storefrontTabs";
 
 /**
  * Identidade do jogo (Figma 1524:517 + 1524:401): logo, título e as abas de
@@ -11,7 +12,7 @@ import type { GamePage, GameTab } from "./types";
  * as abas descem junto. Os números (30px de vão para o logo, 25 até as abas,
  * 15 entre elas) são os do arquivo, medidos como diferença de coordenadas.
  */
-export function GameIdentity({ page }: { page: GamePage }) {
+export function GameIdentity({ page, server = "" }: { page: GamePage; server?: string }) {
   const { logo, heading, coin } = page.identity;
   // A moeda muda de lugar conforme o layout da aba: no catálogo (Figma 1116:314)
   // ela desce até os botões de servidor; no serviço (1708:3266) fica ao lado das
@@ -32,7 +33,7 @@ export function GameIdentity({ page }: { page: GamePage }) {
         {page.tabs.length > 0 ? (
           <nav className="mt-[25px] flex flex-wrap gap-[15px]">
             {page.tabs.map((tab) => (
-              <TabLink key={tab.id} tab={tab} active={tab.id === page.activeTabId} />
+              <TabLink key={tab.id} tab={tab} server={server} active={tab.id === page.activeTabId} />
             ))}
           </nav>
         ) : null}
@@ -152,10 +153,10 @@ export function LogoHalo({ src, alt, height }: { src: string; alt: string; heigh
  * `min-w` em vez de largura fixa porque o rótulo é editável — no próprio
  * arquivo "VENDA PRA NÓS" já é 13px mais larga que as outras.
  */
-function TabLink({ tab, active }: { tab: GameTab; active: boolean }) {
+function TabLink({ tab, server, active }: { tab: GameTab; server: string; active: boolean }) {
   return (
     <Link
-      href={tab.href}
+      href={tabHrefWithServer(tab, server)}
       aria-current={active ? "page" : undefined}
       className={`relative flex h-[99px] min-w-[130px] flex-col items-center justify-start rounded-[8px] border-2 border-white/10 px-[10px] pt-[11px] backdrop-blur-[100px] transition-opacity hover:opacity-90 ${
         active

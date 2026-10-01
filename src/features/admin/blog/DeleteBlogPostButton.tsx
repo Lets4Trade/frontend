@@ -61,7 +61,7 @@ export function DeleteBlogPostButton({ id, name }: { id: string; name: string })
             Excluir <span className="font-bold">{name}</span>?
           </p>
           <p className="mt-[6px] font-helvetica text-[13px] leading-[18px] text-brand-fg-subtle">
-            A matéria sai do ar e é apagada — não dá para desfazer. Para só tirar do ar, salve como
+            A matéria sai do ar e é apagada, e não dá para desfazer. Para só tirar do ar, salve como
             rascunho.
           </p>
 

@@ -110,7 +110,7 @@ const DEFAULT_ICON = "/images/logo.png";
 
 /**
  * O ícone da aba (favicon) sai do painel (2026-09-24, rebranding): Edição de
- * sessões → Cabeçalho e rodapé → "Ícone do site". Vazio, fica o de fábrica.
+ * Configurações da loja → Marca → "Ícone da aba do navegador". Vazio, fica o de fábrica.
  *
  * Mesma leitura cacheada do cabeçalho (1h, derrubada pelo painel ao salvar), então
  * não é uma ida a mais ao backend. O arquivo enviado passa pelo backend, que o

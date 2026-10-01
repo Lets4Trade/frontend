@@ -129,7 +129,7 @@ export function newProductHref(prefill: Partial<ProductPrefill> & { returnTo?: s
 
 /** Listagem de produtos filtrada por jogo (e aba) — o mesmo `buildHref` dos filtros. */
 export function productsListHref({ gameId, tabId = "" }: { gameId: string; tabId?: string }): string {
-  return buildHref({ game: "", tab: "", sort: "recente", search: "", page: 1 }, { game: gameId, tab: tabId });
+  return buildHref({ game: "", tab: "", server: "", sort: "recente", search: "", page: 1 }, { game: gameId, tab: tabId });
 }
 
 /** Edição de um produto, com o `volta` (conferido) quando houver. */

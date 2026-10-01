@@ -104,7 +104,7 @@ export function BlockInspector({
           if (!sectionDef) {
             return (
               <p className="font-poppins text-[13px] text-brand-fg-subtle">
-                O conteúdo desta seção vem da conta de quem acessa — não há o que editar por aqui.
+                O conteúdo desta seção vem da conta de quem acessa, então não há o que editar por aqui.
               </p>
             );
           }

@@ -109,7 +109,7 @@ function field(container: HTMLElement, name: string) {
 function fillItem(container: HTMLElement) {
   fireEvent.change(screen.getByLabelText("Nome do produto"), { target: { value: "Pacote Ouro" } });
   const price = document.getElementById(
-    screen.getByText("Preço", { selector: "label" }).getAttribute("for") ?? "",
+    screen.getByText(/^Preço( base)?$/, { selector: "label" }).getAttribute("for") ?? "",
   ) as HTMLInputElement;
   fireEvent.change(price, { target: { value: "1990" } });
   fireEvent.change(screen.getByLabelText("Tópicos do card"), { target: { value: "Entrega rápida" } });
@@ -282,5 +282,28 @@ describe("ProductForm — `volta` (Central do jogo)", () => {
       fireEvent.click(screen.getByRole("button", { name: "SALVAR ALTERAÇÕES" }));
     });
     await waitFor(() => expect(push).toHaveBeenCalledWith("/admin/produtos"));
+  });
+});
+
+describe("ProductForm — página do pacote (2026-10-01)", () => {
+  it("'Depois do CONTINUAR' troca o modo de preço e esconde a escolha duplicada", () => {
+    const { container } = render(<ProductForm games={games} prefill={prefill} initialTabs={tabs} />);
+    expect(screen.queryByRole("radiogroup", { name: "Como o preço é calculado" })).toBeNull();
+
+    const level = screen.getByRole("radio", { name: /Faixa de nível/ });
+    fireEvent.click(level);
+    expect(level).toHaveAttribute("aria-checked", "true");
+    // O hidden do preço só fica válido depois das faixas; o modo já mudou no editor.
+    expect(screen.getByRole("radio", { name: /Lista de serviços/ })).toHaveAttribute("aria-checked", "false");
+    expect(field(container, "content").value).toBe("");
+  });
+
+  it("textos da página do pacote vão no hidden `content`", () => {
+    const { container } = render(<ProductForm games={games} prefill={prefill} initialTabs={tabs} />);
+    fireEvent.click(screen.getByRole("button", { name: "+ Adicionar seção de texto" }));
+    fireEvent.change(screen.getByLabelText("Título da seção 1"), { target: { value: "What you will get" } });
+    expect(JSON.parse(field(container, "content").value)).toEqual({
+      sections: [{ title: "What you will get", items: [] }],
+    });
   });
 });

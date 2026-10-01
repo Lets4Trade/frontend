@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toastError, toastOk } from "@/components/ui/Toasts";
 import { cn } from "@/lib/cn";
 import { runAction } from "@/lib/safeAction";
@@ -44,7 +44,6 @@ export function TabsMasterList({
   serverId: string;
 }) {
   const router = useRouter();
-  const selectId = useId();
   const [order, setOrder] = useState<string[] | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -169,64 +168,65 @@ export function TabsMasterList({
     </>
   );
 
-  const newTabLink = (
-    <Link
-      href={hrefFor(NEW_TAB)}
-      scroll={false}
-      aria-current={selectedId === NEW_TAB ? "page" : undefined}
-      className={cn(
-        "flex h-[44px] items-center justify-center rounded-[14px] border border-dashed font-poppins text-[13px] font-bold transition-colors",
-        selectedId === NEW_TAB
-          ? "border-brand-orange text-white"
-          : "border-white/20 text-brand-orange hover:border-brand-orange/60",
-      )}
-    >
-      + Nova aba
-    </Link>
-  );
-
+  // Fileira de abas (2026-10-01, "deixar clean"): as abas do jogo como na
+  // loja, uma ao lado da outra; a ordem fica num "Reordenar abas" recolhido.
+  // Era uma coluna de 280px com setas em cada item — a terceira coluna da tela.
   return (
-    <>
-      {/* < 1280px: escolher num select; ordem e "nova aba" logo abaixo. */}
-      <div className="flex flex-col gap-[12px] xl:hidden">
-        <label htmlFor={selectId} className="font-poppins text-[13px] font-bold text-white">
-          Aba
-        </label>
-        <select
-          id={selectId}
-          value={selectedId}
-          onChange={(event) => router.push(hrefFor(event.target.value), { scroll: false })}
-          className="h-[50px] rounded-full border border-white/10 bg-brand-surface px-[20px] font-poppins text-[14px] text-white focus:border-brand-orange/60 focus:outline-none"
-        >
-          {shown.map((tab) => (
-            <option key={tab.id} value={tab.id}>
+    <div className="flex flex-col gap-[10px]">
+      <nav aria-label="Abas do jogo" className="flex flex-wrap items-center gap-[8px]">
+        {shown.map((tab) => {
+          const active = tab.id === selectedId;
+          const icon = tabIconSrc(tab.iconUrl ?? defaultTabIcon(tab.slug, tab.layout));
+          const warnings = tabWarnings(tab);
+          return (
+            <Link
+              key={tab.id}
+              href={hrefFor(tab.id)}
+              scroll={false}
+              aria-current={active ? "page" : undefined}
+              title={warnings.map((warning) => warning.detail).join(" · ") || undefined}
+              className={cn(
+                "relative flex h-[44px] items-center gap-[8px] rounded-full border pr-[16px] pl-[8px] font-poppins text-[13px] font-bold transition-colors focus-visible:outline-2 focus-visible:outline-brand-orange",
+                active ? "border-brand-orange bg-brand-orange/15 text-white" : "border-white/10 text-white/80 hover:border-white/30",
+                tab.isActive ? null : "opacity-60",
+              )}
+            >
+              <span className="flex size-[30px] shrink-0 items-center justify-center rounded-full bg-black/40">
+                {icon ? <Image src={icon} alt="" width={20} height={20} className="size-[20px] object-contain" /> : null}
+              </span>
               {tab.label}
-              {tab.isActive ? "" : " (oculta)"}
-              {tabWarnings(tab).map((warning) => ` (${warning.short})`).join("")}
-            </option>
-          ))}
-          <option value={NEW_TAB}>+ Nova aba</option>
-        </select>
-        {shown.length > 1 ? (
-          <details className="rounded-[14px] border border-white/10 px-[12px] py-[10px]">
-            <summary className="cursor-pointer font-poppins text-[13px] font-bold text-white/80">
-              Ordem das abas{dirty ? " (não salva)" : ""}
-            </summary>
-            <div className="mt-[12px]">{list}</div>
-          </details>
-        ) : null}
-      </div>
-
-      {/* ≥ 1280px: a coluna da esquerda. */}
-      <nav aria-label="Abas do jogo" className="hidden flex-col gap-[12px] xl:flex">
-        {shown.length === 0 ? (
-          <p className="font-poppins text-[13px] text-brand-fg-subtle">Nenhuma aba ainda.</p>
-        ) : (
-          list
-        )}
-        {newTabLink}
+              {tab.isActive ? null : <span className="sr-only"> (oculta na loja)</span>}
+              {warnings.length > 0 ? (
+                <>
+                  <span aria-hidden className="size-[7px] rounded-full bg-brand-orange" />
+                  <span className="sr-only">: {warnings.map((warning) => warning.short).join(", ")}</span>
+                </>
+              ) : null}
+            </Link>
+          );
+        })}
+        <Link
+          href={hrefFor(NEW_TAB)}
+          scroll={false}
+          aria-current={selectedId === NEW_TAB ? "page" : undefined}
+          className={cn(
+            "flex h-[44px] items-center rounded-full border border-dashed px-[16px] font-poppins text-[13px] font-bold transition-colors",
+            selectedId === NEW_TAB ? "border-brand-orange text-white" : "border-white/20 text-brand-orange hover:border-brand-orange/60",
+          )}
+        >
+          + Nova aba
+        </Link>
       </nav>
-    </>
+
+      {shown.length > 1 ? (
+        <details className="w-fit max-w-full" open={dirty || undefined}>
+          <summary className="cursor-pointer font-poppins text-[12px] font-bold text-white/60 hover:text-white">
+            Reordenar abas{dirty ? " (não salvo)" : ""}
+          </summary>
+          <div className="mt-[10px] w-[min(420px,100%)]">{list}</div>
+        </details>
+      ) : null}
+    </div>
   );
 }
 
