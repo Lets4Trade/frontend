@@ -30,6 +30,8 @@ export type AdminProduct = {
   content?: { sections: { title: string; items: string[] }[] } | null;
   /** Caminho servido pelo BACKEND (`/uploads/products/…`), não pelo Next. */
   imageUrl: string | null;
+  /** Banner da tela do serviço (2026-10-06). Ausente no backend antigo. */
+  bannerUrl?: string | null;
   serverId: string | null;
   categoryId: string | null;
   createdAt: string;

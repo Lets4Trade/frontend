@@ -40,7 +40,10 @@ export function ProductCardShell({
             alt={image.alt ?? ""}
             width={image.width}
             height={image.height}
-            className="size-full object-cover"
+            // Inteira e com respiro (pedido do usuário, 2026-10-06): com
+            // `object-cover` a arte preenchia a área toda e ficava grande e
+            // cortada. A margem de baixo é maior porque o degradê come a base.
+            className="size-full object-contain px-[28px] pt-[24px] pb-[40px]"
           />
         ) : null}
       </div>

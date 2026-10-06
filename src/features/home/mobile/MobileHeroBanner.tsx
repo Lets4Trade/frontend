@@ -3,6 +3,15 @@
 import Image from "next/image";
 import { useState } from "react";
 import type { SectionItemView } from "@/features/site/content";
+import { HERO_DEFAULT_ART } from "../heroGames";
+
+/**
+ * A arte ENVIADA termina acima das barrinhas (bottom 58 + 3 de altura + 16 de
+ * respiro), como no desktop; a padrão do desenho ocupa o card todo.
+ */
+function artBox(src: string) {
+  return src === HERO_DEFAULT_ART ? "inset-0" : "inset-x-0 top-0 bottom-[77px]";
+}
 
 /**
  * O topo da home no CELULAR (Figma 2667:1864): um card só, com as artes do
@@ -29,20 +38,26 @@ export function MobileHeroBanner({
   return (
     <section className="relative aspect-[352/338] w-full overflow-hidden rounded-[24px] border border-white/10 bg-brand-surface">
       {slides.length === 0 ? (
-        <Image src={fallbackImage} alt="" fill priority sizes="100vw" aria-hidden className="object-cover" />
+        <div className={`absolute ${artBox(fallbackImage)}`}>
+          <Image src={fallbackImage} alt="" fill priority sizes="100vw" aria-hidden className="object-cover" />
+        </div>
       ) : (
         slides.map((item, index) => (
-          <Image
+          <div
             key={item.id}
-            src={item.image ?? fallbackImage}
-            alt=""
-            fill
-            sizes="100vw"
-            priority={index === 0}
-            aria-hidden={index !== active}
-            className="object-cover"
+            className={`absolute ${artBox(item.image ?? fallbackImage)}`}
             style={{ visibility: index === active ? "visible" : "hidden" }}
-          />
+          >
+            <Image
+              src={item.image ?? fallbackImage}
+              alt=""
+              fill
+              sizes="100vw"
+              priority={index === 0}
+              aria-hidden={index !== active}
+              className="object-cover"
+            />
+          </div>
         ))
       )}
 

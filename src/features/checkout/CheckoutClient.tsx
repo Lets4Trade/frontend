@@ -612,7 +612,8 @@ function MethodRadio({
  * é a verdade para quem ainda não comprou, e continua sem tabela local.
  */
 function CashbackCard({ loyalty }: { loyalty: LoyaltySummary | null }) {
-  const art = tierArt(loyalty?.tier ?? "BRONZE");
+  const currentTier = loyalty?.tier ?? "BRONZE";
+  const art = tierArt(currentTier, loyalty?.tiers.find((tier) => tier.tier === currentTier)?.iconUrl);
   const name = loyalty?.tierName ?? "Bronze";
   const cashback = formatBps(loyalty?.cashbackBps ?? 100);
   const progress = loyalty?.progress ?? 0;

@@ -40,6 +40,16 @@ export function LegacySectionPanel({
 
       <SectionContentForm fullKey={fullKey} def={def} content={content} games={games} onSaved={onSaved} />
 
+      {fullKey === "fidelidade:niveis" ? (
+        <p className="rounded-[12px] border border-brand-border bg-black/30 px-[12px] py-[10px] font-poppins text-[12px] leading-[18px] text-brand-fg-muted">
+          Nome, “a partir de”, % de cashback e ícone de cada nível ficam em{" "}
+          <Link href="/admin/fidelidade" className="font-bold text-brand-orange hover:underline">
+            Níveis de fidelidade
+          </Link>
+          .
+        </p>
+      ) : null}
+
       {fullKey.startsWith("home:") ? (
         <p className="font-poppins text-[12px] text-brand-fg-subtle">
           Prefere clicar direto na página? Use a aba{" "}

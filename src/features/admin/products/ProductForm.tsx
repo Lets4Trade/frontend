@@ -693,7 +693,7 @@ export function ProductForm({
 
               <FileField
                 key={`image-${entryKey}`}
-                label="Imagem do produto"
+                label={isPackages ? "Imagem do card (526×552)" : "Imagem do produto (526×552)"}
                 // Editando sem anexar nada, o backend mantém a arte atual — o texto diz
                 // isso para ninguém achar que salvar vai apagar a imagem que já existe.
                 placeholder={isEditing ? "Trocar imagem (opcional)" : "Anexar imagem"}
@@ -782,8 +782,25 @@ export function ProductForm({
               id="pagina"
               number={4}
               title="Página do pacote"
-              hint="Coluna da esquerda depois do CONTINUAR (ex.: “What you will get”). A imagem é a do card."
+              hint="O que aparece depois do CONTINUAR: o banner no topo e os textos da esquerda (ex.: “What you will get”)."
             >
+              {/* Banner próprio da tela do serviço (2026-10-06): o card é
+                  retrato e o topo do configurador é largo, então uma imagem
+                  só ficava mal cortada em um dos dois. Vazio = usa a do card. */}
+              <div className="mb-[22px]">
+                <FileField
+                  key={`banner-${entryKey}`}
+                  label="Banner da tela do serviço (ideal 1102×654)"
+                  placeholder={
+                    isEditing && product?.bannerUrl
+                      ? "Trocar banner (opcional)"
+                      : "Anexar banner (vazio usa a imagem do card)"
+                  }
+                  name="banner"
+                  accept={ACCEPTED_IMAGE_TYPES}
+                  maxBytes={MAX_IMAGE_BYTES}
+                />
+              </div>
               <ServiceSectionsEditor
                 sections={packageSections}
                 onChange={setPackageSections}

@@ -23,16 +23,16 @@ import { reveal, revealDelay } from "./reveal";
  * distância entre eles varia de 105 a 142px no arquivo. Por isso cada um carrega
  * o seu X em vez de sair de um `gap`.
  *
- * GAMES abre o dropdown com todos os jogos (`HomeGamesMenu`, 2026-09-24). As
- * setas de FIDELIDADE e VENDA PRA NÓS indicam submenu — ainda sem
- * comportamento, só o indicador visual do design. Toda seta começa PARA CIMA e
- * aponta para baixo com o menu aberto (pedido do usuário).
+ * GAMES abre o dropdown com todos os jogos (`HomeGamesMenu`, 2026-09-24). A
+ * seta começa PARA CIMA e aponta para baixo com o menu aberto (pedido do
+ * usuário). FIDELIDADE e VENDA PRA NÓS tinham a seta do design sem submenu
+ * nenhum; saíram em 2026-10-06 (pedido do usuário): são links diretos.
  */
 export const NAV_ITEMS = [
   { label: "HOME", icon: "/icons/home/nav-home.svg", href: "/", left: 679, active: true, dropdown: false },
   { label: "GAMES", icon: "/icons/home/nav-games.svg", href: "/games", left: 784, active: false, dropdown: true },
-  { label: "FIDELIDADE", icon: "/icons/home/nav-fidelidade.svg", href: "/fidelidade", left: 905, active: false, dropdown: true },
-  { label: "VENDA PRA NÓS", icon: "/icons/home/nav-venda.svg", href: "/venda", left: 1047, active: false, dropdown: true },
+  { label: "FIDELIDADE", icon: "/icons/home/nav-fidelidade.svg", href: "/fidelidade", left: 905, active: false, dropdown: false },
+  { label: "VENDA PRA NÓS", icon: "/icons/home/nav-venda.svg", href: "/venda", left: 1047, active: false, dropdown: false },
 ];
 
 /**

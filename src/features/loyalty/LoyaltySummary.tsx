@@ -31,7 +31,7 @@ export function LoyaltySummary({
    */
   caption?: string;
 }) {
-  const art = tierArt(data.tier);
+  const art = tierArt(data.tier, data.tiers.find((tier) => tier.tier === data.tier)?.iconUrl);
 
   return (
     // Em FLUXO, não em coordenadas absolutas (2026-09-25): com 1612px fixos e

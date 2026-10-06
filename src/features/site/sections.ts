@@ -189,15 +189,15 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         // usuário apontou. Agora é esta legenda.
         defaultTitle: "Sua Loja de Gamecoins",
         hasImage: true,
-        imageHint: "Arte do topo da home (859×758).",
+        imageHint: "Arte do topo da home (859×643, termina acima das barrinhas).",
         list: {
           itemLabel: "slide",
           // Nome e link vêm do JOGO escolhido (2026-09-25) — antes eram dois
           // campos digitados, que repetiam o cadastro e envelheciam quando o
           // link do jogo mudava.
           game: "Jogo",
-          image: "Personagem (recorte, ~336×758)",
-          secondaryImage: "Logo do jogo (vazio usa a do jogo)",
+          image: "Personagem (ideal 760×900, preenche a área do card)",
+          secondaryImage: "Logo do jogo (400×200, PNG transparente; vazio usa a do jogo)",
         },
       },
       {
@@ -255,7 +255,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
           itemLabel: "review",
           title: "Nome de quem avaliou",
           body: "Depoimento",
-          image: "Avatar (quadrado)",
+          image: "Avatar (quadrado, 84×84)",
           rich: ["body"],
         },
       },
@@ -274,7 +274,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         list: {
           itemLabel: "membro",
           title: "Nome",
-          image: "Foto (recorte vertical, ~261×316)",
+          image: "Foto (recorte vertical, 522×633)",
         },
       },
       // Mesmo caso da equipe: o render tem 157×171.
@@ -288,8 +288,8 @@ export const SITE_PAGES: readonly SitePageDef[] = [
           itemLabel: "guia",
           title: "Título do guia",
           body: "Texto",
-          image: "Arte de fundo",
-          secondaryImage: "Logo do jogo",
+          image: "Arte de fundo (834×876)",
+          secondaryImage: "Logo do jogo (180×116, PNG transparente)",
           href: "Link do guia",
           rich: ["title", "body"],
         },
@@ -386,7 +386,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
           itemLabel: "referência",
           title: "Nome de quem avaliou",
           body: "Depoimento",
-          image: "Avatar (quadrado)",
+          image: "Avatar (quadrado, 84×84)",
         },
       },
       {
@@ -398,7 +398,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
           itemLabel: "notícia",
           title: "Manchete",
           body: "Resumo",
-          image: "Arte da notícia",
+          image: "Arte da notícia (778×552)",
           href: "Link da notícia",
         },
       },
@@ -537,7 +537,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
           // O ícone é upload, e não uma escolha numa lista fixa, porque a
           // decisão foi poder ADICIONAR uma rede que ainda não existe aqui.
           // SVG não é aceito de propósito — ver `ImageStorageService`.
-          image: "Ícone (PNG ou WebP com fundo transparente, ~96px)",
+          image: "Ícone (96×96, PNG ou WebP com fundo transparente)",
           href: "Link do perfil",
         },
       },

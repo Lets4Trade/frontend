@@ -6,6 +6,7 @@ import {
   roleLabel,
   type AdminUser,
   type AdminUserStatus,
+  type TierOption,
 } from "./types";
 
 /**
@@ -49,7 +50,7 @@ const COLUMNS = [
  * sobra. As colunas somam 1138, então a tabela cabe bem antes de qualquer
  * viewport realista — e a página nunca ganha barra horizontal.
  */
-export function UsersTable({ users }: { users: AdminUser[] }) {
+export function UsersTable({ users, tierOptions }: { users: AdminUser[]; tierOptions: TierOption[] }) {
   return (
     /* Abaixo de ~1240px as seis colunas não cabem mais, e aí quem rola é a
        TABELA dentro do card — nunca a página. Barra horizontal na página é o
@@ -114,7 +115,7 @@ export function UsersTable({ users }: { users: AdminUser[] }) {
 
               <Cell>
                 <div className="flex justify-end pr-[10px]">
-                  <UserEditDialog user={user} />
+                  <UserEditDialog user={user} tierOptions={tierOptions} />
                 </div>
               </Cell>
             </tr>

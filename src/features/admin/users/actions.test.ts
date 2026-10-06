@@ -85,6 +85,7 @@ describe("updateUserAction", () => {
     ["nome que não é texto", { ...edit(), name: 42 } as unknown as UserEdit],
     ["isActive como texto", { ...edit(), isActive: "false" } as unknown as UserEdit],
     ["corpo nulo", null as unknown as UserEdit],
+    ["nível que não existe", edit({ tier: "PLATINA" })],
   ])("input inválido (%s) → recusa sem API", async (_l, value) => {
     expect(await updateUserAction("u1", value)).toMatchObject({ ok: false });
     expect(patch).not.toHaveBeenCalled();
@@ -101,6 +102,15 @@ describe("updateUserAction", () => {
       isActive: true,
     });
     expect(revalidatePath).toHaveBeenCalledWith("/admin/usuarios");
+  });
+
+  it("nível de fidelidade só viaja quando veio (fixo ou AUTO)", async () => {
+    await updateUserAction("u1", edit({ tier: "DIAMANTE" }));
+    expect((patch.mock.calls[0][1] as Record<string, unknown>).tier).toBe("DIAMANTE");
+    await updateUserAction("u1", edit({ tier: "AUTO" }));
+    expect((patch.mock.calls[1][1] as Record<string, unknown>).tier).toBe("AUTO");
+    await updateUserAction("u1", edit());
+    expect(patch.mock.calls[2][1]).not.toHaveProperty("tier");
   });
 
   it("WhatsApp e Discord vazios viajam como \"\" — é assim que se APAGA o campo", async () => {

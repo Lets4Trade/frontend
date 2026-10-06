@@ -64,9 +64,14 @@ export const TIER_ART: Record<
   },
 };
 
-/** A arte de um nível, com o Bronze como rede de segurança. */
-export function tierArt(tier: string) {
-  return TIER_ART[tier as LoyaltyTierKey] ?? TIER_ART.BRONZE;
+/**
+ * A arte de um nível, com o Bronze como rede de segurança. `iconUrl` é o ícone
+ * enviado no painel (2026-10-06): substitui só a IMAGEM — tamanho, posição e
+ * brilho continuam os do desenho para aquele nível.
+ */
+export function tierArt(tier: string, iconUrl?: string) {
+  const art = TIER_ART[tier as LoyaltyTierKey] ?? TIER_ART.BRONZE;
+  return iconUrl ? { ...art, icon: iconUrl } : art;
 }
 
 /**

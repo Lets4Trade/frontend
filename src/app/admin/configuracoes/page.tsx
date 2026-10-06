@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { getSessionRole } from "@/features/auth/session";
 import { SETTINGS_PAGE } from "@/features/admin/settings/catalog";
 import { SettingsBoard } from "@/features/admin/settings/SettingsBoard";
 import { getSectionsAdmin } from "@/features/site/list";
@@ -17,7 +19,7 @@ export const metadata: Metadata = {
  * painel; quem autoriza a escrita é o `RolesGuard` do backend.
  */
 export default async function StoreSettingsPage() {
-  const snapshot = await getSectionsAdmin();
+  const [snapshot, role] = await Promise.all([getSectionsAdmin(), getSessionRole()]);
   const sections = snapshot.sections.filter((section) => section.key.startsWith(`${SETTINGS_PAGE}:`));
 
   return (
@@ -26,6 +28,15 @@ export default async function StoreSettingsPage() {
       <p className="mt-[6px] max-w-[760px] font-helvetica text-[15px] text-brand-fg-muted">
         Contatos, marca, dados da empresa e redes sociais. Cada cartão salva sozinho e a loja muda na hora.
       </p>
+      {/* Atalho só para ADMIN: a tela de níveis mexe em cashback (dinheiro). */}
+      {role === "ADMIN" ? (
+        <p className="mt-[10px] font-helvetica text-[14px] text-brand-fg-muted">
+          Níveis, cashback e ícones da fidelidade:{" "}
+          <Link href="/admin/fidelidade" className="font-bold text-brand-orange hover:underline">
+            Níveis de fidelidade →
+          </Link>
+        </p>
+      ) : null}
 
       {snapshot.failed ? (
         <p

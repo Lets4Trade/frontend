@@ -46,7 +46,7 @@ export type SubFieldSpec =
   | { kind: "text"; name: string; label: string; max: number; required?: boolean }
   | { kind: "textarea"; name: string; label: string; max: number; required?: boolean; rows?: number }
   | { kind: "rating"; name: string; label: string }
-  | { kind: "image"; name: string; label: string };
+  | { kind: "image"; name: string; label: string; hint?: string };
 
 export type BlockDefinition<T extends BlockType = BlockType> = {
   type: T;
@@ -83,7 +83,7 @@ export const BLOCKS: { [K in BlockType]: BlockDefinition<K> } = {
       { kind: "text", name: "eyebrow", label: "Chamada acima do título", max: 60, placeholder: "NOVIDADE" },
       { kind: "text", name: "title", label: "Título", max: 120, required: true },
       { kind: "textarea", name: "subtitle", label: "Texto", max: 300, rows: 3 },
-      { kind: "image", name: "image", label: "Imagem", hint: "PNG ou JPG até 5 MB. Aparece à direita no computador." },
+      { kind: "image", name: "image", label: "Imagem", hint: "1200×900 (4:3), PNG ou JPG até 5 MB. Aparece à direita no computador." },
       { kind: "cta", name: "cta", label: "Botão" },
       {
         kind: "select",
@@ -116,7 +116,7 @@ export const BLOCKS: { [K in BlockType]: BlockDefinition<K> } = {
         rows: 6,
         hint: "Deixe uma linha em branco para começar outro parágrafo.",
       },
-      { kind: "image", name: "image", label: "Imagem" },
+      { kind: "image", name: "image", label: "Imagem", hint: "1200×900 (4:3), PNG ou JPG até 5 MB." },
       {
         kind: "select",
         name: "imageSide",
@@ -285,7 +285,7 @@ export const BLOCKS: { [K in BlockType]: BlockDefinition<K> } = {
           { kind: "text", name: "name", label: "Nome", max: 60, required: true },
           { kind: "textarea", name: "text", label: "Depoimento", max: 600, required: true, rows: 3 },
           { kind: "rating", name: "rating", label: "Nota" },
-          { kind: "image", name: "avatar", label: "Foto (opcional)" },
+          { kind: "image", name: "avatar", label: "Foto (opcional)", hint: "Quadrada, 80×80." },
         ],
         newItem: () => ({ id: newBlockId(), name: "Cliente", text: "Excelente atendimento!", rating: 5 }),
       },

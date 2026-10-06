@@ -1,7 +1,7 @@
 import { HeroBannerSlides } from "./HeroBannerSlides";
 import { HeroDeck } from "./HeroDeck";
 import type { SectionItemView } from "@/features/site/content";
-import { HERO_BANNER_WIDTH, HERO_HEIGHT, type HeroSlide } from "./heroGames";
+import { HERO_BANNER_WIDTH, HERO_DEFAULT_ART, HERO_HEIGHT, type HeroSlide } from "./heroGames";
 
 /**
  * Hero da home (Figma 131:1504) — banner de 859×758 à esquerda e o slot de
@@ -16,8 +16,7 @@ import { HERO_BANNER_WIDTH, HERO_HEIGHT, type HeroSlide } from "./heroGames";
  * banner vem DEPOIS no DOM e com `z-10` — a esteira some na borda dele, mas o
  * card sob o cursor sobe para `z-index: 1` e sem isso poderia passar na frente.
  */
-/** A arte padrão do topo, quando o admin não subiu outra. */
-const HERO_ART = "/images/hero-banner.svg";
+const HERO_ART = HERO_DEFAULT_ART;
 
 export function HeroSection({
   image = HERO_ART,

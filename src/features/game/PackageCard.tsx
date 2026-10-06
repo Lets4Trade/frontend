@@ -2,7 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
-import type { GameProduct } from "./types";
+import { PackageDescriptionPopover } from "./PackageDescriptionPopover";
+import type { GameProduct, ServiceContent } from "./types";
+
+const ART_BOX = "relative mx-px mt-px h-[276px] shrink-0 overflow-hidden rounded-t-[30px] bg-[#2f2f2f]";
 
 /**
  * Card de PACOTE (Figma 1694:2522, 265×417): arte 263×276 com degradê para
@@ -19,19 +22,46 @@ import type { GameProduct } from "./types";
  * 6 × 80 caracteres) e o arquivo desenha só três curtos. Com altura fixa o
  * texto passaria por cima do botão.
  */
-export function PackageCard({ product, href }: { product: GameProduct; href: string }) {
+export function PackageCard({
+  product,
+  href,
+  fallbackContent,
+}: {
+  product: GameProduct;
+  href: string;
+  /** Os textos da ABA, usados quando o pacote não tem textos próprios. */
+  fallbackContent?: ServiceContent;
+}) {
+  const description = product.content ?? fallbackContent;
+  const hasDescription = Boolean(description && description.sections.length > 0);
+
+  const art = (
+    <>
+      {product.image ? (
+        <Image src={product.image.src} alt="" fill sizes="265px" className="object-cover" />
+      ) : null}
+      {/* Degradê de 114px no pé da arte, que passa por trás do nome. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[114px] bg-gradient-to-b from-transparent to-black"
+      />
+    </>
+  );
+
   return (
     <article className="relative flex min-h-[417px] w-full max-w-[265px] flex-col overflow-hidden rounded-[30px] border border-white/10 bg-black/10">
-      <div className="relative mx-px mt-px h-[276px] shrink-0 overflow-hidden rounded-t-[30px] bg-[#2f2f2f]">
-        {product.image ? (
-          <Image src={product.image.src} alt="" fill sizes="265px" className="object-cover" />
-        ) : null}
-        {/* Degradê de 114px no pé da arte, que passa por trás do nome. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-[114px] bg-gradient-to-b from-transparent to-black"
-        />
-      </div>
+      {hasDescription ? (
+        <PackageDescriptionPopover
+          title={product.name}
+          content={description!}
+          image={(product.banner ?? product.image)?.src}
+          className={ART_BOX}
+        >
+          {art}
+        </PackageDescriptionPopover>
+      ) : (
+        <div className={ART_BOX}>{art}</div>
+      )}
 
       {/* Faixa preta: sobe 36px sobre a arte (o nome fica dentro do degradê,
           como no arquivo) e vai até o pé do card. */}

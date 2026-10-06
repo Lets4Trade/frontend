@@ -19,8 +19,10 @@ import {
   formatCents,
   formatDateTime,
   phoneOrDash,
+  TIER_AUTO,
   type AdminUser,
   type AdminUserDetail,
+  type TierOption,
 } from "./types";
 
 const STATUS_OPTIONS = [
@@ -54,7 +56,7 @@ const STATUS_OPTIONS = [
  * Fidelidade e datas são só leitura — são derivadas de pedidos, e editá-las à
  * mão criaria saldo sem compra correspondente.
  */
-export function UserEditDialog({ user }: { user: AdminUser }) {
+export function UserEditDialog({ user, tierOptions }: { user: AdminUser; tierOptions: TierOption[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [detail, setDetail] = useState<AdminUserDetail | null>(null);
@@ -104,6 +106,9 @@ export function UserEditDialog({ user }: { user: AdminUser }) {
             discord: String(data.get("discord") ?? ""),
             role: String(data.get("role") ?? detail.role),
             isActive: String(data.get("isActive") ?? "true") === "true",
+            // Só manda o nível se MUDOU: reenviar o mesmo travaria à mão um
+            // nível que hoje é automático.
+            ...(tierChoice(data, detail) ? { tier: tierChoice(data, detail)! } : {}),
           }),
         { ok: false, message: ACTION_FAILED_MESSAGE },
       );
@@ -222,9 +227,28 @@ export function UserEditDialog({ user }: { user: AdminUser }) {
                   defaultValue={detail.isActive ? "true" : "false"}
                   options={STATUS_OPTIONS.map((option) => ({ ...option }))}
                 />
+                {/* Nível de fidelidade (2026-10-06): escolhido à mão fica
+                    TRAVADO (compras não o mudam); "Automático" volta a seguir
+                    o total gasto. */}
+                <SelectField
+                  label="Nível de fidelidade"
+                  name="tier"
+                  defaultValue={detail.tierLocked ? detail.tier : TIER_AUTO}
+                  options={[
+                    {
+                      value: TIER_AUTO,
+                      // Curto: o campo tem meia largura e cortava "(pelo total gasto…)".
+                      label: detail.tierLocked ? "Automático" : `Automático: ${tierLabel(tierOptions, detail.tier)}`,
+                    },
+                    ...tierOptions.map((option) => ({ value: option.value, label: `${option.label} (fixo)` })),
+                  ]}
+                />
+                <p className="-mt-[10px] pl-[25px] font-poppins text-[11px] text-brand-fg-subtle sm:col-start-2">
+                  Automático segue o total gasto. Fixo não muda com as compras.
+                </p>
               </div>
 
-              <ReadOnlyPanel detail={detail} />
+              <ReadOnlyPanel detail={detail} tierOptions={tierOptions} />
 
               {formError ? (
                 <p role="alert" className="mt-[20px] font-helvetica text-[14px] text-red-9">
@@ -232,7 +256,11 @@ export function UserEditDialog({ user }: { user: AdminUser }) {
                 </p>
               ) : null}
 
-              <div className="mt-[28px] flex items-center gap-[15px]">
+              {/* Rodapé PRESO ao pé do modal (2026-10-06): o modal rola, e o
+                  "Salvar" ficava abaixo da dobra em telas de notebook. Sangra
+                  o padding do modal (-mx/-mb 40) para cobrir o conteúdo que
+                  passa por baixo. */}
+              <div className="sticky -bottom-[40px] z-10 -mx-[40px] -mb-[40px] mt-[28px] flex items-center gap-[15px] border-t border-white/10 bg-brand-surface px-[40px] pt-[18px] pb-[24px]">
                 <Button type="submit" variant="primary" disabled={isPending} className="w-[200px] px-0">
                   {isPending ? "SALVANDO…" : "SALVAR"}
                 </Button>
@@ -294,7 +322,7 @@ export function UserEditDialog({ user }: { user: AdminUser }) {
  * E-mail aparece porque o admin precisa saber com quem está falando — mas é
  * leitura: trocá-lo é fluxo com confirmação, não campo de formulário.
  */
-function ReadOnlyPanel({ detail }: { detail: AdminUserDetail }) {
+function ReadOnlyPanel({ detail, tierOptions }: { detail: AdminUserDetail; tierOptions: TierOption[] }) {
   const rows: { label: string; value: string }[] = [
     { label: "E-mail", value: detail.email },
     { label: "E-mail verificado", value: detail.emailVerified ? "Sim" : "Não" },
@@ -302,7 +330,10 @@ function ReadOnlyPanel({ detail }: { detail: AdminUserDetail }) {
     { label: "Autenticação em 2 fatores", value: detail.mfaEnabled ? "Ativa" : "Inativa" },
     { label: "Aceitou os termos", value: detail.acceptedTerms ? "Sim" : "Não" },
     { label: "Idioma", value: detail.language },
-    { label: "Nível de fidelidade", value: detail.tier },
+    {
+      label: "Nível de fidelidade",
+      value: `${tierLabel(tierOptions, detail.tier)}${detail.tierLocked ? " (fixo)" : ""}`,
+    },
     { label: "Lets Coins", value: String(detail.letsCoins) },
     { label: "Pontos", value: String(detail.points) },
     { label: "Total gasto", value: formatCents(detail.totalSpentCents) },
@@ -337,4 +368,19 @@ function ReadOnlyPanel({ detail }: { detail: AdminUserDetail }) {
       </dl>
     </section>
   );
+}
+
+function tierLabel(options: readonly TierOption[], tier: string) {
+  return options.find((option) => option.value === tier)?.label ?? tier;
+}
+
+/**
+ * O nível a mandar, ou `null` quando nada mudou. Mudou = de automático para um
+ * nível fixo, de um fixo para outro, ou de fixo de volta ao automático.
+ */
+function tierChoice(data: FormData, detail: AdminUserDetail): string | null {
+  const chosen = String(data.get("tier") ?? "");
+  if (!chosen) return null;
+  const current = detail.tierLocked ? detail.tier : TIER_AUTO;
+  return chosen === current ? null : chosen;
 }

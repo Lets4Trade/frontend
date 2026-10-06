@@ -61,7 +61,11 @@ export type UserEdit = {
   discord: string;
   role: string;
   isActive: boolean;
+  /** Nível escolhido, `AUTO` (pelo total gasto) ou ausente (não mexe). */
+  tier?: string;
 };
+
+const TIER_VALUES = ["BRONZE", "PRATA", "OURO", "DIAMANTE", "ADAMANTIUM", "AUTO"];
 
 export async function updateUserAction(
   id: string,
@@ -80,7 +84,8 @@ export async function updateUserAction(
     typeof edit.whatsapp !== "string" ||
     typeof edit.discord !== "string" ||
     typeof edit.role !== "string" ||
-    typeof edit.isActive !== "boolean"
+    typeof edit.isActive !== "boolean" ||
+    (edit.tier !== undefined && !TIER_VALUES.includes(edit.tier))
   ) {
     return { ok: false, message: "Confira os campos e tente de novo." };
   }
@@ -105,6 +110,7 @@ export async function updateUserAction(
     discord: edit.discord.trim(),
     role: edit.role,
     isActive: edit.isActive,
+    ...(edit.tier !== undefined ? { tier: edit.tier } : {}),
   };
 
   const response = await apiPatch<unknown>(`/admin/users/${encodeURIComponent(id)}`, body);

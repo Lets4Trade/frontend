@@ -1,3 +1,4 @@
+import { backendAsset } from "@/lib/publicApi";
 import { apiGet } from "@/lib/serverApi";
 
 /**
@@ -30,6 +31,11 @@ export type LoyaltyTierRule = {
   name: string;
   minSpentCents: number;
   cashbackBps: number;
+  /**
+   * Ícone enviado no painel (2026-10-06), já como URL absoluta do backend.
+   * Ausente = a arte padrão do site (`tiers.ts`).
+   */
+  iconUrl?: string;
 };
 
 export type LoyaltySummary = {
@@ -121,6 +127,7 @@ function normalize(api: ApiSummary): LoyaltySummary {
           name: tier.name ?? FALLBACK_TIERS[index]?.name ?? "Bronze",
           minSpentCents: num(tier.minSpentCents),
           cashbackBps: num(tier.cashbackBps),
+          iconUrl: backendAsset(tier.iconUrl) ?? undefined,
         }))
       : FALLBACK_TIERS;
 

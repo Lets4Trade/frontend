@@ -102,6 +102,9 @@ export function TabDetailPanel({
             ?aba={tab.slug}
             {tab.layout === "LINK" ? ` → ${tab.linkHref ?? "-"}` : null}
           </p>
+          <p className="mt-[2px] font-poppins text-[12px] text-brand-fg-subtle">
+            Clique no ícone para trocar. Recomendado: 130×130, PNG com fundo transparente.
+          </p>
         </div>
 
         <label className="flex cursor-pointer items-center gap-[8px] font-poppins text-[13px] font-bold text-white/80">
@@ -310,7 +313,7 @@ export function TabIconUpload({
 
   return (
     <label
-      title="Trocar ícone (PNG, JPEG, WebP ou AVIF, até 5 MB)"
+      title="Trocar ícone: 130×130, PNG com fundo transparente (até 5 MB)"
       className="relative flex size-[64px] shrink-0 cursor-pointer items-center justify-center rounded-[12px] border border-white/10 bg-black/30 transition-opacity hover:opacity-80"
     >
       {src ? (

@@ -45,9 +45,10 @@ export function ServiceConfigurator({
           cantos 30), ou o cinza do arquivo enquanto o admin não sobe a arte.
           Proporção no celular para a foto não virar uma faixa fina. */}
       <div className="relative aspect-[551/327] w-full overflow-hidden rounded-t-[30px] bg-[#2f2f2f] lg:aspect-auto lg:h-[327px]">
-        {product?.image ? (
+        {/* Banner próprio da tela do serviço; sem ele, a arte do card. */}
+        {(product?.banner ?? product?.image) ? (
           <Image
-            src={product.image.src}
+            src={(product.banner ?? product.image)!.src}
             alt=""
             fill
             sizes="(min-width: 1024px) 554px, 100vw"

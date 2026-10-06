@@ -376,7 +376,7 @@ function NextTier({
   const tier =
     [...tiers].reverse().find((candidate) => totalCents >= candidate.minSpentCents) ??
     tiers[0];
-  const art = tierArt(tier.tier);
+  const art = tierArt(tier.tier, tier.iconUrl);
 
   return (
     <div className="mt-[26px] flex items-center justify-between gap-[25px]">

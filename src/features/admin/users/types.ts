@@ -69,6 +69,8 @@ export type AdminUserDetail = {
   mfaEnabled: boolean;
   hasGoogle: boolean;
   tier: string;
+  /** Nível definido à mão no painel (não segue o total gasto). Ausente = falso. */
+  tierLocked?: boolean;
   letsCoins: number;
   points: number;
   /** Dinheiro sempre em CENTAVOS inteiros na API. */
@@ -144,3 +146,9 @@ export function formatCents(cents: number): string {
   const sign = cents < 0 ? "-" : "";
   return `${sign}R$ ${whole.toLocaleString("pt-BR")},${String(remainder).padStart(2, "0")}`;
 }
+
+/** Opção do campo "Nível de fidelidade": os cinco níveis com o nome do painel. */
+export type TierOption = { value: string; label: string };
+
+/** Valor que devolve o nível ao automático (pelo total gasto). */
+export const TIER_AUTO = "AUTO";

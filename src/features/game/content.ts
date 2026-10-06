@@ -100,6 +100,8 @@ type StorefrontProductPage = {
     /** Textos da página do pacote (2026-10-01). Ausente no backend antigo. */
     content?: unknown;
     imageUrl?: string | null;
+    /** Banner da tela do serviço (2026-10-06). Ausente no backend antigo. */
+    bannerUrl?: string | null;
     serverSlug?: string | null;
     serverLabel?: string | null;
     categorySlug?: string | null;
@@ -406,6 +408,7 @@ export async function getCatalog(
 
 function toProduct(item: StorefrontProductPage["items"][number]): GameProduct {
   const image = backendAsset(item.imageUrl);
+  const banner = backendAsset(item.bannerUrl);
 
   return {
     id: item.id,
@@ -415,6 +418,7 @@ function toProduct(item: StorefrontProductPage["items"][number]): GameProduct {
     // espaço — o card recorta com `object-cover`, e a arte vem do admin sem
     // dimensão conhecida.
     image: image ? { src: image, alt: "", width: 263, height: 276 } : undefined,
+    banner: banner ? { src: banner, alt: "", width: 551, height: 327 } : undefined,
     // O backend apaga da resposta todo campo nulo, então estes chegam ausentes
     // e não como `null`. Teste por falsy, nunca por `=== null`.
     serverSlug: item.serverSlug ?? undefined,

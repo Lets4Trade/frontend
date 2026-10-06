@@ -24,9 +24,9 @@
 /**
  * A geometria de UMA arte dentro do card de 336×758.
  *
- * `contain` só existe para arte nova, subida pelo painel: a geometria dela não
- * foi medida contra o arquivo, então a imagem entra INTEIRA na caixa em vez de
- * ser esticada para a proporção de outra arte.
+ * `cover` só existe para arte nova, subida pelo painel: a geometria dela não
+ * foi medida contra o arquivo, então a imagem PREENCHE a caixa (cortando o que
+ * sobra) em vez de ser esticada para a proporção de outra arte.
  */
 export type CharacterBox = {
   left: number;
@@ -34,7 +34,7 @@ export type CharacterBox = {
   width: number;
   height: number;
   blur: number;
-  contain?: boolean;
+  cover?: boolean;
 };
 export type LogoBox = {
   offsetX: number;
@@ -149,6 +149,17 @@ export const HERO_OPEN_STEP = 361;
 export const HERO_DECK_WIDTH = 936;
 export const HERO_HEIGHT = 758;
 
+/** A arte padrão do topo (SVG do Figma), usada quando o admin não subiu outra. */
+export const HERO_DEFAULT_ART = "/images/hero-banner.svg";
+
+/**
+ * Altura da arte ENVIADA pelo admin no banner (pedido do usuário, 2026-10-06):
+ * ela termina um pouco acima das barrinhas (top 663), em vez de ocupar o card
+ * inteiro e ficar por baixo delas e da legenda. A arte padrão do desenho
+ * continua com os 758 — ela já reserva esse espaço no próprio SVG.
+ */
+export const HERO_UPLOAD_HEIGHT = 643;
+
 /**
  * O banner e o vão até os cards. `HERO_DECK_LEFT` é onde a esteira começa
  * dentro da linha de 1820 — e também até onde ela pode correr para a esquerda
@@ -174,19 +185,25 @@ export const HERO_COIN = { left: 395, top: 648, size: 150 };
 /**
  * Geometria para arte NOVA, subida pelo painel.
  *
- * O personagem ocupa a faixa que as cinco artes do arquivo ocupam em média
- * (topo ~125, ~430 de altura) e entra por `contain`, encostado embaixo. O logo
- * fica na mesma linha de base que os do arquivo (~600). Não é tão bonito quanto
- * um recorte feito à mão — nenhuma regra geral é —, mas não deforma nem corta a
- * arte de ninguém.
+ * A caixa é o ENVELOPE das cinco artes do arquivo (da esquerda -28 à direita
+ * 351, do topo ~110 até ~555), e a arte entra por `cover`, presa no topo.
+ *
+ * Era `contain` numa caixa de 336×439 (2026-09-14), que nunca corta mas
+ * ENCOLHE: um retrato 2:3 ficava mais estreito que as originais e uma imagem
+ * deitada (1305×816) virava uma faixa de 336×210 no meio do card. O usuário
+ * apontou em 2026-10-06 que as artes do carrossel estavam "pequenas e não no
+ * tamanho que era antes". Trade-off: `cover` corta as sobras (os pés de um
+ * retrato, as laterais de uma imagem deitada), mas a arte ocupa o mesmo espaço
+ * das originais. Presa no TOPO porque cortar a cabeça é pior que cortar os
+ * pés, que já somem no vidro do card.
  */
 const GENERIC_CHAR: CharacterBox = {
-  left: 0,
+  left: -20,
   top: 110,
-  width: 336,
-  height: 439,
+  width: 376,
+  height: 445,
   blur: 10,
-  contain: true,
+  cover: true,
 };
 const GENERIC_LOGO: LogoBox = { offsetX: 0, top: 596, width: 200, height: 100 };
 

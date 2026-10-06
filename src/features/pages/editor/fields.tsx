@@ -596,7 +596,7 @@ function SubField({
     case "rating":
       return <RatingInput label={spec.label} value={typeof value === "number" ? value : 5} onChange={onChange} />;
     case "image":
-      return <ImageInput label={spec.label} value={value as string | undefined} onChange={onChange} />;
+      return <ImageInput label={spec.label} hint={spec.hint} value={value as string | undefined} onChange={onChange} />;
   }
 }
 

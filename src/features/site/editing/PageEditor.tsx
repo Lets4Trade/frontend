@@ -18,6 +18,7 @@ import {
   videoUploadedAction,
 } from "../actions";
 import { sectionKey, sitePage, type GameOption } from "@/features/site/sections";
+import { imageHintFor } from "./imageHint";
 import { ItemToolbar, type ItemSelection } from "./ItemToolbar";
 import { uploadSectionVideo, VIDEO_ACCEPT } from "./videoUpload";
 import { VideoToolbar, type VideoSelection } from "./VideoToolbar";
@@ -697,6 +698,18 @@ export function PageEditor({
                 stageRef.current = node;
               }}
               onMouseDown={onStageMouseDown}
+              // Dimensão recomendada ao passar o mouse numa imagem editável
+              // (2026-10-06): o clique abre direto o seletor de arquivo, então
+              // é aqui que o admin vê o tamanho ideal. `title` nativo: zero
+              // estado, e só é escrito uma vez por elemento.
+              onMouseOver={(event) => {
+                const el = (event.target as HTMLElement).closest<HTMLElement>(
+                  "[data-edit-image], [data-edit-item], [data-edit-add]",
+                );
+                if (!el || el.title) return;
+                const hint = imageHintFor(el.dataset);
+                if (hint) el.title = `Recomendado: ${hint}`;
+              }}
               // Dentro do editor NADA navega. A seleção roda no `mousedown`, e
               // `preventDefault` ali não cancela o `click` de um link — o card do
               // hero (um `<a>`) levava à página do jogo em vez de ser selecionado

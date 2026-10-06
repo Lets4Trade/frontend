@@ -49,6 +49,7 @@ export async function PackagesSection({
               <PackageCard
                 key={product.id}
                 product={product}
+                fallbackContent={tab.content}
                 // A página guarda o número da grade: "Voltar aos pacotes" cai
                 // na mesma página da grade de onde a pessoa saiu.
                 href={`${buildHref(page.slug, query, { pkg: product.id, page: query.page })}#pacote`}

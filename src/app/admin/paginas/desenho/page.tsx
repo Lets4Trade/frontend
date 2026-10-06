@@ -1,6 +1,5 @@
 import { getAdminGames } from "@/features/admin/catalog";
 import type { Metadata } from "next";
-import { ADMIN_SHELL } from "@/features/admin/layout";
 import { buildHomeBlocks } from "@/features/home/homeBlocks";
 import {
   getSectionItemsFor,
@@ -66,7 +65,10 @@ export default async function AdminPagesPage({ searchParams }: PageProps) {
   }));
 
   return (
-    <div className={`${ADMIN_SHELL} pb-[60px]`}>
+    // Mesma margem do construtor ("Organizar seções", px/pt 24), e não a do
+    // ADMIN_SHELL (50): as duas abas são a mesma tela e o cabeçalho não pode
+    // pular de lugar ao trocar de uma para a outra (2026-10-06).
+    <div className="px-[24px] pt-[24px] pb-[60px]">
       {/* Mesmo cabeçalho dos outros editores (2026-10-01): voltar, nome, "Ver na
           loja" e as abas da Home. Trocar de página é voltar à lista. */}
       <EditorHeader

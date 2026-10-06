@@ -146,7 +146,7 @@ export function GameEditForm({ game }: { game: BuilderGame }) {
           ) : null}
           <div className="min-w-0 flex-1">
             <FileField
-              label="Imagem do jogo"
+              label="Logo do jogo (400×330, PNG com fundo transparente)"
               placeholder="Trocar imagem"
               name="image"
               accept={ACCEPTED_IMAGE_TYPES}

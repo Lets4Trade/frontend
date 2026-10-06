@@ -1,4 +1,4 @@
-import { publicApiGet } from "@/lib/publicApi";
+import { backendAsset, publicApiGet } from "@/lib/publicApi";
 import type { LoyaltyTierRule } from "./data";
 
 /**
@@ -16,12 +16,14 @@ import type { LoyaltyTierRule } from "./data";
  *
  * ── Cache ──────────────────────────────────────────────────────────────────
  * É a única leitura da fidelidade que pode ser cacheada: a resposta é igual
- * para todo visitante e só muda num deploy. Uma hora de `revalidate` mantém o
- * cabeçalho — que renderiza em TODA página — longe do backend, sem deixar uma
- * mudança de regra demorar mais que um turno para aparecer.
+ * para todo visitante. Uma hora de `revalidate` mantém o cabeçalho — que
+ * renderiza em TODA página — longe do backend. Desde 2026-10-06 a tabela é
+ * editável no painel: a gravação derruba a etiqueta `LOYALTY_TIERS_TAG`, então
+ * a mudança aparece na hora, não depois de uma hora.
  */
 
 const REVALIDATE_SECONDS = 3600;
+export const LOYALTY_TIERS_TAG = "loyalty-tiers";
 
 export type LoyaltyTiers = {
   coinCents: number;
@@ -40,6 +42,7 @@ export type LoyaltyTiers = {
 export async function getLoyaltyTiers(): Promise<LoyaltyTiers> {
   const data = await publicApiGet<Partial<LoyaltyTiers>>("/loyalty/tiers", {
     revalidate: REVALIDATE_SECONDS,
+    tags: [LOYALTY_TIERS_TAG],
   });
 
   if (!data?.tiers?.length) return FALLBACK;
@@ -51,12 +54,14 @@ export async function getLoyaltyTiers(): Promise<LoyaltyTiers> {
       name: tier.name ?? FALLBACK.tiers[index]?.name ?? "Bronze",
       minSpentCents: Number(tier.minSpentCents) || 0,
       cashbackBps: Number(tier.cashbackBps) || 0,
+      iconUrl: backendAsset(tier.iconUrl) ?? undefined,
     })),
   };
 }
 
 const FALLBACK: LoyaltyTiers = {
-  coinCents: 10,
+  // 1 centavo desde 2026-10-01 (era 10 e a reserva tinha ficado para trás).
+  coinCents: 1,
   tiers: [
     { tier: "BRONZE", name: "Bronze", minSpentCents: 0, cashbackBps: 100 },
     { tier: "PRATA", name: "Prata", minSpentCents: 50_000, cashbackBps: 150 },

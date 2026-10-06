@@ -127,7 +127,7 @@ export function VideoToolbar({
           enviar vídeo (MP4/WebM, até 100 MB)
         </Button>
         <Button onClick={onChangeCover} disabled={busy}>
-          trocar capa
+          trocar capa (1146×609)
         </Button>
         {current !== "none" ? (
           <Button onClick={onRemove} disabled={busy} tone="danger">

@@ -4,7 +4,12 @@ import Image from "next/image";
 import { useState } from "react";
 import { editAdd, editItem } from "@/features/site/editing/attrs";
 import type { SectionItemView } from "@/features/site/content";
-import { HERO_BANNER_WIDTH, HERO_HEIGHT } from "./heroGames";
+import { HERO_BANNER_WIDTH, HERO_DEFAULT_ART, HERO_HEIGHT, HERO_UPLOAD_HEIGHT } from "./heroGames";
+
+/** Arte enviada termina acima das barrinhas; a padrão ocupa o card todo. */
+function artHeight(src: string) {
+  return src === HERO_DEFAULT_ART ? HERO_HEIGHT : HERO_UPLOAD_HEIGHT;
+}
 
 /**
  * As artes do banner do hero (Figma 131:1504), com os indicadores do arquivo.
@@ -45,11 +50,11 @@ export function HeroBannerSlides({
           src={fallbackImage}
           alt=""
           width={859}
-          height={758}
+          height={artHeight(fallbackImage)}
           aria-hidden
           priority
-          className="absolute inset-0 size-full overflow-hidden rounded-[30px] object-cover"
-          style={{ width: HERO_BANNER_WIDTH, height: HERO_HEIGHT }}
+          className="absolute top-0 left-0 overflow-hidden rounded-[30px] object-cover"
+          style={{ width: HERO_BANNER_WIDTH, height: artHeight(fallbackImage) }}
         />
       ) : (
         slides.map((item, index) => (
@@ -59,15 +64,15 @@ export function HeroBannerSlides({
             src={item.image ?? fallbackImage}
             alt=""
             width={859}
-            height={758}
+            height={HERO_UPLOAD_HEIGHT}
             aria-hidden={index !== active}
             // A primeira entra no caminho crítico (é o topo da home); as outras
             // só aparecem depois de um clique.
             priority={index === 0}
-            className="absolute inset-0 size-full overflow-hidden rounded-[30px] object-cover"
+            className="absolute top-0 left-0 overflow-hidden rounded-[30px] object-cover"
             style={{
               width: HERO_BANNER_WIDTH,
-              height: HERO_HEIGHT,
+              height: artHeight(item.image ?? fallbackImage),
               // `visibility` e não desmontar: trocar de arte não deve custar um
               // carregamento novo a cada clique.
               visibility: index === active ? "visible" : "hidden",

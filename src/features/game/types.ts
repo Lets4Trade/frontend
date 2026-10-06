@@ -131,6 +131,11 @@ export type GameProduct = {
    * produto desde 2026-10-01. Ausente = a página usa os textos da aba.
    */
   content?: ServiceContent;
+  /**
+   * Banner da TELA DO SERVIÇO (página do pacote, topo do configurador),
+   * separado da arte do card (2026-10-06). Ausente = usa `image`.
+   */
+  banner?: ImageRef;
 };
 
 export type GameReference = {

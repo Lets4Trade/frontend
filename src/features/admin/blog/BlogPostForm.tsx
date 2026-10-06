@@ -211,7 +211,7 @@ export function BlogPostForm({
         <div>
           <FileField
             key={fileKey}
-            label="Capa (até 5 MB)"
+            label="Capa (1280×720, até 5 MB)"
             placeholder={shownCover ? "Trocar capa" : "Anexar capa"}
             name="cover"
             accept={ACCEPTED_COVER_TYPES}

@@ -36,7 +36,7 @@ export function TierCard({
 }) {
   // A faixa e o cashback vêm do backend; a arte é a única coisa que a tela
   // decide sozinha. Ver `tiers.ts`.
-  const art = tierArt(tier.tier);
+  const art = tierArt(tier.tier, tier.iconUrl);
 
   return (
     // Largura FLUIDA (2026-09-25): o card ocupa a coluna da grade da página —

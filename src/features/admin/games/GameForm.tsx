@@ -192,7 +192,7 @@ export function GameForm() {
         />
 
         <FileField
-          label="Imagem do jogo"
+          label="Logo do jogo (400×330, PNG com fundo transparente)"
           placeholder="Anexar imagem"
           name="image"
           accept={ACCEPTED_IMAGE_TYPES}

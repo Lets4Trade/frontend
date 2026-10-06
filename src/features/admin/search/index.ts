@@ -30,6 +30,7 @@ type Gated = SearchEntry & { roles?: readonly Role[] };
 const ACTIONS: readonly Gated[] = [
   { id: "acao:novo-produto", title: "Cadastrar produto", where: "Ação", href: "/admin/produtos/novo", keywords: ["novo", "criar", "adicionar"] },
   { id: "acao:precos", title: "Editar preços", where: "Ação", href: "/admin/produtos/precos", keywords: ["preço", "valor", "lote", "tabela"] },
+  { id: "acao:fidelidade-niveis", title: "Níveis de fidelidade", where: "Ação", href: "/admin/fidelidade", keywords: ["cashback", "nível", "rank", "bronze", "prata", "ouro", "diamante", "adamantium", "ícone", "lets coin"] },
   { id: "acao:ordem", title: "Ordem dos produtos", where: "Ação", href: "/admin/produtos/ordem", keywords: ["ordenar", "posição", "vitrine"] },
   { id: "acao:novo-jogo", title: "Cadastrar jogo", where: "Ação", href: "/admin/jogos/novo", keywords: ["novo", "criar", "game"] },
   { id: "acao:nova-noticia", title: "Nova notícia", where: "Ação", href: "/admin/noticias/nova", keywords: ["blog", "post", "matéria"], roles: ["ADMIN", "EDITOR"] },

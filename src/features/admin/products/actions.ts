@@ -101,6 +101,8 @@ export async function createProductAction(
     }
     payload.set("image", image, image.name);
   }
+  const bannerError = attachBanner(form, payload);
+  if (bannerError) return bannerError;
 
   const response = await apiPostFormData<{
     name: string;
@@ -276,6 +278,8 @@ export async function updateProductAction(
     }
     payload.set("image", image, image.name);
   }
+  const bannerError = attachBanner(form, payload);
+  if (bannerError) return bannerError;
 
   const response = await apiPatchFormData<{ name: string; game: { name: string } }>(
     `/admin/products/${encodeURIComponent(id)}`,
@@ -505,4 +509,19 @@ function readHighlights(
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Tópicos do card inválidos." };
   }
   return { ok: true, value: parsed.data };
+}
+
+/**
+ * Banner da tela do serviço (2026-10-06): segundo arquivo, mesmas regras da
+ * arte do card. Só vai quando o admin anexou um; sem arquivo, o backend mantém
+ * o atual.
+ */
+function attachBanner(form: FormData, payload: FormData) {
+  const banner = form.get("banner");
+  if (!(banner instanceof File) || banner.size === 0) return null;
+  if (banner.size > MAX_IMAGE_BYTES) {
+    return { ok: false as const, reason: "invalid" as const, message: "O banner precisa ter no máximo 5 MB." };
+  }
+  payload.set("banner", banner, banner.name);
+  return null;
 }

@@ -1083,6 +1083,56 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
 }
 
 /*
+ * Painel de descrição do card de pacote (`PackageDescriptionPopover`,
+ * 2026-10-06). A POSIÇÃO (seguir o mouse) é do elemento de fora, por
+ * `transform` via JS; a ENTRADA e a SAÍDA são deste, de dentro, para as duas
+ * animações não brigarem pelo mesmo `transform`. `--pkg-origin` é o canto
+ * mais perto do cursor: o painel "nasce" dele.
+ */
+@keyframes package-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.94);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes package-popover-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+}
+
+.package-popover {
+  transform-origin: var(--pkg-origin, top left);
+}
+
+.package-popover[data-state="open"] {
+  animation: package-popover-in 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.package-popover[data-state="closed"] {
+  animation: package-popover-out 160ms ease-in both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .package-popover[data-state="open"],
+  .package-popover[data-state="closed"] {
+    animation: none;
+  }
+}
+
+/*
  * Texto em degradê laranja — usado nos números de destaque (saldo, cashback,
  * percentual de progresso) das telas de fidelidade e do painel.
  * `bg-clip-text` + `text-transparent` recorta o degradê na forma das letras.

@@ -14,6 +14,7 @@ import { ROLE_OPTIONS } from "@/features/admin/users/types";
 import { cn } from "@/lib/cn";
 import { ADMIN_SHELL } from "@/features/admin/layout";
 import { requireAdminPage } from "@/features/admin/guard";
+import { getLoyaltyTiers } from "@/features/loyalty/publicTiers";
 
 export const metadata: Metadata = {
   title: "Painel de usuário | Lets4Trade",
@@ -45,7 +46,10 @@ export default async function AdminUsersPage({
 }) {
   await requireAdminPage();
   const query = parseUsersQuery(await searchParams);
-  const page = await getAdminUsers(query);
+  // Os nomes dos níveis vêm da tabela do painel (cacheada, etiqueta derrubada
+  // ao salvar os níveis) — é o que o campo "Nível de fidelidade" mostra.
+  const [page, loyalty] = await Promise.all([getAdminUsers(query), getLoyaltyTiers()]);
+  const tierOptions = loyalty.tiers.map((tier) => ({ value: tier.tier, label: tier.name }));
 
   const currentRole = ROLE_OPTIONS.find((option) => option.value === query.role);
 
@@ -109,7 +113,7 @@ export default async function AdminUsersPage({
               <EmptyState query={query} />
             ) : (
               <>
-                <UsersTable users={page.items} />
+                <UsersTable users={page.items} tierOptions={tierOptions} />
                 <Pagination
                   current={page.page}
                   pageCount={page.pageCount}
