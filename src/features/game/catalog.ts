@@ -113,7 +113,10 @@ export function parseCatalogQuery(
   return {
     tab,
     server,
-    categories: all(params[PARAM.category]).filter((id) => categoryIds.has(id)),
+    // Seleção ÚNICA desde 2026-10-08: link antigo com várias vale a primeira.
+    categories: all(params[PARAM.category])
+      .filter((id) => categoryIds.has(id))
+      .slice(0, 1),
     sort: rawSort && sortKeys.has(rawSort) ? (rawSort as SortKey) : null,
     // Corta o texto: a busca vira `ILIKE` no banco, e comprimento sem limite no
     // boundary é convite para consulta cara.
@@ -188,9 +191,36 @@ export function buildHref(
   return qs ? `/games/${slug}?${qs}` : `/games/${slug}`;
 }
 
-/** Liga/desliga uma categoria mantendo o resto do filtro. */
-export function toggleCategory(query: CatalogQuery, id: string) {
-  return query.categories.includes(id)
-    ? query.categories.filter((current) => current !== id)
-    : [...query.categories, id];
+/**
+ * O que vai no filtro ao clicar numa categoria (2026-10-08, pedido do usuário:
+ * era seleção múltipla). UMA por vez na URL: a mais específica escolhida.
+ *
+ * - Categoria de topo: escolhe ela; se ela já é a ativa (escolhida ou mãe da
+ *   subcategoria escolhida), limpa tudo.
+ * - Subcategoria: escolhe ela (a mãe continua marcada na tela, por ser a
+ *   ativa); clicar de novo na escolhida volta para só a mãe.
+ *
+ * A lista continua sendo `string[]` porque é o formato da URL e da API.
+ */
+export function categoryChoice(
+  query: CatalogQuery,
+  category: GameCategory,
+  active: GameCategory | null,
+): string[] {
+  if (category.parentId) {
+    return query.categories[0] === category.id ? [category.parentId] : [category.id];
+  }
+  return active?.id === category.id ? [] : [category.id];
+}
+
+/**
+ * A categoria de TOPO ativa: a escolhida, ou a mãe da subcategoria escolhida.
+ * É ela que decide quais subcategorias aparecem no quadro de baixo.
+ */
+export function activeCategory(items: GameCategory[], query: CatalogQuery): GameCategory | null {
+  const selected = query.categories[0];
+  if (!selected) return null;
+  return (
+    items.find((item) => item.id === selected || item.children.some((child) => child.id === selected)) ?? null
+  );
 }

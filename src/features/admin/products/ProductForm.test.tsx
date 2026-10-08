@@ -107,7 +107,7 @@ function field(container: HTMLElement, name: string) {
 }
 
 function fillItem(container: HTMLElement) {
-  fireEvent.change(screen.getByLabelText("Nome do produto"), { target: { value: "Pacote Ouro" } });
+  fireEvent.change(screen.getByLabelText("Nome em português"), { target: { value: "Pacote Ouro" } });
   const price = document.getElementById(
     screen.getByText(/^Preço( base)?$/, { selector: "label" }).getAttribute("for") ?? "",
   ) as HTMLInputElement;
@@ -123,12 +123,12 @@ describe("ProductForm — pré-preenchimento e 'Salvar e cadastrar outro'", () =
     createProductAction.mockResolvedValue({ ok: true, name: "Pacote Ouro", gameName: "Path of Exile" });
   });
 
-  it("abre com jogo, aba, servidor e plataforma do pré-preenchimento", () => {
+  it("abre com jogo, aba e servidor do pré-preenchimento; plataforma não é mais perguntada", () => {
     render(<ProductForm games={games} prefill={prefill} initialTabs={tabs} />);
     expect(select("Jogo:").value).toBe("g1");
     expect(select("Aba:").value).toBe("t1");
     expect(select("Servidor:").value).toBe("s2");
-    expect(select("Plataforma:").value).toBe("EPIC");
+    expect(screen.queryByText("Plataforma:")).toBeNull();
   });
 
   it("'Salvar e cadastrar outro' envia, mantém o contexto e limpa o item", async () => {
@@ -147,7 +147,8 @@ describe("ProductForm — pré-preenchimento e 'Salvar e cadastrar outro'", () =
       gameId: "g1",
       tabId: "t1",
       serverId: "s2",
-      platform: "EPIC",
+      // Campo saiu do formulário (2026-10-08): o backend usa a do jogo.
+      platform: null,
       categoryId: "c1",
       name: "Pacote Ouro",
     });
@@ -158,12 +159,11 @@ describe("ProductForm — pré-preenchimento e 'Salvar e cadastrar outro'", () =
     expect(select("Jogo:").value).toBe("g1");
     expect(select("Aba:").value).toBe("t1");
     expect(select("Servidor:").value).toBe("s2");
-    expect(select("Plataforma:").value).toBe("EPIC");
     expect(select("Categoria:").value).toBe("c1");
     expect(field(container, "pricing").value).toBe(pricingBefore);
 
     // Limpos, e o foco no nome.
-    const name = screen.getByLabelText("Nome do produto") as HTMLInputElement;
+    const name = screen.getByLabelText("Nome em português") as HTMLInputElement;
     expect(name.value).toBe("");
     expect(name).toHaveFocus();
     expect(field(container, "priceCents").value).toBe("0");
@@ -180,7 +180,7 @@ describe("ProductForm — pré-preenchimento e 'Salvar e cadastrar outro'", () =
     await waitFor(() => expect(createProductAction).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(select("Jogo:").value).toBe(""));
     expect(select("Servidor:").value).toBe("");
-    expect((screen.getByLabelText("Nome do produto") as HTMLInputElement).value).toBe("");
+    expect((screen.getByLabelText("Nome em português") as HTMLInputElement).value).toBe("");
   });
 
   it("falha no envio não limpa nada", async () => {
@@ -192,7 +192,7 @@ describe("ProductForm — pré-preenchimento e 'Salvar e cadastrar outro'", () =
       fireEvent.click(screen.getByRole("button", { name: "Salvar e cadastrar outro" }));
     });
     await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
-    expect((screen.getByLabelText("Nome do produto") as HTMLInputElement).value).toBe("Pacote Ouro");
+    expect((screen.getByLabelText("Nome em português") as HTMLInputElement).value).toBe("Pacote Ouro");
     expect(field(container, "priceCents").value).toBe("1990");
   });
 

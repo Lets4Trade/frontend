@@ -2,6 +2,8 @@ import Image from "next/image";
 import { RichText } from "@/features/site/richText";
 import { editItem } from "@/features/site/editing/attrs";
 import Link from "next/link";
+import type { ReactNode } from "react";
+import { safeLinkHref } from "@/features/game/storefrontTabs";
 import type { SectionItemView } from "@/features/site/content";
 import { reveal, revealDelay } from "./reveal";
 import { BLOG_CARD } from "./guides";
@@ -131,6 +133,7 @@ function GuideCard({
       className="guide-card relative shrink-0 overflow-hidden rounded-[30px] border border-white/10"
       style={{ width: GUIDE_CARD_WIDTH, height, ...revealDelay(revealIndex) }}
     >
+      <GuideLink href={guide.href}>
       {/* Sem arte, o card fica no preto do tema em vez de transparente — os
           degradês por cima só fazem sentido sobre alguma coisa. */}
       {guide.image ? (
@@ -226,7 +229,25 @@ function GuideCard({
       >
         <RichText value={guide.body} />
       </p>
+      </GuideLink>
     </li>
+  );
+}
+
+/**
+ * O card INTEIRO vira link quando o guia tem "Link do guia" (2026-10-06: o
+ * campo existia no painel e o card o ignorava). Envolve o conteúdo em vez de
+ * cobrir com uma camada por cima: no editor da home cada pedaço continua sendo
+ * o alvo do clique (o editor cancela a navegação de links). Link fora da
+ * allowlist (interno ou https) é ignorado.
+ */
+export function GuideLink({ href, children }: { href?: string; children: ReactNode }) {
+  const safe = safeLinkHref(href);
+  if (!safe) return <>{children}</>;
+  return (
+    <Link href={safe} className="absolute inset-0 block">
+      {children}
+    </Link>
   );
 }
 

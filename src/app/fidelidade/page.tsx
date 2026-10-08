@@ -5,6 +5,8 @@ import { SiteHeader } from "@/components/layout/SiteHeader";
 import { LOYALTY_ORDER, loyaltyNodes } from "@/features/loyalty/loyaltyNodes";
 import { composeBlocks } from "@/features/pages/compose";
 import { BlockColumn, WideFrame } from "@/features/pages/frames";
+import { usesHomeShared } from "@/features/pages/homeShared";
+import { homeSharedNodes } from "@/features/pages/homeSharedNodes";
 import { getPublishedPage } from "@/features/pages/public";
 import { getLoyalty } from "@/features/loyalty/data";
 import { getSectionsFor } from "@/features/site/content";
@@ -54,7 +56,9 @@ export default async function FidelidadePage() {
   }
 
   const { summary, entries } = loyalty;
-  const nodes = loyaltyNodes(summary, entries, section);
+  // Seções da home usadas prontas: lidas só quando a página publicada usa alguma.
+  const shared = page && usesHomeShared(page.blocks) ? await homeSharedNodes() : {};
+  const nodes = { ...loyaltyNodes(summary, entries, section), ...shared };
 
   // Construtor de páginas (2026-09-25): publicada, a lista de blocos manda —
   // ordem das três seções do desenho e blocos novos entre elas. Sem

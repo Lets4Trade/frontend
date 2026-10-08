@@ -81,16 +81,16 @@ export function parseServiceContent(raw: unknown): ServiceContent | undefined {
   if (!Array.isArray(sections)) return undefined;
 
   const clean = sections
-    .slice(0, 10)
+    .slice(0, 30)
     .map((section) => {
       const s = (section ?? {}) as { title?: unknown; items?: unknown };
-      const title = typeof s.title === "string" ? s.title.trim().slice(0, 120) : "";
+      const title = typeof s.title === "string" ? s.title.trim().slice(0, 200) : "";
       const items = Array.isArray(s.items)
         ? s.items
             .filter((item): item is string => typeof item === "string")
-            .map((item) => item.trim().slice(0, 300))
+            .map((item) => item.trim().slice(0, 2_000))
             .filter(Boolean)
-            .slice(0, 20)
+            .slice(0, 100)
         : [];
       return { title, items };
     })
@@ -172,7 +172,7 @@ export function readPricing(raw: unknown): Pick<GameProduct, "pricing" | "pricin
 }
 
 /**
- * Tópicos do card de pacote, saneados como o backend (≤ 6 × 80, trim, sem
+ * Tópicos do card de pacote, saneados como o backend (≤ 12 × 200, trim, sem
  * vazios). Ausente/formato estranho = `[]`: o backend anterior ao contrato v2
  * não manda o campo, e o card simplesmente sai sem tópicos.
  */
@@ -180,9 +180,9 @@ export function readHighlights(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .filter((item): item is string => typeof item === "string")
-    .map((item) => item.trim().slice(0, 80))
+    .map((item) => item.trim().slice(0, 200))
     .filter(Boolean)
-    .slice(0, 6);
+    .slice(0, 12);
 }
 
 /**

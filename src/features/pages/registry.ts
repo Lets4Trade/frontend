@@ -1,4 +1,5 @@
 import { GAME_SECTIONS, DEFAULT_SECTION_ORDER, gapBefore, type GameSectionKey } from "@/features/game/sections";
+import { HOME_SHARED_KEYS, HOME_SHARED_LABELS } from "./homeShared";
 
 /**
  * As PÁGINAS do construtor (fase 4, 2026-09-25) — espelha a allowlist do
@@ -24,6 +25,12 @@ export type BlocksPageDef = {
   /** Seções do desenho, na ordem PADRÃO da página. */
   legacyKeys: readonly string[];
   legacyLabels: Record<string, string>;
+  /**
+   * SEÇÕES DA HOME que esta página pode usar prontas (`homeShared.ts`). Ficam
+   * FORA de `legacyKeys`: não entram na página por padrão, só quando o admin
+   * as adiciona pela biblioteca. Os rótulos delas vão em `legacyLabels`.
+   */
+  sharedKeys?: readonly string[];
   /**
    * Onde vive o conteúdo dessas seções: página do catálogo de sessões (texto e
    * arte editados no construtor) ou o Builder de jogo (link).
@@ -81,7 +88,8 @@ const VENDA: BlocksPageDef = {
   href: "/venda",
   frame: "narrow",
   legacyKeys: ["formulario"],
-  legacyLabels: { formulario: "Formulário de venda e contato" },
+  legacyLabels: { formulario: "Formulário de venda e contato", ...HOME_SHARED_LABELS },
+  sharedKeys: HOME_SHARED_KEYS,
   content: { kind: "sections", catalogPage: "venda" },
 };
 
@@ -92,7 +100,8 @@ const FIDELIDADE: BlocksPageDef = {
   href: "/fidelidade",
   frame: "wide",
   legacyKeys: ["resumo", "niveis", "extrato"],
-  legacyLabels: { resumo: "Resumo da conta", niveis: "Níveis", extrato: "Extrato" },
+  legacyLabels: { resumo: "Resumo da conta", niveis: "Níveis", extrato: "Extrato", ...HOME_SHARED_LABELS },
+  sharedKeys: HOME_SHARED_KEYS,
   content: { kind: "sections", catalogPage: "fidelidade" },
 };
 

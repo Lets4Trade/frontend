@@ -25,13 +25,21 @@ type MdBlock =
   | { kind: "h2" | "h3" | "p"; text: string }
   | { kind: "ul" | "ol"; items: string[] };
 
-export function parseBlocks(source: string): MdBlock[] {
+/**
+ * `keepLineBreaks`: linhas seguidas do mesmo parágrafo ficam separadas por
+ * `\n` (quem desenha usa `whitespace-pre-line`) em vez de juntadas com espaço.
+ * É o que a descrição do jogo promete a quem edita (2026-10-08).
+ */
+export function parseBlocks(
+  source: string,
+  { keepLineBreaks = false }: { keepLineBreaks?: boolean } = {},
+): MdBlock[] {
   const blocks: MdBlock[] = [];
   let paragraph: string[] = [];
   let list: { kind: "ul" | "ol"; items: string[] } | null = null;
 
   const flushParagraph = () => {
-    if (paragraph.length) blocks.push({ kind: "p", text: paragraph.join(" ") });
+    if (paragraph.length) blocks.push({ kind: "p", text: paragraph.join(keepLineBreaks ? "\n" : " ") });
     paragraph = [];
   };
   const flushList = () => {

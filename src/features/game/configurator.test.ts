@@ -33,8 +33,15 @@ describe("quantidade", () => {
     expect(initialQuantity({ ...gold, presets: [] })).toBe(1000);
   });
 
-  it("formatQuantity usa milhar pt-BR", () => {
-    expect(formatQuantity(1_000_000)).toBe("1.000.000");
+  it("formatQuantity abrevia: K, Mi, Bi e Tri", () => {
+    expect(formatQuantity(999)).toBe("999");
+    expect(formatQuantity(1_000)).toBe("1K");
+    expect(formatQuantity(500_000)).toBe("500K");
+    expect(formatQuantity(1_000_000)).toBe("1Mi");
+    expect(formatQuantity(2_500_000_000)).toBe("2,5Bi");
+    expect(formatQuantity(1_000_000_000_000)).toBe("1Tri");
+    // Nunca arredonda para cima: 1.999.999 não pode aparecer como 2Mi.
+    expect(formatQuantity(1_999_999)).toBe("1,99Mi");
   });
 });
 

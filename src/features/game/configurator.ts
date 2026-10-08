@@ -44,8 +44,30 @@ export function initialQuantity(pricing: QuantityPricing): number {
   return validPresets(pricing)[0] ?? pricing.min;
 }
 
-/** "5000" → "5.000" — separador de milhar pt-BR, como o resto dos números da loja. */
+/**
+ * Quantidade ABREVIADA (2026-10-06, pedido do usuário): "1.000" → "1K",
+ * "1.000.000" → "1Mi", "2.500.000.000" → "2,5Bi", "1.000.000.000.000" →
+ * "1Tri". Até duas casas, vírgula pt-BR, sem zeros à direita. Abaixo de mil
+ * fica o número como está.
+ *
+ * Só para EXIBIR (botões, faixa e resumo): o campo de digitar continua com o
+ * número inteiro, que é o que a pessoa edita.
+ */
+const UNITS: readonly [number, string][] = [
+  [1e12, "Tri"],
+  [1e9, "Bi"],
+  [1e6, "Mi"],
+  [1e3, "K"],
+];
+
 export function formatQuantity(value: number): string {
+  const abs = Math.abs(value);
+  for (const [size, suffix] of UNITS) {
+    if (abs >= size) {
+      const scaled = Math.floor((value / size) * 100) / 100;
+      return `${scaled.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}${suffix}`;
+    }
+  }
   return value.toLocaleString("pt-BR");
 }
 

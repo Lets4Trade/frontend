@@ -6,6 +6,7 @@
  * precisam ser importáveis pelo teste sem mock de sessão nem de rede.
  */
 
+import { DESCRIPTION_LIMITS } from "@/features/game/description";
 import type { BuilderCategory } from "./types";
 
 /** Categoria como a tela manda (contrato C da FASE 4): dois níveis. */
@@ -71,6 +72,61 @@ export function cleanCategories(
       continue;
     }
     data.push({ id: cleanId(raw.id), label, children });
+  }
+  return { ok: true, data };
+}
+
+type CleanDescriptionGroup = { title: string; items: { subtitle: string; text: string }[] };
+
+/**
+ * Blocos da descrição (etapa 9) → corpo do `PUT`. Par todo em branco e bloco
+ * sem título nem par são DESCARTADOS (mesma regra das listas); acima de um
+ * teto é RECUSADO com a frase, em vez de cortado em silêncio. O objeto é
+ * remontado: só `title`, `subtitle` e `text` viajam (as `key` ficam na tela).
+ */
+export function cleanDescriptionGroups(
+  groups: unknown,
+): { ok: true; data: CleanDescriptionGroup[] } | { ok: false; message: string } {
+  if (groups === undefined) return { ok: true, data: [] };
+  if (!Array.isArray(groups)) return { ok: false, message: "Dados da página inválidos." };
+
+  const limits = DESCRIPTION_LIMITS;
+  const data: CleanDescriptionGroup[] = [];
+  let total = 0;
+  for (const raw of groups) {
+    const title = typeof raw?.title === "string" ? raw.title.trim() : "";
+    if (title.length > limits.title) {
+      return { ok: false, message: `O título pode ter no máximo ${limits.title} caracteres.` };
+    }
+    const items: CleanDescriptionGroup["items"] = [];
+    for (const item of Array.isArray(raw?.items) ? raw.items : []) {
+      const subtitle = typeof item?.subtitle === "string" ? item.subtitle.trim() : "";
+      const text = typeof item?.text === "string" ? item.text.trim() : "";
+      if (subtitle === "" && text === "") continue;
+      if (subtitle.length > limits.subtitle) {
+        return { ok: false, message: `O subtítulo pode ter no máximo ${limits.subtitle} caracteres.` };
+      }
+      if (text.length > limits.text) {
+        return { ok: false, message: `O texto pode ter no máximo ${limits.text} caracteres.` };
+      }
+      items.push({ subtitle, text });
+      total += subtitle.length + text.length;
+    }
+    if (items.length > limits.itemsPerGroup) {
+      return { ok: false, message: `Cada título pode ter no máximo ${limits.itemsPerGroup} subtítulos.` };
+    }
+    if (title === "" && items.length === 0) continue;
+    data.push({ title, items });
+    total += title.length;
+  }
+  if (data.length > limits.groups) {
+    return { ok: false, message: `A descrição pode ter no máximo ${limits.groups} títulos.` };
+  }
+  if (total > limits.totalChars) {
+    return {
+      ok: false,
+      message: `A descrição pode ter no máximo ${limits.totalChars.toLocaleString("pt-BR")} caracteres no total.`,
+    };
   }
   return { ok: true, data };
 }

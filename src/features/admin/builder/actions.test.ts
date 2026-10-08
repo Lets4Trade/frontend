@@ -7,6 +7,7 @@ import { GAMES_MENU_TAG } from "@/features/game/menuGames";
 import { apiFail, apiOk, bigImage, formEntries, smallImage } from "@/test/actionFixtures";
 import {
   removeBannerAction,
+  reorderBannersAction,
   savePageAction,
   uploadBannerAction,
   uploadLogoAction,
@@ -34,7 +35,17 @@ function page(over: Partial<SavePagePayload> = {}): SavePagePayload {
     heading: "Compre Gold",
     serversLabel: "Ligas",
     categoriesLabel: "Categorias",
-    description: "Texto",
+    descriptionGroups: [
+      {
+        title: " Sobre o jogo ",
+        items: [
+          { subtitle: " O que é? ", text: " Texto " },
+          { subtitle: "  ", text: "" },
+        ],
+      },
+      { title: " ", items: [{ subtitle: "", text: " " }] },
+      { title: "Entrega", items: [] },
+    ],
     servers: [
       { id: "s1", label: " Standard " },
       { label: "   " },
@@ -68,6 +79,7 @@ describe("guarda de papel (todas as actions)", () => {
     ["uploadLogoAction", () => uploadLogoAction("g1", imageForm(smallImage()))],
     ["uploadBannerAction", () => uploadBannerAction("g1", imageForm(smallImage()))],
     ["removeBannerAction", () => removeBannerAction("g1", "b1")],
+    ["reorderBannersAction", () => reorderBannersAction("g1", ["b1"])],
   ] as const;
 
   it.each(calls)("%s sem sessão → unauthenticated, sem API", async (_n, call) => {
@@ -119,11 +131,34 @@ describe("savePageAction", () => {
       heading: "Compre Gold",
       serversLabel: "Ligas",
       categoriesLabel: "Categorias",
-      description: "Texto",
+      descriptionGroups: [
+        { title: "Sobre o jogo", items: [{ subtitle: "O que é?", text: "Texto" }] },
+        { title: "Entrega", items: [] },
+      ],
       servers: [{ id: "s1", label: "A" }],
       categories: [],
       sectionOrder: ["banner", "catalog"],
     });
+  });
+
+  it("recusa descrição acima dos tetos, sem chamar a API", async () => {
+    const tooLongText = page({
+      descriptionGroups: [{ title: "T", items: [{ subtitle: "Oi", text: "x".repeat(5001) }] }],
+    });
+    // 21 textos de 5.000 passam um a um, mas estouram os 100 mil do total.
+    const tooMuchTotal = page({
+      descriptionGroups: [
+        { title: "T", items: Array.from({ length: 21 }, () => ({ subtitle: "S", text: "x".repeat(5000) })) },
+      ],
+    });
+    const tooManyGroups = page({
+      descriptionGroups: Array.from({ length: 31 }, (_, i) => ({ title: `T${i}`, items: [] })),
+    });
+
+    for (const payload of [tooLongText, tooMuchTotal, tooManyGroups]) {
+      expect(await savePageAction("g1", payload)).toMatchObject({ ok: false, reason: "invalid" });
+    }
+    expect(put).not.toHaveBeenCalled();
   });
 
   it("apara rótulos e descarta linhas em branco", async () => {
@@ -258,5 +293,21 @@ describe("removeBannerAction", () => {
       reason: "error",
       message: "Banner não encontrado",
     });
+  });
+});
+
+describe("reorderBannersAction", () => {
+  it("manda só os ids, na ordem, para a rota do jogo", async () => {
+    put.mockResolvedValue(apiOk({ ids: ["b2", "b1"] }));
+    expect(await reorderBannersAction("g 1", ["b2", "b1"])).toEqual({ ok: true, data: { ids: ["b2", "b1"] } });
+    expect(put).toHaveBeenCalledWith("/admin/game-page/g%201/banners/order", { ids: ["b2", "b1"] });
+  });
+
+  it("lista acima do teto ou com id inválido é recusada sem API", async () => {
+    const tooMany = Array.from({ length: 11 }, (_, i) => `b${i}`);
+    for (const ids of [tooMany, [""], [42 as unknown as string]]) {
+      expect(await reorderBannersAction("g1", ids)).toMatchObject({ ok: false, reason: "invalid" });
+    }
+    expect(put).not.toHaveBeenCalled();
   });
 });

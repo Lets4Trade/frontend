@@ -3,12 +3,25 @@
 import { slugify, slugifyDraft } from "@/lib/slugify";
 import Image from "next/image";
 import { useRef, useTransition } from "react";
-import { TextAreaField } from "@/components/ui/TextAreaField";
 import { TextField } from "@/components/ui/TextField";
 import { toastError } from "@/components/ui/Toasts";
 import { ACTION_FAILED_MESSAGE, ACTION_FAILED_UPLOAD_MESSAGE, runAction } from "@/lib/safeAction";
-import { removeBannerAction, uploadBannerAction, uploadLogoAction } from "./actions";
-import type { BuilderCategory, BuilderListItem, Draft } from "./types";
+import {
+  removeBannerAction,
+  reorderBannersAction,
+  uploadBannerAction,
+  uploadLogoAction,
+} from "./actions";
+import { DESCRIPTION_LIMITS } from "@/features/game/description";
+import { MarkdownTextArea } from "@/features/admin/MarkdownTextArea";
+import type {
+  BuilderCategory,
+  BuilderListItem,
+  DescriptionDraftGroup,
+  DescriptionDraftItem,
+  Draft,
+} from "./types";
+import { MAX_BANNERS } from "./types";
 
 /**
  * Os painéis de edição do builder — um por etapa da lateral.
@@ -143,7 +156,13 @@ export function NamePanel({
   );
 }
 
-/** Etapa 9 — Descrição. */
+/**
+ * Etapa 9 — Descrição (2026-10-08): quantos blocos quiser, cada um com título e
+ * pares subtítulo/texto, no formato das Dúvidas. Na loja eles tomam o lugar do
+ * grupo "Dúvidas frequentes" padrão: o título vai na barrinha laranja, o
+ * subtítulo no lugar da pergunta e o texto no da resposta. Controles ↑ ↓ ✕
+ * iguais aos das outras listas do builder, nos dois níveis.
+ */
 export function DescriptionPanel({
   draft,
   patch,
@@ -151,21 +170,171 @@ export function DescriptionPanel({
   draft: Draft;
   patch: (next: Partial<Draft>) => void;
 }) {
+  const groups = draft.descriptionGroups;
+  const setGroups = (descriptionGroups: DescriptionDraftGroup[]) => patch({ descriptionGroups });
+  const editGroup = (key: string, next: Partial<DescriptionDraftGroup>) =>
+    setGroups(groups.map((group) => (group.key === key ? { ...group, ...next } : group)));
+  // `randomUUID` só para a CHAVE do React; nunca vai ao servidor.
+  const newItem = (): DescriptionDraftItem => ({ key: crypto.randomUUID(), subtitle: "", text: "" });
+
   return (
     <>
-      <TextAreaField
-        label="Descrição da página"
-        value={draft.description}
-        maxLength={5000}
-        rows={10}
-        placeholder="Texto que aparece no pé da página do game."
-        onChange={(event) => patch({ description: event.target.value })}
-      />
+      {groups.length === 0 ? (
+        <p className="font-poppins text-[13px] text-brand-fg-subtle">
+          Sem descrição: a página mostra as Dúvidas frequentes padrão.
+        </p>
+      ) : null}
+
+      <ul className="flex flex-col gap-[20px]">
+        {groups.map((group, index) => {
+          const name = group.title.trim() || `título ${index + 1}`;
+          const fullItems = group.items.length >= DESCRIPTION_LIMITS.itemsPerGroup;
+          return (
+            <li
+              key={group.key}
+              className="flex flex-col gap-[12px] rounded-[20px] border border-white/10 bg-black/20 p-[15px]"
+            >
+              <div className="flex items-end gap-[10px]">
+                <div className="min-w-0 flex-1">
+                  <TextField
+                    label={`Título ${index + 1}`}
+                    value={group.title}
+                    maxLength={DESCRIPTION_LIMITS.title}
+                    placeholder="Dúvidas frequentes"
+                    onChange={(event) => editGroup(group.key, { title: event.target.value })}
+                  />
+                </div>
+                <RowButton
+                  label={`Mover ${name} para cima`}
+                  onClick={() => setGroups(moveByKey(groups, group.key, -1))}
+                  disabled={index === 0}
+                >
+                  ↑
+                </RowButton>
+                <RowButton
+                  label={`Mover ${name} para baixo`}
+                  onClick={() => setGroups(moveByKey(groups, group.key, 1))}
+                  disabled={index === groups.length - 1}
+                >
+                  ↓
+                </RowButton>
+                <RowButton
+                  label={`Remover ${name} e os subtítulos dele`}
+                  onClick={() => setGroups(groups.filter((current) => current.key !== group.key))}
+                  danger
+                >
+                  ✕
+                </RowButton>
+              </div>
+
+              {group.items.length > 0 ? (
+                <ul className="flex flex-col gap-[15px] pl-[20px] sm:pl-[40px]">
+                  {group.items.map((item, itemIndex) => (
+                    <DescriptionItemRow
+                      key={item.key}
+                      item={item}
+                      index={itemIndex}
+                      isLast={itemIndex === group.items.length - 1}
+                      onChange={(next) =>
+                        editGroup(group.key, {
+                          items: group.items.map((current) =>
+                            current.key === item.key ? { ...current, ...next } : current,
+                          ),
+                        })
+                      }
+                      onMove={(direction) =>
+                        editGroup(group.key, { items: moveByKey(group.items, item.key, direction) })
+                      }
+                      onRemove={() =>
+                        editGroup(group.key, {
+                          items: group.items.filter((current) => current.key !== item.key),
+                        })
+                      }
+                    />
+                  ))}
+                </ul>
+              ) : null}
+
+              <button
+                type="button"
+                disabled={fullItems}
+                onClick={() => editGroup(group.key, { items: [...group.items, newItem()] })}
+                className="ml-[20px] h-[40px] rounded-full border border-dashed border-white/15 font-poppins text-[13px] font-bold text-white/70 transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:ml-[40px]"
+              >
+                + Adicionar subtítulo{group.title.trim() ? ` em ${group.title.trim()}` : ""}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+
+      <button
+        type="button"
+        disabled={groups.length >= DESCRIPTION_LIMITS.groups}
+        onClick={() =>
+          setGroups([...groups, { key: crypto.randomUUID(), title: "", items: [newItem()] }])
+        }
+        className="h-[50px] w-full rounded-full border border-dashed border-white/20 font-poppins text-[14px] font-bold text-white/80 transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        + Adicionar título
+      </button>
       <p className="-mt-[15px] font-poppins text-[13px] text-brand-fg-subtle">
-        {draft.description.length}/5000 caracteres. As quebras de linha são
-        mantidas na loja.
+        Na loja, substitui o grupo Dúvidas frequentes: cada título leva a barrinha
+        laranja, e cada subtítulo aparece como uma pergunta com o texto embaixo.
+        Até {DESCRIPTION_LIMITS.groups} títulos com {DESCRIPTION_LIMITS.itemsPerGroup} subtítulos
+        cada. No texto, selecione um trecho e use os botões (negrito, itálico,
+        link, listas); as quebras de linha são mantidas.
       </p>
     </>
+  );
+}
+
+/** Um par subtítulo + texto da descrição, com ↑ ↓ ✕. */
+function DescriptionItemRow({
+  item,
+  index,
+  isLast,
+  onChange,
+  onMove,
+  onRemove,
+}: {
+  item: DescriptionDraftItem;
+  index: number;
+  isLast: boolean;
+  onChange: (next: Partial<DescriptionDraftItem>) => void;
+  onMove: (direction: -1 | 1) => void;
+  onRemove: () => void;
+}) {
+  const name = item.subtitle.trim() || `subtítulo ${index + 1}`;
+  return (
+    <li className="flex flex-col gap-[10px]">
+      <div className="flex items-end gap-[10px]">
+        <div className="min-w-0 flex-1">
+          <TextField
+            label={`Subtítulo ${index + 1}`}
+            value={item.subtitle}
+            maxLength={DESCRIPTION_LIMITS.subtitle}
+            placeholder="Como faço pra comprar?"
+            onChange={(event) => onChange({ subtitle: event.target.value })}
+          />
+        </div>
+        <RowButton label={`Mover ${name} para cima`} onClick={() => onMove(-1)} disabled={index === 0}>
+          ↑
+        </RowButton>
+        <RowButton label={`Mover ${name} para baixo`} onClick={() => onMove(1)} disabled={isLast}>
+          ↓
+        </RowButton>
+        <RowButton label={`Remover ${name}`} onClick={onRemove} danger>
+          ✕
+        </RowButton>
+      </div>
+      <MarkdownTextArea
+        label={`Texto ${index + 1}`}
+        value={item.text}
+        maxLength={DESCRIPTION_LIMITS.text}
+        onChange={(text) => onChange({ text })}
+      />
+    </li>
   );
 }
 
@@ -189,12 +358,20 @@ export function ListPanel({
   addLabel,
   itemLabel,
   emptyHint,
+  onDuplicate,
+  duplicating = false,
 }: {
   items: BuilderListItem[];
   onChange: (next: BuilderListItem[]) => void;
   addLabel: string;
   itemLabel: string;
   emptyHint: string;
+  /**
+   * Botão "Duplicar" em cada linha JÁ SALVA (com `id`) — servidores da Central
+   * do jogo, 2026-10-08. Linha nova ainda não existe no banco para ser copiada.
+   */
+  onDuplicate?: (item: BuilderListItem) => void;
+  duplicating?: boolean;
 }) {
   function add() {
     onChange([
@@ -255,6 +432,18 @@ export function ListPanel({
             >
               ↓
             </RowButton>
+            {onDuplicate && item.id ? (
+              <button
+                type="button"
+                onClick={() => onDuplicate(item)}
+                disabled={duplicating}
+                aria-label={`Duplicar ${item.label || itemLabel}`}
+                title="Duplicar com categorias e produtos"
+                className="h-[50px] shrink-0 rounded-[8px] border border-white/10 bg-[image:var(--brand-surface-fill)] px-[14px] font-poppins text-[13px] font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Duplicar
+              </button>
+            ) : null}
             <RowButton
               label={`Remover ${item.label || itemLabel}`}
               onClick={() => remove(item.key)}
@@ -541,7 +730,7 @@ export function LogoPanel({
           <UploadButton
             inputRef={input}
             pending={pending}
-            onPick={send}
+            onPick={([file]) => send(file)}
             label={imageUrl ? "Trocar a logo" : "Enviar a logo"}
           />
           <p className="max-w-[420px] font-poppins text-[13px] text-brand-fg-subtle">
@@ -565,21 +754,34 @@ export function BannerPanel({
 }) {
   const [pending, startTransition] = useTransition();
   const input = useRef<HTMLInputElement>(null);
+  const room = MAX_BANNERS - banners.length;
 
-  function send(file: File) {
-    const form = new FormData();
-    form.append("image", file);
+  // Várias de uma vez (2026-10-08): sobem UMA a UMA, na ordem escolhida, e a
+  // lista cresce a cada uma que chega. Para no primeiro erro, para a mensagem
+  // dizer qual falhou em vez de cinco toasts iguais.
+  function send(files: File[]) {
+    const batch = files.slice(0, Math.max(room, 0));
+    if (files.length > batch.length) {
+      toastError(`Cabem só mais ${Math.max(room, 0)} banner(s): o máximo é ${MAX_BANNERS}.`);
+    }
+    if (batch.length === 0) return;
 
     startTransition(async () => {
-      const result = await runAction(() => uploadBannerAction(gameId, form), {
-        ok: false,
-        reason: "error",
-        message: ACTION_FAILED_UPLOAD_MESSAGE,
-      });
-      if (result.ok) {
-        onChange([...banners, { id: result.data.id, imageUrl: result.data.imageUrl }]);
-      } else {
-        toastError(result.message ?? "Não foi possível enviar o banner.");
+      let list = banners;
+      for (const file of batch) {
+        const form = new FormData();
+        form.append("image", file);
+        const result = await runAction(() => uploadBannerAction(gameId, form), {
+          ok: false,
+          reason: "error",
+          message: ACTION_FAILED_UPLOAD_MESSAGE,
+        });
+        if (!result.ok) {
+          toastError(`${file.name}: ${result.message ?? "Não foi possível enviar o banner."}`);
+          return;
+        }
+        list = [...list, { id: result.data.id, imageUrl: result.data.imageUrl }];
+        onChange(list);
       }
     });
   }
@@ -596,14 +798,53 @@ export function BannerPanel({
     });
   }
 
+  // A ordem grava NA HORA, como o upload: banner nunca fica "pendente de
+  // publicação". A tela muda antes e volta atrás se o servidor recusar.
+  function move(index: number, direction: -1 | 1) {
+    const target = index + direction;
+    if (target < 0 || target >= banners.length) return;
+    const previous = banners;
+    const next = [...banners];
+    [next[index], next[target]] = [next[target], next[index]];
+    onChange(next);
+
+    startTransition(async () => {
+      const result = await runAction(
+        () => reorderBannersAction(gameId, next.map((banner) => banner.id)),
+        { ok: false, reason: "error", message: ACTION_FAILED_MESSAGE },
+      );
+      if (!result.ok) {
+        onChange(previous);
+        toastError(result.message ?? "Não foi possível salvar a ordem dos banners.");
+      }
+    });
+  }
+
   return (
     <>
       <ul className="flex flex-col gap-[15px]">
-        {banners.map((banner) => (
-          <li key={banner.id} className="flex items-center gap-[15px]">
-            <div className="relative h-[100px] w-[350px] shrink-0 overflow-hidden rounded-[12px] border border-white/10">
+        {banners.map((banner, index) => (
+          <li key={banner.id} className="flex flex-wrap items-center gap-[15px]">
+            <span className="w-[22px] text-center font-poppins text-[14px] font-bold text-white/60">
+              {index + 1}
+            </span>
+            <div className="relative h-[100px] w-[350px] max-w-full shrink-0 overflow-hidden rounded-[12px] border border-white/10">
               <Image src={banner.imageUrl} alt="" fill sizes="350px" className="object-cover" />
             </div>
+            <RowButton
+              label={`Mover banner ${index + 1} para cima`}
+              onClick={() => move(index, -1)}
+              disabled={pending || index === 0}
+            >
+              ↑
+            </RowButton>
+            <RowButton
+              label={`Mover banner ${index + 1} para baixo`}
+              onClick={() => move(index, 1)}
+              disabled={pending || index === banners.length - 1}
+            >
+              ↓
+            </RowButton>
             <button
               type="button"
               onClick={() => drop(banner.id)}
@@ -616,36 +857,39 @@ export function BannerPanel({
         ))}
       </ul>
 
-      <UploadButton
-        inputRef={input}
-        pending={pending}
-        onPick={send}
-        label="Adicionar banner"
-      />
+      {room > 0 ? (
+        <UploadButton
+          inputRef={input}
+          pending={pending}
+          onPick={send}
+          multiple
+          label={banners.length === 0 ? "Adicionar banners" : "Adicionar mais banners"}
+        />
+      ) : null}
       <p className="-mt-[15px] font-poppins text-[13px] text-brand-fg-subtle">
-        Tamanho da imagem W:1715 H:490. Sem nenhum banner, a faixa do topo
-        simplesmente não aparece na loja.
+        Tamanho da imagem W:1715 H:490. Com mais de um, a loja mostra um slider
+        na ordem acima (passa sozinho a cada 6 segundos, com setas e barrinhas).
+        Dá para escolher várias imagens de uma vez; até {MAX_BANNERS} banners
+        ({banners.length} de {MAX_BANNERS}). Sem nenhum, a faixa do topo não
+        aparece na loja.
       </p>
     </>
   );
 }
 
-/**
- * O `<input type="file">` continua no DOM, escondido dentro do `<label>` — é o
- * que mantém clique, Tab, Enter e leitor de tela funcionando. Mesma decisão do
- * `FileField`; aqui não dá para reusá-lo porque este envia na hora, sem
- * formulário em volta.
- */
 function UploadButton({
   inputRef,
   pending,
   onPick,
   label,
+  multiple = false,
 }: {
   inputRef: React.RefObject<HTMLInputElement | null>;
   pending: boolean;
-  onPick: (file: File) => void;
+  /** Um arquivo, ou vários com `multiple`, na ordem escolhida. */
+  onPick: (files: File[]) => void;
   label: string;
+  multiple?: boolean;
 }) {
   return (
     <label className="inline-flex h-[50px] w-fit cursor-pointer items-center rounded-full bg-[image:var(--brand-orange-gradient)] px-[35px] font-poppins text-[14px] font-bold text-white transition-opacity hover:opacity-90">
@@ -656,12 +900,13 @@ function UploadButton({
         accept="image/png,image/jpeg,image/webp,image/avif"
         disabled={pending}
         className="sr-only"
+        multiple={multiple}
         onChange={(event) => {
-          const file = event.target.files?.[0];
+          const files = Array.from(event.target.files ?? []);
           // O valor é limpo para escolher O MESMO arquivo de novo disparar o
           // evento — sem isso, tentar reenviar depois de um erro não faz nada.
           event.target.value = "";
-          if (file) onPick(file);
+          if (files.length > 0) onPick(files);
         }}
       />
     </label>

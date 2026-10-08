@@ -10,6 +10,7 @@ import { centralHref } from "@/features/admin/games/central";
 import { ADMIN_SHELL } from "@/features/admin/layout";
 import { resolveSectionOrder } from "@/features/game/sections";
 import { toCategoryTree } from "@/features/game/categoryTree";
+import { toGameDescription } from "@/features/game/description";
 import { savePageAction } from "./actions";
 import { draftCategoriesToPayload } from "./payload";
 import {
@@ -127,7 +128,10 @@ export function BuilderShell({
             heading: draft.heading,
             serversLabel: draft.serversLabel,
             categoriesLabel: draft.categoriesLabel,
-            description: draft.description,
+            descriptionGroups: draft.descriptionGroups.map((group) => ({
+              title: group.title,
+              items: group.items.map(({ subtitle, text }) => ({ subtitle, text })),
+            })),
             servers: draft.servers.map((item) => ({ id: item.id, label: item.label })),
             categories: draftCategoriesToPayload(draft.categories),
             sectionOrder: draft.sectionOrder,
@@ -336,7 +340,12 @@ function toDraft(game: BuilderGame): Draft {
     heading: game.heading ?? "",
     serversLabel: game.serversLabel ?? "",
     categoriesLabel: game.categoriesLabel ?? "",
-    description: game.description ?? "",
+    // `key` só para o React; nunca vai ao servidor.
+    descriptionGroups: (toGameDescription(game.descriptionGroups) ?? []).map((group) => ({
+      key: crypto.randomUUID(),
+      title: group.title,
+      items: group.items.map((item) => ({ ...item, key: crypto.randomUUID() })),
+    })),
     servers: game.servers.map(toItem),
     // Árvore de dois níveis, venha ela montada (`children`) ou plana (`parentId`).
     categories: toCategoryTree(game.categories.filter(isGlobalCategory)).map(
@@ -366,7 +375,7 @@ function diffSteps(draft: Draft, saved: Draft): ReadonlySet<BuilderStepId> {
     dirty.add("titulos");
   }
   if (draft.name !== saved.name || draft.slug !== saved.slug) dirty.add("nome");
-  if (draft.description !== saved.description) dirty.add("descricao");
+  if (!sameDescription(draft.descriptionGroups, saved.descriptionGroups)) dirty.add("descricao");
   if (!sameItems(draft.servers, saved.servers)) dirty.add("servidores");
   if (!sameCategories(draft.categories, saved.categories)) dirty.add("categorias");
   if (!sameList(draft.sectionOrder, saved.sectionOrder)) dirty.add("ordem");
@@ -374,6 +383,22 @@ function diffSteps(draft: Draft, saved: Draft): ReadonlySet<BuilderStepId> {
   // Banner e logo NÃO entram: eles já foram publicados no momento do upload,
   // então nunca estão "pendentes de publicação".
   return dirty;
+}
+
+function sameDescription(a: Draft["descriptionGroups"], b: Draft["descriptionGroups"]) {
+  return (
+    a.length === b.length &&
+    a.every(
+      (group, index) =>
+        group.title === b[index].title &&
+        group.items.length === b[index].items.length &&
+        group.items.every(
+          (item, itemIndex) =>
+            item.subtitle === b[index].items[itemIndex].subtitle &&
+            item.text === b[index].items[itemIndex].text,
+        ),
+    )
+  );
 }
 
 function sameList(a: string[], b: string[]) {

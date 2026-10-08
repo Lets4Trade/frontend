@@ -151,13 +151,11 @@ describe("readHighlights", () => {
   it("ausente/estranho = []; saneia como o backend", () => {
     expect(readHighlights(undefined)).toEqual([]);
     expect(readHighlights("x")).toEqual([]);
-    expect(readHighlights(["  a  ", "", 3, "b".repeat(100), "c", "d", "e", "f", "g"])).toEqual([
+    const extra = Array.from({ length: 12 }, (_, i) => `t${i}`);
+    expect(readHighlights(["  a  ", "", 3, "b".repeat(300), ...extra])).toEqual([
       "a",
-      "b".repeat(80),
-      "c",
-      "d",
-      "e",
-      "f",
+      "b".repeat(200),
+      ...extra.slice(0, 10),
     ]);
   });
 });

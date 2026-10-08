@@ -7,7 +7,11 @@ import {
   NewsSection,
   ReferencesSection,
 } from "@/features/game/GameSections";
+import { GameBannerSlider } from "@/features/game/GameBannerSlider";
 import { ProductCardShell } from "@/features/game/ProductCardShell";
+import { buttonVariants } from "@/components/ui/Button";
+import { cn } from "@/lib/cn";
+import { toGameDescription } from "@/features/game/description";
 import { gapBefore, type GameSectionKey } from "@/features/game/sections";
 import { defaultTabIcon, tabIconSrc, type GameTab } from "@/features/admin/games/tabs/types";
 import type { BuilderShared, Draft } from "./types";
@@ -33,7 +37,8 @@ import type { BuilderShared, Draft } from "./types";
  * ganharia centenas de pixels de vazio embaixo.
  *
  * ── Os cards são MARCADORES, mas o CARD é o de verdade ─────────────────────
- * 24 cards escritos "Product Name / R$ 25,00", como no arquivo — os produtos
+ * 30 cards (6 × 5, como a vitrine desde 2026-10-08) escritos "Product Name /
+ * R$ 25,00" — os produtos
  * reais não entram porque esta tela edita a ESTRUTURA da página, e buscar o
  * catálogo a cada tecla digitada no painel ao lado seria uma consulta por
  * rascunho.
@@ -202,7 +207,7 @@ export function BuilderPreview({
         ref={innerRef}
         aria-hidden
         // `aria-hidden` porque isto é uma MAQUETE: repetir a página inteira na
-        // árvore de acessibilidade faria o leitor de tela ler 24 cards falsos
+        // árvore de acessibilidade faria o leitor de tela ler 30 cards falsos
         // entre os controles reais do formulário. Quem edita usa o painel, não
         // esta área.
         style={{
@@ -263,19 +268,19 @@ function renderBlock(key: GameSectionKey, ctx: BlockContext) {
 
   switch (key) {
     case "banner":
-      return (
+      // O MESMO slider da loja (2026-10-08), parado: na prévia quem troca de
+      // banner é quem edita, pelas setas e barrinhas.
+      return banner ? (
+        <GameBannerSlider
+          autoPlay={false}
+          banners={draft.banners.map((item) => ({
+            id: item.id,
+            image: { src: item.imageUrl, alt: "", width: 1715, height: 490 },
+          }))}
+        />
+      ) : (
         <div className="relative h-[490px] w-full overflow-hidden rounded-[30px] border border-white/10 bg-[#111]">
-          {banner ? (
-            <Image
-              src={banner.imageUrl}
-              alt=""
-              fill
-              sizes="1715px"
-              className="object-cover"
-            />
-          ) : (
-            <SlotHint label="Tamanho da imagem W:1715 H:490" />
-          )}
+          <SlotHint label="Tamanho da imagem W:1715 H:490" />
         </div>
       );
 
@@ -380,39 +385,37 @@ function renderBlock(key: GameSectionKey, ctx: BlockContext) {
         </div>
       );
 
-    case "categories":
+    case "categories": {
       if (draft.categories.length === 0) return null;
-      return (
-        <div className="rounded-[30px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[49px] pt-[25px] pb-[36px]">
-          <p className="font-helvetica text-[18px] leading-none font-bold text-white">
-            {draft.categoriesLabel.trim() || "Selecionar categoria"}
-          </p>
+      // Mesmo desenho da vitrine (`CategoryPanel`, 2026-10-08): categorias em
+      // cima e, num quadro próprio, as subcategorias — aqui as da primeira
+      // categoria que tem, como amostra.
+      const sample = draft.categories.find((category) => category.children.length > 0);
+      const box = (title: string, labels: { key: string; label: string }[]) => (
+        <div className="rounded-[30px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[24px] pt-[25px] pb-[30px]">
+          <p className="font-helvetica text-[18px] leading-none font-bold text-white">{title}</p>
           <div className="mt-[24px] grid grid-cols-[repeat(auto-fill,282px)] items-start gap-x-[24px] gap-y-[15px]">
-            {draft.categories.map((category) => (
-              <div key={category.key} className="flex flex-col gap-[8px]">
-                <span className="flex h-[40px] w-[282px] items-center gap-[10px] rounded-[8px] border border-white/10 bg-[image:var(--brand-surface-fill)] px-[25px]">
-                  <span className="h-[30px] w-[32px] shrink-0 rounded-[8px] border-2 border-white/10" />
-                  <span className="truncate font-poppins text-[13px] leading-none font-bold text-white/80">
-                    {category.label || "-"}
-                  </span>
+            {labels.map((item) => (
+              <span
+                key={item.key}
+                className="flex h-[40px] w-[282px] items-center gap-[10px] rounded-[8px] border border-white/10 bg-[image:var(--brand-surface-fill)] pr-[14px] pl-[9px]"
+              >
+                <span className="size-[22px] shrink-0 rounded-[6px] border-2 border-white/10" />
+                <span className="truncate font-poppins text-[13px] leading-none font-bold text-white/80">
+                  {item.label || "-"}
                 </span>
-                {/* Mesmo desenho da vitrine (`CategoryPanel`): filhas recuadas sob o pai. */}
-                {category.children.map((child) => (
-                  <span
-                    key={child.key}
-                    className="ml-[20px] flex h-[34px] w-[262px] items-center gap-[10px] rounded-[8px] border border-white/10 bg-[image:var(--brand-surface-fill)] px-[20px]"
-                  >
-                    <span className="h-[22px] w-[24px] shrink-0 rounded-[6px] border-2 border-white/10" />
-                    <span className="truncate font-poppins text-[12px] leading-none font-bold text-white/70">
-                      {child.label || "-"}
-                    </span>
-                  </span>
-                ))}
-              </div>
+              </span>
             ))}
           </div>
         </div>
       );
+      return (
+        <div className="flex flex-col gap-[25px]">
+          {box(draft.categoriesLabel.trim() || "Selecionar categoria", draft.categories)}
+          {sample ? box(`Subcategorias de ${sample.label || "-"}`, sample.children) : null}
+        </div>
+      );
+    }
 
     case "catalog":
       return (
@@ -437,12 +440,22 @@ function renderBlock(key: GameSectionKey, ctx: BlockContext) {
           </div>
 
           <div className="mt-[25px] grid grid-cols-[repeat(auto-fill,265px)] justify-between gap-x-[24px] gap-y-[25px]">
-            {Array.from({ length: 24 }, (_, i) => (
+            {Array.from({ length: 30 }, (_, i) => (
               <ProductCardShell
                 key={i}
                 name="Product Name"
                 price="R$ 25,00"
                 actions={<CardActions />}
+                cta={
+                  <span
+                    className={cn(
+                      buttonVariants({ variant: "primary" }),
+                      "pointer-events-none ml-[32px] h-[40px] w-[217px] px-0",
+                    )}
+                  >
+                    COMPRE AQUI
+                  </span>
+                }
               />
             ))}
           </div>
@@ -466,18 +479,13 @@ function renderBlock(key: GameSectionKey, ctx: BlockContext) {
         </div>
       );
 
-    case "description":
+    // As duas seções da HOME (2026-10-06): conteúdo editado na Home, aqui só
+    // o lugar que elas ocupam.
+    case "homeVideo":
+    case "homeReviews":
       return (
-        <div className="rounded-[30px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[50px] py-[40px]">
-          {draft.description.trim() ? (
-            <p className="font-poppins text-[16px] leading-[26px] whitespace-pre-line text-white/80">
-              {draft.description}
-            </p>
-          ) : (
-            <p className="font-poppins text-[16px] text-white/30">
-              A descrição da página aparece aqui.
-            </p>
-          )}
+        <div className="flex h-[220px] items-center justify-center rounded-[30px] border border-dashed border-white/15 font-poppins text-[16px] text-white/50">
+          {key === "homeVideo" ? "Clientes 100% satisfeitos" : "Nossas reviews"} (conteúdo da Home)
         </div>
       );
 
@@ -501,8 +509,14 @@ function renderBlock(key: GameSectionKey, ctx: BlockContext) {
       return shared ? <ReferencesSection references={shared.references} /> : null;
     case "news":
       return shared ? <NewsSection news={shared.news} /> : null;
+    // A descrição (etapa 9) aparece no topo das Dúvidas, como na loja.
     case "faq":
-      return shared ? <GameFaqSection groups={shared.faq} /> : null;
+      return (
+        <GameFaqSection
+          groups={shared?.faq ?? []}
+          description={toGameDescription(draft.descriptionGroups)}
+        />
+      );
   }
 }
 

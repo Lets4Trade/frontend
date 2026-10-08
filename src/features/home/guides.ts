@@ -116,5 +116,7 @@ export const BLOG_CARD = {
   height: 206,
   title: "VISITAR BLOG",
   subtitle: "Veja mais artigos como esses",
-  href: "/blog",
+  // `/noticias` é onde o blog mora (2026-09-28). `/blog` nunca existiu e dava
+  // 404 (achado em 2026-10-06).
+  href: "/noticias",
 };

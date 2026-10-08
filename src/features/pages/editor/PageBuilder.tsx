@@ -289,6 +289,7 @@ export function PageBuilder({
             <BlockLibrary
               blocks={blocks}
               legacyKeys={page.legacyKeys}
+              sharedKeys={page.sharedKeys}
               legacyLabels={page.legacyLabels}
               onAdd={addBlock}
             />

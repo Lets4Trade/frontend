@@ -14,6 +14,7 @@ import { loyaltyNodes } from "@/features/loyalty/loyaltyNodes";
 import { getAdminPage } from "@/features/pages/adminPage";
 import { legacyNodesFrom, type LegacyNodes } from "@/features/pages/compose";
 import { PreviewCanvas } from "@/features/pages/editor/PreviewCanvas";
+import { homeSharedNodes } from "@/features/pages/homeSharedNodes";
 import { builderPage, type BlocksPageDef } from "@/features/pages/registry";
 import { SellPageBody } from "@/features/sell/SellPageBody";
 import { getSectionItemsFor, getSectionsFor } from "@/features/site/content";
@@ -74,12 +75,20 @@ async function legacyFor(page: BlocksPageDef): Promise<{ desktop: LegacyNodes; m
         mobile: legacyNodesFrom(buildMobileHomeBlocks(section, items)),
       };
     }
+    // As seções da home vão sempre na prévia: o rascunho pode ganhar uma a
+    // qualquer momento, e a prévia não sabe o que vem antes de desenhar.
     case "narrow":
-      return { desktop: { formulario: { node: <SellPageBody />, gap: 0 } } };
+      return { desktop: { formulario: { node: <SellPageBody />, gap: 0 }, ...(await homeSharedNodes()) } };
     case "wide": {
       // Dados da conta de quem está editando — é a fidelidade DELE na prévia.
-      const [section, loyalty] = await Promise.all([getSectionsFor("fidelidade"), getLoyalty()]);
-      return { desktop: loyalty.ok ? loyaltyNodes(loyalty.summary, loyalty.entries, section) : {} };
+      const [section, loyalty, shared] = await Promise.all([
+        getSectionsFor("fidelidade"),
+        getLoyalty(),
+        homeSharedNodes(),
+      ]);
+      return {
+        desktop: { ...(loyalty.ok ? loyaltyNodes(loyalty.summary, loyalty.entries, section) : {}), ...shared },
+      };
     }
     case "game": {
       const base = await getGamePage(page.href.replace(/^\/games\//, ""));

@@ -145,6 +145,8 @@ function QuantityPanel({
                       key={preset}
                       type="button"
                       aria-pressed={active}
+                      // O número inteiro ao passar o mouse ("1Mi" = 1.000.000).
+                      title={preset.toLocaleString("pt-BR")}
                       onClick={() => set(preset)}
                       className={`h-[40px] min-w-0 truncate rounded-[8px] border border-white/10 px-[10px] font-poppins text-[13px] font-bold tracking-[0.13px] backdrop-blur-[100px] transition-opacity outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-brand-orange ${
                         active

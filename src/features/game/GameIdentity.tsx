@@ -180,6 +180,17 @@ function TabLink({ tab, server, active }: { tab: GameTab; server: string; active
 const ICON_BLEED = "0 -14.81% -29.63% -14.81%";
 
 function TabIcon({ tab }: { tab: GameTab }) {
+  // Ícone ENVIADO no painel não tem o brilho desenhado em volta: com o
+  // sangramento ele crescia para 65px e descia sobre o rótulo (2026-10-06).
+  // Fica inteiro dentro dos 50×50. Só os SVGs padrão (`/icons/`) sangram.
+  if (!tab.icon.src.startsWith("/icons/")) {
+    return (
+      <span className="relative block size-[50px]">
+        <Image src={tab.icon.src} alt="" fill sizes="50px" aria-hidden className="object-contain" />
+      </span>
+    );
+  }
+
   return (
     <span className="relative block size-[50px]">
       <span className="absolute" style={{ inset: ICON_BLEED }}>

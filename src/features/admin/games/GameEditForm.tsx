@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
-import { toastOk } from "@/components/ui/Toasts";
+import { toastError, toastOk } from "@/components/ui/Toasts";
 import { FileField } from "@/components/ui/FileField";
 import { TextField } from "@/components/ui/TextField";
 import { uploadLogoAction } from "@/features/admin/builder/actions";
@@ -13,7 +13,7 @@ import type { BuilderGame, BuilderListItem } from "@/features/admin/builder/type
 import { ACTION_FAILED_UPLOAD_MESSAGE, runAction } from "@/lib/safeAction";
 import { slugify, slugifyDraft } from "@/lib/slugify";
 import { isGameFormDirty } from "./central";
-import { updateGameAction } from "./editActions";
+import { duplicateServerAction, updateGameAction } from "./editActions";
 import { ACCEPTED_IMAGE_TYPES, MAX_IMAGE_BYTES } from "./options";
 
 const ERROR_MESSAGES = {
@@ -46,6 +46,7 @@ const ERROR_MESSAGES = {
 export function GameEditForm({ game }: { game: BuilderGame }) {
   const router = useRouter();
   const [isSaving, startSave] = useTransition();
+  const [isDuplicating, startDuplicate] = useTransition();
   const [name, setName] = useState(game.name);
   const [slug, setSlug] = useState(game.slug);
   const [servers, setServers] = useState<BuilderListItem[]>(() =>
@@ -61,6 +62,35 @@ export function GameEditForm({ game }: { game: BuilderGame }) {
     { name: game.name, slug: game.slug, servers: savedServers },
     { name, slug: slugify(slug), servers, hasNewImage: image !== null },
   );
+
+  /**
+   * Duplicar grava NA HORA (não espera o SALVAR) e a tela recarrega com a
+   * cópia na lista. Com alterações pendentes, recusa: recarregar as perderia.
+   */
+  function handleDuplicate(server: BuilderListItem) {
+    if (!server.id) return;
+    if (dirty) {
+      toastError("Salve (ou desfaça) as alterações antes de duplicar um servidor.");
+      return;
+    }
+    const serverId = server.id;
+    startDuplicate(async () => {
+      const result = await runAction(() => duplicateServerAction(game.id, serverId), {
+        ok: false,
+        reason: "error",
+        message: ERROR_MESSAGES.error,
+      });
+      if (!result.ok) {
+        toastError(result.message ?? ERROR_MESSAGES[result.reason]);
+        return;
+      }
+      const { server: copy, products, categories } = result.data;
+      toastOk(
+        `"${copy.label}" criado com ${products} produto(s) e ${categories} categoria(s). Renomeie na lista e salve.`,
+      );
+      router.refresh();
+    });
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -167,7 +197,14 @@ export function GameEditForm({ game }: { game: BuilderGame }) {
           addLabel="+ Adicionar servidor"
           itemLabel="Servidor"
           emptyHint="Nenhum servidor cadastrado."
+          onDuplicate={handleDuplicate}
+          duplicating={isDuplicating || isSaving}
         />
+        <p className="font-poppins text-[13px] text-brand-fg-subtle">
+          Duplicar cria uma cópia logo abaixo, com as categorias e os produtos
+          ativos do servidor (preços, regras, textos e imagens). Depois é só
+          trocar o nome e salvar.
+        </p>
       </fieldset>
 
       <div className="sticky bottom-0 z-10 -mx-[20px] mt-[60px] flex flex-wrap items-center gap-[20px] rounded-b-[20px] border-t border-white/10 bg-brand-bg/95 px-[20px] py-[15px] sm:-mx-[30px] sm:px-[30px]">

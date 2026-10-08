@@ -52,7 +52,7 @@ export function HomeGamesMenu({
           align="start"
           sideOffset={40}
           collisionPadding={16}
-          className="games-drop z-50 max-h-[min(480px,var(--radix-dropdown-menu-content-available-height))] w-[300px] overflow-y-auto rounded-[20px] border border-brand-border bg-brand-surface p-[8px] shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
+          className="games-drop z-50 max-h-[min(480px,var(--radix-dropdown-menu-content-available-height))] w-[min(560px,calc(100vw-32px))] overflow-y-auto rounded-[20px] border border-brand-border bg-brand-surface p-[8px] shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
         >
           <p className="px-[12px] pt-[6px] pb-[8px] font-poppins text-[12px] font-bold tracking-[0.12px] text-white/60">
             JOGOS
@@ -62,7 +62,10 @@ export function HomeGamesMenu({
               Nenhum jogo disponível no momento.
             </p>
           ) : (
-            games.map((game) => (
+            // Duas colunas (2026-10-06, pedido do usuário): com a lista crescendo
+            // a coluna única virava rolagem. Uma coluna em tela estreita.
+            <div className="grid grid-cols-1 gap-[2px] sm:grid-cols-2">
+            {games.map((game) => (
               <DropdownMenu.Item key={game.slug} asChild>
                 <Link
                   href={`/games/${game.slug}`}
@@ -83,7 +86,8 @@ export function HomeGamesMenu({
                   <span className="truncate">{game.name}</span>
                 </Link>
               </DropdownMenu.Item>
-            ))
+            ))}
+            </div>
           )}
         </DropdownMenu.Content>
       </DropdownMenu.Portal>

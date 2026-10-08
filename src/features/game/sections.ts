@@ -32,7 +32,8 @@ export type GameSectionKey =
   | "servers"
   | "categories"
   | "catalog"
-  | "description"
+  | "homeVideo"
+  | "homeReviews"
   | "references"
   | "news"
   | "faq";
@@ -91,11 +92,20 @@ export const GAME_SECTIONS: readonly GameSectionDef[] = [
     hint: "A barra de ordenação, a grade de produtos e a paginação.",
     gapAfterDefaultPredecessor: 47,
   },
+  // As duas seções da HOME (2026-10-06, pedido do usuário): todo jogo novo
+  // nasce com elas. Mesmo conteúdo da home (editado lá), desenhadas na faixa
+  // de 1820 da home, centralizada na coluna de 1714 da página de jogo.
   {
-    key: "description",
-    label: "Descrição",
-    hint: "O texto corrido escrito na etapa 9.",
-    gapAfterDefaultPredecessor: DEFAULT_GAP,
+    key: "homeVideo",
+    label: "Clientes 100% satisfeitos (da home)",
+    hint: "O vídeo da home com o texto ao lado. Edita-se na Home.",
+    gapAfterDefaultPredecessor: 100,
+  },
+  {
+    key: "homeReviews",
+    label: "Nossas reviews (da home)",
+    hint: "A faixa de reviews da home. Edita-se na Home.",
+    gapAfterDefaultPredecessor: 99,
   },
   {
     key: "references",

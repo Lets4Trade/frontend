@@ -140,14 +140,15 @@ const sectionSchema = z.object({
     .string()
     .trim()
     .min(1, "Toda seção de texto precisa de um título.")
-    .max(120, "O título de uma seção pode ter no máximo 120 caracteres."),
+    .max(200, "O título de uma seção pode ter no máximo 200 caracteres."),
   items: z
-    .array(z.string().trim().min(1).max(300, "Cada item pode ter no máximo 300 caracteres."))
-    .max(20, "Cada seção pode ter no máximo 20 itens."),
+    .array(z.string().trim().min(1).max(2_000, "Cada item pode ter no máximo 2.000 caracteres."))
+    .max(100, "Cada seção pode ter no máximo 100 itens."),
 });
 
 export const tabContentSchema = z.object({
-  sections: z.array(sectionSchema).max(10, "No máximo 10 seções de texto."),
+  // Tetos altos (2026-10-06): espelham o `GameTabContentDto` do backend.
+  sections: z.array(sectionSchema).max(30, "No máximo 30 seções de texto."),
 });
 
 export type TabContent = z.infer<typeof tabContentSchema>;

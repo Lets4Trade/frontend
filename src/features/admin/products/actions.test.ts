@@ -75,7 +75,6 @@ describe("createProductAction", () => {
     ["preço fracionado", { priceCents: "10.5" }],
     ["preço acima do teto", { priceCents: "10000001" }],
     ["preço não numérico", { priceCents: "abc" }],
-    ["sem plataforma", { platform: "" }],
     ["sem aba", { tabId: "" }],
     ["aba com cara de caminho", { tabId: "../x" }],
     ["pricing que não é JSON", { pricing: "{" }],
@@ -109,13 +108,13 @@ describe("createProductAction", () => {
     const entries = formEntries(body);
     // `categoryId` vazio não viaja.
     expect(Object.keys(entries).sort()).toEqual(
-      ["gameId", "image", "name", "platform", "priceCents", "tabId", "serverId"].sort(),
+      // Plataforma não viaja (2026-10-08): o backend usa a primeira do jogo.
+      ["gameId", "image", "name", "priceCents", "tabId", "serverId"].sort(),
     );
     expect(entries).toMatchObject({
       gameId: "game1",
       name: "500M Divine",
       priceCents: "5000",
-      platform: "STEAM",
       tabId: "tab1",
       serverId: "srv1",
     });
@@ -190,6 +189,20 @@ describe("updateProductAction", () => {
     expect(entries).not.toHaveProperty("image");
     expect(entries).toMatchObject({ priceCents: "5000", serverId: "srv1", categoryId: "cat1" });
     expect(revalidatePath).toHaveBeenCalledWith("/admin/produtos");
+  });
+
+  it("nome em inglês: cadastro só manda preenchido; edição sempre manda (vazio apaga)", async () => {
+    await createProductAction(productForm({ nameEn: "  500M Divine Orbs " }));
+    expect(formEntries(post.mock.calls[0][1]).nameEn).toBe("500M Divine Orbs");
+    await createProductAction(productForm({ nameEn: "  " }));
+    expect(formEntries(post.mock.calls[1][1])).not.toHaveProperty("nameEn");
+
+    await updateProductAction("p1", productForm({ nameEn: "" }));
+    expect(formEntries(patch.mock.calls[0][1]).nameEn).toBe("");
+    expect(await updateProductAction("p1", productForm({ nameEn: "x".repeat(161) }))).toMatchObject({
+      ok: false,
+      reason: "invalid",
+    });
   });
 
   it("servidor e categoria VAZIOS viajam como \"\" — é assim que o PATCH remove", async () => {
@@ -343,8 +356,8 @@ describe("highlights (tópicos do card de PACOTE)", () => {
   });
 
   it.each([
-    ["7 tópicos", JSON.stringify(Array.from({ length: 7 }, (_, i) => `t${i}`)), "no máximo 6"],
-    ["tópico de 81", JSON.stringify(["x".repeat(81)]), "80 caracteres"],
+    ["13 tópicos", JSON.stringify(Array.from({ length: 13 }, (_, i) => `t${i}`)), "no máximo 12"],
+    ["tópico de 201", JSON.stringify(["x".repeat(201)]), "200 caracteres"],
     ["não é JSON", "[", "inválidos"],
     ["não é lista de texto", JSON.stringify([{ html: "<b>" }]), ""],
     ["gigante", "x".repeat(4_001), "inválidos"],

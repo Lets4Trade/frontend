@@ -21,8 +21,9 @@ export type SectionDraft = {
   items: { key: string; text: string }[];
 };
 
-export const MAX_SECTIONS = 10;
-export const MAX_ITEMS = 20;
+// Tetos altos (2026-10-06, "tirar o limite"): espelham o backend.
+export const MAX_SECTIONS = 30;
+export const MAX_ITEMS = 100;
 
 export function toSectionDrafts(sections: readonly TabSection[] | undefined | null): SectionDraft[] {
   return (sections ?? []).map((section) => ({
@@ -73,7 +74,7 @@ export function ServiceSectionsEditor({
                 <TextField
                   label={`Título da seção ${index + 1}`}
                   value={section.title}
-                  maxLength={120}
+                  maxLength={200}
                   placeholder="Como funciona"
                   onChange={(event) => patchSection(section.key, { title: event.target.value })}
                 />
@@ -108,7 +109,7 @@ export function ServiceSectionsEditor({
                     <TextField
                       label={`Item ${itemIndex + 1}`}
                       value={item.text}
-                      maxLength={300}
+                      maxLength={2000}
                       onChange={(event) =>
                         patchSection(section.key, {
                           items: section.items.map((current) =>
@@ -172,7 +173,7 @@ export function ServiceSectionsEditor({
         + Adicionar seção de texto
       </button>
       <p className="-mt-[10px] font-poppins text-[12px] text-brand-fg-subtle">
-        Até {MAX_SECTIONS} seções com {MAX_ITEMS} itens cada. Texto simples, sem formatação nem links.
+        Texto simples, sem formatação nem links.
       </p>
     </div>
   );

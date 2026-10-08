@@ -121,12 +121,12 @@ describe("createTabAction", () => {
     ["CATALOG com textos", { label: "X", layout: "CATALOG", content: { sections: [] } }],
     ["layout inventado", { label: "X", layout: "HTML" }],
     [
-      "11 seções",
-      { label: "X", layout: "SERVICE", content: { sections: Array.from({ length: 11 }, () => ({ title: "t", items: [] })) } },
+      "31 seções",
+      { label: "X", layout: "SERVICE", content: { sections: Array.from({ length: 31 }, () => ({ title: "t", items: [] })) } },
     ],
     [
-      "item de 301",
-      { label: "X", layout: "SERVICE", content: { sections: [{ title: "t", items: ["x".repeat(301)] }] } },
+      "item de 2.001",
+      { label: "X", layout: "SERVICE", content: { sections: [{ title: "t", items: ["x".repeat(2_001)] }] } },
     ],
   ])("%s → invalid, sem API", async (_l, input) => {
     expect(await createTabAction("g1", input as never)).toMatchObject({ ok: false, reason: "invalid" });

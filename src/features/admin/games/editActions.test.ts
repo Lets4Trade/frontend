@@ -2,16 +2,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getSessionRole } from "@/features/auth/session";
 import { savePageAction } from "@/features/admin/builder/actions";
-import { apiGet } from "@/lib/serverApi";
-import { updateGameAction } from "./editActions";
+import { apiGet, apiPost } from "@/lib/serverApi";
+import { duplicateServerAction, updateGameAction } from "./editActions";
 
 vi.mock("@/features/auth/session", () => ({ getSessionRole: vi.fn() }));
-vi.mock("@/lib/serverApi", () => ({ apiGet: vi.fn() }));
+vi.mock("@/lib/serverApi", () => ({ apiGet: vi.fn(), apiPost: vi.fn() }));
 vi.mock("@/features/admin/builder/actions", () => ({ savePageAction: vi.fn() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 const role = vi.mocked(getSessionRole);
 const get = vi.mocked(apiGet);
+const post = vi.mocked(apiPost);
 const save = vi.mocked(savePageAction);
 
 const CURRENT = {
@@ -22,7 +23,7 @@ const CURRENT = {
   heading: "Compre gold",
   serversLabel: null,
   categoriesLabel: "Categorias",
-  description: "Texto da página",
+  descriptionGroups: [{ title: "Sobre", items: [{ subtitle: "O que é?", text: "Texto da página" }] }],
   servers: [{ id: "s1", label: "Softcore", slug: "softcore", position: 0 }],
   categories: [
     { id: "c1", label: "Armas", slug: "armas", position: 0, parentId: null },
@@ -76,7 +77,8 @@ describe("updateGameAction", () => {
       heading: "Compre gold",
       serversLabel: "",
       categoriesLabel: "Categorias",
-      description: "Texto da página",
+      // A descrição volta como estava: salvar o cadastro não pode apagá-la.
+      descriptionGroups: [{ title: "Sobre", items: [{ subtitle: "O que é?", text: "Texto da página" }] }],
       categories: [{ id: "c1", label: "Armas", children: [{ id: "c2", label: "Espadas" }] }],
       // Omitir faria o backend gravar `[]` e perder a ordem do Builder.
       sectionOrder: ["catalog", "faq"],
@@ -90,5 +92,36 @@ describe("updateGameAction", () => {
       message: "Este game já não existe.",
     });
     expect(save).not.toHaveBeenCalled();
+  });
+});
+
+describe("duplicateServerAction", () => {
+  const copy = { server: { id: "s9", label: "Softcore (cópia)", slug: "softcore-copia", position: 1 }, categories: 2, products: 30 };
+
+  it("só ADMIN; ids com cara de caminho são recusados sem API", async () => {
+    role.mockResolvedValue("EDITOR");
+    expect(await duplicateServerAction("g1", "s1")).toEqual({ ok: false, reason: "forbidden" });
+    role.mockResolvedValue("ADMIN");
+    expect(await duplicateServerAction("g1", "../x")).toMatchObject({ ok: false, reason: "invalid" });
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it("chama a rota do servidor e devolve a cópia", async () => {
+    role.mockResolvedValue("ADMIN");
+    post.mockResolvedValue({ ok: true, status: 201, data: copy } as never);
+    expect(await duplicateServerAction("g1", "s1")).toEqual({ ok: true, data: copy });
+    expect(post).toHaveBeenCalledWith("/admin/games/g1/servers/s1/duplicate", {});
+  });
+
+  it("teto (400) repassa a frase do backend; 500 não", async () => {
+    role.mockResolvedValue("ADMIN");
+    post.mockResolvedValue({ ok: false, status: 400, reason: "error", message: "O jogo já tem 50 servidores, o máximo." } as never);
+    expect(await duplicateServerAction("g1", "s1")).toEqual({
+      ok: false,
+      reason: "invalid",
+      message: "O jogo já tem 50 servidores, o máximo.",
+    });
+    post.mockResolvedValue({ ok: false, status: 500, reason: "error", message: "stack trace" } as never);
+    expect(await duplicateServerAction("g1", "s1")).toEqual({ ok: false, reason: "error", message: undefined });
   });
 });

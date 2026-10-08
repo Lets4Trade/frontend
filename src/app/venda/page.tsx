@@ -3,6 +3,8 @@ import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { composeBlocks } from "@/features/pages/compose";
 import { BlockColumn, NarrowFrame } from "@/features/pages/frames";
+import { usesHomeShared } from "@/features/pages/homeShared";
+import { homeSharedNodes } from "@/features/pages/homeSharedNodes";
 import { getPublishedPage } from "@/features/pages/public";
 import { SellPageBody } from "@/features/sell/SellPageBody";
 
@@ -32,6 +34,8 @@ export default async function VendaPage() {
   // desenho de sempre.
   const page = await getPublishedPage("venda");
   const body = <SellPageBody />;
+  // Seções da home usadas prontas: lidas só quando a página publicada usa alguma.
+  const shared = page && usesHomeShared(page.blocks) ? await homeSharedNodes() : {};
 
   return (
     <div className="flex min-h-dvh flex-col bg-brand-bg">
@@ -40,7 +44,7 @@ export default async function VendaPage() {
       <main className="flex-1">
         <NarrowFrame>
           {page ? (
-            <BlockColumn items={composeBlocks(page.blocks, page.refs, { formulario: { node: body, gap: 0 } })} />
+            <BlockColumn items={composeBlocks(page.blocks, page.refs, { formulario: { node: body, gap: 0 }, ...shared })} />
           ) : (
             body
           )}

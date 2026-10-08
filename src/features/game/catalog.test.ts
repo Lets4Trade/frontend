@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildHref, parseCatalogQuery, scopedCategories } from "./catalog";
+import { activeCategory, buildHref, categoryChoice, parseCatalogQuery, scopedCategories } from "./catalog";
 import { tabsFromApi, toGameCategories } from "./storefrontTabs";
 import type { GamePage } from "./types";
 
@@ -48,7 +48,8 @@ describe("parseCatalogQuery com abas do banco", () => {
       { aba: "power-leveling", servidor: "hc", categoria: ["hc-boost", "global"] },
       page,
     );
-    expect(ok.categories).toEqual(["hc-boost", "global"]);
+    // Seleção única (2026-10-08): de várias na URL, vale a primeira do escopo.
+    expect(ok.categories).toEqual(["hc-boost"]);
 
     const outOfScope = parseCatalogQuery({ aba: "moedas", servidor: "hc", categoria: "hc-boost" }, page);
     expect(outOfScope.categories).toEqual([]);
@@ -60,3 +61,33 @@ describe("parseCatalogQuery com abas do banco", () => {
     expect(buildHref("poe2", query, { server: "hc" })).toBe("/games/poe2?aba=power-leveling&servidor=hc");
   });
 });
+
+describe("categoria: seleção única (2026-10-08)", () => {
+  const query = { tab: "moedas", server: "sc", categories: [] as string[], sort: null, search: "", page: 1 };
+  const items = toGameCategories([
+    { slug: "orbs", label: "Orbs", children: [{ slug: "divine", label: "Divine" }] },
+    { slug: "itens", label: "Itens" },
+  ] as never);
+
+  it("categoryChoice: topo troca/limpa; subcategoria escolhe e, de novo, volta para a mãe", () => {
+    const [orbs, itens] = items;
+    const divine = orbs.children[0];
+    expect(categoryChoice(query, orbs, null)).toEqual([orbs.id]);
+    const onOrbs = { ...query, categories: [orbs.id] };
+    expect(categoryChoice(onOrbs, itens, orbs)).toEqual([itens.id]);
+    expect(categoryChoice(onOrbs, orbs, orbs)).toEqual([]);
+    expect(categoryChoice(onOrbs, divine, orbs)).toEqual([divine.id]);
+    const onDivine = { ...query, categories: [divine.id] };
+    expect(categoryChoice(onDivine, divine, orbs)).toEqual([orbs.id]);
+    // Mãe marcada (por causa da filha): clicar nela limpa tudo.
+    expect(categoryChoice(onDivine, orbs, orbs)).toEqual([]);
+  });
+
+  it("activeCategory é a escolhida ou a mãe da subcategoria escolhida", () => {
+    expect(activeCategory(items, query)).toBeNull();
+    expect(activeCategory(items, { ...query, categories: ["itens"] })?.id).toBe("itens");
+    const divine = items[0].children[0].id;
+    expect(activeCategory(items, { ...query, categories: [divine] })?.id).toBe(items[0].id);
+  });
+});
+

@@ -8,6 +8,8 @@ import {
   ReferencesSection,
 } from "./GameSections";
 import { SellPageBody } from "@/features/sell/SellPageBody";
+import { ReviewsSection } from "@/features/home/ReviewsSection";
+import { VideoSection } from "@/features/home/VideoSection";
 import { catalogBlockFor, showsGenericFilters } from "./layouts";
 import { PackagesSection } from "./PackagesSection";
 import { ProductGrid } from "./ProductGrid";
@@ -124,6 +126,22 @@ function renderSection(
     case "identity":
       return <GameIdentity page={page} server={query.server} />;
 
+    // Seções da home: desenhadas na faixa de 1820 dela, centralizada na
+    // coluna de 1714 (sangra 53px de cada lado; a moldura corta abaixo de 1820).
+    case "homeVideo":
+      return (
+        <HomeBleed>
+          <VideoSection {...page.showcase.video} />
+        </HomeBleed>
+      );
+
+    case "homeReviews":
+      return (page.showcase.reviews.items?.length ?? 0) > 0 ? (
+        <HomeBleed>
+          <ReviewsSection {...page.showcase.reviews} />
+        </HomeBleed>
+      ) : null;
+
     case "servers":
       return page.servers.items.length > 0 ? (
         <ServerPicker page={page} query={query} />
@@ -146,15 +164,6 @@ function renderSection(
         </>
       );
 
-    case "description":
-      return page.description ? (
-        <section className="rounded-[30px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[50px] py-[40px]">
-          <p className="font-poppins text-[16px] leading-[26px] whitespace-pre-line text-brand-fg-muted">
-            {page.description}
-          </p>
-        </section>
-      ) : null;
-
     case "references":
       return page.references.items.length > 0 ? (
         <ReferencesSection references={page.references} />
@@ -163,7 +172,15 @@ function renderSection(
     case "news":
       return page.news.items.length > 0 ? <NewsSection news={page.news} /> : null;
 
+    // A descrição do jogo (etapa 9 do builder) toma o lugar do grupo "Dúvidas
+    // frequentes" padrão (pedido do usuário, 2026-10-08), não num card solto.
+    // O próprio `GameFaqSection` some quando não há pergunta nem descrição.
     case "faq":
-      return page.faq.length > 0 ? <GameFaqSection groups={page.faq} /> : null;
+      return <GameFaqSection groups={page.faq} description={page.description} />;
   }
+}
+
+/** A largura do desenho da home, centralizada na coluna da página de jogo. */
+function HomeBleed({ children }: { children: ReactNode }) {
+  return <div className="relative left-1/2 w-[1820px] -translate-x-1/2">{children}</div>;
 }

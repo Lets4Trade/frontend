@@ -150,10 +150,10 @@ describe("parseHighlights (campo Tópicos do card)", () => {
     expect(parseHighlights(" a \r\n\r\nb\n")).toEqual({ ok: true, highlights: ["a", "b"] });
   });
 
-  it("7 linhas → mensagem do zod", () => {
-    expect(parseHighlights("1\n2\n3\n4\n5\n6\n7")).toEqual({
+  it("13 linhas → mensagem do zod", () => {
+    expect(parseHighlights(Array.from({ length: 13 }, (_, i) => String(i + 1)).join("\n"))).toEqual({
       ok: false,
-      message: "O card aceita no máximo 6 tópicos.",
+      message: "O card aceita no máximo 12 tópicos.",
     });
   });
 });

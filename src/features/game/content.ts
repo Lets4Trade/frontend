@@ -15,6 +15,8 @@ import {
   type ApiCategory,
   type ApiGameTab,
 } from "./storefrontTabs";
+import { toGameDescription } from "./description";
+import { FAQ_DESCRIPTION_GROUP } from "./types";
 import type { GameNewsItem, GamePage, GameProduct } from "./types";
 
 /**
@@ -78,7 +80,8 @@ type StorefrontGame = {
   heading?: string | null;
   serversLabel?: string | null;
   categoriesLabel?: string | null;
-  description?: string | null;
+  /** JSON no banco: lido por `toGameDescription`, que não confia no formato. */
+  descriptionGroups?: unknown;
   /** Blocos visíveis, na ordem. Vazio = não personalizado. */
   sectionOrder?: string[] | null;
 };
@@ -91,6 +94,7 @@ type StorefrontProductPage = {
   items: {
     id: string;
     name: string;
+    nameEn?: string | null;
     priceCents: number;
     tabSlug?: string | null;
     /** Regra efetiva em aba cotada (`effectivePricing`); nulo/ausente fora dela. */
@@ -113,8 +117,11 @@ type StorefrontProductPage = {
   pageCount: number;
 };
 
-/** A grade do arquivo é 6 colunas × 4 linhas. */
-const PAGE_SIZE = 24;
+/**
+ * A grade da vitrine: 6 colunas × 5 linhas (2026-10-08, pedido do usuário; o
+ * arquivo desenhava 4 linhas). Teto do backend: 60 por página.
+ */
+const PAGE_SIZE = 30;
 
 /**
  * Identidade, abas e servidores de um jogo. `null` quando ele não existe ou
@@ -123,7 +130,7 @@ const PAGE_SIZE = 24;
 export async function getGamePage(slug: string): Promise<GamePage | null> {
   // As leituras em paralelo: em série somariam latência à página mais navegada
   // da loja.
-  const [game, section, items, blogNews] = await Promise.all([
+  const [game, section, items, blogNews, homeSection, homeItems] = await Promise.all([
     publicApiGet<StorefrontGame>(`/games/${encodeURIComponent(slug)}`),
     // Os blocos COMPARTILHADOS da página de jogo (referências, notícias,
     // dúvidas) têm o mesmo conteúdo em todos os jogos, então vivem na tela
@@ -137,6 +144,9 @@ export async function getGamePage(slug: string): Promise<GamePage | null> {
     // — não soma latência — e cacheadas por 60s. Falha vira lista vazia e a
     // seção cai nos itens editoriais abaixo.
     getGameNews(slug, 4).catch(() => [] as BlogCardView[]),
+    // As seções da HOME que a página de jogo também desenha (vídeo e reviews).
+    getSectionsFor("home"),
+    getSectionItemsFor("home"),
   ]);
   if (!game) return null;
 
@@ -227,7 +237,7 @@ export async function getGamePage(slug: string): Promise<GamePage | null> {
 
     catalog: { pageSize: PAGE_SIZE },
 
-    description: game.description?.trim() || undefined,
+    description: toGameDescription(game.descriptionGroups),
 
     /**
      * Os depoimentos vêm do BANCO (`games:referencias`), editados na tela de
@@ -288,13 +298,15 @@ export async function getGamePage(slug: string): Promise<GamePage | null> {
      * Orbs, então o campo "Dúvidas" renomeava o grupo errado. Agora cada grupo
      * tem título e perguntas próprios.
      *
-     * Grupo sem pergunta some; sem nenhum, o bloco inteiro some (ver
-     * `GamePageSections`). O de Orbs aparece antes, e só em Path of Exile.
+     * Grupo sem pergunta some, exceto o geral: os blocos da descrição do jogo
+     * tomam o lugar dele (2026-10-08), então ele chega mesmo vazio para marcar
+     * a posição, e o `GameFaqSection` decide se aparece. O de Orbs aparece
+     * antes, e só em Path of Exile.
      */
     faq: [
       ...(ORBS_GAMES.has(game.slug) ? [faqGroup("duvidas-orbs")] : []),
-      faqGroup("duvidas"),
-    ].filter((group) => group.items.length > 0),
+      faqGroup(FAQ_DESCRIPTION_GROUP),
+    ].filter((group) => group.items.length > 0 || group.id === FAQ_DESCRIPTION_GROUP),
     /**
      * A ordem que o admin montou no builder — ou a do arquivo do Figma, quando
      * ele não mexeu. `resolveSectionOrder` descarta chave desconhecida e
@@ -302,6 +314,23 @@ export async function getGamePage(slug: string): Promise<GamePage | null> {
      * que se publica por engano.
      */
     sections: resolveSectionOrder(game.sectionOrder),
+    showcase: {
+      video: {
+        title: homeSection("video").title,
+        image: homeSection("video").imageUrl,
+        avatar: homeSection("video").secondaryImageUrl,
+        videoUrl: homeSection("video").footnote,
+        videoFile: homeSection("video").videoUrl,
+        buttonUrl: homeSection("video").subtitle,
+        extra: homeSection("video").extra,
+      },
+      reviews: {
+        title: homeSection("reviews").title,
+        subtitle: homeSection("reviews").subtitle,
+        counter: homeSection("reviews").footnote,
+        items: homeItems("reviews"),
+      },
+    },
   };
 }
 
@@ -413,6 +442,7 @@ function toProduct(item: StorefrontProductPage["items"][number]): GameProduct {
   return {
     id: item.id,
     name: item.name,
+    nameEn: item.nameEn?.trim() || undefined,
     priceCents: item.priceCents,
     // As medidas são só a proporção que o `next/image` usa para reservar o
     // espaço — o card recorta com `object-cover`, e a arte vem do admin sem

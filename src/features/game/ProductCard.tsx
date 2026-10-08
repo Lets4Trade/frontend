@@ -1,8 +1,11 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { buttonVariants } from "@/components/ui/Button";
 import { useCart } from "@/features/cart/store";
+import { cn } from "@/lib/cn";
 import { formatPrice } from "./content";
 import { ProductCardShell } from "./ProductCardShell";
 import type { GameProduct } from "./types";
@@ -42,10 +45,40 @@ export function ProductCard({
 }) {
   const [quantity, setQuantity] = useState(1);
   const addToCart = useCart((state) => state.add);
+  const closeCart = useCart((state) => state.close);
+  const router = useRouter();
+
+  function add() {
+    addToCart(
+      {
+        productId: product.id,
+        gameSlug: context.gameSlug,
+        name: product.name,
+        image: product.image?.src,
+        gameLogo: context.gameLogo,
+        platform: product.serverLabel ?? context.platform,
+        unitPriceCents: product.priceCents,
+      },
+      quantity,
+    );
+    // Volta para 1 depois de adicionar: o card não mostra o que já está
+    // no carrinho, então manter "5" sugeriria que há cinco ali.
+    setQuantity(1);
+  }
+
+  // "COMPRE AQUI" (2026-10-08): o mesmo que o carrinho, mas direto ao
+  // checkout, como o "COMPRAR AGORA" dos outros layouts. A gaveta aberta por
+  // cima do checkout seria um passo a mais.
+  function buyNow() {
+    add();
+    closeCart();
+    router.push("/checkout");
+  }
 
   return (
     <ProductCardShell
       name={product.name}
+      nameEn={product.nameEn}
       // O preço acompanha o contador (2026-09-28, relato do usuário: "escolho 5
       // e o preço continua como se fosse 1"). Com mais de uma unidade, o total
       // vira o destaque e o unitário fica como referência — o mesmo número que
@@ -92,23 +125,7 @@ export function ProductCard({
 
         <button
           type="button"
-          onClick={() => {
-            addToCart(
-              {
-                productId: product.id,
-                gameSlug: context.gameSlug,
-                name: product.name,
-                image: product.image?.src,
-                gameLogo: context.gameLogo,
-                platform: product.serverLabel ?? context.platform,
-                unitPriceCents: product.priceCents,
-              },
-              quantity,
-            );
-            // Volta para 1 depois de adicionar: o card não mostra o que já está
-            // no carrinho, então manter "5" sugeriria que há cinco ali.
-            setQuantity(1);
-          }}
+          onClick={add}
           className="flex size-[50px] items-center justify-center rounded-[8px] border border-white/15 bg-[image:var(--brand-orange-gradient)] transition-opacity hover:opacity-90"
         >
           <Image
@@ -124,6 +141,17 @@ export function ProductCard({
           </span>
         </button>
         </div>
+      }
+      cta={
+        // Mesma largura e começo da fileira de cima (32px → 249px).
+        <button
+          type="button"
+          onClick={buyNow}
+          aria-label={`Comprar ${quantity} × ${product.name} agora`}
+          className={cn(buttonVariants({ variant: "primary" }), "ml-[32px] h-[40px] w-[217px] px-0")}
+        >
+          COMPRE AQUI
+        </button>
       }
     />
   );

@@ -44,8 +44,8 @@ export async function createProductAction(
   const parsed = createProductSchema.safeParse({
     gameId: form.get("gameId"),
     name: form.get("name"),
+    nameEn: form.get("nameEn") ?? "",
     priceCents: form.get("priceCents"),
-    platform: form.get("platform"),
     tabId: form.get("tabId"),
     serverId: form.get("serverId") ?? "",
     categoryId: form.get("categoryId") ?? "",
@@ -69,10 +69,11 @@ export async function createProductAction(
   const payload = new FormData();
   payload.set("gameId", parsed.data.gameId);
   payload.set("name", parsed.data.name);
+  if (parsed.data.nameEn) payload.set("nameEn", parsed.data.nameEn);
   // Inteiro de centavos até o fim. O `Decimal` só nasce na borda do banco, no
   // `ProductsService` — em nenhum ponto do caminho o preço passa por float.
   payload.set("priceCents", String(parsed.data.priceCents));
-  payload.set("platform", parsed.data.platform);
+  // Sem plataforma (2026-10-08): o backend usa a primeira do jogo.
   // A aba do jogo — "tipo de produto" não existe mais (FASE 5).
   payload.set("tabId", parsed.data.tabId);
   // Cadastro: só vai quando há regra (aba SERVIÇO). `null` num cadastro seria
@@ -229,8 +230,8 @@ export async function updateProductAction(
     .omit({ gameId: true })
     .safeParse({
       name: form.get("name"),
+      nameEn: form.get("nameEn") ?? "",
       priceCents: form.get("priceCents"),
-      platform: form.get("platform"),
       tabId: form.get("tabId"),
       serverId: form.get("serverId") ?? "",
       categoryId: form.get("categoryId") ?? "",
@@ -249,8 +250,10 @@ export async function updateProductAction(
 
   const payload = new FormData();
   payload.set("name", parsed.data.name);
+  // Sempre vai na edição: vazio APAGA o nome em inglês (o backend grava null).
+  payload.set("nameEn", parsed.data.nameEn);
   payload.set("priceCents", String(parsed.data.priceCents));
-  payload.set("platform", parsed.data.platform);
+  // Plataforma não viaja na edição: o backend mantém a que o produto tem.
   payload.set("tabId", parsed.data.tabId);
   // Na edição `null` LIMPA a regra (produto que passou de uma aba SERVIÇO para
   // uma CATÁLOGO); ausente mantém.
@@ -449,7 +452,7 @@ function readPricing(
 }
 
 /** Teto do JSON dos textos do pacote: 10 seções × 20 itens × 300 cabem em 80 KB. */
-const MAX_CONTENT_CHARS = 80_000;
+const MAX_CONTENT_CHARS = 300_000;
 
 /**
  * Lê o campo `content` (textos da página do PACOTE, 2026-10-01): ausente/vazio
@@ -481,13 +484,13 @@ function readContent(
   return { ok: true, value: parsed.data.sections.length > 0 ? parsed.data : null };
 }
 
-/** Teto do JSON dos tópicos: 6 × 80 caracteres cabem com folga em 4 KB. */
-const MAX_HIGHLIGHTS_CHARS = 4_000;
+/** Teto do JSON dos tópicos: 12 × 200 caracteres cabem com folga em 6 KB. */
+const MAX_HIGHLIGHTS_CHARS = 6_000;
 
 /**
  * Lê o campo `highlights` (JSON de `string[]`): ausente/vazio = `undefined`
  * (não mexer). O resto passa pelo `highlightsSchema` — trim, vazios fora, até
- * 6 × 80 — e vai adiante REMONTADO (a lista do zod).
+ * 12 × 200 — e vai adiante REMONTADO (a lista do zod).
  */
 function readHighlights(
   form: FormData,

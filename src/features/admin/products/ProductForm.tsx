@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { FileField } from "@/components/ui/FileField";
 import { MoneyField } from "@/components/ui/MoneyField";
@@ -12,12 +12,7 @@ import { TextField } from "@/components/ui/TextField";
 import { toastOk } from "@/components/ui/Toasts";
 import { QUOTED_LAYOUTS, effectivePricing } from "@/features/pricing/quote";
 import type { AdminGame } from "@/features/admin/catalog";
-import {
-  ACCEPTED_IMAGE_TYPES,
-  MAX_IMAGE_BYTES,
-  PLATFORMS,
-  labelFor,
-} from "../games/options";
+import { ACCEPTED_IMAGE_TYPES, MAX_IMAGE_BYTES } from "../games/options";
 import { listGameTabsAction } from "../games/tabs/actions";
 import { isProductTab, layoutLabel, type GameTab, type TabLayout } from "../games/tabs/types";
 import { ServiceSectionsEditor, fromSectionDrafts, toSectionDrafts, type SectionDraft } from "../games/tabs/ServiceSectionsEditor";
@@ -30,7 +25,7 @@ import {
   type CreateProductResult,
 } from "./actions";
 import { ACTION_FAILED_UPLOAD_MESSAGE, runAction } from "@/lib/safeAction";
-import { MAX_HIGHLIGHTS, createProductSchema, parseHighlights } from "./schema";
+import { MAX_HIGHLIGHT_CHARS, MAX_HIGHLIGHTS, createProductSchema, parseHighlights } from "./schema";
 import { productImage, type AdminProduct } from "./catalog";
 import { formatPrice } from "@/features/game/content";
 import { PackageCard } from "@/features/game/PackageCard";
@@ -41,8 +36,8 @@ import { categorySelectOptions } from "./categoryOptions";
 type ErrorField =
   | "gameId"
   | "name"
+  | "nameEn"
   | "priceCents"
-  | "platform"
   | "tabId"
   | "serverId"
   | "categoryId"
@@ -203,7 +198,10 @@ export function ProductForm({
 
   // Preço do produto acompanhado AO VIVO só para a prévia do serviço.
   const [priceCents, setPriceCents] = useState(product?.priceCents ?? 0);
-  const onPriceChange = useCallback((cents: number) => setPriceCents(cents), []);
+  // O próprio `setState`: o React garante a mesma referência entre renders, e
+  // o `MoneyField` tem este callback nas dependências de um efeito (uma função
+  // nova a cada render rodaria o efeito de novo e reescreveria o preço).
+  const onPriceChange = setPriceCents;
   // A regra que VALE hoje para o produto (`effectivePricing`): a salva, ou o
   // padrão do layout da aba (Quantidade sem regra = 1..1000).
   const [pricingDraft, setPricingDraft] = useState<PricingDraft>(() => {
@@ -212,10 +210,13 @@ export function ProductForm({
   });
   // Mexeu no editor? Então trocar de aba não pode apagar o que foi digitado.
   const pricingTouched = useRef(false);
-  const onPricingChange = useCallback((next: PricingDraft) => {
+  // Função comum: os editores de preço não dependem da referência dela, e o
+  // React Compiler memoiza sozinho (o `useCallback` manual o fazia desistir
+  // do componente inteiro).
+  const onPricingChange = (next: PricingDraft) => {
     pricingTouched.current = true;
     setPricingDraft(next);
-  }, []);
+  };
 
   // Tópicos do card (aba PACOTES), uma linha por tópico.
   const [highlightsText, setHighlightsText] = useState(() => (product?.highlights ?? []).join("\n"));
@@ -223,6 +224,7 @@ export function ProductForm({
   // Prévia do card: nome e arte acompanham o que se digita/anexa. A arte nova
   // é um `blob:` local (nada sobe antes de salvar), liberado ao trocar.
   const [previewName, setPreviewName] = useState(product?.name ?? "");
+  const [previewNameEn, setPreviewNameEn] = useState(product?.nameEn ?? "");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   useEffect(
     () => () => {
@@ -234,6 +236,7 @@ export function ProductForm({
   function onFormChange(event: FormEvent<HTMLFormElement>) {
     const target = event.target as HTMLInputElement;
     if (target.name === "name") setPreviewName(target.value);
+    if (target.name === "nameEn") setPreviewNameEn(target.value);
     if (target.name === "image") {
       const file = target.files?.[0];
       setImagePreview(file && file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
@@ -302,12 +305,6 @@ export function ProductForm({
   }
 
   const gameOptions = games.map((game) => ({ value: game.id, label: game.name }));
-
-  const platformOptions =
-    selectedGame?.platforms.map((value) => ({
-      value,
-      label: labelFor(PLATFORMS, value),
-    })) ?? [];
 
   const tabOptions = productTabs.map((tab) => ({
     value: tab.id,
@@ -380,10 +377,6 @@ export function ProductForm({
         : ""
     : "";
 
-  /** Uma opção só já vem escolhida; várias abrem com o placeholder. */
-  const onlyOption = (options: { value: string }[]) =>
-    options.length === 1 ? options[0].value : undefined;
-
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const again = !isEditing && submitIntent.current === "again";
@@ -396,8 +389,8 @@ export function ProductForm({
       // não entra no `FormData`. O valor vem do produto, que é quem o sabe.
       gameId: product?.game.id ?? data.get("gameId") ?? "",
       name: data.get("name"),
+      nameEn: data.get("nameEn") ?? "",
       priceCents: data.get("priceCents"),
-      platform: data.get("platform") ?? "",
       tabId: data.get("tabId") ?? "",
       serverId: data.get("serverId") ?? "",
       categoryId: data.get("categoryId") ?? "",
@@ -661,19 +654,9 @@ export function ProductForm({
                 error={fieldErrors.categoryId}
               />
 
-              <SelectField
-                key={`platform-${gameId}`}
-                label="Plataforma:"
-                name="platform"
-                placeholder="Plataforma"
-                options={platformOptions}
-                defaultValue={
-                  product?.platform ??
-                  (gameId === initialGameId && seed?.platform ? seed.platform : onlyOption(platformOptions))
-                }
-                disabled={selectedGame === null}
-                error={fieldErrors.platform}
-              />
+              {/* Plataforma saiu do formulário (2026-10-08, pedido do usuário):
+                  o backend usa a primeira plataforma do jogo no cadastro e não
+                  mexe nela na edição. */}
             </div>
           </FormSection>
 
@@ -682,13 +665,27 @@ export function ProductForm({
               <TextField
                 key={`name-${entryKey}`}
                 ref={nameRef}
-                label="Nome do produto"
+                label="Nome em português"
                 name="name"
-                placeholder="500M Divine Orbs"
+                placeholder="500M Orbes Divinos"
                 defaultValue={product?.name}
                 autoComplete="off"
                 maxLength={160}
                 error={fieldErrors.name}
+              />
+
+              {/* Segunda linha do card (2026-10-08). Opcional: vazio, o card
+                  mostra só o português. */}
+              <TextField
+                key={`nameEn-${entryKey}`}
+                label="Nome em inglês (opcional)"
+                name="nameEn"
+                lang="en"
+                placeholder="500M Divine Orbs"
+                defaultValue={product?.nameEn ?? ""}
+                autoComplete="off"
+                maxLength={160}
+                error={fieldErrors.nameEn}
               />
 
               <FileField
@@ -713,12 +710,12 @@ export function ProductForm({
                     setFieldErrors((previous) => ({ ...previous, highlights: undefined }));
                   }}
                   placeholder={"Manual Boosting Guarantee\nEntrega em até 24h"}
-                  // Folga para as quebras de linha; o teto real (6 × 80) é do zod.
-                  maxLength={(MAX_HIGHLIGHTS + 2) * 81}
+                  // Folga para as quebras de linha; o teto real é do zod.
+                  maxLength={(MAX_HIGHLIGHTS + 2) * (MAX_HIGHLIGHT_CHARS + 1)}
                   error={fieldErrors.highlights}
                 />
                 <p className="mt-[6px] pl-[25px] font-helvetica text-[12px] text-brand-fg-subtle">
-                  Um por linha, até {MAX_HIGHLIGHTS} linhas de até 80 caracteres. Aparecem com bolinha no card.
+                  Um por linha. Aparecem com bolinha no card.
                 </p>
               </div>
             ) : null}
@@ -833,6 +830,7 @@ export function ProductForm({
                 <div className="w-full max-w-[265px]">
                   <ProductCardShell
                     name={previewName || "Nome do produto"}
+                    nameEn={previewNameEn.trim() || undefined}
                     price={formatPrice(priceCents)}
                     image={previewImage}
                     actions={null}

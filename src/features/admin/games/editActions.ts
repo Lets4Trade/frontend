@@ -5,7 +5,8 @@ import { getSessionRole } from "@/features/auth/session";
 import { savePageAction, type BuilderResult } from "@/features/admin/builder/actions";
 import { isGlobalCategory, type BuilderGame } from "@/features/admin/builder/types";
 import { toCategoryTree } from "@/features/game/categoryTree";
-import { apiGet } from "@/lib/serverApi";
+import { toGameDescription } from "@/features/game/description";
+import { apiGet, apiPost } from "@/lib/serverApi";
 
 /**
  * Edição do CADASTRO de um jogo, pela tela `/admin/jogos/[id]/editar`
@@ -80,7 +81,8 @@ export async function updateGameAction(
     heading: game.heading ?? "",
     serversLabel: game.serversLabel ?? "",
     categoriesLabel: game.categoriesLabel ?? "",
-    description: game.description ?? "",
+    // A descrição também volta como veio: sem ela, salvar o nome apagaria.
+    descriptionGroups: toGameDescription(game.descriptionGroups) ?? [],
     // Só as GLOBAIS: o PUT do Builder mexe só nelas (contrato de abas).
     categories: toCategoryTree((game.categories ?? []).filter(isGlobalCategory)).map((category) => ({
       id: category.id,
@@ -94,4 +96,48 @@ export async function updateGameAction(
 
   if (result.ok) revalidatePath("/admin/jogos", "layout");
   return result;
+}
+
+export type DuplicatedServer = {
+  server: { id: string; label: string; slug: string; position: number };
+  categories: number;
+  products: number;
+};
+
+/** Id que vai para o CAMINHO da URL do backend: formato fechado. */
+const PATH_ID = /^[A-Za-z0-9_-]{1,100}$/;
+
+/**
+ * Duplica um servidor (2026-10-08): o backend cria "Nome (cópia)" logo abaixo
+ * do original, com as categorias e os produtos ATIVOS dele, numa transação.
+ * Só ADMIN (a cópia cria produtos). O nome se troca depois, na própria lista.
+ */
+export async function duplicateServerAction(
+  gameId: string,
+  serverId: string,
+): Promise<BuilderResult<DuplicatedServer>> {
+  const role = await getSessionRole();
+  if (role === null) return { ok: false, reason: "unauthenticated" };
+  if (role !== "ADMIN") return { ok: false, reason: "forbidden" };
+  if (typeof gameId !== "string" || !PATH_ID.test(gameId) || typeof serverId !== "string" || !PATH_ID.test(serverId)) {
+    return { ok: false, reason: "invalid", message: "Servidor inválido." };
+  }
+
+  const result = await apiPost<DuplicatedServer>(
+    `/admin/games/${encodeURIComponent(gameId)}/servers/${encodeURIComponent(serverId)}/duplicate`,
+    {},
+  );
+  if (!result.ok) {
+    if (result.reason === "unauthenticated") return { ok: false, reason: "unauthenticated" };
+    return {
+      ok: false,
+      // 400 (teto) e 404 (servidor sumiu) são recusas de dado, com frase do backend.
+      reason: result.status === 400 || result.status === 404 ? "invalid" : "error",
+      message: result.status === 400 || result.status === 404 ? result.message : undefined,
+    };
+  }
+
+  revalidatePath("/admin/jogos", "layout");
+  revalidatePath("/admin/produtos", "layout");
+  return { ok: true, data: result.data };
 }

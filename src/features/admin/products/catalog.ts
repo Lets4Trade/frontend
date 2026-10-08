@@ -16,6 +16,8 @@ import type { Pricing } from "@/features/pricing/quote";
 export type AdminProduct = {
   id: string;
   name: string;
+  /** Nome em inglês (2026-10-08). Nulo/ausente = o card mostra só o `name`. */
+  nameEn?: string | null;
   /** Sempre CENTAVOS inteiros — o backend converte o `Decimal` na saída. */
   priceCents: number;
   platform: string;

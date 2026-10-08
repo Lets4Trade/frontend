@@ -1,3 +1,6 @@
+import type { ComponentProps } from "react";
+import type { ReviewsSection } from "@/features/home/ReviewsSection";
+import type { VideoSection } from "@/features/home/VideoSection";
 /**
  * Schema de conteúdo da página de jogo (Figma 1116:314).
  *
@@ -22,6 +25,7 @@
 
 import type { Pricing } from "@/features/pricing/quote";
 import type { GameSectionKey } from "./sections";
+import type { GameDescriptionGroup } from "./description";
 
 /** Imagem editável. `width`/`height` são as do arquivo original, para o `next/image`. */
 export type ImageRef = {
@@ -102,6 +106,8 @@ export type GameCategory = {
 export type GameProduct = {
   id: string;
   name: string;
+  /** Nome em inglês (2026-10-08): segunda linha do card. Ausente = só o `name`. */
+  nameEn?: string;
   /** Em centavos: dinheiro não passa por `float`. */
   priceCents: number;
   image?: ImageRef;
@@ -122,7 +128,7 @@ export type GameProduct = {
   pricingInvalid?: boolean;
   /**
    * Tópicos do card de PACOTE ("Manual Boosting Guarantee"). Texto puro, já
-   * saneado (≤ 6 × 80). Vazio quando a API não manda — inclusive o backend
+   * saneado (≤ 12 × 200). Vazio quando a API não manda — inclusive o backend
    * anterior a 2026-09-30, que nem conhece o campo.
    */
   highlights: string[];
@@ -163,6 +169,9 @@ export type FaqGroup = {
   title: string;
   items: { id: string; question: string; answer: string }[];
 };
+
+/** O grupo "Dúvidas frequentes", onde a descrição do jogo é desenhada. */
+export const FAQ_DESCRIPTION_GROUP = "duvidas";
 
 /**
  * As seções da página. TODAS reordenam e todas podem ser escondidas — ver
@@ -233,10 +242,11 @@ export type GamePage = {
   catalog: { pageSize: number };
 
   /**
-   * Texto do pé da página, escrito no builder (etapa 9). Ausente = o admin não
-   * escreveu nenhum, e a seção não aparece.
+   * A descrição do jogo, escrita no builder (etapa 9): blocos de título +
+   * pares subtítulo/texto, desenhados no lugar do grupo "Dúvidas frequentes" padrão.
+   * Ausente = o admin não escreveu nenhuma, e as Dúvidas padrão aparecem.
    */
-  description?: string;
+  description?: GameDescriptionGroup[];
 
   references: {
     title: string;
@@ -250,4 +260,14 @@ export type GamePage = {
 
   /** Os blocos VISÍVEIS, do topo para o rodapé. Ausente da lista = escondido. */
   sections: GameSectionKey[];
+
+  /**
+   * O conteúdo das seções da HOME que a página de jogo também mostra
+   * ("CLIENTES 100% SATISFEITOS" e "NOSSAS REVIEWS", 2026-10-06) — os mesmos
+   * dados da home, para as duas nunca discordarem.
+   */
+  showcase: {
+    video: ComponentProps<typeof VideoSection>;
+    reviews: ComponentProps<typeof ReviewsSection>;
+  };
 };

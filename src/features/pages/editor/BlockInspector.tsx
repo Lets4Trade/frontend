@@ -9,6 +9,7 @@ import type { BlocksPageDef } from "../registry";
 import type { Block, BlockSpacing } from "../types";
 import { BlockField, type EditorGame } from "./fields";
 import { LegacySectionPanel } from "./LegacySectionPanel";
+import { HOME_SHARED, isHomeSharedKey } from "../homeShared";
 
 const SPACING_OPTIONS = [
   { value: "sm", label: "Pequeno" },
@@ -94,6 +95,23 @@ export function BlockInspector({
                   className="inline-flex h-[36px] w-fit items-center rounded-full bg-[image:var(--brand-orange-gradient)] px-[16px] text-[12px] font-bold text-white"
                 >
                   Abrir o Builder do jogo
+                </Link>
+              </div>
+            );
+          }
+          // Seção da HOME usada pronta: o conteúdo é o da home, e é lá que se edita.
+          if (isHomeSharedKey(block.props.key)) {
+            return (
+              <div className="flex flex-col gap-[12px] rounded-[16px] border border-brand-border bg-black/30 p-[16px] font-poppins text-[13px] leading-[20px] text-brand-fg-muted">
+                <p>
+                  Seção da home, com o mesmo conteúdo dela. Aqui você a move, esconde ou remove; textos, imagens e
+                  itens são editados na Home e mudam em todas as páginas que a usam.
+                </p>
+                <Link
+                  href={`/admin/paginas?pagina=home&secao=${HOME_SHARED[block.props.key].source}`}
+                  className="inline-flex h-[36px] w-fit items-center rounded-full bg-[image:var(--brand-orange-gradient)] px-[16px] text-[12px] font-bold text-white"
+                >
+                  Editar na Home
                 </Link>
               </div>
             );

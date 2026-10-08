@@ -72,7 +72,8 @@ export type BuilderGame = {
   heading?: string | null;
   serversLabel?: string | null;
   categoriesLabel?: string | null;
-  description?: string | null;
+  /** JSON no banco (`{ title, items }[]`): lido por `toGameDescription`. */
+  descriptionGroups?: unknown;
   servers: { id: string; label: string; slug: string; position: number }[];
   /**
    * Árvore de dois níveis (contrato C da FASE 4). Aceita raízes com `children`
@@ -93,10 +94,19 @@ export type BuilderGameSummary = {
   productCount: number;
 };
 
+/** Teto de banners por jogo (slider) — espelha o `MAX_BANNERS` do backend. */
+export const MAX_BANNERS = 10;
+
+/** Um par subtítulo/texto da descrição, no rascunho. */
+export type DescriptionDraftItem = { key: string; subtitle: string; text: string };
+
+/** Um bloco da descrição (título + pares), no rascunho. */
+export type DescriptionDraftGroup = { key: string; title: string; items: DescriptionDraftItem[] };
+
 /**
  * O estado que a tela edita.
  *
- * `heading`, `serversLabel`, `categoriesLabel` e `description` são STRING e não
+ * `heading`, `serversLabel` e `categoriesLabel` são STRING e não
  * `string | null`: no formulário, "não personalizado" e "apagado" são a mesma
  * caixa vazia, e quem traduz vazio para nulo é o backend (ver `blankToNull`).
  * Carregar `null` como `""` é o que faz o campo aparecer com o texto derivado
@@ -112,7 +122,8 @@ export type Draft = {
   heading: string;
   serversLabel: string;
   categoriesLabel: string;
-  description: string;
+  /** Etapa 9 — blocos título + pares. `key` é só do React; nunca vai ao servidor. */
+  descriptionGroups: DescriptionDraftGroup[];
   servers: BuilderListItem[];
   categories: BuilderCategory[];
   /**

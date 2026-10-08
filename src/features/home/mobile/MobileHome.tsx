@@ -5,7 +5,8 @@ import { CountUp } from "@/components/ui/CountUp";
 import type { SectionItemView, SectionView } from "@/features/site/content";
 import { MAX_HOME_STATS } from "@/features/site/sections";
 import { cn } from "@/lib/cn";
-import { RichText, alignClass, splitAlign } from "@/features/site/richText";
+import { RichText, alignClass, richToPlain, splitAlign } from "@/features/site/richText";
+import { safeLinkHref } from "@/features/game/storefrontTabs";
 import { BLOG_CARD } from "../guides";
 import type { HomeBlock } from "../homeBlocks";
 import { getMenuGames, type MenuGame } from "@/features/game/menuGames";
@@ -537,6 +538,10 @@ function GuideCard({ guide, compact = false }: { guide: SectionItemView; compact
           <RichText value={guide.body} />
         </p>
       </div>
+      {/* Card inteiro clicável quando o guia tem link (mesma regra do desktop). */}
+      {safeLinkHref(guide.href) ? (
+        <Link href={safeLinkHref(guide.href)!} className="absolute inset-0" aria-label={richToPlain(guide.title) || "Abrir guia"} />
+      ) : null}
     </article>
   );
 }

@@ -19,7 +19,7 @@ const ART_BOX = "relative mx-px mt-px h-[276px] shrink-0 overflow-hidden rounded
  * card não mostra nem calcula preço.
  *
  * Altura MÍNIMA de 417 (e não fixa): os tópicos são escritos no painel (até
- * 6 × 80 caracteres) e o arquivo desenha só três curtos. Com altura fixa o
+ * 12 × 200 caracteres) e o arquivo desenha só três curtos. Com altura fixa o
  * texto passaria por cima do botão.
  */
 export function PackageCard({

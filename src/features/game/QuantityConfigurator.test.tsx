@@ -71,13 +71,13 @@ describe("QuantityConfigurator", () => {
     render(<QuantityConfigurator products={[gold]} context={context} emptyMessage="vazio" />);
 
     // 5.000 × R$ 0,02
-    expect(screen.getByRole("button", { name: "5.000" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "5K" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText(/R\$\s?100,00/)).toBeInTheDocument();
-    expect(screen.getByText("5.000 Gold")).toBeInTheDocument();
+    expect(screen.getByText("5K Gold")).toBeInTheDocument();
 
     // 10.000 × R$ 0,02 — sem desconto por quantidade (2026-10-01), mesmo com faixa salva.
-    fireEvent.click(screen.getByRole("button", { name: "10.000" }));
-    expect(screen.getByRole("button", { name: "10.000" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "10K" }));
+    expect(screen.getByRole("button", { name: "10K" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText(/R\$\s?200,00/)).toBeInTheDocument();
   });
 
@@ -88,7 +88,7 @@ describe("QuantityConfigurator", () => {
     const input = screen.getByLabelText("Quantidade (Gold)");
     expect(input).toHaveValue(6000);
     // Nenhuma pronta acesa fora dos valores dela.
-    expect(screen.getByRole("button", { name: "5.000" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "5K" })).toHaveAttribute("aria-pressed", "false");
 
     fireEvent.change(input, { target: { value: "2345" } });
     fireEvent.blur(input);
@@ -118,7 +118,7 @@ describe("QuantityConfigurator", () => {
     fireEvent.change(screen.getByLabelText("Selecionar serviço:"), { target: { value: "g2" } });
     // Sem prontas: começa no mínimo.
     expect(screen.getByLabelText("Quantidade (Gold)")).toHaveValue(1000);
-    expect(screen.queryByRole("button", { name: "5.000" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "5K" })).not.toBeInTheDocument();
   });
 
   it("sem produto mostra o estado vazio", () => {

@@ -11,8 +11,13 @@ import {
   apiPutFormData,
 } from "@/lib/serverApi";
 import { MAX_IMAGE_BYTES } from "../games/options";
-import { cleanCategories, cleanList, type SavePageCategory } from "./payload";
-import type { BuilderGame } from "./types";
+import {
+  cleanCategories,
+  cleanDescriptionGroups,
+  cleanList,
+  type SavePageCategory,
+} from "./payload";
+import { MAX_BANNERS, type BuilderGame } from "./types";
 
 /**
  * As escritas do "Builder de Páginas".
@@ -50,7 +55,7 @@ export type SavePagePayload = {
   heading: string;
   serversLabel: string;
   categoriesLabel: string;
-  description: string;
+  descriptionGroups: { title: string; items: { subtitle: string; text: string }[] }[];
   servers: { id?: string; label: string }[];
   /** Dois níveis: categoria → subcategoria (contrato C da FASE 4). */
   categories: SavePageCategory[];
@@ -105,6 +110,9 @@ export async function savePageAction(
   const categories = cleanCategories(payload.categories);
   if (!categories.ok) return { ok: false, reason: "invalid", message: categories.message };
 
+  const description = cleanDescriptionGroups(payload.descriptionGroups);
+  if (!description.ok) return { ok: false, reason: "invalid", message: description.message };
+
   const slug = typeof payload.slug === "string" ? payload.slug.trim() : "";
   if (slug.length > 80) {
     return { ok: false, reason: "invalid", message: "O link pode ter no máximo 80 caracteres." };
@@ -116,7 +124,7 @@ export async function savePageAction(
     heading: payload.heading ?? "",
     serversLabel: payload.serversLabel ?? "",
     categoriesLabel: payload.categoriesLabel ?? "",
-    description: payload.description ?? "",
+    descriptionGroups: description.data,
     servers: cleanList(payload.servers),
     categories: categories.data,
     sectionOrder: payload.sectionOrder,
@@ -192,6 +200,39 @@ export async function uploadBannerAction(
       imageUrl: backendAsset(result.data.imageUrl) ?? result.data.imageUrl,
     },
   };
+}
+
+/**
+ * Teto de banners por jogo — espelha o `MAX_BANNERS` do backend (2026-10-08,
+ * quando o banner virou slider). Exportado só como tipo de dado: arquivo
+ * `"use server"` não exporta constante, então a tela importa de `types.ts`.
+ */
+
+/**
+ * Etapa 2 — ordem do slider. Manda TODOS os ids, na ordem nova; o backend
+ * recusa (400) se a lista não for exatamente a do jogo.
+ */
+export async function reorderBannersAction(
+  gameId: string,
+  ids: string[],
+): Promise<BuilderResult<{ ids: string[] }>> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
+  if (
+    !Array.isArray(ids) ||
+    ids.length > MAX_BANNERS ||
+    ids.some((id) => typeof id !== "string" || id === "" || id.length > 100)
+  ) {
+    return { ok: false, reason: "invalid", message: "Ordem dos banners inválida." };
+  }
+
+  const result = await apiPut<{ ids: string[] }>(
+    `/admin/game-page/${encodeURIComponent(gameId)}/banners/order`,
+    { ids },
+  );
+  if (!result.ok) return failure(result);
+  return { ok: true, data: result.data };
 }
 
 /** Etapa 2 — remove um banner. */

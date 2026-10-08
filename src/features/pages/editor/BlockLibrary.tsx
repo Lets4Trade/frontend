@@ -15,18 +15,22 @@ import type { Block } from "../types";
 export function BlockLibrary({
   blocks,
   legacyKeys,
+  sharedKeys = [],
   legacyLabels,
   onAdd,
 }: {
   blocks: Block[];
   /** Seções do desenho DESTA página (a biblioteca oferece as que faltam). */
   legacyKeys: readonly string[];
+  /** Seções da HOME que esta página pode usar prontas (`homeShared.ts`). */
+  sharedKeys?: readonly string[];
   legacyLabels: Record<string, string>;
   onAdd: (block: Block) => void;
 }) {
   const [open, setOpen] = useState(false);
   const usedLegacy = new Set(blocks.flatMap((block) => (block.type === "secao" ? [block.props.key] : [])));
   const missingLegacy = legacyKeys.filter((key) => !usedLegacy.has(key));
+  const missingShared = sharedKeys.filter((key) => !usedLegacy.has(key));
 
   function add(block: Block) {
     onAdd(block);
@@ -79,6 +83,29 @@ export function BlockLibrary({
                   className="flex w-full items-center gap-[10px] rounded-[12px] px-[10px] py-[9px] text-left hover:bg-white/5"
                 >
                   <span className="font-poppins text-[14px] text-white">{legacyLabels[key] ?? key}</span>
+                </button>
+              ))}
+            </>
+          ) : null}
+
+          {missingShared.length > 0 ? (
+            <>
+              <p className="mt-[6px] border-t border-white/10 px-[10px] pt-[10px] pb-[4px] font-poppins text-[11px] font-bold tracking-[1px] text-brand-fg-subtle uppercase">
+                Seções da home (prontas)
+              </p>
+              {missingShared.map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => add(createBlock("secao", { key }))}
+                  className="flex w-full items-start gap-[10px] rounded-[12px] px-[10px] py-[9px] text-left hover:bg-white/5"
+                >
+                  <span>
+                    <span className="block font-poppins text-[14px] text-white">{legacyLabels[key] ?? key}</span>
+                    <span className="block font-poppins text-[12px] text-brand-fg-subtle">
+                      Com o conteúdo da home; editou lá, muda aqui.
+                    </span>
+                  </span>
                 </button>
               ))}
             </>

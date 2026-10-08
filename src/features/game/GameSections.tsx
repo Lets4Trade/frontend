@@ -1,5 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
+import { parseBlocks, renderInline } from "@/features/pages/blocks/markdown";
+import { GameBannerSlider } from "./GameBannerSlider";
+import type { GameDescriptionGroup } from "./description";
+import { FAQ_DESCRIPTION_GROUP } from "./types";
 import type { GameBanner, GameNewsItem, GamePage, GameReference } from "./types";
 
 /**
@@ -10,58 +14,12 @@ import type { GameBanner, GameNewsItem, GamePage, GameReference } from "./types"
  * é pior do que a seção não existir, e a ordem delas vem de `page.sections`.
  */
 
-/** Banner do topo (1146:386): 1714×490 com os pontinhos de slide. */
+/**
+ * Banner do topo (1146:386): 1714×490. Desde 2026-10-08 é um SLIDER com todas
+ * as artes cadastradas no builder (ver `GameBannerSlider`).
+ */
 export function BannerSection({ banners }: { banners: GameBanner[] }) {
-  if (banners.length === 0) return null;
-  const [first] = banners;
-
-  return (
-    <section className="relative h-[490px] overflow-hidden rounded-[30px] border border-white/10 bg-[#2f2f2f]">
-      {first.href ? (
-        <Link href={first.href} className="absolute inset-0">
-          <BannerArt banner={first} />
-        </Link>
-      ) : (
-        <BannerArt banner={first} />
-      )}
-
-      {/* Indicadores: barras de 40×3 a cada 50px, a ativa em degradê laranja
-          com uma cópia borrada atrás fazendo o brilho — o mesmo tratamento do
-          banner do hero da home. */}
-      {banners.length > 1 ? (
-        <div className="absolute bottom-[28px] left-[50px] flex gap-[10px]">
-          {banners.map((banner, index) => (
-            <span key={banner.id} className="relative block h-[3px] w-[40px]">
-              {index === 0 ? (
-                <>
-                  <span
-                    aria-hidden
-                    className="absolute inset-0 bg-[image:var(--brand-orange-gradient)] blur-[1.55px]"
-                  />
-                  <span className="absolute inset-0 bg-[image:var(--brand-orange-gradient)]" />
-                </>
-              ) : (
-                <span className="absolute inset-0 bg-[#3b3b3b]" />
-              )}
-            </span>
-          ))}
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
-function BannerArt({ banner }: { banner: GameBanner }) {
-  return (
-    <Image
-      src={banner.image.src}
-      alt={banner.image.alt ?? ""}
-      width={banner.image.width}
-      height={banner.image.height}
-      priority
-      className="size-full object-cover"
-    />
-  );
+  return <GameBannerSlider banners={banners} />;
 }
 
 /** "REFERÊNCIAS" (1524:515): título, botão à direita e quatro cards de 391×299. */
@@ -239,38 +197,114 @@ function NewsCard({ item }: { item: GameNewsItem }) {
  *
  * Grupos e perguntas são listas: o admin acrescenta, remove e reordena sem que
  * nada aqui precise mudar. Por isso o painel também não tem altura fixa.
+ *
+ * A DESCRIÇÃO do jogo (etapa 9 do builder) toma o lugar do grupo "Dúvidas
+ * frequentes" padrão (2026-10-08), com quantos blocos o admin criar: o título
+ * de cada um vai na barrinha laranja, cada subtítulo no lugar de uma pergunta
+ * e o texto no lugar da resposta. Bloco sem título é só a lista.
  */
-export function GameFaqSection({ groups }: { groups: GamePage["faq"] }) {
-  if (groups.length === 0) return null;
+export function GameFaqSection({
+  groups,
+  description,
+}: {
+  groups: GamePage["faq"];
+  description?: GameDescriptionGroup[];
+}) {
+  // Grupo padrão só aparece com pergunta; bloco da descrição pode ser só um
+  // título (o `toGameDescription` já descartou os que não têm nem isso).
+  const visible = groups.flatMap((group) => {
+    if (group.id === FAQ_DESCRIPTION_GROUP && description) {
+      return description.map((block, blockIndex) => ({
+        id: `descricao-${blockIndex}`,
+        title: block.title,
+        items: block.items.map((item, index) => ({
+          id: `descricao-${blockIndex}-${index}`,
+          question: item.subtitle,
+          answer: item.text,
+          // Só o texto da descrição tem formatação (negrito, link, lista).
+          rich: true,
+        })),
+      }));
+    }
+    return group.items.length > 0 ? [group] : [];
+  });
+  type VisibleItem = (typeof visible)[number]["items"][number] & { rich?: boolean };
+  if (visible.length === 0) return null;
 
   return (
     <section className="rounded-[30px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[24px] py-[49px]">
-      {groups.map((group, index) => (
+      {visible.map((group, index) => (
         <div key={group.id} className={index > 0 ? "mt-[59px]" : undefined}>
-          <div className="flex items-start gap-[22px]">
-            <span
-              aria-hidden
-              className="mt-[2px] h-[31px] w-[4px] shrink-0 rounded-[29px] bg-[image:var(--brand-orange-gradient)]"
-            />
-            <h2 className="font-helvetica text-[25px] leading-none font-bold tracking-[0.25px] text-white">
-              {group.title}
-            </h2>
-          </div>
+          {/* `items-center`: a barrinha (31px) fica no meio do título (25px),
+              inclusive quando ele quebra em mais de uma linha. */}
+          {group.title ? (
+            <div className="flex items-center gap-[22px]">
+              <span
+                aria-hidden
+                className="h-[31px] w-[4px] shrink-0 rounded-[29px] bg-[image:var(--brand-orange-gradient)]"
+              />
+              <h2 className="font-helvetica text-[25px] leading-none font-bold tracking-[0.25px] text-white">
+                {group.title}
+              </h2>
+            </div>
+          ) : null}
 
-          <dl className="mt-[24px] pl-[26px]">
-            {group.items.map((item, itemIndex) => (
-              <div key={item.id} className={itemIndex > 0 ? "mt-[35px]" : undefined}>
-                <dt className="font-helvetica text-[20px] leading-none font-bold tracking-[0.2px] text-white">
-                  {item.question}
-                </dt>
-                <dd className="mt-[10px] max-w-[1575px] font-helvetica text-[18px] leading-[normal] tracking-[0.18px] text-brand-placeholder">
-                  {item.answer}
-                </dd>
-              </div>
-            ))}
-          </dl>
+          {group.items.length > 0 ? (
+            <dl className={`${group.title ? "mt-[24px] " : ""}pl-[26px]`}>
+              {group.items.map((item: VisibleItem, itemIndex) => (
+                <div key={item.id} className={itemIndex > 0 ? "mt-[35px]" : undefined}>
+                  {/* Subtítulo vazio = parágrafo solto (o texto corrido antigo
+                      foi migrado assim). */}
+                  {item.question ? (
+                    <dt className="mb-[10px] font-helvetica text-[20px] leading-none font-bold tracking-[0.2px] text-white">
+                      {item.question}
+                    </dt>
+                  ) : null}
+                  <dd className="max-w-[1575px] font-helvetica text-[18px] leading-[normal] tracking-[0.18px] whitespace-pre-line text-brand-placeholder">
+                    {item.rich ? <RichAnswer source={item.answer} /> : item.answer}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
         </div>
       ))}
     </section>
+  );
+}
+
+/**
+ * Texto da descrição com o Markdown RESTRITO da loja (`pages/blocks/markdown`):
+ * negrito, itálico, link e listas viram elementos React, nunca HTML cru. Com a
+ * tipografia das respostas (herdada do `<dd>`) e as quebras de linha mantidas.
+ */
+function RichAnswer({ source }: { source: string }) {
+  return (
+    <div className="flex flex-col gap-[12px]">
+      {parseBlocks(source, { keepLineBreaks: true }).map((block, index) => {
+        if ("items" in block) {
+          const List = block.kind;
+          return (
+            <List
+              key={index}
+              className={`flex flex-col gap-[6px] pl-[22px] ${
+                block.kind === "ul" ? "list-disc" : "list-decimal"
+              } marker:text-brand-orange`}
+            >
+              {block.items.map((entry, entryIndex) => (
+                <li key={entryIndex}>{renderInline(entry)}</li>
+              ))}
+            </List>
+          );
+        }
+        // `##`/`###` no meio do texto: destaque em negrito, sem virar outro
+        // nível de título (os títulos da descrição já são os campos dela).
+        return (
+          <p key={index} className={block.kind === "p" ? undefined : "font-bold text-white"}>
+            {renderInline(block.text)}
+          </p>
+        );
+      })}
+    </div>
   );
 }
