@@ -1,3 +1,4 @@
+import type { BlogCardTexts } from "@/features/home/blogCard";
 import type { ComponentProps } from "react";
 import type { ReviewsSection } from "@/features/home/ReviewsSection";
 import type { VideoSection } from "@/features/home/VideoSection";
@@ -255,7 +256,12 @@ export type GamePage = {
     items: GameReference[];
   };
 
-  news: { title: string; items: GameNewsItem[] };
+  news: {
+    title: string;
+    items: GameNewsItem[];
+    /** Card "VISITAR BLOG" do fim da faixa. Ausente = textos e link padrão. */
+    blogCard?: BlogCardTexts;
+  };
   faq: FaqGroup[];
 
   /** Os blocos VISÍVEIS, do topo para o rodapé. Ausente da lista = escondido. */

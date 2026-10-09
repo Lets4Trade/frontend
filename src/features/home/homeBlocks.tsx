@@ -6,6 +6,7 @@ import { HomeNav } from "./HomeNav";
 import { ReviewsSection } from "./ReviewsSection";
 import { TeamSection } from "./TeamSection";
 import { VideoSection } from "./VideoSection";
+import { blogCardTexts } from "./blogCard";
 import { buildHeroSlides } from "./heroGames";
 import type { SectionItemView, SectionView } from "@/features/site/content";
 
@@ -114,7 +115,13 @@ export function buildHomeBlocks(
     {
       key: "guias",
       gap: 100,
-      node: <GuidesSection title={section("guias").title} items={items("guias")} />,
+      node: (
+        <GuidesSection
+          title={section("guias").title}
+          items={items("guias")}
+          blogCard={blogCardTexts(section("guias").extra)}
+        />
+      ),
     },
     {
       key: "faq",

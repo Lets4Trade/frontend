@@ -1,5 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { ReactNode } from "react";
+import { blogCardTexts } from "@/features/home/blogCard";
+import { VisitBlogCard } from "@/features/home/VisitBlogCard";
 import { parseBlocks, renderInline } from "@/features/pages/blocks/markdown";
 import { GameBannerSlider } from "./GameBannerSlider";
 import type { GameDescriptionGroup } from "./description";
@@ -111,9 +114,30 @@ function Stars({ rating }: { rating: number }) {
   );
 }
 
-/** "NOTÍCIAS" (1524:516): quatro cards de 391×438. */
+/** Card de notícia (1524:516): 391×438, com vão de 50px entre colunas. */
+const NEWS_CARD_WIDTH = 391;
+/** Card BAIXO da quarta coluna, com 26px até o "Visitar blog" — como nos guias. */
+const NEWS_COMPACT_HEIGHT = 206;
+const NEWS_COMPACT_GAP = 26;
+const NEWS_TALL = 3;
+
+/**
+ * "NOTÍCIAS" (1524:516).
+ *
+ * Desde 2026-10-09 no MESMO formato de GUIAS POPULARES da home (pedido do
+ * usuário): três cards altos e, na quarta coluna, uma notícia BAIXA com o card
+ * "VISITAR BLOG" embaixo. Antes eram quatro cards altos e nenhum caminho para
+ * o blog. Notícias além da quarta não aparecem — a faixa tem lugar para quatro.
+ *
+ * Os textos e o link do card do blog vêm da sessão `games:noticias` (ver
+ * `features/home/blogCard.ts`); sem eles, o card leva às notícias do blog.
+ */
 export function NewsSection({ news }: { news: GamePage["news"] }) {
   if (news.items.length === 0) return null;
+
+  const tall = news.items.slice(0, NEWS_TALL);
+  const compact = news.items[NEWS_TALL];
+  const blogCard = news.blogCard ?? blogCardTexts((_name, fallback) => fallback);
 
   return (
     <section>
@@ -122,16 +146,37 @@ export function NewsSection({ news }: { news: GamePage["news"] }) {
       </h2>
 
       <div className="mt-[50px] grid grid-cols-[repeat(auto-fill,391px)] justify-between gap-[50px]">
-        {news.items.map((item) => (
+        {tall.map((item) => (
           <NewsCard key={item.id} item={item} />
         ))}
+
+        {/* `justify-end`: sem a notícia baixa, o card do blog fica na BASE da
+            coluna (onde o arquivo o desenha), alinhado ao rodapé dos altos. */}
+        <div
+          className="flex flex-col justify-end"
+          style={{ width: NEWS_CARD_WIDTH, height: 438, gap: NEWS_COMPACT_GAP }}
+        >
+          {compact ? <CompactNewsCard item={compact} /> : null}
+          <VisitBlogCard texts={blogCard} width={NEWS_CARD_WIDTH} />
+        </div>
       </div>
     </section>
   );
 }
 
+function NewsLink({ href, children }: { href?: string; children: ReactNode }) {
+  return href ? (
+    <Link href={href} className="block">
+      {children}
+    </Link>
+  ) : (
+    children
+  );
+}
+
 function NewsCard({ item }: { item: GameNewsItem }) {
-  const card = (
+  return (
+    <NewsLink href={item.href}>
     <article className="relative h-[438px] w-[391px] overflow-hidden rounded-[30px] border border-white/10 bg-[#2f2f2f]">
       <div className="absolute top-px left-px h-[276px] w-[389px] overflow-hidden rounded-t-[30px] bg-[#2f2f2f]">
         {item.image ? (
@@ -180,14 +225,52 @@ function NewsCard({ item }: { item: GameNewsItem }) {
         </time>
       </div>
     </article>
+    </NewsLink>
   );
+}
 
-  return item.href ? (
-    <Link href={item.href} className="block">
-      {card}
-    </Link>
-  ) : (
-    card
+/**
+ * A notícia BAIXA da quarta coluna (391×206) — o par do guia baixo da home: a
+ * arte preenche o card, o degradê fecha em preto no rodapé e por cima vêm
+ * título e resumo (duas linhas, não há altura para mais), com a data ao lado
+ * do título.
+ */
+function CompactNewsCard({ item }: { item: GameNewsItem }) {
+  return (
+    <NewsLink href={item.href}>
+    <article
+      className="relative w-[391px] overflow-hidden rounded-[30px] border border-white/10 bg-[#2f2f2f]"
+      style={{ height: NEWS_COMPACT_HEIGHT }}
+    >
+      {item.image ? (
+        <Image
+          src={item.image.src}
+          alt={item.image.alt ?? ""}
+          width={item.image.width}
+          height={item.image.height}
+          className="absolute inset-0 size-full object-cover"
+        />
+      ) : null}
+
+      <div
+        aria-hidden
+        className="absolute inset-x-0 top-[60px] h-[146px] bg-gradient-to-b from-transparent via-black/85 to-black"
+      />
+
+      <div className="absolute top-[100px] left-[26px] flex w-[339px] items-center gap-[10px]">
+        <h3 className="min-w-0 truncate font-poppins text-[18px] leading-[27px] font-semibold tracking-[0.09px] text-white">
+          {item.title}
+        </h3>
+        <time className="shrink-0 font-helvetica text-[14px] tracking-[0.14px] text-brand-placeholder">
+          {item.date}
+        </time>
+      </div>
+
+      <p className="absolute top-[135px] left-[26px] line-clamp-2 w-[339px] font-helvetica text-[16px] leading-[normal] tracking-[0.16px] text-brand-placeholder">
+        {item.excerpt}
+      </p>
+    </article>
+    </NewsLink>
   );
 }
 

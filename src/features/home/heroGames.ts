@@ -24,9 +24,9 @@
 /**
  * A geometria de UMA arte dentro do card de 336×758.
  *
- * `cover` só existe para arte nova, subida pelo painel: a geometria dela não
- * foi medida contra o arquivo, então a imagem PREENCHE a caixa (cortando o que
- * sobra) em vez de ser esticada para a proporção de outra arte.
+ * `contain` só existe para arte nova, subida pelo painel: a geometria dela não
+ * foi medida contra o arquivo, então a imagem entra INTEIRA na caixa em vez de
+ * ser esticada para a proporção de outra arte.
  */
 export type CharacterBox = {
   left: number;
@@ -34,7 +34,8 @@ export type CharacterBox = {
   width: number;
   height: number;
   blur: number;
-  cover?: boolean;
+  /** Arte nova: entra INTEIRA (`contain`) na caixa, sem cortar nem deformar. */
+  contain?: boolean;
 };
 export type LogoBox = {
   offsetX: number;
@@ -183,28 +184,20 @@ export const HERO_ROW_WIDTH = HERO_DECK_LEFT + HERO_DECK_WIDTH;
 export const HERO_COIN = { left: 395, top: 648, size: 150 };
 
 /**
- * Geometria para arte NOVA, subida pelo painel.
+ * Geometria para arte NOVA, subida pelo painel: a caixa do PERSONAGEM do card
+ * do Figma (1075:4915), 315,7×419,2 a partir do topo 130 — termina na linha
+ * divisória (549), com o logo embaixo, no vidro. É a mesma do card do Diablo.
  *
- * A caixa é o ENVELOPE das cinco artes do arquivo (da esquerda -28 à direita
- * 351, do topo ~110 até ~555), e a arte entra por `cover`, presa no topo.
+ * A arte entra INTEIRA (`contain`), apoiada no pé da caixa e centralizada. O
+ * backend recorta as margens transparentes no envio (`trimTransparent`, só em
+ * `home:hero`): a arte costuma vir num quadro do tamanho do card (336×758) com
+ * o personagem no meio, e sem o recorte as margens vazias o encolheriam.
  *
- * Era `contain` numa caixa de 336×439 (2026-09-14), que nunca corta mas
- * ENCOLHE: um retrato 2:3 ficava mais estreito que as originais e uma imagem
- * deitada (1305×816) virava uma faixa de 336×210 no meio do card. O usuário
- * apontou em 2026-10-06 que as artes do carrossel estavam "pequenas e não no
- * tamanho que era antes". Trade-off: `cover` corta as sobras (os pés de um
- * retrato, as laterais de uma imagem deitada), mas a arte ocupa o mesmo espaço
- * das originais. Presa no TOPO porque cortar a cabeça é pior que cortar os
- * pés, que já somem no vidro do card.
+ * Histórico (2026-10-09, pedidos do usuário): `cover` no card inteiro, caixa
+ * 197×445 e camada 1:1 do card ficaram fora do estilo — o personagem ou
+ * encolhia, ou descia por cima do logo.
  */
-const GENERIC_CHAR: CharacterBox = {
-  left: -20,
-  top: 110,
-  width: 376,
-  height: 445,
-  blur: 10,
-  cover: true,
-};
+const GENERIC_CHAR: CharacterBox = { ...HERO_GAMES[0].char, contain: true };
 const GENERIC_LOGO: LogoBox = { offsetX: 0, top: 596, width: 200, height: 100 };
 
 /**

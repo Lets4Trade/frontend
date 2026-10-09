@@ -6,7 +6,8 @@ import type { ReactNode } from "react";
 import { safeLinkHref } from "@/features/game/storefrontTabs";
 import type { SectionItemView } from "@/features/site/content";
 import { reveal, revealDelay } from "./reveal";
-import { BLOG_CARD } from "./guides";
+import { blogCardTexts, type BlogCardTexts } from "./blogCard";
+import { VisitBlogCard } from "./VisitBlogCard";
 
 /** Card do arquivo: 417×438, com vão de 40px entre colunas (457 − 417). */
 const GUIDE_CARD_WIDTH = 417;
@@ -30,9 +31,12 @@ const TALL_GUIDES = 3;
 export function GuidesSection({
   title = "GUIAS POPULARES",
   items = [],
+  blogCard = blogCardTexts((_name, fallback) => fallback),
 }: {
   title?: string;
   items?: SectionItemView[];
+  /** Textos e link do card "VISITAR BLOG" (extras da sessão, ver `blogCard.ts`). */
+  blogCard?: BlogCardTexts;
 }) {
   const tall = items.slice(0, TALL_GUIDES);
   const compact = items[TALL_GUIDES];
@@ -83,16 +87,24 @@ export function GuidesSection({
             <GuideCard key={guide.id} guide={guide} revealIndex={index + 1} />
           ))}
 
+          {/* `justify-end`: sem o guia baixo, o card do blog fica na BASE da
+              coluna, alinhado ao rodapé dos altos (2026-10-09). */}
           <li
-            className="flex shrink-0 flex-col"
-            style={{ width: GUIDE_CARD_WIDTH, gap: COMPACT_GAP }}
+            className="flex shrink-0 flex-col justify-end"
+            style={{ width: GUIDE_CARD_WIDTH, height: GUIDE_CARD_HEIGHT, gap: COMPACT_GAP }}
           >
             {compact ? (
               <ul>
                 <GuideCard guide={compact} compact revealIndex={tall.length + 1} />
               </ul>
             ) : null}
-            <BlogCard revealIndex={tall.length + 2} />
+            <VisitBlogCard
+              texts={blogCard}
+              width={GUIDE_CARD_WIDTH}
+              editKey="home:guias"
+              revealAttrs={reveal("rise")}
+              style={revealDelay(tall.length + 2)}
+            />
           </li>
         </ul>
       </div>
@@ -247,64 +259,6 @@ export function GuideLink({ href, children }: { href?: string; children: ReactNo
   return (
     <Link href={safe} className="absolute inset-0 block">
       {children}
-    </Link>
-  );
-}
-
-/**
- * Card "VISITAR BLOG" (Figma 791:1595) — o único da faixa que é um link.
- *
- * O fundo é PRETO, não laranja: o laranja vem de duas elipses desfocadas que
- * entram pela borda superior e são cortadas pelo card. Elas estão no arquivo
- * como SVG com o blur já rasterizado; aqui são dois elementos com `filter:
- * blur()`, o que reproduz o mesmo desenho sem carregar dois arquivos.
- *
- * A geometria sai da caixa NÃO rotacionada de cada elipse (raios 71,01×83,35 e
- * 79,86×93,72), centrada no ponto do arquivo e depois girada — os retângulos
- * que o inspector mostra são a caixa envolvente já rotacionada e não servem
- * para posicionar direto.
- */
-function BlogCard({ revealIndex = 0 }: { revealIndex?: number }) {
-  return (
-    <Link
-      href={BLOG_CARD.href}
-      // `block` e não `absolute`: o card agora é o último item da fileira que
-      // flui, e não mais um elemento solto sob o quarto guia.
-      {...reveal("rise")}
-      className="blog-card relative block overflow-hidden rounded-[30px] border border-white/10 bg-black"
-      style={{ width: BLOG_CARD.width, height: BLOG_CARD.height, ...revealDelay(revealIndex) }}
-    >
-      {/* Elipse 791:1600 — centro (-6,81; 30,94), girada 77°. */}
-      <span
-        aria-hidden
-        className="blog-glow blog-glow-a absolute top-[-52.41px] left-[-77.83px] h-[166.69px] w-[142.03px] rotate-[77deg] rounded-full blur-[54.14px]"
-        style={{
-          backgroundImage:
-            "linear-gradient(262.85deg, var(--brand-orange), var(--brand-orange-shade))",
-        }}
-      />
-      {/* Elipse 791:1602 — centro (128,38; 0,09), girada -110°. */}
-      <span
-        aria-hidden
-        className="blog-glow blog-glow-b absolute top-[-93.63px] left-[48.52px] h-[187.45px] w-[159.71px] -rotate-[110deg] rounded-full bg-brand-orange-deep blur-[75px]"
-      />
-
-      <span className="absolute top-[129px] left-[26px] block font-poppins text-[18px] leading-[normal] font-semibold tracking-[0.09px] text-white">
-        {BLOG_CARD.title}
-      </span>
-
-      <span className="absolute top-[166px] left-[25px] block font-helvetica text-[16px] leading-[normal] tracking-[0.16px] text-brand-placeholder">
-        {BLOG_CARD.subtitle}
-      </span>
-
-      <Image
-        src="/icons/home/arrow-double-right.svg"
-        alt=""
-        width={24}
-        height={24}
-        aria-hidden
-        className="blog-arrow absolute top-[157px] left-[368px] size-[24px]"
-      />
     </Link>
   );
 }

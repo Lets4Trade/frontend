@@ -29,15 +29,29 @@ const cents = z.number().int().min(0).max(MAX_SERVICE_TOTAL_CENTS);
 const hours = z.number().min(0).max(10_000);
 const label = z.string().trim().min(1).max(40);
 
-const addonSchema = z.object({
-  id: z.string().trim().regex(/^[a-z0-9-]{1,40}$/, "id do adicional inválido"),
-  label: z.string().trim().min(1).max(80),
-  kind: z.enum(["PERCENT", "FIXED"]),
-  /** PERCENT: pontos percentuais (0–500). FIXED: centavos. */
-  value: z.number().int().min(0).max(MAX_SERVICE_TOTAL_CENTS),
-  /** Horas a mais que o adicional custa (ex.: "jogar junto" +2h). */
-  extraHours: hours.optional(),
-});
+/**
+ * Piso do adicional PERCENTUAL: −100% (2026-10-09, pedido do usuário). Abaixo
+ * disso o adicional tiraria mais que o próprio serviço e "pagaria" o cliente.
+ */
+export const MIN_ADDON_PERCENT = -100;
+
+const addonSchema = z
+  .object({
+    id: z.string().trim().regex(/^[a-z0-9-]{1,40}$/, "id do adicional inválido"),
+    label: z.string().trim().min(1).max(80),
+    kind: z.enum(["PERCENT", "FIXED"]),
+    /**
+     * PERCENT: pontos percentuais, de −100 para cima — NEGATIVO é desconto
+     * sobre o subtotal do serviço (2026-10-09). FIXED: centavos, só positivo.
+     */
+    value: z.number().int().min(MIN_ADDON_PERCENT).max(MAX_SERVICE_TOTAL_CENTS),
+    /** Horas a mais que o adicional custa (ex.: "jogar junto" +2h). */
+    extraHours: hours.optional(),
+  })
+  .refine((addon) => addon.kind === "PERCENT" || addon.value >= 0, {
+    message: "Adicional em R$ não pode ser negativo",
+    path: ["value"],
+  });
 
 const common = {
   addons: z.array(addonSchema).max(20).optional(),
@@ -236,6 +250,11 @@ export function quote(basePriceCents: number, pricing: Pricing, rawSelection: Se
     summary = summary ? `${summary} · ${names}` : names;
   }
 
+  // Desconto (adicional percentual negativo) pode zerar o total; pedido de
+  // R$ 0 não tem como ser cobrado, então a combinação é recusada com motivo.
+  if (total <= 0 && subtotal > 0) {
+    return { ok: false, message: "Com esses adicionais o valor fica zerado. Escolha outra combinação." };
+  }
   if (total <= 0) return { ok: false, message: "Este serviço está sem preço configurado." };
   if (total > MAX_SERVICE_TOTAL_CENTS) return { ok: false, message: "Valor acima do limite de um pedido." };
 

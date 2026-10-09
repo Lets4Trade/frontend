@@ -141,6 +141,11 @@ export function centralNavLinks(
   };
 }
 
+/** O Builder do jogo aberto numa etapa (`banner`, `logo`, `titulos`, `categorias`, `descricao`…). */
+export function builderStepHref(gameId: string, step: string): string {
+  return `/admin/builder/${encodeURIComponent(gameId)}?${new URLSearchParams({ etapa: step }).toString()}`;
+}
+
 /** O Construtor de páginas aberto na página deste jogo. */
 export function pageBlocksHref(gameId: string): string {
   return `/admin/paginas?${new URLSearchParams({ pagina: `jogo-${gameId}` }).toString()}`;

@@ -1,8 +1,9 @@
 import { backendAsset, publicApiGet } from "@/lib/publicApi";
 import { getGameNews } from "@/features/blog/data";
+import { blogCardTexts, gameBlogHref } from "@/features/home/blogCard";
 import type { BlogCardView } from "@/features/blog/types";
 import type { CatalogQuery, CatalogResult } from "./catalog";
-import { resolveSectionOrder } from "./sections";
+import { ORBS_GAMES, resolveSectionOrder } from "./sections";
 import { getEditorial } from "./seed";
 import { getSectionItemsFor, getSectionsFor } from "@/features/site/content";
 import {
@@ -26,7 +27,6 @@ import type { GameNewsItem, GamePage, GameProduct } from "./types";
  * CONTEÚDO — Orbs só existem em Path of Exile — e não algo que o admin mude de
  * um dia para o outro. Jogo novo de PoE entra aqui junto com o slug.
  */
-const ORBS_GAMES = new Set(["path-of-exile", "path-of-exile-2"]);
 
 /**
  * A ÚNICA fronteira de dados da página de jogo.
@@ -265,6 +265,9 @@ export async function getGamePage(slug: string): Promise<GamePage | null> {
     news: {
       ...editorial.news,
       title: section("noticias").title || editorial.news.title,
+      // Card "VISITAR BLOG" (2026-10-09): textos da sessão; sem link digitado,
+      // leva às notícias DESTE jogo no blog.
+      blogCard: blogCardTexts(section("noticias").extra, gameBlogHref(game.slug)),
       // Prioridade: notícias PUBLICADAS no blog para este jogo → itens da tela
       // de sessões → conteúdo semente. O blog vence porque tem página própria
       // (o card leva à matéria) e data de publicação real.

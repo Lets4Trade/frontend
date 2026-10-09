@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { buttonVariants } from "@/components/ui/Button";
+import { MenuGameThumb } from "@/features/game/MenuGameThumb";
 import type { MenuGame } from "@/features/game/menuGames";
 import { cn } from "@/lib/cn";
 
@@ -63,18 +64,7 @@ export function GamesMenu({ label, games }: { label: string; games: MenuGame[] }
                   href={`/games/${game.slug}`}
                   className="flex items-center gap-[12px] rounded-[12px] px-[12px] py-[8px] font-poppins text-[14px] text-white outline-none transition-colors hover:bg-white/5 focus:bg-white/5"
                 >
-                  {game.image ? (
-                    <Image
-                      src={game.image}
-                      alt=""
-                      width={36}
-                      height={36}
-                      aria-hidden
-                      className="size-[36px] shrink-0 rounded-[8px] object-cover"
-                    />
-                  ) : (
-                    <span aria-hidden className="size-[36px] shrink-0 rounded-[8px] bg-white/5" />
-                  )}
+                  <MenuGameThumb src={game.image} />
                   <span className="truncate">{game.name}</span>
                 </Link>
               </DropdownMenu.Item>

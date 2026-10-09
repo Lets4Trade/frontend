@@ -156,7 +156,7 @@ describe("saveSectionAction", () => {
     expect(putForm).not.toHaveBeenCalled();
   });
 
-  it("caminho feliz: só os campos do SaveSectionDto; ausente vira vazio; extra não viaja", async () => {
+  it("caminho feliz: só os campos do SaveSectionDto; ausente vira vazio; campo estranho não viaja", async () => {
     const image = smallImage();
     const result = await saveSectionAction(
       form({ key: "home:hero", title: "Oi", image, extras: '{"x":"y"}', isActive: "false" }),
@@ -166,11 +166,20 @@ describe("saveSectionAction", () => {
     const [path, body] = putForm.mock.calls[0];
     expect(path).toBe("/admin/sections");
     const entries = formEntries(body);
+    // `extras` viaja desde 2026-10-09 (card "Visitar blog"); `isActive` não.
     expect(Object.keys(entries).sort()).toEqual(
-      ["body", "footnote", "image", "key", "subtitle", "title"].sort(),
+      ["body", "extras", "footnote", "image", "key", "subtitle", "title"].sort(),
     );
-    expect(entries).toMatchObject({ key: "home:hero", title: "Oi", subtitle: "", body: "" });
+    expect(entries).toMatchObject({ key: "home:hero", title: "Oi", subtitle: "", body: "", extras: '{"x":"y"}' });
     expectStoreRevalidated();
+  });
+
+  it.each([["{"], ["[]"], ['"texto"'], ['{"x":1}']])("extras inválido (%s) → invalid, sem API", async (extras) => {
+    expect(await saveSectionAction(form({ key: "home:guias", extras }))).toMatchObject({
+      ok: false,
+      reason: "invalid",
+    });
+    expect(putForm).not.toHaveBeenCalled();
   });
 
   it.each([

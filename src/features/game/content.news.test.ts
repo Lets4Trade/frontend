@@ -47,7 +47,9 @@ function route(blog: unknown) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(getSectionsFor).mockResolvedValue(() => ({ title: "" }) as never);
+  vi.mocked(getSectionsFor).mockResolvedValue(
+    () => ({ title: "", extra: (_name: string, fallback: string) => fallback }) as never,
+  );
   vi.mocked(getSectionItemsFor).mockResolvedValue(() => []);
 });
 

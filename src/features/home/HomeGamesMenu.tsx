@@ -1,9 +1,9 @@
 "use client";
 
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import Image from "next/image";
 import Link from "next/link";
 import { useState, type CSSProperties } from "react";
+import { MenuGameThumb } from "@/features/game/MenuGameThumb";
 import type { MenuGame } from "@/features/game/menuGames";
 import { HomeNavTileFace } from "./HomeNavTileFace";
 
@@ -71,18 +71,7 @@ export function HomeGamesMenu({
                   href={`/games/${game.slug}`}
                   className="flex items-center gap-[12px] rounded-[12px] px-[12px] py-[8px] font-poppins text-[14px] text-white outline-none transition-colors data-[highlighted]:bg-white/5"
                 >
-                  {game.image ? (
-                    <Image
-                      src={game.image}
-                      alt=""
-                      width={36}
-                      height={36}
-                      aria-hidden
-                      className="size-[36px] shrink-0 rounded-[8px] object-cover"
-                    />
-                  ) : (
-                    <span aria-hidden className="size-[36px] shrink-0 rounded-[8px] bg-white/5" />
-                  )}
+                  <MenuGameThumb src={game.image} />
                   <span className="truncate">{game.name}</span>
                 </Link>
               </DropdownMenu.Item>

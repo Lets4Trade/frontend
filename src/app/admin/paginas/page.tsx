@@ -40,8 +40,12 @@ export default async function AdminPagesPage({ searchParams }: PageProps) {
   const slug = typeof params.pagina === "string" ? params.pagina : null;
   if (slug === "layout") redirect("/admin/paginas?pagina=cabecalho");
 
-  // A lista não lê nada do backend: só links.
-  if (slug === null) return <PagesHub groups={hubGroups()} />;
+  // A lista lê só os jogos ativos, para a linha de cada um (2026-10-09).
+  // Falha de leitura vira lista vazia: o resto do hub continua de pé.
+  if (slug === null) {
+    const games = await getAdminGames();
+    return <PagesHub groups={hubGroups(games.map(({ id, name }) => ({ id, name })))} />;
+  }
 
   const [games, sectionsSnapshot] = await Promise.all([getAdminGames(), getSectionsAdmin()]);
   const page = builderPage(slug, games);
@@ -78,7 +82,10 @@ export default async function AdminPagesPage({ searchParams }: PageProps) {
     );
   }
 
-  const catalogPage = page.content.kind === "sections" ? page.content.catalogPage : null;
+  // Página de jogo edita ali mesmo os textos comuns dos jogos (`games:*`:
+  // referências, notícias, dúvidas — 2026-10-09), então recebe essas sessões.
+  const catalogPage =
+    page.content.kind === "sections" ? page.content.catalogPage : page.content.kind === "gameBuilder" ? "games" : null;
 
   // As abas CATALOG de cada jogo, para o filtro do bloco "Produtos" (FASE 5:
   // aba no lugar do tipo). Em paralelo — uma leitura por jogo ativo, só nesta

@@ -18,6 +18,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { pageBlocksHref } from "@/features/admin/games/central";
 import {
   DEFAULT_SECTION_ORDER,
   GAME_SECTIONS,
@@ -67,9 +68,11 @@ const onlyVertical: Modifier = ({ transform }) => ({ ...transform, x: 0 });
  * existe é ele na lista que vai para o banco.
  */
 export function SectionOrderPanel({
+  gameId,
   order,
   onChange,
 }: {
+  gameId: string;
   /** Blocos VISÍVEIS, na ordem. */
   order: GameSectionKey[];
   onChange: (next: GameSectionKey[]) => void;
@@ -149,15 +152,17 @@ export function SectionOrderPanel({
 
   return (
     <>
-      {/* Construtor de páginas (2026-09-25): publicada a página DESTE jogo lá
-          (Páginas → "Jogo — nome"), a ordem e os blocos novos passam a ser os
-          de lá, e esta lista só vale enquanto ela não for publicada. */}
+      {/* Construtor de páginas (2026-09-25): publicada a página DESTE jogo lá,
+          a ordem e os blocos novos passam a ser os de lá, e esta lista só vale
+          enquanto ela não for publicada. O link vai DIRETO à página do jogo
+          (2026-10-09): "Páginas → Jogo: …" mandava a um hub que não listava
+          jogos. */}
       <p className="mb-[14px] rounded-[12px] border border-brand-border bg-black/30 px-[12px] py-[10px] font-poppins text-[12px] leading-[18px] text-brand-fg-muted">
         Quer pôr banners, textos ou produtos em destaque entre estas seções? Use{" "}
-        <a href="/admin/paginas" className="text-brand-orange hover:underline">
-          Páginas
-        </a>{" "}
-        → &quot;Jogo: …&quot;. Depois de publicada lá, a ordem de lá é a que vale.
+        <a href={pageBlocksHref(gameId)} className="text-brand-orange hover:underline">
+          Blocos e ordem da página deste jogo
+        </a>
+        . Depois de publicada lá, a ordem de lá é a que vale.
       </p>
       <DndContext
         accessibility={{ announcements }}

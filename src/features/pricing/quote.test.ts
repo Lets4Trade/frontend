@@ -89,3 +89,39 @@ describe("pricingSchema", () => {
     expect(pricingSchema.safeParse({ ...LEVELS, min: 200 }).success).toBe(false);
   });
 });
+
+describe("adicional percentual NEGATIVO (desconto, 2026-10-09)", () => {
+  const WITH_DISCOUNT: Pricing = {
+    ...LEVELS,
+    addons: [
+      ...(LEVELS.addons ?? []),
+      { id: "metade", label: "Promoção", kind: "PERCENT", value: -50 },
+      { id: "gratis", label: "Cortesia", kind: "PERCENT", value: -100 },
+    ],
+  };
+
+  it("schema aceita % até −100 e recusa abaixo disso e R$ negativo", () => {
+    expect(pricingSchema.safeParse(WITH_DISCOUNT).success).toBe(true);
+    const below = { ...LEVELS, addons: [{ id: "x", label: "X", kind: "PERCENT", value: -101 }] };
+    expect(pricingSchema.safeParse(below).success).toBe(false);
+    const fixedNegative = { ...LEVELS, addons: [{ id: "x", label: "X", kind: "FIXED", value: -100 }] };
+    expect(pricingSchema.safeParse(fixedNegative).success).toBe(false);
+  });
+
+  it("desconta sobre o subtotal do serviço e a linha sai negativa", () => {
+    const result = quote(0, WITH_DISCOUNT, { levelFrom: 1, levelTo: 11, addonIds: ["metade"] });
+    // 10 níveis × 300 = 3000; −50% = −1500
+    expect(result).toMatchObject({ ok: true, totalCents: 1500 });
+    if (result.ok) expect(result.lines[result.lines.length - 1]).toEqual({ label: "Promoção", cents: -1500 });
+  });
+
+  it("−100% zera o serviço mas mantém os outros adicionais", () => {
+    const result = quote(0, WITH_DISCOUNT, { levelFrom: 1, levelTo: 11, addonIds: ["gratis", "stream"] });
+    expect(result).toMatchObject({ ok: true, totalCents: 1500 });
+  });
+
+  it("total zerado pelo desconto é recusado com motivo (não dá para cobrar R$ 0)", () => {
+    const result = quote(0, WITH_DISCOUNT, { levelFrom: 1, levelTo: 11, addonIds: ["gratis"] });
+    expect(result).toMatchObject({ ok: false, message: "Com esses adicionais o valor fica zerado. Escolha outra combinação." });
+  });
+});

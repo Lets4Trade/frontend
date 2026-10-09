@@ -1,4 +1,4 @@
-import { centralHref, pageBlocksHref } from "./central";
+import { builderStepHref, centralHref, pageBlocksHref } from "./central";
 import { isProductTab, type GameTab, type ScopedCategoryRow } from "./tabs/types";
 
 /**
@@ -121,8 +121,7 @@ export type StoreMapPart = { title: string; hint: string; links: StoreMapLink[] 
  * interno da tela ("etapa 7").
  */
 export function storePageMap(game: { id: string }): StoreMapPart[] {
-  const builder = (step: string) =>
-    `/admin/builder/${encodeURIComponent(game.id)}?${new URLSearchParams({ etapa: step }).toString()}`;
+  const builder = (step: string) => builderStepHref(game.id, step);
   const tabs = centralHref(game.id, { section: "abas" });
   const shared = `/admin/paginas?${new URLSearchParams({ pagina: "jogos-compartilhado" }).toString()}`;
   return [

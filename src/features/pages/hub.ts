@@ -9,11 +9,15 @@ const page = (slug: string) => `/admin/paginas?pagina=${encodeURIComponent(slug)
  * O que saiu, de propósito:
  *   - o segundo cartão da Home ("editar no desenho"): a Home abre direto em
  *     "Textos e imagens" e tem a aba "Organizar seções" — um lugar só;
- *   - uma linha por JOGO: a página de cada jogo se edita em Jogos (Central);
  *   - Configurações da loja: já está no menu.
+ *
+ * As linhas por JOGO VOLTARAM em 2026-10-09 (relato do usuário): o painel
+ * manda "editar a página do jogo em Páginas" (Builder → Ordem, Central →
+ * "Blocos e ordem") e aqui não havia jogo nenhum. Cada linha abre o mesmo
+ * Construtor que a Central abre; logo, abas e produtos continuam na Central.
  */
-export function hubGroups(): HubGroup[] {
-  return [
+export function hubGroups(games: readonly { id: string; name: string }[] = []): HubGroup[] {
+  const groups: HubGroup[] = [
     {
       title: "Loja",
       cards: [
@@ -45,4 +49,16 @@ export function hubGroups(): HubGroup[] {
       ],
     },
   ];
+
+  if (games.length > 0) {
+    groups.splice(2, 0, {
+      title: "Páginas dos jogos",
+      cards: games.map((game) => ({
+        href: page(`jogo-${game.id}`),
+        title: game.name,
+        description: "Ordem dos blocos e blocos extras (banner, vídeo, destaques). Logo, abas e produtos: em Jogos.",
+      })),
+    });
+  }
+  return groups;
 }

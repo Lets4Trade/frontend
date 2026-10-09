@@ -119,8 +119,27 @@ function GameLogo({ logo, name }: { logo?: { src: string; alt?: string }; name: 
  * A cópia borrada fica ABSOLUTA atrás da nítida e com o mesmo tamanho — é a
  * nítida, em fluxo, que dá a largura. O raio do borrão é proporcional ao do
  * logo grande (5.92px em 164 de altura).
+ *
+ * `maxWidth` e `haloOpacity` (2026-10-09, relato do usuário sobre o ARC
+ * Raiders em /noticias): logo muito LARGA (372×106, 3,5:1) a 50px de altura
+ * virava um bloco de 175px, o dobro dos outros jogos; e em arte branca de alto
+ * contraste o halo cheio aparecia como borrão em volta das letras. O teto de
+ * largura encolhe só a logo larga (a altura cai junto, sem deformar); as
+ * estreitas continuam com a largura própria.
  */
-export function LogoHalo({ src, alt, height }: { src: string; alt: string; height: number }) {
+export function LogoHalo({
+  src,
+  alt,
+  height,
+  maxWidth = 200,
+  haloOpacity = 1,
+}: {
+  src: string;
+  alt: string;
+  height: number;
+  maxWidth?: number;
+  haloOpacity?: number;
+}) {
   const blur = Math.max(1.5, (5.92 * height) / LOGO_BOX.height);
   return (
     <span className="relative inline-block shrink-0" style={{ height }}>
@@ -132,7 +151,7 @@ export function LogoHalo({ src, alt, height }: { src: string; alt: string; heigh
         height={height}
         sizes={`${height * 4}px`}
         className="absolute inset-0 h-full w-full object-contain"
-        style={{ filter: `blur(${blur}px)` }}
+        style={{ filter: `blur(${blur}px)`, opacity: haloOpacity }}
       />
       <Image
         src={src}
@@ -140,7 +159,8 @@ export function LogoHalo({ src, alt, height }: { src: string; alt: string; heigh
         width={height * 4}
         height={height}
         sizes={`${height * 4}px`}
-        className="relative h-full w-auto max-w-[200px] object-contain"
+        className="relative h-full w-auto object-contain"
+        style={{ maxWidth }}
       />
     </span>
   );

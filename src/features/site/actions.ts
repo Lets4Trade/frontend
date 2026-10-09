@@ -78,6 +78,26 @@ export async function saveSectionAction(
     payload.set(field, typeof value === "string" ? value : "");
   }
 
+  // Textos extras (`SiteSectionDef.extraFields`): JSON `{ nome: texto }`. Só
+  // repassa objeto de strings — o backend valida nome e tamanho de novo, mas
+  // lixo nem sai daqui.
+  const extras = form.get("extras");
+  if (typeof extras === "string" && extras !== "") {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(extras);
+    } catch {
+      parsed = null;
+    }
+    const valid =
+      typeof parsed === "object" &&
+      parsed !== null &&
+      !Array.isArray(parsed) &&
+      Object.values(parsed).every((value) => typeof value === "string");
+    if (!valid) return { ok: false, reason: "invalid", message: "Textos extras inválidos." };
+    payload.set("extras", extras);
+  }
+
   const image = form.get("image");
   if (image instanceof File && image.size > 0) {
     if (image.size > MAX_IMAGE_BYTES) return IMAGE_TOO_LARGE;

@@ -20,6 +20,8 @@ export type SectionContent = {
   footnote?: string | null;
   body?: string | null;
   imageUrl?: string | null;
+  /** Textos extras por nome (`SiteSectionDef.extraFields`). */
+  extras?: Record<string, string> | null;
 };
 
 /** Um item de lista de sessão, como o painel o edita. */

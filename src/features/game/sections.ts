@@ -183,3 +183,10 @@ export function gapBefore(order: readonly GameSectionKey[], index: number): numb
     ? current.gapAfterDefaultPredecessor
     : DEFAULT_GAP;
 }
+
+/**
+ * Jogos que mostram o grupo "Dúvidas sobre Orbs" acima das dúvidas gerais.
+ * Mora aqui (e não em `content.ts`, que é da leitura do servidor) porque o
+ * editor do painel também precisa saber (2026-10-09).
+ */
+export const ORBS_GAMES: ReadonlySet<string> = new Set(["path-of-exile", "path-of-exile-2"]);

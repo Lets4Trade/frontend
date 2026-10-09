@@ -40,6 +40,9 @@ export function SectionContentForm({
   const [subtitle, setSubtitle] = useState(content?.subtitle ?? "");
   const [footnote, setFootnote] = useState(content?.footnote ?? "");
   const [body, setBody] = useState(content?.body ?? "");
+  const [extras, setExtras] = useState<Record<string, string>>(() =>
+    Object.fromEntries((def.extraFields ?? []).map((field) => [field.name, content?.extras?.[field.name] ?? ""])),
+  );
   const [pending, startTransition] = useTransition();
   const imageInput = useRef<HTMLInputElement>(null);
   const [imageName, setImageName] = useState<string | null>(null);
@@ -47,7 +50,8 @@ export function SectionContentForm({
   const hasTitle = def.hasTitle !== false;
   const hasSubtitle = def.defaultSubtitle !== undefined || Boolean(def.subtitleLabel);
   const hasFootnote = def.defaultFootnote !== undefined || Boolean(def.footnoteLabel);
-  const hasFields = hasTitle || hasSubtitle || hasFootnote || def.hasBody || def.hasImage;
+  const hasExtras = (def.extraFields?.length ?? 0) > 0;
+  const hasFields = hasTitle || hasSubtitle || hasFootnote || def.hasBody || def.hasImage || hasExtras;
 
   function save() {
     const form = new FormData();
@@ -56,6 +60,10 @@ export function SectionContentForm({
     form.set("subtitle", subtitle);
     form.set("footnote", footnote);
     form.set("body", body);
+    // TODOS os extras declarados, inclusive vazios: vazio é como o admin volta
+    // ao padrão (o backend apaga a chave). Os que a seção não declara não vão,
+    // e a mescla do backend os preserva.
+    if (hasExtras) form.set("extras", JSON.stringify(extras));
     const file = imageInput.current?.files?.[0];
     if (file) form.set("image", file, file.name);
 
@@ -91,6 +99,7 @@ export function SectionContentForm({
       setSubtitle("");
       setFootnote("");
       setBody("");
+      setExtras((current) => Object.fromEntries(Object.keys(current).map((name) => [name, ""])));
       onSaved(null);
       toastOk("Voltou ao texto padrão.");
     });
@@ -166,6 +175,22 @@ export function SectionContentForm({
               onChange={(event) => setBody(event.target.value)}
             />
           ) : null}
+          {def.extraFields?.map((field) => (
+            <div key={field.name}>
+              <TextField
+                label={field.label}
+                value={extras[field.name] ?? ""}
+                placeholder={field.defaultValue}
+                maxLength={field.maxLength}
+                onChange={(event) =>
+                  setExtras((current) => ({ ...current, [field.name]: event.target.value }))
+                }
+              />
+              {field.hint ? (
+                <p className="mt-[6px] font-poppins text-[12px] text-brand-fg-subtle">{field.hint}</p>
+              ) : null}
+            </div>
+          ))}
           {def.hasImage ? (
             <div>
               <p className="mb-[8px] font-helvetica text-[16px] font-bold text-white">Imagem</p>

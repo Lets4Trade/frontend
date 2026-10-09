@@ -1,4 +1,5 @@
 import type { MaskKind } from "@/lib/masks";
+import { blogCardExtraFields, type SectionExtraField } from "./blogCardFields";
 
 /**
  * O catálogo de PÁGINAS e SESSÕES do site — a tela "Edição de sessões"
@@ -157,6 +158,12 @@ export type SiteSectionDef = {
   list?: SiteListDef;
   /** Textos da seção com formatação (ver `SiteListDef.rich`). */
   rich?: readonly RichSectionField[];
+  /**
+   * Textos EXTRAS com campo próprio no formulário (2026-10-09, card "Visitar
+   * blog"). Gravam no JSON `extras` da sessão, que o backend mescla; vazio
+   * volta ao `defaultValue`.
+   */
+  extraFields?: readonly SectionExtraField[];
 };
 
 export type SitePageDef = {
@@ -196,7 +203,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
           // campos digitados, que repetiam o cadastro e envelheciam quando o
           // link do jogo mudava.
           game: "Jogo",
-          image: "Personagem (ideal 760×900, preenche a área do card)",
+          image: "Personagem (PNG transparente; as margens vazias são cortadas no envio). Fica acima da linha, numa área de 316×419 — envie ao menos 632×838",
           secondaryImage: "Logo do jogo (400×200, PNG transparente; vazio usa a do jogo)",
         },
       },
@@ -284,6 +291,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         defaultTitle: "GUIAS POPULARES",
         hasImage: false,
         rich: ["title"],
+        extraFields: blogCardExtraFields("Vazio leva a /noticias (todas as notícias)."),
         list: {
           itemLabel: "guia",
           title: "Título do guia",
@@ -394,12 +402,19 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         label: "Notícias",
         defaultTitle: "NOTÍCIAS",
         hasImage: false,
+        // Mesmo formato de GUIAS POPULARES (2026-10-09): 3 cards altos e, na
+        // 4ª coluna, uma notícia baixa + o card "Visitar blog".
+        extraFields: blogCardExtraFields(
+          "Vazio leva às notícias do jogo da página (/noticias?jogo=…). Aceita caminho interno ou https.",
+        ),
         list: {
           itemLabel: "notícia",
           title: "Manchete",
           body: "Resumo",
           image: "Arte da notícia (778×552)",
           href: "Link da notícia",
+          // Só valem quando o jogo não tem notícia publicada no blog.
+          max: 4,
         },
       },
       // As perguntas saíram de `features/game/seed.ts`, onde só o TÍTULO do

@@ -268,7 +268,8 @@ function AddonsTable({
               ariaLabel={`Adicional ${index + 1}: percentual`}
               value={addon.percent}
               numeric
-              placeholder="10"
+              signed
+              placeholder="10 ou -100"
               onChange={(percent) => set({ percent })}
             />
           ) : (
@@ -420,6 +421,7 @@ function TextInput({
   value,
   onChange,
   numeric,
+  signed,
   placeholder,
   maxLength = 12,
   ariaLabel,
@@ -427,6 +429,8 @@ function TextInput({
   value: string;
   onChange: (value: string) => void;
   numeric?: boolean;
+  /** Numérico que aceita o sinal de menos na frente (adicional em %, desconto). */
+  signed?: boolean;
   placeholder?: string;
   maxLength?: number;
   ariaLabel?: string;
@@ -440,9 +444,10 @@ function TextInput({
       value={value}
       maxLength={maxLength}
       placeholder={placeholder}
-      // Numérico: só dígitos, vírgula e ponto — a conversão (e a recusa de
-      // fração em campo inteiro) é do `draftToPricing`.
-      onChange={(event) => onChange(numeric ? event.target.value.replace(/[^\d.,]/g, "") : event.target.value)}
+      // Numérico: só dígitos, vírgula e ponto (e o "-" só na frente, quando
+      // `signed`) — a conversão (e a recusa de fração em campo inteiro e do
+      // piso de −100%) é do `draftToPricing`.
+      onChange={(event) => onChange(numeric ? numericText(event.target.value, signed) : event.target.value)}
       className={MINI_INPUT}
     />
   );
@@ -554,4 +559,9 @@ function formatCents(cents: number): string {
   const whole = Math.trunc(cents / 100);
   const remainder = Math.abs(cents % 100);
   return `R$ ${whole.toLocaleString("pt-BR")},${String(remainder).padStart(2, "0")}`;
+}
+
+function numericText(raw: string, signed?: boolean): string {
+  const digits = raw.replace(/[^\d.,]/g, "");
+  return signed && raw.trimStart().startsWith("-") ? `-${digits}` : digits;
 }

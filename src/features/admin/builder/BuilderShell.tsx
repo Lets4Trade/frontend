@@ -307,6 +307,7 @@ function renderPanel(
     case "ordem":
       return (
         <SectionOrderPanel
+          gameId={game.id}
           order={draft.sectionOrder}
           onChange={(sectionOrder) => patch({ sectionOrder })}
         />

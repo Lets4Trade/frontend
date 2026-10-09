@@ -40,7 +40,9 @@ export function BlogFilters({ games, query }: { games: BlogGameRef[]; query: Blo
                 aria-label={active ? `${game.name} (filtro ativo, clique para remover)` : `Notícias de ${game.name}`}
                 className="group flex shrink-0 items-center gap-[15px] rounded-full outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg"
               >
-                {game.logo ? <LogoHalo src={game.logo} alt="" height={50} /> : null}
+                {/* Teto de 100px e halo a 45%: a logo do ARC Raiders (3,5:1) dominava a
+                    fileira e borrava em volta das letras (2026-10-09). */}
+                {game.logo ? <LogoHalo src={game.logo} alt="" height={50} maxWidth={100} haloOpacity={0.45} /> : null}
                 <span className={cn(pillClassName(active), "min-w-[170px] px-[20px] whitespace-nowrap")}>
                   {game.name}
                 </span>

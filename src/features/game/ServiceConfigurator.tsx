@@ -510,8 +510,12 @@ function AddonList({
       <div role="group" aria-labelledby={id} className="mt-[15px] flex flex-col gap-[15px]">
         {visible.map((addon) => {
           const on = selected.includes(addon.id);
+          // Percentual negativo é DESCONTO (2026-10-09): "− 100%", nunca "+ -100%".
+          const sign = addon.value < 0 ? "−" : "+";
           const suffix =
-            addon.kind === "PERCENT" ? `+ ${addon.value}%` : `+ ${formatPrice(addon.value)}`;
+            addon.kind === "PERCENT"
+              ? `${sign} ${Math.abs(addon.value)}%`
+              : `+ ${formatPrice(addon.value)}`;
           return (
             <div key={addon.id}>
               <label className="flex cursor-pointer items-center gap-[15px]">

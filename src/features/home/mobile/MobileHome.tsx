@@ -7,7 +7,7 @@ import { MAX_HOME_STATS } from "@/features/site/sections";
 import { cn } from "@/lib/cn";
 import { RichText, alignClass, richToPlain, splitAlign } from "@/features/site/richText";
 import { safeLinkHref } from "@/features/game/storefrontTabs";
-import { BLOG_CARD } from "../guides";
+import { blogCardTexts, type BlogCardTexts } from "../blogCard";
 import type { HomeBlock } from "../homeBlocks";
 import { getMenuGames, type MenuGame } from "@/features/game/menuGames";
 import { NAV_ITEMS } from "../HomeNav";
@@ -91,7 +91,13 @@ export function buildMobileHomeBlocks(
     {
       key: "guias",
       gap: 40,
-      node: <MobileGuides title={section("guias").title} items={items("guias")} />,
+      node: (
+        <MobileGuides
+          title={section("guias").title}
+          items={items("guias")}
+          blogCard={blogCardTexts(section("guias").extra)}
+        />
+      ),
     },
     {
       key: "faq",
@@ -438,7 +444,15 @@ function MemberCard({ member, className }: { member: SectionItemView; className:
 
 // ───────────────────────────────── guias ─────────────────────────────────
 
-function MobileGuides({ title, items }: { title: string; items: SectionItemView[] }) {
+function MobileGuides({
+  title,
+  items,
+  blogCard,
+}: {
+  title: string;
+  items: SectionItemView[];
+  blogCard: BlogCardTexts;
+}) {
   // Mesma regra do desktop: 3 guias altos, o 4º baixo, e o "Visitar blog".
   const tall = items.slice(0, 3);
   const compact = items[3];
@@ -463,7 +477,7 @@ function MobileGuides({ title, items }: { title: string; items: SectionItemView[
         ) : null}
         <li {...reveal("rise")}>
           <Link
-            href={BLOG_CARD.href}
+            href={blogCard.href}
             className="blog-card relative block aspect-[352/174] overflow-hidden rounded-[24px] border border-white/10 bg-black"
           >
             <span
@@ -475,11 +489,11 @@ function MobileGuides({ title, items }: { title: string; items: SectionItemView[
               aria-hidden
               className="blog-glow absolute -top-[90px] left-[40px] h-[190px] w-[160px] -rotate-[110deg] rounded-full bg-brand-orange-deep blur-[75px]"
             />
-            <span className="absolute bottom-[42px] left-[25px] font-poppins text-[16px] font-semibold text-white">
-              {BLOG_CARD.title}
+            <span className="absolute right-[60px] bottom-[42px] left-[25px] truncate font-poppins text-[16px] font-semibold text-white">
+              {blogCard.title}
             </span>
-            <span className="absolute bottom-[18px] left-[25px] font-helvetica text-[14px] text-brand-placeholder">
-              {BLOG_CARD.subtitle}
+            <span className="absolute right-[60px] bottom-[18px] left-[25px] truncate font-helvetica text-[14px] text-brand-placeholder">
+              {blogCard.subtitle}
             </span>
             <Image
               src="/icons/home/arrow-double-right.svg"

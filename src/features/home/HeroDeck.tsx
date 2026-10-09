@@ -440,13 +440,12 @@ function CharacterArt({
       width={Math.round(game.char.width)}
       height={Math.round(game.char.height)}
       aria-hidden
-      // `object-cover` só na arte nova: a original tem geometria medida para
+      // `object-contain` só na arte nova: a original tem geometria medida para
       // a proporção dela e deve preencher a caixa exatamente como no arquivo.
-      // `max-w-none` na arte nova: a caixa dela (376px) é mais larga que o card
-      // e o `max-width: 100%` do preflight a cortava para 334px mantendo o
-      // `left: -20`, o que a deixava 20px puxada para a esquerda (2026-10-06).
-      // As originais ficam como sempre foram desenhadas na tela.
-      className={`hero-art absolute ${game.char.cover ? "max-w-none object-cover object-top" : "object-bottom"}`}
+      // A nova entra INTEIRA na caixa do personagem do Figma, apoiada no pé
+      // (sobre a linha), como os personagens originais (2026-10-09). As
+      // originais ficam como sempre foram desenhadas na tela.
+      className={`hero-art absolute object-bottom ${game.char.contain ? "object-contain" : ""}`}
       style={
         {
           left: game.char.left,
