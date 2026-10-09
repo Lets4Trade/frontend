@@ -197,7 +197,7 @@ export function NavTiles({ compact = false, games }: { compact?: boolean; games:
 
 // ───────────────────────────────── vídeo ─────────────────────────────────
 
-function MobileVideo({ section }: { section: SectionView }) {
+export function MobileVideo({ section }: { section: SectionView }) {
   const t = videoTexts(section.extra);
   const videoId = youtubeId(section.footnote);
   // Mesmo critério do desktop: link próprio do botão, senão o do player.
@@ -271,7 +271,7 @@ function MobileVideo({ section }: { section: SectionView }) {
 
 // ──────────────────────────────── reviews ────────────────────────────────
 
-function MobileReviews({ section, items }: { section: SectionView; items: SectionItemView[] }) {
+export function MobileReviews({ section, items }: { section: SectionView; items: SectionItemView[] }) {
   const counter = section.footnote || "515 Reviews";
   return (
     <section id="reviews-mobile" aria-labelledby="reviews-title-mobile" className="relative scroll-mt-[80px]">
@@ -583,12 +583,13 @@ function MobileFaq({ title, items }: { title: string; items: SectionItemView[] }
         <dl className="mt-[24px] flex flex-col gap-[24px]">
           {items.map((item) => (
             <div key={item.id} {...reveal("rise")}>
-              <dt className="font-poppins text-[16px] leading-[1.2] font-semibold text-white">
+              {/* `break-words`: texto sem espaço quebra em vez de ser cortado pela moldura. */}
+              <dt className="font-poppins text-[16px] leading-[1.2] font-semibold break-words text-white">
                 <RichText value={item.title} />
               </dt>
               <dd
                 className={cn(
-                  "mt-[10px] font-helvetica text-[14px] leading-[1.25] text-brand-placeholder",
+                  "mt-[10px] font-helvetica text-[14px] leading-[1.25] break-words text-brand-placeholder",
                   alignClass(splitAlign(item.body).align),
                 )}
               >

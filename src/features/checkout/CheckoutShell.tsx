@@ -30,8 +30,11 @@ export async function CheckoutShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-dvh flex-col bg-brand-bg">
-      <main className="flex-1 overflow-x-auto">
-        <div className="relative mx-auto w-full max-w-[1920px] min-w-[1600px]">
+      {/* Celular (2026-10-09): a faixa elástica de 1600–1920 e o cabeçalho de
+          1077 só existem a partir de `lg`; abaixo disso as colunas empilham
+          (ver `CheckoutColumns`) e a página não rola de lado. */}
+      <main className="flex-1 lg:overflow-x-auto">
+        <div className="relative mx-auto w-full max-w-[1920px] overflow-x-clip lg:min-w-[1600px] lg:overflow-x-visible">
           {/* Brilho do arquivo (2568:1508): sangra para fora à esquerda, o que
               aparece é a borda dele.
 
@@ -52,7 +55,7 @@ export async function CheckoutShell({ children }: { children: ReactNode }) {
               é o único elemento POSICIONADO da camada e pintaria por cima do
               painel, que é um bloco comum. O painel declara `z-10` do outro
               lado (ver `CheckoutSidePanel`). */}
-          <header className="absolute top-0 left-0 z-0 flex h-[83px] w-[1077px] items-center bg-black/50 px-[50px] backdrop-blur-[9px]">
+          <header className="relative z-0 flex h-[70px] w-full items-center bg-black/50 px-[16px] backdrop-blur-[9px] lg:absolute lg:top-0 lg:left-0 lg:h-[83px] lg:w-[1077px] lg:px-[50px]">
             <Link href="/" aria-label="Lets4Trade, início">
               <Image
                 src={brand.imageUrl ?? "/images/lets4trade-logo.png"}
@@ -61,7 +64,7 @@ export async function CheckoutShell({ children }: { children: ReactNode }) {
                 height={65}
                 priority
                 aria-hidden
-                className={`h-[65px] w-[138px] ${brand.imageUrl ? "object-contain" : "object-cover"}`}
+                className={`h-[52px] w-[110px] lg:h-[65px] lg:w-[138px] ${brand.imageUrl ? "object-contain" : "object-cover"}`}
               />
             </Link>
           </header>

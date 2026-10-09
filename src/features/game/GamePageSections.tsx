@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { CatalogToolbar, CategoryPanel, ServerPicker } from "./CatalogFilters";
 import { GameIdentity } from "./GameIdentity";
 import {
@@ -10,6 +10,7 @@ import {
 import { SellPageBody } from "@/features/sell/SellPageBody";
 import { ReviewsSection } from "@/features/home/ReviewsSection";
 import { VideoSection } from "@/features/home/VideoSection";
+import { MobileReviews, MobileVideo } from "@/features/home/mobile/MobileHome";
 import { catalogBlockFor, showsGenericFilters } from "./layouts";
 import { PackagesSection } from "./PackagesSection";
 import { ProductGrid } from "./ProductGrid";
@@ -56,8 +57,14 @@ export function GamePageSections({
     <>
       {rendered.map((entry, index) => {
         const gap = gapBefore(visible, index);
+        // Vão do arquivo no desktop, 60% dele no celular — a mesma regra do
+        // `BlockColumn` da página publicada pelo construtor.
         return (
-          <div key={entry.key} style={gap > 0 ? { marginTop: gap } : undefined}>
+          <div
+            key={entry.key}
+            style={gap > 0 ? ({ "--block-gap": `${gap}px` } as CSSProperties) : undefined}
+            className={gap > 0 ? "mt-[calc(var(--block-gap)*0.6)] md:mt-[var(--block-gap)]" : undefined}
+          >
             {entry.node}
           </div>
         );
@@ -126,20 +133,31 @@ function renderSection(
     case "identity":
       return <GameIdentity page={page} server={query.server} />;
 
-    // Seções da home: desenhadas na faixa de 1820 dela, centralizada na
-    // coluna de 1714 (sangra 53px de cada lado; a moldura corta abaixo de 1820).
+    // Seções da home: no desktop, desenhadas na faixa de 1820 dela, centralizada
+    // na coluna de 1714 (sangra 53px de cada lado; a moldura corta abaixo de
+    // 1820). No celular, as versões de celular da HOME (2026-10-09).
     case "homeVideo":
       return (
-        <HomeBleed>
-          <VideoSection {...page.showcase.video} />
-        </HomeBleed>
+        <>
+          <div className="overflow-x-clip lg:hidden">
+            <MobileVideo section={page.showcase.mobile.video} />
+          </div>
+          <HomeBleed>
+            <VideoSection {...page.showcase.video} />
+          </HomeBleed>
+        </>
       );
 
     case "homeReviews":
       return (page.showcase.reviews.items?.length ?? 0) > 0 ? (
-        <HomeBleed>
-          <ReviewsSection {...page.showcase.reviews} />
-        </HomeBleed>
+        <>
+          <div className="overflow-x-clip lg:hidden">
+            <MobileReviews section={page.showcase.mobile.reviews} items={page.showcase.reviews.items ?? []} />
+          </div>
+          <HomeBleed>
+            <ReviewsSection {...page.showcase.reviews} />
+          </HomeBleed>
+        </>
       ) : null;
 
     case "servers":
@@ -182,5 +200,5 @@ function renderSection(
 
 /** A largura do desenho da home, centralizada na coluna da página de jogo. */
 function HomeBleed({ children }: { children: ReactNode }) {
-  return <div className="relative left-1/2 w-[1820px] -translate-x-1/2">{children}</div>;
+  return <div className="relative left-1/2 hidden w-[1820px] -translate-x-1/2 lg:block">{children}</div>;
 }

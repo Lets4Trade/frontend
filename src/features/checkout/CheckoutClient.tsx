@@ -19,8 +19,7 @@ import {
 } from "@/features/orders/OrderSummaryPieces";
 import {
   CheckoutSidePanel,
-  ReferencesBadge,
-  ReferencesButton,
+  PanelReferencesRow,
 } from "./CheckoutPanel";
 import { payPayment, type PaymentCallResult } from "@/features/payment/api";
 import {
@@ -306,11 +305,13 @@ export function CheckoutClient({
   }
 
   return (
-    <div className="flex min-h-[1080px]">
+    <div className="flex flex-col lg:min-h-[1080px] lg:flex-row">
+      {/* Celular (2026-10-09): colunas empilhadas, o resumo do pedido primeiro
+          (`mobileFirst`) e o formulário depois — vê o que paga, e paga. */}
       {/* Coluna do formulário: 476px centrados na faixa da esquerda, como no
           arquivo (302 de margem dos dois lados dentro dos 1079). */}
-      <div className="flex flex-1 justify-center px-[50px] pt-[97px] pb-[60px]">
-        <form noValidate onSubmit={handleSubmit} className="w-[476px]">
+      <div className="flex flex-1 justify-center px-[16px] pt-[28px] pb-[40px] lg:px-[50px] lg:pt-[97px] lg:pb-[60px]">
+        <form noValidate onSubmit={handleSubmit} className="w-full max-w-[476px]">
           <h1 className="font-poppins text-[22px] leading-[28px] font-semibold tracking-[-0.44px] text-white">
             Pagamento
           </h1>
@@ -361,7 +362,7 @@ export function CheckoutClient({
                 placeholder="**** **** **** ****"
                 error={fieldErrors.number}
               />
-              <div className="grid grid-cols-[225px_225px] gap-x-[26px]">
+              <div className="grid grid-cols-2 gap-x-[16px] lg:grid-cols-[225px_225px] lg:gap-x-[26px]">
                 <TextField
                   name="expiry"
                   label="Validade (MM/AA) *"
@@ -479,11 +480,8 @@ export function CheckoutClient({
       </div>
 
       {/* Painel do pedido: 841px fixos, encostado na direita. */}
-      <CheckoutSidePanel>
-        <div className="flex items-center justify-between gap-[25px]">
-          <ReferencesButton />
-          <ReferencesBadge />
-        </div>
+      <CheckoutSidePanel mobileFirst>
+        <PanelReferencesRow />
 
         <h2 className="mt-[38px] font-poppins text-[22px] leading-[28px] font-semibold tracking-[-0.44px] text-white">
           Ordem
@@ -516,17 +514,17 @@ export function CheckoutClient({
         <p className="mt-[25px] font-helvetica text-[18px] leading-[18px] font-bold tracking-[0.18px] text-white">
           Cupom
         </p>
-        <div className="mt-[15px] flex gap-[25px]">
+        <div className="mt-[15px] flex gap-[12px] lg:gap-[25px]">
           <input
             type="text"
             aria-label="Presente ou código de desconto"
             placeholder="Presente ou código de desconto"
-            className="h-[50px] w-[476px] rounded-full border border-brand-border bg-[image:var(--brand-surface-fill)] px-[25px] font-poppins text-[16px] tracking-[0.16px] text-white outline-none placeholder:text-white/60 focus-visible:border-brand-orange"
+            className="h-[50px] min-w-0 flex-1 rounded-full border border-brand-border bg-[image:var(--brand-surface-fill)] px-[25px] font-poppins text-[16px] tracking-[0.16px] text-white outline-none placeholder:text-white/60 focus-visible:border-brand-orange"
           />
           <button
             type="button"
             onClick={() => setCouponNote("Cupons ainda não estão disponíveis.")}
-            className="h-[50px] w-[141px] shrink-0 rounded-full border border-[var(--brand-stroke-soft)] bg-[image:var(--brand-orange-gradient)] font-poppins text-[16px] font-bold tracking-[0.16px] text-black transition-opacity hover:opacity-90"
+            className="h-[50px] w-[110px] shrink-0 rounded-full border border-[var(--brand-stroke-soft)] bg-[image:var(--brand-orange-gradient)] font-poppins text-[16px] lg:w-[141px] font-bold tracking-[0.16px] text-black transition-opacity hover:opacity-90"
           >
             APLICAR
           </button>

@@ -4,8 +4,7 @@ import { formatBrl as formatCents } from "@/features/payment/types";
 import { CheckoutShell } from "@/features/checkout/CheckoutShell";
 import {
   CheckoutSidePanel,
-  ReferencesBadge,
-  ReferencesButton,
+  PanelReferencesRow,
 } from "@/features/checkout/CheckoutPanel";
 import { OrderLineBlock, TotalsBlock } from "@/features/orders/OrderSummaryPieces";
 import { PaymentStatusClient } from "@/features/payment/PaymentStatusClient";
@@ -52,16 +51,14 @@ export default async function PaymentPage({ params }: PageProps) {
 
   return (
     <CheckoutShell>
-      <div className="flex min-h-[1080px]">
-        <div className="flex flex-1 justify-center px-[50px] pt-[97px] pb-[60px]">
+      <div className="flex flex-col lg:min-h-[1080px] lg:flex-row">
+        {/* No celular o QR/estado do pagamento vem primeiro — é a ação. */}
+        <div className="flex flex-1 justify-center px-[16px] pt-[28px] pb-[40px] lg:px-[50px] lg:pt-[97px] lg:pb-[60px]">
           <PaymentStatusClient initial={payment} />
         </div>
 
         <CheckoutSidePanel>
-          <div className="flex items-center justify-between gap-[25px]">
-            <ReferencesButton />
-            <ReferencesBadge />
-          </div>
+          <PanelReferencesRow />
 
           <h2 className="mt-[38px] font-poppins text-[22px] leading-[28px] font-semibold tracking-[-0.44px] text-white">
             Ordem

@@ -59,7 +59,7 @@ export function PaymentStatusClient({ initial }: { initial: PaymentView }) {
   }
 
   return (
-    <div className="w-[476px]">
+    <div className="w-full max-w-[476px]">
       <h1 className="font-poppins text-[22px] leading-[28px] font-semibold tracking-[-0.44px] text-white">
         Pagamento
       </h1>

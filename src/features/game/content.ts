@@ -333,6 +333,7 @@ export async function getGamePage(slug: string): Promise<GamePage | null> {
         counter: homeSection("reviews").footnote,
         items: homeItems("reviews"),
       },
+      mobile: { video: homeSection("video"), reviews: homeSection("reviews") },
     },
   };
 }

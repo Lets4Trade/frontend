@@ -203,7 +203,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
           // campos digitados, que repetiam o cadastro e envelheciam quando o
           // link do jogo mudava.
           game: "Jogo",
-          image: "Personagem (PNG transparente; as margens vazias são cortadas no envio). Fica acima da linha, numa área de 316×419 — envie ao menos 632×838",
+          image: "Arte do card: 336×758 (tamanho do card), PNG com fundo transparente",
           secondaryImage: "Logo do jogo (400×200, PNG transparente; vazio usa a do jogo)",
         },
       },
@@ -508,6 +508,60 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         defaultSubtitle: "",
         subtitleLabel: "Discord (usuário ou link de convite)",
         hasImage: false,
+      },
+      {
+        // Botão do chat flutuante (2026-10-09): foto, balão (título em negrito +
+        // texto), lado da tela e o pontinho online/offline. Lido no layout raiz
+        // e passado ao `ContactBubble` — ver `features/support/chatConfig.ts`.
+        key: "chat",
+        label: "Botão do chat",
+        titleLabel: "Título do balão (em negrito)",
+        defaultTitle: "Precisa de ajuda?",
+        subtitleLabel: "Texto do balão",
+        defaultSubtitle: "Fale com a nossa equipe. Respondemos rapidinho!",
+        hasImage: true,
+        imageHint: "Foto do botão do chat: quadrada, 144×144 (aparece redonda, com 64px). Vazio usa o ícone de balão.",
+        extraFields: [
+          {
+            name: "status",
+            label: "Atendimento",
+            defaultValue: "online",
+            maxLength: 10,
+            hint: "O pontinho no botão: verde = online, vermelho = offline.",
+            options: [
+              { value: "online", label: "Online (pontinho verde)" },
+              { value: "offline", label: "Offline (pontinho vermelho)" },
+            ],
+          },
+          {
+            name: "lado",
+            label: "Lado da tela",
+            defaultValue: "direita",
+            maxLength: 10,
+            hint: "O balão de texto abre para o lado de dentro da tela.",
+            options: [
+              { value: "direita", label: "Direita" },
+              { value: "esquerda", label: "Esquerda" },
+            ],
+          },
+          {
+            name: "balao",
+            label: "Balão de texto ao lado do botão",
+            defaultValue: "mostrar",
+            maxLength: 10,
+            options: [
+              { value: "mostrar", label: "Mostrar" },
+              { value: "esconder", label: "Esconder" },
+            ],
+          },
+          {
+            name: "offline",
+            label: "Mensagem quando estiver offline",
+            defaultValue: "Estamos offline agora. Deixe sua mensagem que respondemos assim que voltarmos.",
+            maxLength: 200,
+            hint: "Aparece no topo do atendimento quando o status é Offline.",
+          },
+        ],
       },
       {
         key: "header-selo",

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRef, useState, useTransition } from "react";
 import { TextAreaField } from "@/components/ui/TextAreaField";
+import { SelectField } from "@/components/ui/SelectField";
 import { TextField } from "@/components/ui/TextField";
 import { toastError, toastOk } from "@/components/ui/Toasts";
 import { RichTextField } from "@/features/site/editing/RichTextField";
@@ -177,15 +178,25 @@ export function SectionContentForm({
           ) : null}
           {def.extraFields?.map((field) => (
             <div key={field.name}>
-              <TextField
-                label={field.label}
-                value={extras[field.name] ?? ""}
-                placeholder={field.defaultValue}
-                maxLength={field.maxLength}
-                onChange={(event) =>
-                  setExtras((current) => ({ ...current, [field.name]: event.target.value }))
-                }
-              />
+              {field.options ? (
+                // Escolha: vazio no banco = o padrão, então o select mostra o padrão.
+                <SelectField
+                  label={field.label}
+                  value={extras[field.name] || field.defaultValue}
+                  onValueChange={(value) => setExtras((current) => ({ ...current, [field.name]: value }))}
+                  options={field.options.map((option) => ({ value: option.value, label: option.label }))}
+                />
+              ) : (
+                <TextField
+                  label={field.label}
+                  value={extras[field.name] ?? ""}
+                  placeholder={field.defaultValue}
+                  maxLength={field.maxLength}
+                  onChange={(event) =>
+                    setExtras((current) => ({ ...current, [field.name]: event.target.value }))
+                  }
+                />
+              )}
               {field.hint ? (
                 <p className="mt-[6px] font-poppins text-[12px] text-brand-fg-subtle">{field.hint}</p>
               ) : null}

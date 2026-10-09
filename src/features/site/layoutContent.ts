@@ -48,6 +48,8 @@ type RawSection = {
   footnote?: string | null;
   body?: string | null;
   imageUrl?: string | null;
+  /** Textos extras por nome (o botão do chat guarda suas escolhas aqui). */
+  extras?: Record<string, string> | null;
 };
 
 type RawItem = {
@@ -64,6 +66,8 @@ export type LayoutText = {
   footnote: string;
   body: string;
   imageUrl?: string;
+  /** Um texto EXTRA da sessão, com o padrão como reserva (vazio = padrão). */
+  extra: (name: string, fallback: string) => string;
 };
 
 /** Um item de lista do rodapé — uma rede social ou um link de coluna. */
@@ -125,6 +129,10 @@ export async function getLayoutContent(): Promise<LayoutContent> {
         // desenhado. Ver o catálogo.
         body: row?.body?.trim() || def?.defaultBody || "",
         imageUrl: backendAsset(row?.imageUrl) ?? undefined,
+        extra: (name: string, fallback: string) => {
+          const value = row?.extras?.[name];
+          return (typeof value === "string" ? value.trim() : "") || fallback;
+        },
       };
     },
 

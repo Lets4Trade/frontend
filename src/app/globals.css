@@ -2321,6 +2321,59 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
   }
 }
 
+/* Botão do chat (2026-10-09): o balão entra depois de um instante (convite,
+   não susto) e o pontinho verde pulsa. Os dois param para quem pediu menos
+   movimento. Só `transform`/`opacity`: baratos. */
+@media (prefers-reduced-motion: no-preference) {
+  .chat-balloon {
+    animation: chat-balloon-in 420ms var(--ease-snap, cubic-bezier(0.16, 1, 0.3, 1)) 1.2s both;
+  }
+  .chat-panel {
+    animation: chat-panel-in 220ms var(--ease-snap, cubic-bezier(0.16, 1, 0.3, 1)) both;
+  }
+  .chat-dot-online::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: inherit;
+    animation: chat-dot-pulse 2s ease-out infinite;
+  }
+}
+
+@keyframes chat-balloon-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes chat-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes chat-dot-pulse {
+  from {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
 /* Dropdown de jogos do atalho GAMES no celular (`MobileGamesMenu`): nasce do
    lado do botão — para cima no rodapé flutuante, para baixo no corpo. */
 .games-drop {

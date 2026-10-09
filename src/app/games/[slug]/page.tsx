@@ -1,6 +1,6 @@
 import { gameSectionNodes } from "@/features/game/GamePageSections";
 import { composeBlocks } from "@/features/pages/compose";
-import { BlockColumn } from "@/features/pages/frames";
+import { BlockColumn, GameFrame } from "@/features/pages/frames";
 import { getPublishedPage } from "@/features/pages/public";
 import { GAME_LEGACY_GAP } from "@/features/pages/registry";
 import { publicApiGet } from "@/lib/publicApi";
@@ -110,34 +110,36 @@ export default async function GamePage({ params, searchParams }: PageProps) {
         conteúdo tem 1714px e as margens de 103px é que cedem quando a janela
         aperta. Ver o comentário em `app/page.tsx`.
       */}
-      <main className="flex-1 overflow-x-auto">
-        <div className="relative mx-auto w-full max-w-[1920px] min-w-[1714px] overflow-x-clip">
-          {/* Brilho do topo (Figma 1127:360): o centro dele cai acima do frame,
-              o que aparece é só a borda de baixo. */}
-          <Image
-            src="/images/game/glow-top.svg"
-            alt=""
-            width={472}
-            height={472}
-            aria-hidden
-            priority
-            className="pointer-events-none absolute -top-[310px] -left-[222px] size-[472px] max-w-none"
-          />
-
-          <div className="relative mx-auto w-[1714px] pt-[50px] pb-[100px]">
-            {/* A ORDEM dos blocos é do builder (etapa 10) — ou, com a página
-                publicada no construtor, da lista de blocos dela. */}
-            {published ? (
-              <BlockColumn
-                items={composeBlocks(published.blocks, published.refs, gameSectionNodes(page, query), {
-                  legacyGap: GAME_LEGACY_GAP,
-                })}
-              />
-            ) : (
-              <GamePageSections page={page} query={query} />
-            )}
-          </div>
-        </div>
+      {/* A moldura é a MESMA da prévia do editor (`GameFrame`): fixa em 1714
+          no desktop, fluida no celular (2026-10-09). */}
+      <main className="flex flex-1 flex-col">
+        <GameFrame
+          glow={
+            // Brilho do topo (Figma 1127:360): o centro dele cai acima do frame,
+            // o que aparece é só a borda de baixo.
+            <Image
+              src="/images/game/glow-top.svg"
+              alt=""
+              width={472}
+              height={472}
+              aria-hidden
+              priority
+              className="pointer-events-none absolute -top-[310px] -left-[222px] size-[472px] max-w-none"
+            />
+          }
+        >
+          {/* A ORDEM dos blocos é do builder (etapa 10) — ou, com a página
+              publicada no construtor, da lista de blocos dela. */}
+          {published ? (
+            <BlockColumn
+              items={composeBlocks(published.blocks, published.refs, gameSectionNodes(page, query), {
+                legacyGap: GAME_LEGACY_GAP,
+              })}
+            />
+          ) : (
+            <GamePageSections page={page} query={query} />
+          )}
+        </GameFrame>
       </main>
 
       <SiteFooter />

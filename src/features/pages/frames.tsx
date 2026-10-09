@@ -25,15 +25,21 @@ export function WideFrame({ children }: { children: ReactNode }) {
 }
 
 /**
- * Página de jogo: faixa FIXA de 1714 (o desenho da vitrine é de desktop), com
- * a mesma moldura elástica da home — ver o comentário em `app/page.tsx`.
+ * Página de jogo: faixa FIXA de 1714 no desktop (o desenho da vitrine), com a
+ * mesma moldura elástica da home — ver o comentário em `app/page.tsx`.
+ *
+ * Abaixo de `lg` (2026-10-09) a faixa vira FLUIDA com 16px de margem: antes o
+ * `min-w-[1714px]` valia em qualquer tela e o celular recebia uma página de
+ * 1714px para arrastar de lado. Cada bloco tem a sua versão estreita.
  */
 export function GameFrame({ children, glow }: { children: ReactNode; glow?: ReactNode }) {
   return (
-    <div className="flex-1 overflow-x-auto">
-      <div className="relative mx-auto w-full max-w-[1920px] min-w-[1714px] overflow-x-clip">
+    <div className="flex-1 lg:overflow-x-auto">
+      <div className="relative mx-auto w-full max-w-[1920px] overflow-x-clip lg:min-w-[1714px]">
         {glow}
-        <div className="relative mx-auto w-[1714px] pt-[50px] pb-[100px]">{children}</div>
+        <div className="relative mx-auto w-full px-[16px] pt-[24px] pb-[60px] lg:w-[1714px] lg:px-0 lg:pt-[50px] lg:pb-[100px]">
+          {children}
+        </div>
       </div>
     </div>
   );

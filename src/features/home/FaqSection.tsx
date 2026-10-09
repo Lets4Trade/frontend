@@ -111,7 +111,10 @@ export function FaqSection({
               <dt
                 {...editItem("home:faq", item.id, "title")}
                 data-edit-rich=""
-                className="w-[601px] font-helvetica text-[20px] leading-[normal] font-bold tracking-[0.2px] text-white"
+                // `break-words` (2026-10-09): palavra/link sem espaço (ou com espaço
+                // não-quebrável colado de outro programa) passava da coluna e
+                // corria por cima da arte. Texto com espaço quebra como sempre.
+                className="w-[601px] font-helvetica text-[20px] leading-[normal] font-bold tracking-[0.2px] break-words text-white"
               >
                 <RichText value={item.title} />
               </dt>
@@ -122,7 +125,7 @@ export function FaqSection({
                 // próprio bloco — o editor o lê daqui (`data-rich-align`).
                 data-rich-align={splitAlign(item.body).align ?? undefined}
                 className={cn(
-                  "mt-[25px] font-helvetica text-[18px] leading-[normal] tracking-[0.18px] text-brand-placeholder",
+                  "mt-[25px] font-helvetica text-[18px] leading-[normal] tracking-[0.18px] break-words text-brand-placeholder",
                   alignClass(splitAlign(item.body).align),
                 )}
               >

@@ -22,6 +22,11 @@ export type SectionExtraField = {
   defaultValue: string;
   maxLength: number;
   hint?: string;
+  /**
+   * Campo de ESCOLHA (2026-10-09, botão do chat): o formulário desenha um
+   * select em vez de texto; `defaultValue` precisa ser um dos valores.
+   */
+  options?: readonly { value: string; label: string }[];
 };
 
 export function blogCardExtraFields(linkHint: string): SectionExtraField[] {

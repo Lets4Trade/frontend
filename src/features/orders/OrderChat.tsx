@@ -89,7 +89,7 @@ export function OrderChat({
   return (
     <section
       aria-label="Conversa sobre o pedido"
-      className="flex h-[696px] w-[555px] flex-col rounded-[30px] border border-white/20 bg-[#070707] p-[25px]"
+      className="flex h-[560px] w-full max-w-[555px] flex-col rounded-[30px] border border-white/20 bg-[#070707] p-[16px] lg:h-[696px] lg:p-[25px]"
     >
       <div ref={listRef} className="scrollbar-orange min-h-0 flex-1 overflow-y-auto">
         {messages.length === 0 ? (
@@ -120,7 +120,7 @@ export function OrderChat({
             maxLength={2000}
             aria-label="Escrever mensagem"
             placeholder="Escrever mensagem"
-            className="h-[50px] w-[375px] rounded-full border border-brand-border bg-[image:var(--brand-surface-fill)] px-[25px] font-poppins text-[16px] tracking-[0.16px] text-white outline-none placeholder:text-white/60 focus-visible:border-brand-orange disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-[50px] min-w-0 flex-1 rounded-full border border-brand-border lg:w-[375px] lg:flex-none bg-[image:var(--brand-surface-fill)] px-[25px] font-poppins text-[16px] tracking-[0.16px] text-white outline-none placeholder:text-white/60 focus-visible:border-brand-orange disabled:cursor-not-allowed disabled:opacity-60"
           />
           <ComposerButton
             type="submit"

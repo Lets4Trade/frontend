@@ -6,6 +6,7 @@ import { PageViewTracker } from "@/features/admin/PageViewTracker";
 import { getContacts } from "@/features/site/contacts";
 import { getLayoutContent } from "@/features/site/layoutContent";
 import { ContactBubble } from "@/features/support/ContactBubble";
+import { chatConfig } from "@/features/support/chatConfig";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -140,7 +141,9 @@ export default async function RootLayout({
 }>) {
   // Leitura cacheada (1h, invalidada pelo painel) — a mesma que o cabeçalho e o
   // rodapé já fazem; não soma ida ao backend.
-  const contacts = await getContacts();
+  const [contacts, layout] = await Promise.all([getContacts(), getLayoutContent()]);
+  // Botão do chat (foto, balão, lado, online/offline) — Configurações da loja.
+  const chat = chatConfig(layout.text("chat"));
 
   return (
     <html
@@ -156,7 +159,7 @@ export default async function RootLayout({
         {children}
         {/* Contato flutuante em toda a loja; ele mesmo some no checkout e no
             painel. Ver `features/support/ContactBubble.tsx`. */}
-        <ContactBubble whatsappHref={contacts.whatsapp?.href} />
+        <ContactBubble whatsappHref={contacts.whatsapp?.href} config={chat} />
       </body>
     </html>
   );

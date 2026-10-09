@@ -32,9 +32,9 @@ export const SETTINGS_GROUPS: readonly SettingsGroup[] = [
   {
     id: "atendimento",
     title: "Atendimento",
-    description: "Canais oficiais. Aparecem no chat do site, no checkout e em “Venda pra nós”.",
-    sections: ["contatos"],
-    keywords: ["whatsapp", "zap", "discord", "contato", "chat", "suporte", "telefone"],
+    description: "Canais oficiais e o botão do chat (foto, balão, lado e online/offline).",
+    sections: ["contatos", "chat"],
+    keywords: ["whatsapp", "zap", "discord", "contato", "chat", "suporte", "telefone", "online", "offline", "balao"],
   },
   {
     id: "marca",

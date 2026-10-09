@@ -2,412 +2,328 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useSyncExternalStore } from "react";
 import { Drawer } from "vaul";
 import type { LoyaltyTierRule } from "@/features/loyalty/data";
 import { tierArt } from "@/features/loyalty/tiers";
+import { estimateCashback, formatBps } from "./cashback";
 import {
   formatCents,
   formatHours,
   isServiceItem,
+  itemCount,
   subtotalCents,
   useCart,
   type CartItem,
 } from "./store";
+import { useLoyaltyRate } from "./useLoyaltyRate";
 
 /**
- * Carrinho como gaveta lateral (Figma 2501:3626) — 652px encostados na direita.
+ * Carrinho como gaveta lateral.
  *
- * ALTURA: o arquivo desenha 1150px fixos. Aqui a gaveta ocupa a altura da
- * janela, com a LISTA rolando e o resumo preso embaixo. Um painel de 1150 num
- * monitor de 900 esconderia justamente o "FINALIZAR COMPRA", que é o único
- * botão que importa. A ordem visual e todos os espaçamentos do arquivo ficam.
+ * ── Reformulado em 2026-10-09 (pedido do usuário) ──────────────────────────
+ * A versão do Figma (2501:3626) tinha cada item com ~240px de altura (arte de
+ * 146×189 e quatro linhas de rótulo/valor) e um rodapé de ~450px. Numa tela de
+ * notebook sobrava lugar para UM item, e qualquer compra com dois virava uma
+ * rolagem apertada no meio da gaveta.
  *
- * `vaul` (já era dependência) entra pelo que ele resolve e é chato de fazer à
- * mão: prender o foco dentro da gaveta, fechar no Esc, travar a rolagem do
- * fundo e devolver o foco ao botão do cabeçalho ao fechar.
+ * Agora: linhas COMPACTAS (~100px: miniatura, nome, servidor, contador e
+ * preço na mesma linha), cinco ou seis à vista sem rolar; rodapé enxuto com o
+ * CASHBACK que a compra rende em destaque, totais e o botão. A lista continua
+ * sendo o único bloco que rola, e o resumo fica sempre visível.
+ *
+ * `vaul` cuida do que é chato de fazer à mão: foco preso, Esc, trava da
+ * rolagem do fundo e devolver o foco ao botão do cabeçalho ao fechar.
  */
+
+function subscribeCookies(onChange: () => void) {
+  window.addEventListener("focus", onChange);
+  return () => window.removeEventListener("focus", onChange);
+}
+/** Dica de sessão sem ida ao servidor — a mesma do chat (`ContactBubble`). */
+const hasSessionHint = () => /(?:^|;\s*)pt_authed_client=/.test(document.cookie);
+
 export function CartDrawer({ tiers }: { tiers: LoyaltyTierRule[] }) {
   const items = useCart((state) => state.items);
   const isOpen = useCart((state) => state.isOpen);
   const open = useCart((state) => state.open);
   const close = useCart((state) => state.close);
+  const signedIn = useSyncExternalStore(subscribeCookies, hasSessionHint, () => false);
 
   const subtotal = subtotalCents(items);
-  // Não existe origem de desconto ainda (nem cupom, nem promoção no backend).
-  // O arquivo desenha a linha, então ela fica — mostrando o valor de verdade,
-  // que hoje é zero. Some sozinha quando houver regra.
+  // Não existe origem de desconto no carrinho (as Lets Coins entram no
+  // checkout); a linha só aparece quando houver.
   const discount = 0;
   const total = subtotal - discount;
+  const count = itemCount(items);
 
   return (
-    <Drawer.Root
-      direction="right"
-      open={isOpen}
-      onOpenChange={(next) => (next ? open() : close())}
-    >
+    <Drawer.Root direction="right" open={isOpen} onOpenChange={(next) => (next ? open() : close())}>
       <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 z-40 bg-black/60" />
+        <Drawer.Overlay className="fixed inset-0 z-40 bg-black/60 backdrop-blur-[2px]" />
         <Drawer.Content
           aria-describedby={undefined}
-          className="fixed top-0 right-0 bottom-0 z-50 flex w-[652px] max-w-[100vw] flex-col border border-white/20 bg-[#070707] outline-none"
+          className="fixed top-0 right-0 bottom-0 z-50 flex w-[480px] max-w-[100vw] flex-col border-l border-white/15 bg-[#070707] outline-none"
         >
-          <Drawer.Title className="sr-only">Carrinho</Drawer.Title>
-
-          <header className="shrink-0 px-[50px] pt-[50px]">
-            <div className="flex items-center justify-between">
-              <p className="font-poppins text-[22px] leading-[28px] font-semibold tracking-[-0.44px] text-white">
-                Carrinho
-              </p>
-              <Drawer.Close
-                aria-label="Fechar o carrinho"
-                className="size-[24px] shrink-0 transition-opacity hover:opacity-70"
-              >
-                <Image
-                  src="/icons/cart/close-arrow.svg"
-                  alt=""
-                  width={24}
-                  height={24}
-                  aria-hidden
-                  className="size-[24px]"
-                />
-              </Drawer.Close>
-            </div>
-            <div aria-hidden className="mt-[15px] h-px w-full bg-white/25" />
+          <header className="flex shrink-0 items-center justify-between gap-[12px] border-b border-white/10 px-[20px] py-[18px] sm:px-[28px] sm:py-[22px]">
+            <Drawer.Title className="flex items-baseline gap-[10px] font-poppins text-[20px] font-semibold tracking-[-0.4px] text-white">
+              Carrinho
+              {count > 0 ? (
+                <span className="font-helvetica text-[14px] font-normal tracking-normal text-brand-fg-muted">
+                  {count} {count === 1 ? "item" : "itens"}
+                </span>
+              ) : null}
+            </Drawer.Title>
+            <Drawer.Close
+              aria-label="Fechar o carrinho"
+              className="flex size-[36px] shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none"
+            >
+              <Image src="/icons/cart/close-arrow.svg" alt="" width={22} height={22} aria-hidden className="size-[22px]" />
+            </Drawer.Close>
           </header>
 
-          {/* A lista é o único bloco elástico: é ela que rola quando o carrinho
-              cresce, e é o que mantém o resumo sempre visível. */}
-          <div className="scrollbar-orange min-h-0 flex-1 overflow-y-auto px-[50px]">
-            {items.length === 0 ? (
-              <EmptyCart />
-            ) : (
-              items.map((item, index) => (
-                <CartRow key={item.id} item={item} first={index === 0} />
-              ))
-            )}
-          </div>
+          {items.length === 0 ? (
+            <EmptyCart onClose={close} />
+          ) : (
+            <>
+              {/* A lista é o único bloco elástico: rola quando cresce, e o resumo
+                  embaixo fica sempre visível. */}
+              <ul className="scrollbar-orange min-h-0 flex-1 overflow-y-auto px-[20px] py-[8px] sm:px-[28px]">
+                {items.map((item) => (
+                  <CartRow key={item.id} item={item} />
+                ))}
+              </ul>
 
-          {items.length > 0 ? (
-            <footer className="shrink-0 px-[50px] pb-[35px]">
-              <GiftBanner />
+              <footer className="shrink-0 border-t border-white/10 bg-[#0b0b0b] px-[20px] pt-[18px] pb-[22px] sm:px-[28px]">
+                <CashbackCard items={items} tiers={tiers} signedIn={signedIn} enabled={isOpen} />
 
-              <div aria-hidden className="mt-[25px] h-px w-full bg-white/25" />
+                {/* Subtotal e desconto só quando HÁ desconto: sem ele, o subtotal
+                    repete o total e só come espaço da lista. */}
+                <dl className="mt-[16px] flex flex-col gap-[8px]">
+                  {discount > 0 ? (
+                    <>
+                      <div className="flex items-baseline justify-between">
+                        <dt className="font-helvetica text-[14px] text-white/70">Subtotal</dt>
+                        <dd className="font-poppins text-[14px] font-semibold text-white">{formatCents(subtotal)}</dd>
+                      </div>
+                      <div className="flex items-baseline justify-between">
+                        <dt className="font-helvetica text-[14px] text-white/70">Desconto</dt>
+                        <dd className="font-poppins text-[14px] font-semibold text-[#22c55e]">− {formatCents(discount)}</dd>
+                      </div>
+                    </>
+                  ) : null}
+                  <div className="flex items-baseline justify-between">
+                    <dt className="font-helvetica text-[18px] font-bold text-white">Total</dt>
+                    <dd className="font-poppins text-[22px] leading-none font-semibold text-white">{formatCents(total)}</dd>
+                  </div>
+                </dl>
 
-              <SummaryRow label="Preço" value={formatCents(subtotal)} />
-              <SummaryRow label="Desconto" value={formatCents(discount)} />
-
-              <div aria-hidden className="mt-[26px] h-px w-full bg-white/25" />
-
-              <div className="mt-[26px] flex items-baseline justify-between">
-                <span className="font-helvetica text-[24px] leading-[27px] font-bold tracking-[0.24px] text-white/80">
-                  Total
-                </span>
-                <span className="font-poppins text-[24px] leading-[34px] font-semibold tracking-[0.24px] text-white">
-                  {formatCents(total)}
-                </span>
-              </div>
-
-              <Link
-                href="/checkout"
-                className="mt-[25px] flex h-[50px] w-full items-center justify-center rounded-full border border-[var(--brand-stroke-soft)] bg-[image:var(--brand-orange-gradient)] font-poppins text-[16px] font-bold tracking-[0.16px] text-black transition-opacity hover:opacity-90"
-              >
-                FINALIZAR COMPRA
-              </Link>
-
-              <div aria-hidden className="mt-[25px] h-px w-full bg-white/25" />
-
-              <NextTier totalCents={total} tiers={tiers} />
-            </footer>
-          ) : null}
+                <Link
+                  href="/checkout"
+                  onClick={close}
+                  className="mt-[16px] flex h-[50px] w-full items-center justify-center rounded-full border border-[var(--brand-stroke-soft)] bg-[image:var(--brand-orange-gradient)] font-poppins text-[16px] font-bold tracking-[0.16px] text-black transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
+                >
+                  FINALIZAR COMPRA
+                </Link>
+                <button
+                  type="button"
+                  onClick={close}
+                  className="mt-[10px] w-full py-[6px] text-center font-poppins text-[13px] font-semibold text-white/70 transition-colors hover:text-white"
+                >
+                  Continuar comprando
+                </button>
+              </footer>
+            </>
+          )}
         </Drawer.Content>
       </Drawer.Portal>
     </Drawer.Root>
   );
 }
 
-function EmptyCart() {
+function EmptyCart({ onClose }: { onClose: () => void }) {
   return (
-    <p className="py-[80px] text-center font-helvetica text-[16px] text-brand-fg-muted">
-      Seu carrinho está vazio.
-    </p>
-  );
-}
-
-/**
- * Uma linha do carrinho (Figma 2505:1045 e irmãos).
- *
- * A geometria é a do arquivo: arte de 146×189, textos a partir de x=221 e os
- * valores alinhados à direita da coluna, que termina na borda do conteúdo.
- */
-function CartRow({ item, first }: { item: CartItem; first: boolean }) {
-  const setQuantity = useCart((state) => state.setQuantity);
-  const remove = useCart((state) => state.remove);
-
-  return (
-    <article className={first ? "pt-[26px]" : "border-t border-white/25 pt-[26px]"}>
-      <div className="flex gap-[25px] pb-[25px]">
-        <div className="relative size-[146px] h-[189px] shrink-0 overflow-hidden rounded-[12px] border-2 border-white/10 bg-[#2f2f2f]">
-          {/* `eager`: a gaveta abre JÁ com as linhas na tela, e o `lazy` padrão
-              só pedia a arte depois da animação — o card ficava cinza por um
-              instante a cada abertura (relato de 2026-09-28). Produto sem arte
-              mostra a logo do jogo em vez do retângulo vazio. */}
-          {item.image ? (
-            <Image
-              src={item.image}
-              alt=""
-              width={146}
-              height={189}
-              loading="eager"
-              className="size-full object-cover"
-            />
-          ) : item.gameLogo ? (
-            <Image
-              src={item.gameLogo}
-              alt=""
-              width={110}
-              height={90}
-              loading="eager"
-              className="size-full object-contain p-[18px] opacity-80"
-            />
-          ) : null}
-        </div>
-
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex items-start justify-between gap-[15px]">
-            <h3 className="min-w-0 truncate font-poppins text-[18px] leading-[27px] font-bold tracking-[0.36px] text-white">
-              {item.name}
-            </h3>
-
-            <div className="flex shrink-0 items-center gap-[15px]">
-              {item.gameLogo ? (
-                <Image
-                  src={item.gameLogo}
-                  alt=""
-                  width={87}
-                  height={36}
-                  aria-hidden
-                  className="h-[36px] w-auto object-contain"
-                />
-              ) : null}
-              <time className="font-helvetica text-[16px] tracking-[0.16px] text-brand-placeholder">
-                {formatDate(item.addedAt)}
-              </time>
-            </div>
-          </div>
-
-          <Field label="Plataforma/Servidor" className="mt-[32px]">
-            <span className="font-poppins text-[16px] font-semibold tracking-[0.08px] text-white">
-              {item.platform}
-            </span>
-          </Field>
-
-          {item.summary ? (
-            <Field label="Serviço" className="mt-[22px]">
-              <span className="min-w-0 truncate font-poppins text-[16px] font-semibold tracking-[0.08px] text-white" title={item.summary}>
-                {item.summary}
-              </span>
-            </Field>
-          ) : null}
-
-          <Field label="Preço" className="mt-[22px]">
-            {/* O preço da linha é o ÚNICO texto em degradê no arquivo — ele é a
-                informação que a pessoa está procurando na tela. */}
-            <span
-              className="bg-clip-text font-poppins text-[16px] font-semibold tracking-[0.08px] text-transparent"
-              style={{ backgroundImage: "var(--brand-orange-gradient)" }}
-            >
-              {formatCents(item.unitPriceCents * item.quantity)}
-            </span>
-          </Field>
-
-          <div className="mt-[27px] flex items-center justify-between">
-            {/* Serviço tem quantidade fixa em 1 (a escolha já diz o tamanho do
-                pedido) — sem contador, só o botão de remover. */}
-            {isServiceItem(item) ? (
-              <span className="font-helvetica text-[14px] tracking-[0.14px] text-white/60">
-                {item.hours ? `Total de Horas: ${formatHours(item.hours)}` : "Serviço"}
-              </span>
-            ) : (
-            <div className="flex items-center gap-[37px]">
-              <StepButton
-                label={`Diminuir a quantidade de ${item.name}`}
-                onClick={() => setQuantity(item.id, item.quantity - 1)}
-              >
-                −
-              </StepButton>
-              <span
-                aria-live="polite"
-                className="min-w-[7px] text-center font-poppins text-[18px] leading-[27px] font-bold tracking-[0.36px] text-white"
-              >
-                {item.quantity}
-              </span>
-              <StepButton
-                label={`Aumentar a quantidade de ${item.name}`}
-                onClick={() => setQuantity(item.id, item.quantity + 1)}
-              >
-                +
-              </StepButton>
-            </div>
-            )}
-
-            <button
-              type="button"
-              onClick={() => remove(item.id)}
-              aria-label={`Remover ${item.name} do carrinho`}
-              className="size-[20px] shrink-0 transition-opacity hover:opacity-70"
-            >
-              <Image
-                src="/icons/cart/trash.svg"
-                alt=""
-                width={20}
-                height={20}
-                aria-hidden
-                className="size-[20px]"
-              />
-            </button>
-          </div>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function Field({
-  label,
-  className,
-  children,
-}: {
-  label: string;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className={`flex items-baseline justify-between gap-[15px] ${className ?? ""}`}>
-      <span className="font-helvetica text-[16px] leading-[16px] font-bold tracking-[0.16px] text-white/80">
-        {label}
+    <div className="flex flex-1 flex-col items-center justify-center gap-[12px] px-[28px] text-center">
+      <span aria-hidden className="flex size-[64px] items-center justify-center rounded-full border border-white/10 bg-white/5">
+        <Image src="/icons/game/cart.svg" alt="" width={26} height={26} className="size-[26px] opacity-80" />
       </span>
-      {children}
+      <p className="font-poppins text-[16px] font-semibold text-white">Seu carrinho está vazio</p>
+      <p className="font-helvetica text-[14px] leading-[20px] text-brand-fg-muted">
+        Escolha um jogo e adicione moedas, itens ou serviços.
+      </p>
+      <button
+        type="button"
+        onClick={onClose}
+        className="mt-[6px] inline-flex h-[42px] items-center justify-center rounded-full border border-brand-border px-[24px] font-poppins text-[14px] font-bold text-white transition-colors hover:bg-white/5"
+      >
+        CONTINUAR COMPRANDO
+      </button>
     </div>
   );
 }
 
 /**
- * Botão do contador. O `-` some a linha quando chega a zero em vez de travar em
- * 1: é o gesto que a pessoa já está fazendo para se livrar do item, e a lixeira
- * continua ali para quem quiser o caminho direto.
+ * Uma linha COMPACTA: miniatura 72px, nome (até 2 linhas), servidor e — no
+ * serviço — o resumo da escolha; embaixo, contador e preço da linha.
  */
-function StepButton({
-  label,
-  onClick,
-  children,
-}: {
-  label: string;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
+function CartRow({ item }: { item: CartItem }) {
+  const setQuantity = useCart((state) => state.setQuantity);
+  const remove = useCart((state) => state.remove);
+  const service = isServiceItem(item);
+
+  return (
+    <li className="flex gap-[14px] border-b border-white/[0.07] py-[14px] last:border-b-0">
+      <div className="relative size-[72px] shrink-0 overflow-hidden rounded-[12px] border border-white/10 bg-[#161616]">
+        {/* `eager`: a gaveta abre JÁ com as linhas na tela; o `lazy` padrão só
+            pedia a arte depois da animação (relato de 2026-09-28). Sem arte, a
+            logo do jogo. */}
+        {item.image ? (
+          <Image src={item.image} alt="" fill sizes="72px" loading="eager" className="object-contain p-[6px]" />
+        ) : item.gameLogo ? (
+          <Image src={item.gameLogo} alt="" fill sizes="72px" loading="eager" className="object-contain p-[10px] opacity-80" />
+        ) : null}
+      </div>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex items-start gap-[8px]">
+          <h3 className="line-clamp-2 min-w-0 flex-1 font-poppins text-[15px] leading-[20px] font-semibold text-white">
+            {item.name}
+          </h3>
+          <button
+            type="button"
+            onClick={() => remove(item.id)}
+            aria-label={`Remover ${item.name} do carrinho`}
+            className="-mt-[2px] -mr-[6px] flex size-[28px] shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none"
+          >
+            <Image src="/icons/cart/trash.svg" alt="" width={16} height={16} aria-hidden className="size-[16px] opacity-80" />
+          </button>
+        </div>
+
+        <p className="mt-[2px] truncate font-helvetica text-[12px] text-brand-fg-subtle">{item.platform}</p>
+        {item.summary ? (
+          <p className="truncate font-helvetica text-[12px] text-brand-fg-muted" title={item.summary}>
+            {item.summary}
+          </p>
+        ) : null}
+
+        <div className="mt-auto flex items-center justify-between gap-[10px] pt-[8px]">
+          {/* Serviço tem quantidade fixa em 1 (a escolha já diz o tamanho). */}
+          {service ? (
+            <span className="font-helvetica text-[12px] text-white/60">
+              {item.hours ? `~${formatHours(item.hours)} h` : "Serviço"}
+            </span>
+          ) : (
+            <div className="flex items-center rounded-full border border-white/10 bg-white/[0.03]">
+              <StepButton label={`Diminuir a quantidade de ${item.name}`} onClick={() => setQuantity(item.id, item.quantity - 1)}>
+                −
+              </StepButton>
+              <span aria-live="polite" className="min-w-[26px] text-center font-poppins text-[14px] font-bold text-white">
+                {item.quantity}
+              </span>
+              <StepButton label={`Aumentar a quantidade de ${item.name}`} onClick={() => setQuantity(item.id, item.quantity + 1)}>
+                +
+              </StepButton>
+            </div>
+          )}
+
+          {/* O preço da linha é o único texto em degradê — é o que a pessoa procura. */}
+          <span
+            className="bg-clip-text font-poppins text-[15px] font-semibold text-transparent"
+            style={{ backgroundImage: "var(--brand-orange-gradient)" }}
+          >
+            {formatCents(item.unitPriceCents * item.quantity)}
+          </span>
+        </div>
+      </div>
+    </li>
+  );
+}
+
+/**
+ * O `-` some a linha quando chega a zero em vez de travar em 1: é o gesto que
+ * a pessoa já está fazendo para se livrar do item.
+ */
+function StepButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="flex size-[50px] items-center justify-center rounded-[8px] border border-white/10 bg-[image:var(--brand-surface-fill)] font-poppins text-[18px] font-bold tracking-[0.18px] text-white transition-opacity hover:opacity-90"
+      className="flex size-[32px] items-center justify-center rounded-full font-poppins text-[16px] font-bold text-white transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none"
     >
       {children}
     </button>
   );
 }
 
-/** Faixa promocional do arquivo (2516:1109). Texto fixo até haver promoção real. */
-function GiftBanner() {
-  return (
-    <div className="mt-[25px] flex h-[89px] items-center gap-[25px] rounded-[15px] border border-white/10 bg-[image:var(--brand-surface-fill)] px-[25px]">
-      <Image
-        src="/icons/cart/sale.svg"
-        alt=""
-        width={28}
-        height={28}
-        aria-hidden
-        className="size-[28px] shrink-0"
-      />
-      <div>
-        <p className="font-helvetica text-[18px] leading-[20px] font-bold tracking-[0.18px] text-white">
-          Ganhe um Brinde
-        </p>
-        <p className="mt-[6px] font-helvetica text-[14px] leading-[16px] tracking-[0.14px] text-brand-placeholder">
-          A partir de R$ 50.00
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function SummaryRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="mt-[26px] flex items-baseline justify-between">
-      <span className="font-helvetica text-[16px] leading-[16px] font-bold tracking-[0.16px] text-white/80">
-        {label}
-      </span>
-      <span className="font-poppins text-[16px] leading-[23px] font-semibold tracking-[0.08px] text-white">
-        {value}
-      </span>
-    </div>
-  );
-}
-
 /**
- * "Prata — Ao comprar vai atingir este nível de Cashback".
- *
- * As faixas chegam do BACKEND, via cabeçalho (`GET /api/v1/loyalty/tiers`, uma
- * leitura pública e cacheada por uma hora). Até 2026-09-10 vinham de uma tabela
- * que só existia no frontend.
- *
- * O nível sai do VALOR DO CARRINHO, e não do total já gasto pela conta: ficaria
- * exato somando o `totalSpent`, mas isso exigiria o cabeçalho buscar a
- * fidelidade em TODA página, e ele hoje só busca a sessão. Ver
- * open-questions.md.
+ * Quanto de cashback a compra rende (2026-10-09). Logado: o percentual do
+ * NÍVEL DA CONTA (o mesmo que o backend vai usar). Deslogado: o do nível
+ * inicial, com o convite para entrar — sem conta não há onde creditar.
  */
-function NextTier({
-  totalCents,
+function CashbackCard({
+  items,
   tiers,
+  signedIn,
+  enabled,
 }: {
-  totalCents: number;
+  items: CartItem[];
   tiers: LoyaltyTierRule[];
+  signedIn: boolean;
+  enabled: boolean;
 }) {
-  const tier =
-    [...tiers].reverse().find((candidate) => totalCents >= candidate.minSpentCents) ??
-    tiers[0];
-  const art = tierArt(tier.tier, tier.iconUrl);
+  const rate = useLoyaltyRate(enabled && signedIn);
+  const base = tiers[0];
+  const bps = rate?.cashbackBps ?? base?.cashbackBps ?? 0;
+  const coinCents = rate?.coinCents ?? 1;
+  const { coins, cents } = estimateCashback(items, bps, coinCents);
+  if (bps <= 0 || cents <= 0) return null;
+
+  const tierKey = rate?.tier ?? base?.tier ?? "BRONZE";
+  const tierName = rate?.tierName ?? base?.name ?? "Bronze";
+  const tierRule = tiers.find((tier) => tier.tier === tierKey);
+  const art = tierArt(tierKey, tierRule?.iconUrl);
 
   return (
-    <div className="mt-[26px] flex items-center justify-between gap-[25px]">
-      <div className="min-w-0">
-        <p className="font-helvetica text-[22px] leading-[24px] font-bold tracking-[0.22px] text-white">
-          {tier.name}
-        </p>
-        <p className="mt-[5px] font-helvetica text-[16px] leading-[16px] tracking-[0.16px] text-brand-placeholder">
-          Ao comprar vai atingir este nível de Cashback
-        </p>
+    <div className="relative overflow-hidden rounded-[16px] border border-brand-orange/30 bg-[linear-gradient(135deg,rgba(255,115,0,0.14),rgba(255,115,0,0.03))] px-[14px] py-[12px]">
+      <div className="flex items-center gap-[12px]">
+        <Image src={art.icon} alt="" width={44} height={44} aria-hidden className="size-[44px] shrink-0 object-contain" />
+        <div className="min-w-0 flex-1">
+          {signedIn && rate ? (
+            <>
+              <p className="font-poppins text-[14px] leading-[19px] text-white">
+                Você ganha{" "}
+                <strong className="bg-clip-text font-bold text-transparent" style={{ backgroundImage: "var(--brand-orange-gradient)" }}>
+                  {formatCents(cents)}
+                </strong>{" "}
+                de cashback
+              </p>
+              <p className="mt-[2px] font-helvetica text-[12px] leading-[16px] text-brand-fg-muted">
+                {coins.toLocaleString("pt-BR")} Lets Coins · {formatBps(bps)} do nível {tierName}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="font-poppins text-[14px] leading-[19px] text-white">
+                Entre e ganhe{" "}
+                <strong className="bg-clip-text font-bold text-transparent" style={{ backgroundImage: "var(--brand-orange-gradient)" }}>
+                  {formatCents(cents)}
+                </strong>{" "}
+                de cashback
+              </p>
+              <p className="mt-[2px] font-helvetica text-[12px] leading-[16px] text-brand-fg-muted">
+                {formatBps(bps)} em Lets Coins já no nível {tierName}
+              </p>
+            </>
+          )}
+        </div>
       </div>
-      <Image
-        src={art.icon}
-        alt=""
-        width={75}
-        height={75}
-        aria-hidden
-        className="size-[75px] shrink-0 object-contain"
-      />
+      <p className="mt-[8px] font-helvetica text-[11px] leading-[15px] text-white/50">
+        Creditado quando o pedido for entregue.
+        {rate?.nextTierName && rate.missingToNextCents > 0
+          ? ` Faltam ${formatCents(rate.missingToNextCents)} para o nível ${rate.nextTierName}.`
+          : ""}
+      </p>
     </div>
   );
-}
-
-const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
-  day: "2-digit",
-  month: "2-digit",
-  year: "2-digit",
-  timeZone: "America/Sao_Paulo",
-});
-
-function formatDate(iso: string) {
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? "" : dateFormatter.format(date);
 }

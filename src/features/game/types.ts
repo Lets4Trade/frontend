@@ -1,4 +1,5 @@
 import type { BlogCardTexts } from "@/features/home/blogCard";
+import type { SectionView } from "@/features/site/content";
 import type { ComponentProps } from "react";
 import type { ReviewsSection } from "@/features/home/ReviewsSection";
 import type { VideoSection } from "@/features/home/VideoSection";
@@ -275,5 +276,11 @@ export type GamePage = {
   showcase: {
     video: ComponentProps<typeof VideoSection>;
     reviews: ComponentProps<typeof ReviewsSection>;
+    /**
+     * As MESMAS sessões da home para as versões de CELULAR delas
+     * (`MobileVideo`/`MobileReviews`, 2026-10-09). O desenho de desktop tem
+     * 1820px em coordenadas fixas e não cabe numa tela estreita.
+     */
+    mobile: { video: SectionView; reviews: SectionView };
   };
 };

@@ -84,7 +84,9 @@ export function GameBannerSlider({
     <section
       aria-roledescription="carrossel"
       aria-label="Banners"
-      className="group relative h-[490px] touch-pan-y overflow-hidden rounded-[30px] border border-white/10 bg-[#2f2f2f]"
+      // Celular (2026-10-09): mais baixo e com o canto menor — 490px de altura
+      // ocupavam mais da metade da tela.
+      className="group relative h-[180px] touch-pan-y overflow-hidden rounded-[20px] border border-white/10 bg-[#2f2f2f] sm:h-[280px] lg:h-[490px] lg:rounded-[30px]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}

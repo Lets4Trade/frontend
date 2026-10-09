@@ -38,6 +38,17 @@ const SIZES = {
     labelClass: "text-[10.092px] leading-[15.138px] tracking-[0.2018px]",
     height: 48,
   },
+  /** Celular (2026-10-09): a de `page` tem 575px; esta cabe em 358 com os rótulos. */
+  compact: {
+    circle: 25.23,
+    gap: 92,
+    connector: 66.77,
+    connectorHeight: 1.261,
+    labelTop: 31.5,
+    labelWidth: 80,
+    labelClass: "text-[10.092px] leading-[15.138px] tracking-[0.2018px]",
+    height: 48,
+  },
   page: {
     circle: 40,
     gap: 178.33,

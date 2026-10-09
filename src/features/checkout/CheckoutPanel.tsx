@@ -22,11 +22,34 @@ import type { ReactNode } from "react";
  * painel. Sem o `relative`, o `z-10` não vale nada — z-index só existe em
  * elemento posicionado.
  */
-export function CheckoutSidePanel({ children }: { children: ReactNode }) {
+export function CheckoutSidePanel({
+  children,
+  mobileFirst = false,
+}: {
+  children: ReactNode;
+  /** No celular, o painel vem ANTES da coluna principal (resumo antes do formulário). */
+  mobileFirst?: boolean;
+}) {
   return (
-    <aside className="relative z-10 w-[841px] shrink-0 border-l border-white/20 bg-[#070707] px-[100px] pt-[49px] pb-[60px]">
+    <aside
+      className={`relative z-10 w-full shrink-0 border-white/20 bg-[#070707] px-[16px] pt-[28px] pb-[36px] lg:w-[841px] lg:border-l lg:px-[100px] lg:pt-[49px] lg:pb-[60px] ${
+        mobileFirst ? "order-first border-b lg:order-none lg:border-b-0" : "border-t lg:border-t-0"
+      }`}
+    >
       {children}
     </aside>
+  );
+}
+
+/** Fileira do topo do painel: botão de referências + selo (o selo só no desktop). */
+export function PanelReferencesRow() {
+  return (
+    <div className="flex items-center justify-between gap-[25px]">
+      <ReferencesButton />
+      <span className="hidden lg:flex">
+        <ReferencesBadge />
+      </span>
+    </div>
   );
 }
 
@@ -52,7 +75,7 @@ export function ReferencesButton() {
   return (
     <Link
       href="/#reviews"
-      className="brand-ring flex h-[50px] w-[431px] items-center justify-center gap-[10px] rounded-full bg-[image:var(--brand-surface-fill)] font-poppins text-[16px] font-bold tracking-[0.16px] text-white transition-opacity hover:opacity-90"
+      className="brand-ring flex h-[50px] w-full items-center justify-center gap-[10px] rounded-full bg-[image:var(--brand-surface-fill)] px-[12px] text-center font-poppins text-[13px] font-bold tracking-[0.16px] text-white transition-opacity hover:opacity-90 lg:w-[431px] lg:px-0 lg:text-[16px]"
     >
       <Image
         src="/icons/checkout/crown.svg"

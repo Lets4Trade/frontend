@@ -97,7 +97,9 @@ export function ProductCard({
       }
       image={product.image}
       actions={
-        <div className="flex items-center gap-[15px] pl-[32px]">
+        // Celular: fileira centrada e mais justa (botões de 36px) para caber
+        // no card de ~170px; desktop: começa a 32px da borda, como no arquivo.
+        <div className="flex items-center justify-center gap-[6px] lg:justify-start lg:gap-[15px] lg:pl-[32px]">
         <StepButton
           label={`Diminuir a quantidade de ${product.name}`}
           onClick={() => setQuantity((value) => Math.max(1, value - 1))}
@@ -108,7 +110,7 @@ export function ProductCard({
 
         <span
           aria-live="polite"
-          className="w-[22px] text-center font-poppins text-[18px] leading-[27px] font-bold tracking-[0.36px] text-white"
+          className="w-[20px] text-center font-poppins text-[16px] leading-[27px] font-bold tracking-[0.36px] text-white lg:w-[22px] lg:text-[18px]"
         >
           {quantity}
         </span>
@@ -126,7 +128,7 @@ export function ProductCard({
         <button
           type="button"
           onClick={add}
-          className="flex size-[50px] items-center justify-center rounded-[8px] border border-white/15 bg-[image:var(--brand-orange-gradient)] transition-opacity hover:opacity-90"
+          className="flex size-[36px] items-center justify-center rounded-[8px] border border-white/15 bg-[image:var(--brand-orange-gradient)] transition-opacity hover:opacity-90 lg:size-[50px]"
         >
           <Image
             src="/icons/game/cart.svg"
@@ -134,7 +136,7 @@ export function ProductCard({
             width={22}
             height={22}
             aria-hidden
-            className="size-[22px]"
+            className="size-[18px] lg:size-[22px]"
           />
           <span className="sr-only">
             Adicionar {quantity} × {product.name} ao carrinho
@@ -148,7 +150,7 @@ export function ProductCard({
           type="button"
           onClick={buyNow}
           aria-label={`Comprar ${quantity} × ${product.name} agora`}
-          className={cn(buttonVariants({ variant: "primary" }), "ml-[32px] h-[40px] w-[217px] px-0")}
+          className={cn(buttonVariants({ variant: "primary" }), "h-[38px] w-full px-0 text-[13px] lg:ml-[32px] lg:h-[40px] lg:w-[217px] lg:text-[16px]")}
         >
           COMPRE AQUI
         </button>
@@ -174,7 +176,7 @@ function StepButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="flex size-[50px] items-center justify-center rounded-[8px] border border-white/10 bg-[image:var(--brand-surface-fill)] font-poppins text-[18px] font-bold tracking-[0.18px] text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+      className="flex size-[36px] items-center justify-center rounded-[8px] border border-white/10 bg-[image:var(--brand-surface-fill)] font-poppins text-[16px] font-bold tracking-[0.18px] text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 lg:size-[50px] lg:text-[18px]"
     >
       {children}
     </button>

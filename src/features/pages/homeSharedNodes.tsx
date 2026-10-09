@@ -33,7 +33,11 @@ export async function homeSharedNodes(): Promise<LegacyNodes> {
       gap: SHARED_GAP,
       node: (
         <>
-          <div className="lg:hidden">{mobile.get(source) ?? null}</div>
+          {/* `overflow-x-clip` (2026-10-09): os blocos do celular da home sangram
+              até a borda (carrossel de reviews com `-mx-[25px]`, enfeite com
+              `-right-[25px]`) contando com a margem de 25px da home; nas outras
+              páginas a margem é menor e a sobra virava rolagem lateral (Venda). */}
+          <div className="overflow-x-clip lg:hidden">{mobile.get(source) ?? null}</div>
           <div className="hidden lg:block">
             <FitWidth width={HOME_WIDTH}>{wide}</FitWidth>
           </div>

@@ -7,7 +7,7 @@
  * das classes divergiriam no primeiro ajuste.
  */
 export function pillClassName(active: boolean, extra = "") {
-  return `inline-flex h-[50px] min-w-[197px] items-center justify-center rounded-full px-6 font-poppins text-[16px] font-bold tracking-[0.16px] transition-opacity hover:opacity-90 outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg ${
+  return `inline-flex h-[44px] min-w-[140px] items-center justify-center rounded-full px-[18px] font-poppins text-[14px] lg:h-[50px] lg:min-w-[197px] lg:px-6 lg:text-[16px] font-bold tracking-[0.16px] transition-opacity hover:opacity-90 outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg ${
     active
       ? "border border-[var(--brand-stroke-soft)] bg-[image:var(--brand-orange-gradient)] text-black"
       : "border border-brand-border bg-[image:var(--brand-surface-fill)] text-white/80"

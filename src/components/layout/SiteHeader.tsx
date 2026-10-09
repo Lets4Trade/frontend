@@ -82,13 +82,12 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
   const badge = layout.text("header-selo");
   const search = layout.text("header-busca");
   const actions = layout.text("header-acoes");
-  // No celular o cabeçalho acompanha a rolagem (pedido em 2026-09-24): é onde
-  // ficam menu, busca e carrinho, e o polegar não deveria precisar voltar ao
-  // topo para achá-los. `sticky` e não `fixed`: continua ocupando os 83px no
-  // fluxo, então nada da página sobe por baixo dele. No desktop segue como
-  // estava.
+  // O cabeçalho acompanha a rolagem: no celular desde 2026-09-24 (menu, busca e
+  // carrinho sempre à mão) e no desktop desde 2026-10-09 (pedido do usuário).
+  // `sticky` e não `fixed`: continua ocupando os 83px no fluxo, então nada da
+  // página sobe por baixo dele.
   return (
-    <header className="sticky top-0 z-40 h-[83px] w-full bg-black/50 backdrop-blur-[9px] lg:relative lg:z-20">
+    <header className="sticky top-0 z-40 h-[83px] w-full bg-black/50 backdrop-blur-[9px]">
       <GlowBar className="-top-[2px]" />
 
       <div className="relative mx-auto flex h-full max-w-[1920px] items-center gap-[12px] px-[25px] md:gap-[25px] md:px-6 lg:px-[50px]">

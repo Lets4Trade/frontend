@@ -4,8 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { CheckoutShell } from "@/features/checkout/CheckoutShell";
 import {
   CheckoutSidePanel,
-  ReferencesBadge,
-  ReferencesButton,
+  PanelReferencesRow,
 } from "@/features/checkout/CheckoutPanel";
 import { OrderChat } from "@/features/orders/OrderChat";
 import { getAccountProfile } from "@/features/account/profile";
@@ -65,9 +64,9 @@ export default async function PedidoPage({ params }: PageProps) {
 
   return (
     <CheckoutShell>
-      <div className="flex min-h-[1080px]">
+      <div className="flex flex-col lg:min-h-[1080px] lg:flex-row">
         {/* Coluna do chat: 555px, começando em y=192 como no arquivo. */}
-        <div className="flex flex-1 justify-center px-[50px] pt-[192px] pb-[60px]">
+        <div className="flex flex-1 justify-center px-[16px] pt-[28px] pb-[40px] lg:px-[50px] lg:pt-[192px] lg:pb-[60px]">
           <OrderChat
             reference={reference}
             initialConversationId={chat.conversation?.id ?? null}
@@ -76,18 +75,20 @@ export default async function PedidoPage({ params }: PageProps) {
           />
         </div>
 
-        <CheckoutSidePanel>
-          <div className="flex items-center justify-between gap-[25px]">
-            <ReferencesButton />
-            <ReferencesBadge />
-          </div>
+        {/* No celular o andamento e o resumo vêm antes do chat. */}
+        <CheckoutSidePanel mobileFirst>
+          <PanelReferencesRow />
 
           {order ? (
             <>
               {/* A trilha fica CENTRADA na coluna de 641: ela tem 575 no
                   arquivo, e as sobras de 33 de cada lado são o que a centra. */}
-              <div className="mt-[49px] flex justify-center">
+              <div className="mt-[49px] hidden justify-center lg:flex">
                 <OrderStatusTracker currentStep={order.currentStep} size="page" />
+              </div>
+              {/* A trilha de 575px não cabe no celular: versão compacta. */}
+              <div className="mt-[32px] flex justify-center lg:hidden">
+                <OrderStatusTracker currentStep={order.currentStep} size="compact" />
               </div>
 
               <h2 className="mt-[50px] font-poppins text-[22px] leading-[28px] font-semibold tracking-[-0.44px] text-white">
@@ -128,7 +129,7 @@ export default async function PedidoPage({ params }: PageProps) {
               <button
                 type="button"
                 disabled
-                className="brand-ring mt-[60px] flex h-[60px] w-full items-center gap-[25px] rounded-full bg-[image:var(--brand-surface-fill)] px-[25px] text-left transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+                className="brand-ring mt-[40px] flex h-[60px] w-full lg:mt-[60px] items-center gap-[25px] rounded-full bg-[image:var(--brand-surface-fill)] px-[25px] text-left transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Image
                   src="/icons/order/bill.svg"

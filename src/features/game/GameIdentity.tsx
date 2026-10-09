@@ -1,5 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { CSSProperties } from "react";
+import { TabsRow } from "./TabsRow";
 import type { GamePage, GameTab } from "./types";
 import { tabHrefWithServer } from "./storefrontTabs";
 
@@ -20,22 +22,26 @@ export function GameIdentity({ page, server = "" }: { page: GamePage; server?: s
   // card do configurador, e ela ficaria por cima dele.
   const isService = page.tabs.find((tab) => tab.id === page.activeTabId)?.layout === "SERVICE";
 
+  // Celular (2026-10-09): logo menor ao lado do título e as abas numa fileira
+  // de largura cheia que ROLA de lado — embrulhadas, nove abas de 130px viravam
+  // cinco linhas. O `contents` do miolo põe título e abas direto no `flex` de
+  // fora no celular; no desktop o miolo volta a ser a coluna do arquivo.
   return (
-    <div className="relative flex items-start gap-[30px]">
+    <div className="relative flex flex-wrap items-center gap-x-[14px] gap-y-[18px] lg:flex-nowrap lg:items-start lg:gap-[30px]">
       <GameLogo logo={logo} name={page.name} />
 
-      <div className="flex-1 pt-[8px]">
-        <h1 className="font-helvetica text-[30px] leading-none font-bold tracking-[0.3px] text-white">
+      <div className="contents lg:block lg:flex-1 lg:pt-[8px]">
+        <h1 className="min-w-0 flex-1 font-helvetica text-[22px] leading-[1.15] font-bold tracking-[0.3px] text-white lg:text-[30px] lg:leading-none">
           {heading}
         </h1>
 
         {/* Jogo sem aba ativa: sem a fileira vazia (e sem o vão de 25px). */}
         {page.tabs.length > 0 ? (
-          <nav className="mt-[25px] flex flex-wrap gap-[15px]">
+          <TabsRow className="-mx-[16px] flex w-[calc(100%+32px)] basis-full gap-[10px] overflow-x-auto px-[16px] pb-[4px] [scrollbar-width:none] lg:mx-0 lg:mt-[25px] lg:w-auto lg:flex-wrap lg:gap-[15px] lg:overflow-visible lg:px-0 lg:pb-0">
             {page.tabs.map((tab) => (
               <TabLink key={tab.id} tab={tab} server={server} active={tab.id === page.activeTabId} />
             ))}
-          </nav>
+          </TabsRow>
         ) : null}
       </div>
 
@@ -45,7 +51,8 @@ export function GameIdentity({ page, server = "" }: { page: GamePage; server?: s
         // `flex` empurraria as abas.
         <Link
           href={coin.href ?? "/fidelidade"}
-          className={`absolute -right-[16px] block size-[179px] ${isService ? "top-[23px]" : "top-[150px]"}`}
+          // Só no desktop: no celular ela cairia em cima das abas e dos servidores.
+          className={`absolute -right-[16px] hidden size-[179px] lg:block ${isService ? "top-[23px]" : "top-[150px]"}`}
           aria-label="Programa de fidelidade"
         >
           <Image
@@ -86,7 +93,11 @@ function GameLogo({ logo, name }: { logo?: { src: string; alt?: string }; name: 
   if (!logo) return null;
 
   return (
-    <div className="relative shrink-0" style={LOGO_BOX}>
+    // Celular: a mesma caixa a ~48% (96×79), ao lado do título.
+    <div
+      className="relative h-[79px] w-[96px] shrink-0 lg:h-[var(--logo-h)] lg:w-[var(--logo-w)]"
+      style={{ "--logo-w": `${LOGO_BOX.width}px`, "--logo-h": `${LOGO_BOX.height}px` } as CSSProperties}
+    >
       {[true, false].map((blurred) => (
         <Image
           key={String(blurred)}
@@ -178,14 +189,14 @@ function TabLink({ tab, server, active }: { tab: GameTab; server: string; active
     <Link
       href={tabHrefWithServer(tab, server)}
       aria-current={active ? "page" : undefined}
-      className={`relative flex h-[99px] min-w-[130px] flex-col items-center justify-start rounded-[8px] border-2 border-white/10 px-[10px] pt-[11px] backdrop-blur-[100px] transition-opacity hover:opacity-90 ${
+      className={`relative flex h-[82px] min-w-[96px] shrink-0 flex-col items-center justify-start rounded-[8px] border-2 border-white/10 px-[8px] pt-[8px] backdrop-blur-[100px] transition-opacity hover:opacity-90 lg:h-[99px] lg:min-w-[130px] lg:px-[10px] lg:pt-[11px] ${
         active
           ? "bg-[image:var(--brand-orange-gradient)] text-white"
           : "bg-[image:var(--brand-surface-fill)] text-white/80"
       }`}
     >
       <TabIcon tab={tab} />
-      <span className="mt-[5px] font-poppins text-[15px] leading-none font-bold tracking-[0.15px]">
+      <span className="mt-[5px] font-poppins text-[12px] leading-none font-bold tracking-[0.15px] whitespace-nowrap lg:text-[15px]">
         {tab.label}
       </span>
     </Link>
@@ -205,14 +216,14 @@ function TabIcon({ tab }: { tab: GameTab }) {
   // Fica inteiro dentro dos 50×50. Só os SVGs padrão (`/icons/`) sangram.
   if (!tab.icon.src.startsWith("/icons/")) {
     return (
-      <span className="relative block size-[50px]">
+      <span className="relative block size-[40px] lg:size-[50px]">
         <Image src={tab.icon.src} alt="" fill sizes="50px" aria-hidden className="object-contain" />
       </span>
     );
   }
 
   return (
-    <span className="relative block size-[50px]">
+    <span className="relative block size-[40px] lg:size-[50px]">
       <span className="absolute" style={{ inset: ICON_BLEED }}>
         <Image
           src={tab.icon.src}

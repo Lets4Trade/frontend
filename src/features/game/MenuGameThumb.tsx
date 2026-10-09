@@ -14,15 +14,19 @@ import Image from "next/image";
  *
  * `sizes` = largura real da caixa; o `next/image` já multiplica pela densidade
  * da tela no `srcset`, então em tela 2x vem o arquivo de 256px, nítido.
+ *
+ * Sem fundo e sem borda (2026-10-09, pedido do usuário): o logo fica solto no
+ * menu. A caixa continua com tamanho fixo para os nomes ficarem alinhados,
+ * inclusive no jogo sem arte.
  */
 export function MenuGameThumb({ src }: { src: string | null }) {
   return (
     <span
       aria-hidden
-      className="relative h-[40px] w-[76px] shrink-0 overflow-hidden rounded-[8px] border border-white/10 bg-white/5"
+      className="relative h-[40px] w-[76px] shrink-0"
     >
       {src ? (
-        <Image src={src} alt="" fill sizes="76px" className="object-contain p-[3px]" />
+        <Image src={src} alt="" fill sizes="76px" className="object-contain" />
       ) : null}
     </span>
   );

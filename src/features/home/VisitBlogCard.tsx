@@ -18,8 +18,10 @@ import { BLOG_CARD } from "./guides";
  * que o inspector mostra são a caixa envolvente já rotacionada e não servem
  * para posicionar direto.
  *
- * A LARGURA varia (417 nos guias, 391 nas notícias); a seta acompanha a borda
- * direita (49px dela, como no arquivo) e o texto corta antes de chegar nela.
+ * A LARGURA varia (417 nos guias, 391 nas notícias); a seta fica a 25px da
+ * borda direita (= 49px do início dela, como no arquivo) e o texto corta 60px
+ * antes da borda. Ancorados à DIREITA, e não calculados pela largura, para o
+ * card poder ser `fluid` (largura cheia no celular, 2026-10-09).
  */
 export function VisitBlogCard({
   texts,
@@ -29,6 +31,7 @@ export function VisitBlogCard({
   className = "",
   style,
   revealAttrs,
+  fluid = false,
 }: {
   texts: BlogCardTexts;
   width?: number;
@@ -42,15 +45,19 @@ export function VisitBlogCard({
   style?: CSSProperties;
   /** Marcação de entrada da home (`reveal`); fora dela, nada. */
   revealAttrs?: Record<string, string>;
+  /** Largura cheia abaixo de `lg`; `width` só a partir de `lg`. */
+  fluid?: boolean;
 }) {
-  const textWidth = width - 25 - 60;
+  const sizing = fluid
+    ? ({ "--card-w": `${width}px`, height, ...style } as CSSProperties)
+    : { width, height, ...style };
 
   return (
     <Link
       href={texts.href}
       {...revealAttrs}
-      className={`blog-card relative block shrink-0 overflow-hidden rounded-[30px] border border-white/10 bg-black ${className}`}
-      style={{ width, height, ...style }}
+      className={`blog-card relative block shrink-0 overflow-hidden rounded-[30px] border border-white/10 bg-black ${fluid ? "w-full lg:w-[var(--card-w)]" : ""} ${className}`}
+      style={sizing}
     >
       {/* Elipse 791:1600 — centro (-6,81; 30,94), girada 77°. */}
       <span
@@ -69,16 +76,14 @@ export function VisitBlogCard({
 
       <span
         data-edit-field={editKey ? `${editKey}:extra.${BLOG_CARD_EXTRA.title}` : undefined}
-        className="absolute top-[129px] left-[26px] block truncate font-poppins text-[18px] leading-[normal] font-semibold tracking-[0.09px] text-white"
-        style={{ maxWidth: textWidth }}
+        className="absolute top-[129px] right-[60px] left-[26px] block truncate font-poppins text-[18px] leading-[normal] font-semibold tracking-[0.09px] text-white"
       >
         {texts.title}
       </span>
 
       <span
         data-edit-field={editKey ? `${editKey}:extra.${BLOG_CARD_EXTRA.subtitle}` : undefined}
-        className="absolute top-[166px] left-[25px] block truncate font-helvetica text-[16px] leading-[normal] tracking-[0.16px] text-brand-placeholder"
-        style={{ maxWidth: textWidth }}
+        className="absolute top-[166px] right-[60px] left-[25px] block truncate font-helvetica text-[16px] leading-[normal] tracking-[0.16px] text-brand-placeholder"
       >
         {texts.subtitle}
       </span>
@@ -89,8 +94,7 @@ export function VisitBlogCard({
         width={24}
         height={24}
         aria-hidden
-        className="blog-arrow absolute top-[157px] size-[24px]"
-        style={{ left: width - 49 }}
+        className="blog-arrow absolute top-[157px] right-[25px] size-[24px]"
       />
     </Link>
   );
