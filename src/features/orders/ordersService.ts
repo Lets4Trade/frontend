@@ -15,9 +15,6 @@ import type { Order, OrderStatus, OrderStepKey } from "./types";
  * de quem exibe.
  */
 
-/** Placeholder quando o pedido não tem arte. O card do design sempre tem imagem. */
-const IMAGE_FALLBACK = "/images/orders/produto-1.png";
-
 export type ApiOrder = {
   id: string;
   reference: string;
@@ -108,7 +105,6 @@ export function toOrder(api: ApiOrder): Order {
     id: api.id,
     reference: api.reference,
     productName: api.productName,
-    image: api.productImageUrl || IMAGE_FALLBACK,
     platform: api.platform,
     quantity: api.quantity,
     price: formatPrice(api.totalPrice, api.currency),

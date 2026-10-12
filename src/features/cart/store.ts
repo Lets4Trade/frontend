@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { MAX_QUANTITY } from "@/features/pricing/quote";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Selection } from "@/features/pricing/quote";
@@ -59,8 +60,13 @@ export function isServiceItem(item: Pick<CartItem, "selection">): boolean {
   return Boolean(item.selection);
 }
 
-/** Teto por linha. Sem ele um clique preso monta um pedido absurdo. */
-const MAX_QUANTITY = 99;
+/**
+ * Teto TÉCNICO por linha (2026-10-12: era 99; o pedido é "sem limite"). O
+ * mesmo número do `MAX_QUANTITY` do backend (`common/pricing/quote.ts`): não
+ * é regra de negócio, só impede que um número absurdo vire overflow. O teto
+ * de verdade é o VALOR do carrinho, conferido no backend.
+ */
+export const MAX_CART_QUANTITY = MAX_QUANTITY;
 
 type CartState = {
   items: CartItem[];

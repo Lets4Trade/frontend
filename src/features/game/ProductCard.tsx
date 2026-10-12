@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { buttonVariants } from "@/components/ui/Button";
-import { useCart } from "@/features/cart/store";
+import { MAX_CART_QUANTITY, useCart } from "@/features/cart/store";
 import { cn } from "@/lib/cn";
 import { formatPrice } from "./content";
 import { ProductCardShell } from "./ProductCardShell";
@@ -110,17 +110,16 @@ export function ProductCard({
 
         <span
           aria-live="polite"
-          className="w-[20px] text-center font-poppins text-[16px] leading-[27px] font-bold tracking-[0.36px] text-white lg:w-[22px] lg:text-[18px]"
+          className="min-w-[20px] text-center font-poppins text-[16px] leading-[27px] font-bold tracking-[0.36px] text-white tabular-nums lg:min-w-[22px] lg:text-[18px]"
         >
           {quantity}
         </span>
 
         <StepButton
           label={`Aumentar a quantidade de ${product.name}`}
-          // Trava em 99: sem teto, um clique preso monta um pedido absurdo, e
-          // o card não tem espaço para mostrar o número.
-          onClick={() => setQuantity((value) => Math.min(99, value + 1))}
-          disabled={quantity >= 99}
+          // Sem limite de negócio (2026-10-12: era 99); só o teto técnico.
+          onClick={() => setQuantity((value) => Math.min(MAX_CART_QUANTITY, value + 1))}
+          disabled={quantity >= MAX_CART_QUANTITY}
         >
           +
         </StepButton>

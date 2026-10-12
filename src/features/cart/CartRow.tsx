@@ -61,7 +61,7 @@ export function CartRow({ item }: { item: CartItem }) {
               <StepButton label={`Diminuir a quantidade de ${item.name}`} onClick={() => setQuantity(item.id, item.quantity - 1)}>
                 −
               </StepButton>
-              <span aria-live="polite" className="min-w-[26px] text-center font-poppins text-[14px] font-bold text-white">
+              <span aria-live="polite" className="min-w-[26px] px-[2px] text-center font-poppins text-[14px] font-bold text-white tabular-nums">
                 {item.quantity}
               </span>
               <StepButton label={`Aumentar a quantidade de ${item.name}`} onClick={() => setQuantity(item.id, item.quantity + 1)}>

@@ -1,7 +1,7 @@
 "use server";
 
 import { COUPON_CODE_PATTERN, normalizeCouponCode, type CouponKind } from "@/features/pricing/coupon";
-import { selectionSchema, type Selection } from "@/features/pricing/quote";
+import { MAX_QUANTITY, selectionSchema, type Selection } from "@/features/pricing/quote";
 import { apiPost } from "@/lib/serverApi";
 
 /**
@@ -63,8 +63,8 @@ export type CheckoutResult =
 /** O mesmo teto do `CreateOrdersDto`: mais de 50 linhas não é compra, é script. */
 const MAX_LINES = 50;
 
-/** O mesmo teto do carrinho e do DTO. */
-const MAX_UNITS = 99;
+/** O mesmo teto do carrinho e do DTO (técnico — ver `MAX_CART_QUANTITY`). */
+const MAX_UNITS = MAX_QUANTITY;
 
 /**
  * O mesmo teto do `CreateOrderItemDto`. Não descreve o formato do id — só

@@ -26,8 +26,6 @@ export type Order = {
   /** Código curto que o cliente vê e cita no suporte — é a chave da rota do pedido. */
   reference: string;
   productName: string;
-  /** Caminho da imagem do produto. */
-  image: string;
   platform: string;
   quantity: string;
   /** Já formatado em BRL pelo servidor ou por `Intl.NumberFormat` na borda. */

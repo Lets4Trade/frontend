@@ -20,47 +20,40 @@ import { ORDER_STATUS_STYLES, type Order } from "./types";
 export function OrderCard({ order }: { order: Order }) {
   const status = ORDER_STATUS_STYLES[order.status];
 
+  // Sem a arte do produto (2026-10-12: vinha quebrada), o texto ocupa a
+  // coluna da esquerda e o número do pedido entra como a primeira linha — é o
+  // que a pessoa cita no suporte.
   const linhas = [
-    { label: "Plataforma/Servidor", value: order.platform, top: 71, valueTop: 67 },
-    { label: "Quantidade", value: order.quantity, top: 106, valueTop: 102 },
-    { label: "Preço", value: order.price, top: 145, valueTop: 141 },
+    { label: "Pedido", value: order.reference, top: 71, valueTop: 67 },
+    { label: "Plataforma/Servidor", value: order.platform, top: 106, valueTop: 102 },
+    { label: "Quantidade", value: order.quantity, top: 141, valueTop: 137 },
+    { label: "Preço", value: order.price, top: 176, valueTop: 172 },
   ];
 
   return (
     <article className="relative h-[239px] w-[1000px] shrink-0 rounded-[30px] border border-white/10 bg-black/10">
-      <div className="absolute top-[25px] left-[50px] h-[189px] w-[146px] overflow-hidden rounded-[12px] border-2 border-white/10">
-        <Image
-          src={order.image}
-          alt={order.productName}
-          width={146}
-          height={189}
-          className="h-full w-full object-cover"
-        />
-      </div>
-
-      <h3 className="absolute top-[25px] left-[224px] w-[265px] font-poppins text-[18px] leading-[27px] font-bold tracking-[0.36px] text-white">
+      <h3 className="absolute top-[25px] left-[50px] w-[475px] truncate font-poppins text-[18px] leading-[27px] font-bold tracking-[0.36px] text-white">
         {order.productName}
       </h3>
 
       {/* Rótulo à esquerda, valor alinhado à direita numa coluna que termina em
-          x=525. Os `top` saem direto do design; o valor fica 4px acima do
-          rótulo porque as duas fontes têm caixas de altura diferente. */}
+          x=525. O valor fica 4px acima do rótulo porque as duas fontes têm
+          caixas de altura diferente. */}
       {linhas.map((linha) => (
         <div key={linha.label}>
           <span
-            className="absolute left-[222px] font-helvetica text-[14px] leading-[16px] font-bold tracking-[0.14px] text-white/80"
+            className="absolute left-[50px] font-helvetica text-[14px] leading-[16px] font-bold tracking-[0.14px] text-white/80"
             style={{ top: linha.top }}
           >
             {linha.label}
           </span>
-          {/* `whitespace-nowrap`: a caixa do design tem 114px e "Eternal
-              Softcore" mede ~110 em Poppins SemiBold 14 — no limite. Sem isto
-              ela quebra em duas linhas e invade a linha de baixo. Como o texto
-              é alinhado à direita e à esquerda só existe espaço vazio,
-              transbordar é o comportamento certo (é o que o Figma faz). */}
+          {/* Coluna larga (do fim do rótulo até x=525): resumo de serviço
+              ("Nível 10 → 20 · Prioridade") cabe sem invadir a trilha de
+              progresso; o que ainda passar vira reticências. */}
           <span
-            className="absolute w-[114px] text-right font-poppins text-[14px] leading-[23px] font-semibold tracking-[0.07px] whitespace-nowrap text-white"
-            style={{ top: linha.valueTop, left: 525 - 114 }}
+            className="absolute w-[300px] truncate text-right font-poppins text-[14px] leading-[23px] font-semibold tracking-[0.07px] text-white"
+            style={{ top: linha.valueTop, left: 525 - 300 }}
+            title={linha.value}
           >
             {linha.value}
           </span>
