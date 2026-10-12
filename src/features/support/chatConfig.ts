@@ -1,10 +1,11 @@
 /**
  * Configuração do BOTÃO do chat flutuante (2026-10-09, pedido do usuário):
- * foto do ícone, balão com título em negrito + texto, lado da tela e o
- * pontinho de atendimento online/offline — tudo editável em Configurações da
+ * foto do ícone, título em negrito + texto DENTRO do botão (pílula, desde
+ * 2026-10-12 — antes era um balão ao lado), lado da tela e o pontinho de
+ * atendimento online/offline — tudo editável em Configurações da
  * loja → Atendimento (sessão `layout:chat`).
  *
- * Os textos da sessão: `title` = título do balão, `subtitle` = texto do balão.
+ * Os textos da sessão: `title` = título do botão, `subtitle` = texto do botão.
  * As escolhas moram nos textos EXTRAS (o backend já os guarda e valida):
  * `lado`, `status`, `balao` e `offline`.
  *
@@ -25,6 +26,7 @@ export const CHAT_DEFAULTS = {
   offline: "Estamos offline agora. Deixe sua mensagem que respondemos assim que voltarmos.",
 } as const;
 
+/** De que lado do TEXTO a bolinha fica. O botão fica sempre no canto direito. */
 export type ChatSide = "left" | "right";
 
 export type ChatConfig = {

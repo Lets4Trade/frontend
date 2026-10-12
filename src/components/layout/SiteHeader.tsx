@@ -6,6 +6,7 @@ import { getSessionUser, type SessionUser } from "@/features/auth/session";
 import { CartButton } from "@/features/cart/CartButton";
 import { getMenuGames } from "@/features/game/menuGames";
 import { getLoyaltyTiers } from "@/features/loyalty/publicTiers";
+import { getPublicGifts } from "@/features/gifts/publicGifts";
 import { getLayoutContent } from "@/features/site/layoutContent";
 import { cn } from "@/lib/cn";
 import { GamesMenu } from "./GamesMenu";
@@ -67,12 +68,15 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
    * chamada quase nunca sai da máquina. Em série, o cabeçalho de TODA página
    * pagaria a soma das duas latências na primeira renderização de cada hora.
    */
-  const [sessao, { tiers }, layout, games] = await Promise.all([
+  const [sessao, { tiers }, layout, games, gifts] = await Promise.all([
     user ? Promise.resolve(user) : getSessionUser(),
     getLoyaltyTiers(),
     getLayoutContent(),
     // Jogos do menu GAMES — cacheada como o layout, ver `menuGames.ts`.
     getMenuGames(),
+    // Brindes por jogo da gaveta do carrinho (2026-10-12) — público e
+    // cacheado como os níveis, ver `gifts/publicGifts.ts`.
+    getPublicGifts(),
   ]);
 
   // Os rótulos e a marca vêm do painel ("Cabeçalho e rodapé" em
@@ -186,7 +190,7 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
 
           {/* O botão e a gaveta do carrinho vivem juntos em `CartButton`, que é
               client component — o cabeçalho continua no servidor. */}
-          <CartButton tiers={tiers} />
+          <CartButton tiers={tiers} gifts={gifts} />
 
           {/* Estado logado: avatar + seta, que abre o menu da conta. Os vãos
               do design são 25px (carrinho→avatar) e 15px (avatar→seta). */}

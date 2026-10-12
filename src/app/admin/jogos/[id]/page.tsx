@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getBuilderGame } from "@/features/admin/builder/list";
+import { getAdminGift } from "@/features/admin/gifts/data";
 import { parseCentralQuery } from "@/features/admin/games/central";
-import { OverviewSection, StorePageSection, TabsSection } from "@/features/admin/games/CentralSections";
+import { GiftSection, OverviewSection, StorePageSection, TabsSection } from "@/features/admin/games/CentralSections";
 import { GameAdminNav } from "@/features/admin/games/GameAdminNav";
 import { getGameTabs } from "@/features/admin/games/tabs/list";
 import { isValidId } from "@/features/admin/games/tabs/types";
@@ -26,7 +27,8 @@ type PageProps = {
  * topo abaixo disso) e três seções por `?secao=`:
  *   - `visao-geral`: o cadastro (nome, link, imagem, servidores);
  *   - `abas` (padrão): mestre-detalhe das abas, com produtos e categorias;
- *   - `pagina`: atalhos para o Builder, o Construtor e a loja.
+ *   - `pagina`: atalhos para o Builder, o Construtor e a loja;
+ *   - `brinde`: o brinde por compra do jogo (2026-10-12).
  *
  * Substitui `/editar`, `/abas` e `/categorias` (hoje redirecionamentos). Só
  * ADMIN: aba, produto e categoria são estrutura do catálogo — o EDITOR recebe
@@ -40,9 +42,10 @@ export default async function GameCentralPage({ params, searchParams }: PageProp
 
   // Jogo e abas em paralelo (as abas só na seção que as desenha). Jogo
   // inexistente, desativado ou leitura que falhou: 404, como no produto.
-  const [game, tabs] = await Promise.all([
+  const [game, tabs, gift] = await Promise.all([
     getBuilderGame(id),
     query.section === "abas" ? getGameTabs(id) : Promise.resolve(null),
+    query.section === "brinde" ? getAdminGift(id) : Promise.resolve(null),
   ]);
   if (game === null) notFound();
 
@@ -80,6 +83,8 @@ export default async function GameCentralPage({ params, searchParams }: PageProp
             <OverviewSection game={game} />
           ) : query.section === "pagina" ? (
             <StorePageSection game={game} />
+          ) : query.section === "brinde" ? (
+            <GiftSection game={game} gift={gift} />
           ) : (
             <section aria-labelledby="abas-titulo">
               {/* O título visível já é a própria navegação; este é para leitor

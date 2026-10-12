@@ -35,6 +35,9 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
     href: "/admin/produtos",
     match: ["/admin/produtos"],
   },
+  // NÃO está no Figma (2026-10-12): cupons de desconto. Só ADMIN — cupom é
+  // dinheiro que a loja deixa de receber.
+  { label: "Cupons", href: "/admin/cupons", match: ["/admin/cupons"] },
   // NÃO está no arquivo do Figma: o CRUD de jogos ganhou tela própria em
   // 2026-09-28 (antes o cadastro ficava sob "Produtos" e editar/excluir, só no
   // Builder). Só ADMIN — o EDITOR mexe na página do jogo, não no catálogo.

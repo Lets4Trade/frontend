@@ -47,7 +47,12 @@ export default async function PaymentPage({ params }: PageProps) {
     (sum, order) => sum + Math.round(Number(order.totalPrice) * 100),
     0,
   );
-  const discount = payment.orders.reduce((sum, order) => sum + (order.discountCents ?? 0), 0);
+  // Coins + cupom (2026-10-12): o quadro mostra um "Desconto" só, que é o que
+  // separa o preço cheio do valor cobrado.
+  const discount = payment.orders.reduce(
+    (sum, order) => sum + (order.discountCents ?? 0) + (order.couponCents ?? 0),
+    0,
+  );
 
   return (
     <CheckoutShell>

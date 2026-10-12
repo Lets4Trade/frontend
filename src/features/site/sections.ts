@@ -534,24 +534,28 @@ export const SITE_PAGES: readonly SitePageDef[] = [
             ],
           },
           {
+            // De que lado do TEXTO a bolinha (foto) fica — o botão em si fica
+            // sempre no canto direito da tela (correção de 2026-10-12).
             name: "lado",
-            label: "Lado da tela",
+            label: "Lado da bolinha",
             defaultValue: "direita",
             maxLength: 10,
-            hint: "O balão de texto abre para o lado de dentro da tela.",
+            hint: "Onde a foto fica em relação ao texto do botão.",
             options: [
-              { value: "direita", label: "Direita" },
-              { value: "esquerda", label: "Esquerda" },
+              { value: "direita", label: "Direita (texto à esquerda da bolinha)" },
+              { value: "esquerda", label: "Esquerda (texto à direita da bolinha)" },
             ],
           },
           {
+            // O valor continua "balao" (já gravado no banco); desde 2026-10-12
+            // o texto fica DENTRO do botão, não num balão ao lado.
             name: "balao",
-            label: "Balão de texto ao lado do botão",
+            label: "Título e texto dentro do botão",
             defaultValue: "mostrar",
             maxLength: 10,
             options: [
-              { value: "mostrar", label: "Mostrar" },
-              { value: "esconder", label: "Esconder" },
+              { value: "mostrar", label: "Mostrar (foto + texto)" },
+              { value: "esconder", label: "Esconder (só a foto)" },
             ],
           },
           {

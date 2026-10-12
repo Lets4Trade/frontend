@@ -32,6 +32,9 @@ export type PaymentView = {
     quantity: string;
     totalPrice: string;
     discountCents?: number;
+    /** Cupom (2026-10-12): quanto abateu desta linha. */
+    couponCents?: number;
+    couponCode?: string;
     status: string;
   }[];
 };

@@ -367,6 +367,13 @@ export function OrdersTable({
                       >
                         Informações de compra
                       </button>
+                      {/* Pedido com brinde do jogo (2026-10-12): o selo avisa
+                          quem entrega antes de abrir o detalhe. */}
+                      {order.gift ? (
+                        <span className="ml-[8px] rounded-full border border-[#22c55e]/40 bg-[#22c55e]/10 px-[8px] py-[2px] font-poppins text-[11px] font-bold whitespace-nowrap text-[#4ade80]">
+                          + brinde
+                        </span>
+                      ) : null}
                     </td>
 
                     <td className="py-[14px]">

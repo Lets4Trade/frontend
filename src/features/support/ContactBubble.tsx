@@ -49,33 +49,6 @@ function subscribeCookies(onChange: () => void) {
 }
 const hasSessionHint = () => /(?:^|;\s*)pt_authed_client=/.test(document.cookie);
 
-/** O visitante fechou o balão: não volta nesta aba (sessão do navegador). */
-const BALLOON_DISMISSED = "l4t-chat-balloon-dismissed";
-const BALLOON_EVENT = "l4t-chat-balloon";
-
-// O "fechou o balão" mora no `sessionStorage` — estado EXTERNO, lido com
-// `useSyncExternalStore`. No servidor (e se o armazenamento estiver bloqueado)
-// o balão conta como fechado: nada pisca e nada quebra.
-function subscribeBalloon(onChange: () => void) {
-  window.addEventListener(BALLOON_EVENT, onChange);
-  return () => window.removeEventListener(BALLOON_EVENT, onChange);
-}
-function balloonDismissedSnapshot() {
-  try {
-    return sessionStorage.getItem(BALLOON_DISMISSED) === "1";
-  } catch {
-    return false;
-  }
-}
-function markBalloonDismissed() {
-  try {
-    sessionStorage.setItem(BALLOON_DISMISSED, "1");
-  } catch {
-    // Armazenamento bloqueado: o balão volta ao recarregar.
-  }
-  window.dispatchEvent(new Event(BALLOON_EVENT));
-}
-
 export function ContactBubble({ whatsappHref, config }: { whatsappHref?: string; config: ChatConfig }) {
   const pathname = usePathname() ?? "/";
   const signedIn = useSyncExternalStore(subscribeCookies, hasSessionHint, () => false);
@@ -84,13 +57,11 @@ export function ContactBubble({ whatsappHref, config }: { whatsappHref?: string;
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>({ name: "list" });
   const [unread, setUnread] = useState(0);
-  const balloonDismissed = useSyncExternalStore(subscribeBalloon, balloonDismissedSnapshot, () => true);
   const bubbleRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const left = config.side === "left";
-
-  const dismissBalloon = useCallback(() => markBalloonDismissed(), []);
+  // "Lado" do painel = de que lado do TEXTO a bolinha fica (não o lado da tela).
+  const iconRight = config.side === "right";
 
   // Volta do login com `#atendimento`: abre e limpa a âncora.
   useEffect(() => {
@@ -116,11 +87,7 @@ export function ContactBubble({ whatsappHref, config }: { whatsappHref?: string;
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [hidden, signedIn, refreshUnread]);
 
-  const openChat = useCallback(() => {
-    setOpen(true);
-    // Abriu o chat: o convite já cumpriu o papel.
-    dismissBalloon();
-  }, [dismissBalloon]);
+  const openChat = useCallback(() => setOpen(true), []);
 
   const close = useCallback(() => {
     setOpen(false);
@@ -143,7 +110,8 @@ export function ContactBubble({ whatsappHref, config }: { whatsappHref?: string;
 
   const loginHref = `/login?redirect=${encodeURIComponent(`${pathname}${OPEN_HASH}`)}`;
   const statusLabel = config.online ? "Online agora" : "Offline no momento";
-  const showBalloon = config.showBalloon && !open && !balloonDismissed;
+  // Título e texto do painel DENTRO do botão (fechado). Desligado no painel = só a foto.
+  const withText = config.showBalloon && !open;
 
   return (
     <>
@@ -154,7 +122,7 @@ export function ContactBubble({ whatsappHref, config }: { whatsappHref?: string;
           aria-label="Atendimento Lets4Trade"
           className={cn(
             "chat-panel contact-float fixed bottom-[96px] z-40 flex h-[min(620px,calc(100dvh-128px))] w-[380px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[22px] border border-brand-border bg-brand-surface shadow-[0_24px_60px_rgba(0,0,0,.6)] sm:bottom-[104px]",
-            left ? "left-[16px] sm:left-[24px]" : "right-[16px] sm:right-[24px]",
+            "right-[16px] sm:right-[24px]",
           )}
         >
           {/* Cabeçalho com a mesma foto do botão e o status — quem abre o chat
@@ -226,108 +194,107 @@ export function ContactBubble({ whatsappHref, config }: { whatsappHref?: string;
         </div>
       ) : null}
 
-      {/* Botão + balão no MESMO canto, o balão do lado de dentro da tela. */}
-      <div
+      {/* Botão do atendimento — SEMPRE no canto direito da tela (2026-10-12,
+          pedido do usuário). O BOTÃO tem fundo e borda; a BOLINHA (foto) dentro
+          dele não. Com o texto ligado no painel ele é uma pílula: bolinha + título
+          em negrito + texto, e o "lado" do painel diz de que lado do texto a
+          bolinha fica. O pontinho de status vai na PONTA OPOSTA à foto, e o
+          texto é sempre alinhado à esquerda. Sem texto, ou aberto (×), é o
+          botão redondo com o pontinho no canto. */}
+      <button
+        ref={bubbleRef}
+        type="button"
+        onClick={() => (open ? close() : openChat())}
+        aria-expanded={open}
+        aria-label={
+          unread > 0
+            ? `Atendimento (${statusLabel}): ${unread} conversa(s) com resposta nova`
+            : `Atendimento (${statusLabel})`
+        }
         className={cn(
-          "contact-float fixed bottom-[16px] z-40 flex items-end gap-[12px] sm:bottom-[24px]",
-          left ? "left-[16px] flex-row sm:left-[24px]" : "right-[16px] flex-row-reverse sm:right-[24px]",
+          "chat-launcher contact-float fixed right-[16px] bottom-[16px] z-40 flex items-center rounded-full border border-white/15 bg-black/60 shadow-[0_10px_30px_rgba(0,0,0,.45)] backdrop-blur-[10.8px] transition-[border-color,transform] duration-[var(--dur-micro,160ms)] hover:scale-[1.03] hover:border-brand-orange/70 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none sm:right-[24px] sm:bottom-[24px]",
+          withText
+            ? cn(
+                "h-[64px] max-w-[min(320px,calc(100vw-32px))] sm:h-[72px]",
+                // Foto à direita = a fileira invertida (pontinho · texto · foto).
+                // Do lado da foto a borda é curta (a foto redonda enche a ponta);
+                // sem foto, o ícone solto pede um pouco mais de respiro.
+                iconRight
+                  ? cn("flex-row-reverse pl-[18px]", config.iconUrl ? "pr-[6px] sm:pr-[8px]" : "pr-[16px]")
+                  : cn("pr-[18px]", config.iconUrl ? "pl-[6px] sm:pl-[8px]" : "pl-[16px]"),
+              )
+            : "size-[64px] shrink-0 justify-center sm:size-[72px]",
+          open && "border-brand-orange/70",
         )}
       >
-        <button
-          ref={bubbleRef}
-          type="button"
-          onClick={() => (open ? close() : openChat())}
-          aria-expanded={open}
-          aria-label={
-            unread > 0
-              ? `Atendimento (${statusLabel}): ${unread} conversa(s) com resposta nova`
-              : `Atendimento (${statusLabel})`
-          }
-          className={cn(
-            "chat-launcher relative flex size-[64px] shrink-0 items-center justify-center rounded-full border border-white/15 bg-black/40 shadow-[0_10px_30px_rgba(0,0,0,.45)] backdrop-blur-[10.8px] transition-[border-color,background-color,transform] duration-[var(--dur-micro,160ms)] hover:scale-[1.04] hover:border-brand-orange/70 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none sm:size-[72px]",
-            open && "border-brand-orange/70",
-          )}
-        >
-          {open ? (
+        {open ? (
+          <>
             <span aria-hidden className="font-poppins text-[28px] leading-none text-white">
               ×
             </span>
-          ) : (
-            <ChatAvatar config={config} size={56} bare />
-          )}
-          <span className={cn("absolute bottom-[3px]", left ? "left-[3px]" : "right-[3px]")}>
+            <span className="absolute right-[3px] bottom-[3px]">
+              <StatusDot online={config.online} ring />
+            </span>
+          </>
+        ) : (
+          <span className="relative shrink-0">
+            {/* Na pílula sem foto, a caixa do ícone tem o tamanho do desenho:
+                numa caixa de 52px o ícone de 24px sobrava ~14px de cada lado e
+                afastava o texto (relato do usuário). */}
+            <ChatAvatar config={config} size={withText ? (config.iconUrl ? 52 : 26) : 56} />
+            {withText ? null : (
+              <span className="absolute right-[1px] bottom-[1px]">
+                <StatusDot online={config.online} ring />
+              </span>
+            )}
+            {unread > 0 ? (
+              <span
+                aria-hidden
+                className="absolute -top-[4px] -right-[4px] flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-brand-orange px-[5px] font-poppins text-[11px] font-bold text-black"
+              >
+                {unread > 9 ? "9+" : unread}
+              </span>
+            ) : null}
+          </span>
+        )}
+        {withText ? (
+          // Vãos diferentes dos dois lados do texto (pedido do usuário): colado
+          // na foto (10px), mais folga até o pontinho de status (18px).
+          <span className={cn("min-w-0 flex-1 text-left", iconRight ? "mr-[10px] ml-[18px]" : "mr-[18px] ml-[10px]")}>
+            <span className="block truncate font-poppins text-[14px] leading-[18px] font-bold text-white">
+              {config.title}
+            </span>
+            <span className="mt-[2px] line-clamp-2 block font-helvetica text-[12px] leading-[16px] text-white/70">
+              {config.text}
+            </span>
+          </span>
+        ) : null}
+        {withText ? (
+          <span className="flex shrink-0 items-center">
             <StatusDot online={config.online} ring />
           </span>
-          {unread > 0 ? (
-            <span
-              aria-hidden
-              className={cn(
-                "absolute -top-[2px] flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-brand-orange px-[5px] font-poppins text-[11px] font-bold text-black",
-                left ? "-right-[2px]" : "-left-[2px]",
-              )}
-            >
-              {unread > 9 ? "9+" : unread}
-            </span>
-          ) : null}
-        </button>
-
-        {showBalloon ? (
-          <div
-            className={cn(
-              "chat-balloon relative mb-[8px] max-w-[min(260px,calc(100vw-120px))] rounded-[16px] border border-brand-border bg-brand-surface/95 py-[10px] shadow-[0_12px_30px_rgba(0,0,0,.5)] backdrop-blur-[10px]",
-              left ? "rounded-bl-[4px] pr-[30px] pl-[14px]" : "rounded-br-[4px] pr-[30px] pl-[14px]",
-            )}
-          >
-            <button
-              type="button"
-              onClick={openChat}
-              className="block text-left focus-visible:outline-none"
-            >
-              <span className="block font-poppins text-[14px] leading-[18px] font-bold text-white">{config.title}</span>
-              <span className="mt-[3px] block font-helvetica text-[13px] leading-[17px] text-brand-fg-muted">
-                {config.text}
-              </span>
-              <span className="mt-[6px] flex items-center gap-[6px] font-helvetica text-[11px] text-white/60">
-                <StatusDot online={config.online} />
-                {statusLabel}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={dismissBalloon}
-              aria-label="Fechar recado do atendimento"
-              className="absolute top-[6px] right-[6px] flex size-[22px] items-center justify-center rounded-full font-poppins text-[14px] leading-none text-white/50 transition-colors hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none"
-            >
-              ×
-            </button>
-          </div>
         ) : null}
-      </div>
+      </button>
     </>
   );
 }
 
 /**
- * A foto do atendimento (enviada no painel) ou, sem ela, o ícone de balão.
- * `bare`: dentro do botão redondo, sem moldura própria.
+ * A BOLINHA dentro do botão: a foto do atendimento (enviada no painel),
+ * redonda, ou — sem foto — o ícone de balão. SEM fundo e SEM borda próprios
+ * (pedido do usuário, 2026-10-12): quem tem fundo e borda é o botão.
  */
-function ChatAvatar({ config, size, bare = false }: { config: ChatConfig; size: number; bare?: boolean }) {
+function ChatAvatar({ config, size }: { config: ChatConfig; size: number }) {
   if (config.iconUrl) {
     return (
-      <span
-        className={cn("relative block shrink-0 overflow-hidden rounded-full", !bare && "border border-white/15")}
-        style={{ width: size, height: size }}
-      >
+      <span className="relative block shrink-0 overflow-hidden rounded-full" style={{ width: size, height: size }}>
         <Image src={config.iconUrl} alt="" fill sizes={`${size}px`} aria-hidden className="object-cover" />
       </span>
     );
   }
   return (
     <span
-      className={cn(
-        "flex shrink-0 items-center justify-center rounded-full",
-        !bare && "border border-white/15 bg-black/40",
-      )}
+      className="flex shrink-0 items-center justify-center rounded-full"
       style={{ width: size, height: size }}
     >
       <Image src="/icons/home/chat-dialog.svg" alt="" width={24} height={24} aria-hidden className="size-[24px]" />

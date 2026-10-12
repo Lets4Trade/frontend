@@ -4,6 +4,8 @@ import { isGlobalCategory, type BuilderGame } from "@/features/admin/builder/typ
 import { editProductHref, newProductHref, productsListHref } from "@/features/admin/products/links";
 import { getInactiveProducts, getProductOrdering } from "@/features/admin/products/ordering";
 import { cn } from "@/lib/cn";
+import { GiftEditor } from "../gifts/GiftEditor";
+import type { AdminGift } from "../gifts/types";
 import { NEW_TAB, centralHref, pickCentralTab, type CentralQuery } from "./central";
 import { categoriesOnStore, productGrid, storePageMap } from "./centralView";
 import { GameEditForm } from "./GameEditForm";
@@ -36,6 +38,40 @@ export function OverviewSection({ game }: { game: BuilderGame }) {
         key={JSON.stringify([game.name, game.slug, game.imageUrl, game.servers.map((s) => [s.id, s.label])])}
         game={game}
       />
+    </section>
+  );
+}
+
+// ── Brinde ──────────────────────────────────────────────────────────────────
+
+/**
+ * Brinde por compra do jogo (2026-10-12): "ganhe 50Mi de Ouro a cada R$ 50,00".
+ * `gift.ok === false` = a leitura falhou — a tela avisa e não oferece salvar por
+ * cima de uma regra que não conseguiu ler.
+ */
+export function GiftSection({
+  game,
+  gift,
+}: {
+  game: BuilderGame;
+  gift: { ok: true; gift: AdminGift | null } | { ok: false } | null;
+}) {
+  return (
+    <section
+      aria-labelledby="brinde-titulo"
+      className="rounded-[20px] border border-brand-border bg-[image:var(--brand-surface-fill)] p-[20px] sm:p-[30px]"
+    >
+      <SectionTitle id="brinde-titulo">Brinde</SectionTitle>
+      <p className="mt-[8px] mb-[24px] font-poppins text-[13px] text-brand-fg-subtle">
+        Um brinde por valor pago no jogo, mostrado no carrinho e no checkout e entregue junto com o pedido.
+      </p>
+      {gift?.ok ? (
+        <GiftEditor gameId={game.id} gameName={game.name} initial={gift.gift} />
+      ) : (
+        <p role="alert" className="font-poppins text-[14px] text-red-9">
+          Não foi possível ler o brinde deste jogo. Recarregue a página.
+        </p>
+      )}
     </section>
   );
 }

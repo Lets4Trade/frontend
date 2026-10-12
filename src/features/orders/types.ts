@@ -1,3 +1,5 @@
+import type { OrderGift } from "@/features/gifts/orderGift";
+
 /**
  * Etapas do pedido, na ordem em que aparecem no tracker (Figma 2073:1612).
  * A ordem do array É a ordem visual — não reordene sem olhar o design.
@@ -53,6 +55,10 @@ export type Order = {
    * = pedido de catálogo — a tela mostra só a quantidade.
    */
   details?: { lines: { label: string; price: string }[]; hours: string | null } | null;
+  /** Brinde do jogo que este pedido carrega (2026-10-12). Ausente = nenhum. */
+  gift?: OrderGift | null;
+  /** Cupom usado (2026-10-12): código e quanto abateu desta linha, formatado. */
+  coupon?: { code: string; amount: string } | null;
 };
 
 /**

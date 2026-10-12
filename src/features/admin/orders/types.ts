@@ -50,6 +50,11 @@ export type AdminOrder = {
   customerPhone?: string | null;
   assigneeId?: string | null;
   assigneeName?: string | null;
+  /** Brinde do jogo congelado (2026-10-12) — ler com `toOrderGift`. */
+  gift?: unknown;
+  /** Cupom (2026-10-12): ausentes sem cupom. */
+  couponCode?: string | null;
+  couponCents?: number;
 };
 
 export type AdminOrderPage = {

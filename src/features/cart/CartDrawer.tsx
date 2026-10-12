@@ -4,18 +4,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
 import { Drawer } from "vaul";
+import { cartGifts, type PublicGift } from "@/features/gifts/cartGifts";
+import { GiftSummary } from "@/features/gifts/GiftSummary";
 import type { LoyaltyTierRule } from "@/features/loyalty/data";
 import { tierArt } from "@/features/loyalty/tiers";
-import { estimateCashback, formatBps } from "./cashback";
-import {
-  formatCents,
-  formatHours,
-  isServiceItem,
-  itemCount,
-  subtotalCents,
-  useCart,
-  type CartItem,
-} from "./store";
+import { CartRow } from "./CartRow";
+import { CashbackSummary } from "./CashbackSummary";
+import { estimateCashback } from "./cashback";
+import { formatCents, itemCount, subtotalCents, useCart, type CartItem } from "./store";
 import { useLoyaltyRate } from "./useLoyaltyRate";
 
 /**
@@ -43,7 +39,7 @@ function subscribeCookies(onChange: () => void) {
 /** Dica de sessão sem ida ao servidor — a mesma do chat (`ContactBubble`). */
 const hasSessionHint = () => /(?:^|;\s*)pt_authed_client=/.test(document.cookie);
 
-export function CartDrawer({ tiers }: { tiers: LoyaltyTierRule[] }) {
+export function CartDrawer({ tiers, gifts }: { tiers: LoyaltyTierRule[]; gifts: PublicGift[] }) {
   const items = useCart((state) => state.items);
   const isOpen = useCart((state) => state.isOpen);
   const open = useCart((state) => state.open);
@@ -56,6 +52,9 @@ export function CartDrawer({ tiers }: { tiers: LoyaltyTierRule[] }) {
   const discount = 0;
   const total = subtotal - discount;
   const count = itemCount(items);
+  // Brinde por jogo (2026-10-12): prévia sobre o valor cheio — as Lets Coins só
+  // entram no checkout, e lá o cartão recalcula.
+  const giftList = cartGifts(items, gifts);
 
   return (
     <Drawer.Root direction="right" open={isOpen} onOpenChange={(next) => (next ? open() : close())}>
@@ -96,6 +95,11 @@ export function CartDrawer({ tiers }: { tiers: LoyaltyTierRule[] }) {
 
               <footer className="shrink-0 border-t border-white/10 bg-[#0b0b0b] px-[20px] pt-[18px] pb-[22px] sm:px-[28px]">
                 <CashbackCard items={items} tiers={tiers} signedIn={signedIn} enabled={isOpen} />
+                <GiftSummary
+                  gifts={giftList}
+                  className="mt-[10px]"
+                  note="Brinde calculado sobre o valor pago no jogo e entregue junto com o pedido."
+                />
 
                 {/* Subtotal e desconto só quando HÁ desconto: sem ele, o subtotal
                     repete o total e só come espaço da lista. */}
@@ -163,100 +167,6 @@ function EmptyCart({ onClose }: { onClose: () => void }) {
 }
 
 /**
- * Uma linha COMPACTA: miniatura 72px, nome (até 2 linhas), servidor e — no
- * serviço — o resumo da escolha; embaixo, contador e preço da linha.
- */
-function CartRow({ item }: { item: CartItem }) {
-  const setQuantity = useCart((state) => state.setQuantity);
-  const remove = useCart((state) => state.remove);
-  const service = isServiceItem(item);
-
-  return (
-    <li className="flex gap-[14px] border-b border-white/[0.07] py-[14px] last:border-b-0">
-      <div className="relative size-[72px] shrink-0 overflow-hidden rounded-[12px] border border-white/10 bg-[#161616]">
-        {/* `eager`: a gaveta abre JÁ com as linhas na tela; o `lazy` padrão só
-            pedia a arte depois da animação (relato de 2026-09-28). Sem arte, a
-            logo do jogo. */}
-        {item.image ? (
-          <Image src={item.image} alt="" fill sizes="72px" loading="eager" className="object-contain p-[6px]" />
-        ) : item.gameLogo ? (
-          <Image src={item.gameLogo} alt="" fill sizes="72px" loading="eager" className="object-contain p-[10px] opacity-80" />
-        ) : null}
-      </div>
-
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-start gap-[8px]">
-          <h3 className="line-clamp-2 min-w-0 flex-1 font-poppins text-[15px] leading-[20px] font-semibold text-white">
-            {item.name}
-          </h3>
-          <button
-            type="button"
-            onClick={() => remove(item.id)}
-            aria-label={`Remover ${item.name} do carrinho`}
-            className="-mt-[2px] -mr-[6px] flex size-[28px] shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none"
-          >
-            <Image src="/icons/cart/trash.svg" alt="" width={16} height={16} aria-hidden className="size-[16px] opacity-80" />
-          </button>
-        </div>
-
-        <p className="mt-[2px] truncate font-helvetica text-[12px] text-brand-fg-subtle">{item.platform}</p>
-        {item.summary ? (
-          <p className="truncate font-helvetica text-[12px] text-brand-fg-muted" title={item.summary}>
-            {item.summary}
-          </p>
-        ) : null}
-
-        <div className="mt-auto flex items-center justify-between gap-[10px] pt-[8px]">
-          {/* Serviço tem quantidade fixa em 1 (a escolha já diz o tamanho). */}
-          {service ? (
-            <span className="font-helvetica text-[12px] text-white/60">
-              {item.hours ? `~${formatHours(item.hours)} h` : "Serviço"}
-            </span>
-          ) : (
-            <div className="flex items-center rounded-full border border-white/10 bg-white/[0.03]">
-              <StepButton label={`Diminuir a quantidade de ${item.name}`} onClick={() => setQuantity(item.id, item.quantity - 1)}>
-                −
-              </StepButton>
-              <span aria-live="polite" className="min-w-[26px] text-center font-poppins text-[14px] font-bold text-white">
-                {item.quantity}
-              </span>
-              <StepButton label={`Aumentar a quantidade de ${item.name}`} onClick={() => setQuantity(item.id, item.quantity + 1)}>
-                +
-              </StepButton>
-            </div>
-          )}
-
-          {/* O preço da linha é o único texto em degradê — é o que a pessoa procura. */}
-          <span
-            className="bg-clip-text font-poppins text-[15px] font-semibold text-transparent"
-            style={{ backgroundImage: "var(--brand-orange-gradient)" }}
-          >
-            {formatCents(item.unitPriceCents * item.quantity)}
-          </span>
-        </div>
-      </div>
-    </li>
-  );
-}
-
-/**
- * O `-` some a linha quando chega a zero em vez de travar em 1: é o gesto que
- * a pessoa já está fazendo para se livrar do item.
- */
-function StepButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      className="flex size-[32px] items-center justify-center rounded-full font-poppins text-[16px] font-bold text-white transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none"
-    >
-      {children}
-    </button>
-  );
-}
-
-/**
  * Quanto de cashback a compra rende (2026-10-09). Logado: o percentual do
  * NÍVEL DA CONTA (o mesmo que o backend vai usar). Deslogado: o do nível
  * inicial, com o convite para entrar — sem conta não há onde creditar.
@@ -282,48 +192,17 @@ function CashbackCard({
   const tierKey = rate?.tier ?? base?.tier ?? "BRONZE";
   const tierName = rate?.tierName ?? base?.name ?? "Bronze";
   const tierRule = tiers.find((tier) => tier.tier === tierKey);
-  const art = tierArt(tierKey, tierRule?.iconUrl);
 
   return (
-    <div className="relative overflow-hidden rounded-[16px] border border-brand-orange/30 bg-[linear-gradient(135deg,rgba(255,115,0,0.14),rgba(255,115,0,0.03))] px-[14px] py-[12px]">
-      <div className="flex items-center gap-[12px]">
-        <Image src={art.icon} alt="" width={44} height={44} aria-hidden className="size-[44px] shrink-0 object-contain" />
-        <div className="min-w-0 flex-1">
-          {signedIn && rate ? (
-            <>
-              <p className="font-poppins text-[14px] leading-[19px] text-white">
-                Você ganha{" "}
-                <strong className="bg-clip-text font-bold text-transparent" style={{ backgroundImage: "var(--brand-orange-gradient)" }}>
-                  {formatCents(cents)}
-                </strong>{" "}
-                de cashback
-              </p>
-              <p className="mt-[2px] font-helvetica text-[12px] leading-[16px] text-brand-fg-muted">
-                {coins.toLocaleString("pt-BR")} Lets Coins · {formatBps(bps)} do nível {tierName}
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="font-poppins text-[14px] leading-[19px] text-white">
-                Entre e ganhe{" "}
-                <strong className="bg-clip-text font-bold text-transparent" style={{ backgroundImage: "var(--brand-orange-gradient)" }}>
-                  {formatCents(cents)}
-                </strong>{" "}
-                de cashback
-              </p>
-              <p className="mt-[2px] font-helvetica text-[12px] leading-[16px] text-brand-fg-muted">
-                {formatBps(bps)} em Lets Coins já no nível {tierName}
-              </p>
-            </>
-          )}
-        </div>
-      </div>
-      <p className="mt-[8px] font-helvetica text-[11px] leading-[15px] text-white/50">
-        Creditado quando o pedido for entregue.
-        {rate?.nextTierName && rate.missingToNextCents > 0
-          ? ` Faltam ${formatCents(rate.missingToNextCents)} para o nível ${rate.nextTierName}.`
-          : ""}
-      </p>
-    </div>
+    <CashbackSummary
+      icon={tierArt(tierKey, tierRule?.iconUrl).icon}
+      cents={cents}
+      coins={coins}
+      bps={bps}
+      tierName={tierName}
+      invite={!(signedIn && rate)}
+      nextTierName={rate?.nextTierName}
+      missingToNextCents={rate?.missingToNextCents}
+    />
   );
 }

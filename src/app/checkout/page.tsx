@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { CheckoutClient } from "@/features/checkout/CheckoutClient";
 import { CheckoutShell } from "@/features/checkout/CheckoutShell";
+import { getPublicGifts } from "@/features/gifts/publicGifts";
 import { getLoyalty } from "@/features/loyalty/data";
 import { getContacts } from "@/features/site/contacts";
 
@@ -36,12 +37,14 @@ export const metadata: Metadata = {
 export default async function CheckoutPage() {
   // Em paralelo: o contato é leitura pública e cacheada, e não pode somar
   // latência à tela de pagamento.
-  const [result, contacts] = await Promise.all([getLoyalty(), getContacts()]);
+  // Os brindes por jogo (2026-10-12) também: públicos e cacheados.
+  const [result, contacts, gifts] = await Promise.all([getLoyalty(), getContacts(), getPublicGifts()]);
 
   return (
     <CheckoutShell>
       <CheckoutClient
         loyalty={result.ok ? result.summary : null}
+        gifts={gifts}
         // Só o LINK montado viaja para o cliente — ver `features/site/contacts.ts`.
         whatsappHref={contacts.whatsapp?.href}
       />

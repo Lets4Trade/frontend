@@ -4,6 +4,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import Image from "next/image";
 import { cn } from "@/lib/cn";
 import { formatPhone } from "@/lib/masks";
+import { toOrderGift } from "@/features/gifts/orderGift";
 import { backendAsset } from "@/lib/publicApi";
 import {
   formatDateTime,
@@ -39,6 +40,7 @@ export function OrderInfoDialog({
 }) {
   const style = statusStyle(order.status);
   const art = backendAsset(order.productImageUrl);
+  const gift = toOrderGift(order.gift);
 
   const linhas: [string, string][] = [
     ["Código", order.reference],
@@ -49,6 +51,12 @@ export function OrderInfoDialog({
     ["Produto", order.productName],
     ["Servidor", order.platform],
     ["Quantidade", order.quantity],
+    // Cupom (2026-10-12): o código e quanto abateu desta linha.
+    ...(order.couponCode && (order.couponCents ?? 0) > 0
+      ? ([["Cupom", `${order.couponCode} (− ${formatMoney(((order.couponCents ?? 0) / 100).toFixed(2), order.currency)})`]] as [string, string][])
+      : []),
+    // O brinde do jogo (2026-10-12): entregar JUNTO, no servidor indicado.
+    ...(gift ? ([["Brinde", gift.server ? `${gift.text} (em ${gift.server})` : gift.text]] as [string, string][]) : []),
     ["Entregador", orDash(order.assigneeName)],
   ];
 

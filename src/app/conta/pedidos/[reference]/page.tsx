@@ -111,6 +111,20 @@ export default async function PedidoPage({ params }: PageProps) {
                 <ServiceDetailsBlock lines={order.details.lines} hours={order.details.hours} />
               ) : null}
 
+              {order.coupon ? (
+                <p className="mt-[22px] font-helvetica text-[14px] text-brand-fg-muted">
+                  Cupom <strong className="font-bold text-white">{order.coupon.code}</strong> · − {order.coupon.amount}
+                </p>
+              ) : null}
+
+              {/* Brinde do jogo (2026-10-12): vai junto na entrega deste pedido. */}
+              {order.gift ? (
+                <p className="mt-[22px] rounded-[15px] border border-[#22c55e]/35 bg-[#22c55e]/10 px-[18px] py-[12px] font-helvetica text-[15px] leading-[21px] text-white">
+                  <strong className="font-bold text-[#4ade80]">Brinde: {order.gift.text}</strong>
+                  {order.gift.server ? <span className="text-white/70"> · entregue em {order.gift.server}</span> : null}
+                </p>
+              ) : null}
+
               <div aria-hidden className="mt-[26px] h-px w-full bg-white/25" />
 
               {/* Um pedido tem um produto, então o preço da linha É o subtotal.

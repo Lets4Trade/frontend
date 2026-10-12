@@ -14,6 +14,8 @@ export const CENTRAL_SECTIONS = [
   { id: "visao-geral", label: "Visão geral" },
   { id: "abas", label: "Abas e produtos" },
   { id: "pagina", label: "Página da loja" },
+  // Brinde por compra (2026-10-12): "ganhe 50Mi de Ouro a cada R$ 50,00".
+  { id: "brinde", label: "Brinde" },
 ] as const;
 
 export type CentralSection = (typeof CENTRAL_SECTIONS)[number]["id"];

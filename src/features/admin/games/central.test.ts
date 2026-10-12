@@ -134,12 +134,13 @@ describe("isGameFormDirty", () => {
 describe("centralNavLinks", () => {
   const game = { id: "g1", slug: "poe" };
 
-  it("ADMIN: as três seções, ← Jogos e a loja", () => {
+  it("ADMIN: as quatro seções, ← Jogos e a loja", () => {
     const { sections, extras } = centralNavLinks(game, true);
     expect(sections.map((link) => link.href)).toEqual([
       "/admin/jogos/g1?secao=visao-geral",
       "/admin/jogos/g1?secao=abas",
       "/admin/jogos/g1?secao=pagina",
+      "/admin/jogos/g1?secao=brinde",
     ]);
     expect(extras.map((link) => link.href)).toEqual(["/admin/jogos", "/games/poe"]);
   });

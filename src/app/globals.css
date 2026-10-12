@@ -2325,9 +2325,6 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
    não susto) e o pontinho verde pulsa. Os dois param para quem pediu menos
    movimento. Só `transform`/`opacity`: baratos. */
 @media (prefers-reduced-motion: no-preference) {
-  .chat-balloon {
-    animation: chat-balloon-in 420ms var(--ease-snap, cubic-bezier(0.16, 1, 0.3, 1)) 1.2s both;
-  }
   .chat-panel {
     animation: chat-panel-in 220ms var(--ease-snap, cubic-bezier(0.16, 1, 0.3, 1)) both;
   }
@@ -2338,17 +2335,6 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
     border-radius: inherit;
     background: inherit;
     animation: chat-dot-pulse 2s ease-out infinite;
-  }
-}
-
-@keyframes chat-balloon-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: none;
   }
 }
 

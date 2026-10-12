@@ -1,3 +1,4 @@
+import { toOrderGift } from "@/features/gifts/orderGift";
 import { apiGet } from "@/lib/serverApi";
 import type { Order, OrderStatus, OrderStepKey } from "./types";
 
@@ -38,6 +39,11 @@ export type ApiOrder = {
    * gravadas pelo backend. `unknown` de propósito — lido por `toOrderDetails`.
    */
   details?: unknown;
+  /** Brinde congelado (2026-10-12) — lido por `toOrderGift`. */
+  gift?: unknown;
+  /** Cupom (2026-10-12). Ausentes sem cupom (o backend apaga zero/nulo). */
+  couponCode?: string | null;
+  couponCents?: number;
 };
 
 type ApiOrderPage = {
@@ -109,19 +115,27 @@ export function toOrder(api: ApiOrder): Order {
     // O card mostra o preço do PRODUTO; o abatimento vai numa linha própria,
     // como no comprovante. Um preço já líquido faria o histórico mentir sobre
     // quanto o produto custava no dia.
+    // "Desconto" = coins + cupom (2026-10-12); o cupom também sai em `coupon`.
     discount:
-      api.discountCents && api.discountCents > 0
-        ? formatPrice((api.discountCents / 100).toFixed(2), api.currency)
+      (api.discountCents || 0) + (api.couponCents || 0) > 0
+        ? formatPrice((((api.discountCents || 0) + (api.couponCents || 0)) / 100).toFixed(2), api.currency)
         : null,
     coinsSpent: api.coinsSpent || 0,
     paid: formatPrice(
-      (Math.max(0, Math.round(Number(api.totalPrice) * 100) - (api.discountCents || 0)) / 100).toFixed(2),
+      (
+        Math.max(0, Math.round(Number(api.totalPrice) * 100) - (api.discountCents || 0) - (api.couponCents || 0)) / 100
+      ).toFixed(2),
       api.currency,
     ),
+    coupon:
+      api.couponCode && (api.couponCents || 0) > 0
+        ? { code: api.couponCode, amount: formatPrice(((api.couponCents || 0) / 100).toFixed(2), api.currency) }
+        : null,
     date: formatDate(api.createdAt),
     status: toStatus(api.status),
     currentStep: toStep(api.step),
     details: toOrderDetails(api.details, api.currency),
+    gift: toOrderGift(api.gift),
   };
 }
 
