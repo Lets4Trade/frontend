@@ -25,7 +25,7 @@ describe("parseAdminBlogQuery", () => {
 
   it("URL da tela e query da API", () => {
     const query = { search: "a", game: "g1", status: "publicadas" as const, page: 3 };
-    expect(adminBlogHref(query, { page: 1 })).toBe("/admin/noticias?q=a&jogo=g1&status=publicadas");
+    expect(adminBlogHref(query, { page: 1 })).toBe("/admin/blog?q=a&jogo=g1&status=publicadas");
     expect(adminBlogApiParams(query, 20)).toBe("search=a&game=g1&status=published&page=3&limit=20");
   });
 });

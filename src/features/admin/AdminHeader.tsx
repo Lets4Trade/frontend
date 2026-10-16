@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { GlowBar } from "@/components/layout/GlowBar";
 import { UserMenu } from "@/components/layout/UserMenu";
+import { PresenceToggle } from "@/features/admin/chats/PresenceToggle";
+import { SaleAlerts, SalesBadge } from "@/features/admin/sales/SaleAlerts";
 import type { SessionUser } from "@/features/auth/session";
 import { cn } from "@/lib/cn";
 import { ADMIN_NAV } from "./nav";
@@ -98,6 +100,8 @@ export function AdminHeader({
                 className={cn(baseClass, "transition-opacity hover:opacity-80")}
               >
                 {item.label}
+                {/* Vendas novas desde a última visita à lista (2026-10-16). */}
+                {item.href === "/admin/pedidos" && role === "ADMIN" ? <SalesBadge /> : null}
               </Link>
             );
           })}
@@ -105,6 +109,12 @@ export function AdminHeader({
 
         {/* Busca (Ctrl+K). Abaixo de xl o menu não cabe e ela vira a navegação. */}
         <div className="ml-auto flex shrink-0 items-center gap-[16px]">
+          {/* Online/Offline do atendente no chat da loja (2026-10-16). Só
+              ADMIN atende — o EDITOR não vê chats. */}
+          {role === "ADMIN" ? <PresenceToggle /> : null}
+          {/* Aviso de venda (card, som, contador, notificação) — só ADMIN, que
+              é quem entrega e vê pedidos (2026-10-16). */}
+          {role === "ADMIN" ? <SaleAlerts /> : null}
           <AdminSearch role={role} />
           <UserMenu user={user} />
         </div>

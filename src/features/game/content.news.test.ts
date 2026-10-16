@@ -67,7 +67,7 @@ describe("getGamePage → seção NOTÍCIAS", () => {
         image: { src: "http://api.test/uploads/blog/t.webp", width: 400, height: 225, alt: "" },
         tag: "Diablo IV",
         date: "20/09/26",
-        href: "/noticias/temporada-nova",
+        href: "/blog/temporada-nova",
       },
     ]);
   });

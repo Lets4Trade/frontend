@@ -3,11 +3,12 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type ComponentProps } from "react";
 import { buttonVariants } from "@/components/ui/Button";
 import type { MenuGame } from "@/features/game/menuGames";
 import { cn } from "@/lib/cn";
 import { HeaderSearch } from "./HeaderSearch";
+import { SupportStatusCard } from "./SupportStatusCard";
 
 /**
  * Menu do cabeçalho no CELULAR (Figma 2667:1864) — o botão de três linhas ao
@@ -26,12 +27,15 @@ export function MobileMenu({
   searchPlaceholder,
   signupLabel,
   loginLabel,
+  support,
 }: {
   games: MenuGame[];
   loggedIn: boolean;
   searchPlaceholder: string;
   signupLabel: string;
   loginLabel: string;
+  /** Online/offline + horário (2026-10-16): no celular a pílula não cabe na barra e mora aqui. */
+  support: ComponentProps<typeof SupportStatusCard>;
 }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
@@ -63,6 +67,10 @@ export function MobileMenu({
 
           <div className="mt-[20px]">
             <HeaderSearch placeholder={searchPlaceholder} variant="menu" onNavigate={close} />
+          </div>
+
+          <div className="mt-[20px]">
+            <SupportStatusCard {...support} />
           </div>
 
           <nav aria-label="Loja" className="mt-[28px] flex flex-col gap-[4px]">

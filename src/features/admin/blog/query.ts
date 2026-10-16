@@ -1,10 +1,10 @@
 /**
- * Filtros de `/admin/noticias` na URL: `?q=&jogo=<gameId>&status=&pagina=`.
+ * Filtros de `/admin/blog` na URL: `?q=&jogo=<gameId>&status=&pagina=`.
  * Puro (testável e sem `next/headers`), como `products/catalog.ts`.
  */
 
 export const ADMIN_BLOG_STATUS = [
-  { value: "publicadas", api: "published", label: "Publicadas" },
+  { value: "publicadas", api: "published", label: "Publicados" },
   { value: "rascunhos", api: "draft", label: "Rascunhos" },
 ] as const;
 
@@ -50,7 +50,7 @@ export function adminBlogHref(query: AdminBlogQuery, overrides: Partial<AdminBlo
   if (next.status) params.set("status", next.status);
   if (next.page > 1) params.set("pagina", String(next.page));
   const qs = params.toString();
-  return qs ? `/admin/noticias?${qs}` : "/admin/noticias";
+  return qs ? `/admin/blog?${qs}` : "/admin/blog";
 }
 
 /** Filtros da tela → query string de `GET /admin/blog`. */

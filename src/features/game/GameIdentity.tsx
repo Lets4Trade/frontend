@@ -123,7 +123,7 @@ function GameLogo({ logo, name }: { logo?: { src: string; alt?: string }; name: 
 
 /**
  * O mesmo halo do `GameLogo` em tamanho LIVRE: altura fixa, largura da própria
- * arte (`w-auto`). Usado na fileira de filtros de `/noticias` (Figma 1889:864),
+ * arte (`w-auto`). Usado na fileira de filtros de `/blog` (Figma 1889:864),
  * onde cada jogo tem uma logo de proporção diferente e caixa fixa deixaria
  * vãos desiguais entre logo e pílula.
  *
@@ -132,7 +132,7 @@ function GameLogo({ logo, name }: { logo?: { src: string; alt?: string }; name: 
  * logo grande (5.92px em 164 de altura).
  *
  * `maxWidth` e `haloOpacity` (2026-10-09, relato do usuário sobre o ARC
- * Raiders em /noticias): logo muito LARGA (372×106, 3,5:1) a 50px de altura
+ * Raiders em /blog): logo muito LARGA (372×106, 3,5:1) a 50px de altura
  * virava um bloco de 175px, o dobro dos outros jogos; e em arte branca de alto
  * contraste o halo cheio aparecia como borrão em volta das letras. O teto de
  * largura encolhe só a logo larga (a altura cai junto, sem deformar); as

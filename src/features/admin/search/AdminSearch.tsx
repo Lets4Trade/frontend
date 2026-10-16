@@ -80,8 +80,8 @@ export function AdminSearch({ role }: { role: Role }) {
         aria-label="Buscar no painel (Ctrl+K)"
       >
         <SearchIcon />
-        <span className="hidden 2xl:inline">Buscar</span>
-        <kbd className="hidden rounded-[6px] border border-white/15 px-[6px] py-[1px] text-[11px] text-white/60 2xl:inline">
+        <span className="hidden min-[2000px]:inline">Buscar</span>
+        <kbd className="hidden rounded-[6px] border border-white/15 px-[6px] py-[1px] text-[11px] text-white/60 min-[2000px]:inline">
           Ctrl K
         </kbd>
       </Dialog.Trigger>

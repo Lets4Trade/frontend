@@ -51,6 +51,7 @@ export function SectionItemsEditor({
   def,
   games = [],
   onChanged,
+  compact = false,
 }: {
   /** `home:reviews`. Trocar de sessão recarrega a lista. */
   sectionKey: string;
@@ -63,6 +64,12 @@ export function SectionItemsEditor({
    * O construtor de páginas usa para recarregar a prévia.
    */
   onChanged?: () => void;
+  /**
+   * Configurações da loja (2026-10-16): sem o título "Conteúdo da sessão" (o
+   * cartão já tem), cartões menores e em duas colunas no desktop — a lista de
+   * redes sociais deixava a página com metros de altura.
+   */
+  compact?: boolean;
 }) {
   const [items, setItems] = useState<SectionItem[]>([]);
   const [loadedKey, setLoadedKey] = useState<string | null>(null);
@@ -209,13 +216,15 @@ export function SectionItemsEditor({
   const loading = loadedKey !== sectionKey;
 
   return (
-    <section className="mt-[40px] border-t border-white/10 pt-[40px]">
-      <h2 className="font-helvetica text-[16px] font-bold tracking-[0.16px] text-white">
-        Conteúdo da sessão{" "}
-        <span className="font-normal text-brand-fg-subtle">
-          (adicione, edite, reordene ou remova cada {def.itemLabel})
-        </span>
-      </h2>
+    <section className={compact ? undefined : "mt-[40px] border-t border-white/10 pt-[40px]"}>
+      {compact ? null : (
+        <h2 className="font-helvetica text-[16px] font-bold tracking-[0.16px] text-white">
+          Conteúdo da sessão{" "}
+          <span className="font-normal text-brand-fg-subtle">
+            (adicione, edite, reordene ou remova cada {def.itemLabel})
+          </span>
+        </h2>
+      )}
 
       {loading ? (
         <p className="mt-[25px] font-poppins text-[14px] text-brand-fg-subtle">
@@ -223,7 +232,7 @@ export function SectionItemsEditor({
         </p>
       ) : (
         <>
-          <ul className="mt-[25px] flex flex-col gap-[20px]">
+          <ul className={compact ? "grid gap-[14px] xl:grid-cols-2" : "mt-[25px] flex flex-col gap-[20px]"}>
             {items.map((item, index) => (
               <ItemRow
                 key={item.id}
@@ -236,6 +245,7 @@ export function SectionItemsEditor({
                 onMove={move}
                 onRemove={remove}
                 onSave={save}
+                compact={compact}
               />
             ))}
           </ul>
@@ -274,6 +284,7 @@ export function SectionItemsEditor({
             onMove={move}
             onRemove={remove}
             onSave={save}
+            compact={compact}
           />
         </>
       )}
@@ -298,6 +309,7 @@ function ItemRow({
   onMove,
   onRemove,
   onSave,
+  compact = false,
 }: {
   item: SectionItem | null;
   index: number;
@@ -308,6 +320,7 @@ function ItemRow({
   onMove: (index: number, direction: -1 | 1) => void;
   onRemove: (item: SectionItem) => void;
   onSave: (form: FormData, id: string | null) => void;
+  compact?: boolean;
 }) {
   const isNew = item === null;
   const formRef = useRef<HTMLFormElement>(null);
@@ -315,9 +328,10 @@ function ItemRow({
   return (
     <li
       className={cn(
-        "rounded-[20px] border p-[25px]",
+        "rounded-[20px] border",
+        compact ? "p-[16px]" : "p-[25px]",
         isNew
-          ? "mt-[20px] border-dashed border-white/20"
+          ? cn("border-dashed border-white/20", compact ? "mt-[14px] list-none" : "mt-[20px]")
           : "border-brand-border bg-[image:var(--brand-surface-fill)]",
         item && !item.isActive && "opacity-60",
       )}

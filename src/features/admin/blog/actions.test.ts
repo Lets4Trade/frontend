@@ -135,7 +135,7 @@ describe("createBlogPostAction", () => {
       ok: false,
       reason: "conflict",
       field: "slug",
-      message: "Esse link já está em uso por outra notícia. Escolha outro.",
+      message: "Esse link já está em uso por outro post. Escolha outro.",
     });
   });
 
@@ -151,7 +151,7 @@ describe("createBlogPostAction", () => {
     expect(updateTag).toHaveBeenCalledWith(BLOG_TAG);
     const paths = vi.mocked(revalidatePath).mock.calls.map(([path]) => path);
     expect(paths).toEqual(
-      expect.arrayContaining(["/noticias", "/admin/noticias", "/noticias/nova-liga-de-poe-2", "/games/path-of-exile-2"]),
+      expect.arrayContaining(["/blog", "/admin/blog", "/blog/nova-liga-de-poe-2", "/games/path-of-exile-2"]),
     );
   });
 
@@ -196,7 +196,7 @@ describe("deleteBlogPostAction", () => {
     role.mockResolvedValue("USER");
     expect(await deleteBlogPostAction("cln1abc")).toMatchObject({ ok: false });
     role.mockResolvedValue("ADMIN");
-    expect(await deleteBlogPostAction("a/b")).toEqual({ ok: false, message: "Notícia inválida." });
+    expect(await deleteBlogPostAction("a/b")).toEqual({ ok: false, message: "Post inválido." });
     expect(del).not.toHaveBeenCalled();
   });
 
@@ -211,6 +211,6 @@ describe("deleteBlogPostAction", () => {
 
   it("404 → mensagem amigável", async () => {
     del.mockResolvedValue(apiFail(404));
-    expect(await deleteBlogPostAction("cln1abc")).toEqual({ ok: false, message: "Esta notícia já não existe." });
+    expect(await deleteBlogPostAction("cln1abc")).toEqual({ ok: false, message: "Este post já não existe." });
   });
 });

@@ -3,21 +3,19 @@ import { mobileAlignOf, type MobileAlign } from "@/features/site/mobileAlign";
 /**
  * Configuração do BOTÃO do chat flutuante (2026-10-09, pedido do usuário):
  * foto do ícone, título em negrito + texto DENTRO do botão (pílula, desde
- * 2026-10-12 — antes era um balão ao lado), lado da tela e o pontinho de
- * atendimento online/offline — tudo editável em Configurações da
- * loja → Atendimento (sessão `layout:chat`).
+ * 2026-10-12 — antes era um balão ao lado) e lado da tela — tudo editável em
+ * Configurações da loja → Atendimento (sessão `layout:chat`).
  *
  * Os textos da sessão: `title` = título do botão, `subtitle` = texto do botão.
  * As escolhas moram nos textos EXTRAS (o backend já os guarda e valida):
- * `lado`, `status`, `balao` e `offline`.
+ * `lado`, `balao` e `offline`.
  *
- * ONLINE/OFFLINE É MANUAL: o admin liga e desliga. Detectar sozinho (alguém
- * com `/admin/chats` aberto) exigiria presença compartilhada entre instâncias
- * (Redis) — fica para quando fizer falta.
+ * ONLINE/OFFLINE NÃO mora aqui desde 2026-10-16: vem dos ATENDENTES online
+ * (`presence.ts`), cada um ligando o próprio status no painel. O antigo extra
+ * `status` fica no banco e é ignorado.
  */
 export const CHAT_EXTRA = {
   side: "lado",
-  status: "status",
   balloon: "balao",
   offline: "offline",
 } as const;
@@ -37,7 +35,6 @@ export type ChatConfig = {
   title: string;
   text: string;
   side: ChatSide;
-  online: boolean;
   showBalloon: boolean;
   offlineText: string;
   /**
@@ -50,7 +47,7 @@ export type ChatConfig = {
 
 /**
  * Resolve a configuração a partir da sessão. Valor desconhecido no banco cai
- * no padrão (direita, online, balão visível) — nunca num estado quebrado.
+ * no padrão (direita, balão visível) — nunca num estado quebrado.
  */
 export function chatConfig(section: {
   title: string;
@@ -63,7 +60,6 @@ export function chatConfig(section: {
     title: section.title || CHAT_DEFAULTS.title,
     text: section.subtitle || CHAT_DEFAULTS.text,
     side: section.extra(CHAT_EXTRA.side, "direita") === "esquerda" ? "left" : "right",
-    online: section.extra(CHAT_EXTRA.status, "online") !== "offline",
     showBalloon: section.extra(CHAT_EXTRA.balloon, "mostrar") !== "esconder",
     offlineText: section.extra(CHAT_EXTRA.offline, CHAT_DEFAULTS.offline),
     mobileTextAlign: mobileAlignOf(section.extra),

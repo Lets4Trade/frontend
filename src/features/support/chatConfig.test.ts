@@ -9,13 +9,12 @@ const section = (extras: Record<string, string> = {}, base: Partial<{ title: str
 });
 
 describe("chatConfig", () => {
-  it("sem nada no painel: direita, online, balão visível e textos padrão", () => {
+  it("sem nada no painel: direita, balão visível e textos padrão", () => {
     expect(chatConfig(section())).toEqual({
       iconUrl: undefined,
       title: CHAT_DEFAULTS.title,
       text: CHAT_DEFAULTS.text,
       side: "right",
-      online: true,
       showBalloon: true,
       offlineText: CHAT_DEFAULTS.offline,
       // Celular: centralizado por padrão (2026-10-15).
@@ -35,7 +34,6 @@ describe("chatConfig", () => {
       title: "Oi!",
       text: "Bora conversar",
       side: "left",
-      online: false,
       showBalloon: false,
       offlineText: "Volte às 9h",
       mobileTextAlign: "left",
@@ -44,6 +42,6 @@ describe("chatConfig", () => {
 
   it("valor estranho no banco cai no padrão (nunca num estado quebrado)", () => {
     const config = chatConfig(section({ lado: "cima", status: "talvez", balao: "???" }));
-    expect([config.side, config.online, config.showBalloon]).toEqual(["right", true, true]);
+    expect([config.side, config.showBalloon]).toEqual(["right", true]);
   });
 });

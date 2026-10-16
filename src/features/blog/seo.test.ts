@@ -10,7 +10,7 @@ const post: BlogArticleView = {
   publishedAt: "2026-09-28T12:00:00.000Z",
   date: "28/09/26",
   game: { slug: "d4", name: "Diablo IV", logo: null },
-  href: "/noticias/x",
+  href: "/blog/x",
   body: "",
   related: [],
 };

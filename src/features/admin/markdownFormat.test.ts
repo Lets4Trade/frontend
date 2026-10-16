@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyFormat } from "./markdownFormat";
+import { applyFormat, insertImage, toggleHeading } from "./markdownFormat";
 
 describe("applyFormat", () => {
   it("negrito envolve a seleção e mantém o trecho selecionado", () => {
@@ -24,13 +24,31 @@ describe("applyFormat", () => {
   });
 
   it("link usa a seleção como rótulo e o endereço dado", () => {
-    expect(applyFormat("veja o blog", 7, 11, "link", "/noticias").value).toBe(
-      "veja o [blog](/noticias)",
+    expect(applyFormat("veja o blog", 7, 11, "link", "/blog").value).toBe(
+      "veja o [blog](/blog)",
     );
   });
 
   it("listas pegam as linhas inteiras e trocam o marcador antigo", () => {
     expect(applyFormat("intro\num\ndois", 7, 10, "ul").value).toBe("intro\n- um\n- dois");
     expect(applyFormat("- um\n- dois", 0, 10, "ol").value).toBe("1. um\n2. dois");
+  });
+});
+
+describe("toggleHeading e insertImage (2026-10-16)", () => {
+  it("subtítulo marca a linha do cursor e desmarca no segundo clique", () => {
+    const on = toggleHeading("intro\n- Como funciona\nfim", 8, 8);
+    expect(on.value).toBe("intro\n### Como funciona\nfim");
+    expect(toggleHeading(on.value, 8, 8).value).toBe("intro\nComo funciona\nfim");
+  });
+
+  it("imagem entra numa linha só dela, depois da linha do cursor", () => {
+    const url = "/uploads/pages/a.webp";
+    expect(insertImage("", 0, url).value).toBe(`![imagem](${url})\n`);
+    expect(insertImage("um\ndois", 1, url).value).toBe(`um\n\n![imagem](${url})\n\ndois`);
+    expect(insertImage("um\n\ndois", 1, url).value).toBe(`um\n\n![imagem](${url})\n\ndois`);
+    const end = insertImage("texto", 5, url);
+    expect(end.value).toBe(`texto\n\n![imagem](${url})\n`);
+    expect(end.selectionStart).toBe(end.value.length - 1);
   });
 });

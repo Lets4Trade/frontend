@@ -57,7 +57,7 @@ describe("GameFaqSection", () => {
             items: [
               {
                 subtitle: "Como comprar?",
-                text: "Leia **com atenção** o [blog](/noticias).\n\n- passo um\n- passo dois\n\n<script>x</script> [ruim](javascript:alert(1))",
+                text: "Leia **com atenção** o [blog](/blog).\n\n- passo um\n- passo dois\n\n<script>x</script> [ruim](javascript:alert(1))",
               },
             ],
           },
@@ -65,7 +65,7 @@ describe("GameFaqSection", () => {
       />,
     );
     expect(screen.getByText("com atenção").tagName).toBe("STRONG");
-    expect(screen.getByRole("link", { name: "blog" }).getAttribute("href")).toBe("/noticias");
+    expect(screen.getByRole("link", { name: "blog" }).getAttribute("href")).toBe("/blog");
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
     expect(container.querySelector("script")).toBeNull();
     // Esquema perigoso vira só o rótulo, sem link.

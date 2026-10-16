@@ -8,7 +8,7 @@ import { deleteBlogPostAction } from "./actions";
 import { ACTION_FAILED_MESSAGE, runAction } from "@/lib/safeAction";
 
 /**
- * Lixeira da linha em `/admin/noticias` — mesma confirmação por popover da
+ * Lixeira da linha em `/admin/blog` — mesma confirmação por popover da
  * lixeira de jogo/produto. Aqui a exclusão APAGA de verdade (contrato: notícia
  * é conteúdo editorial, não é citada por pedido), então o aviso diz que não
  * tem volta e sugere o rascunho como alternativa.
@@ -31,7 +31,7 @@ export function DeleteBlogPostButton({ id, name }: { id: string; name: string })
       // O `revalidatePath` da action desmonta o card junto com o popover.
       setError(null);
       setOpen(false);
-      toastOk("Notícia excluída.");
+      toastOk("Post excluído.");
     });
   }
 

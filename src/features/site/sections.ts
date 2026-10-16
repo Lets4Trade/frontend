@@ -1,4 +1,5 @@
 import type { MaskKind } from "@/lib/masks";
+import { WEEKDAYS } from "@/features/support/hours";
 import { blogCardExtraFields, type SectionExtraField } from "./blogCardFields";
 import { mobileAlignField } from "./mobileAlign";
 
@@ -295,7 +296,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         defaultTitle: "GUIAS POPULARES",
         hasImage: false,
         rich: ["title"],
-        extraFields: blogCardExtraFields("Vazio leva a /noticias (todas as notícias)."),
+        extraFields: blogCardExtraFields("Vazio leva a /blog (todas as notícias)."),
         list: {
           itemLabel: "guia",
           title: "Título do guia",
@@ -346,6 +347,56 @@ export const SITE_PAGES: readonly SitePageDef[] = [
           itemLabel: "subtítulo",
           title: "Texto do subtítulo",
         },
+      },
+    ],
+  },
+  {
+    // Blog (2026-10-16): os textos FIXOS da página — os posts em si são do menu
+    // Blog do painel. Lidos em `app/blog/page.tsx` e `app/blog/[slug]/page.tsx`
+    // via `features/blog/texts.ts`.
+    key: "blog",
+    label: "Blog",
+    href: "/blog",
+    sections: [
+      {
+        key: "textos",
+        label: "Textos da página",
+        titleLabel: "Título da página",
+        defaultTitle: "BLOG",
+        hasImage: false,
+        extraFields: [
+          {
+            name: "lista",
+            label: "Título da lista (sem jogo escolhido)",
+            defaultValue: "ÚLTIMOS POSTS",
+            maxLength: 80,
+          },
+          {
+            name: "lista-jogo",
+            label: "Título da lista com jogo escolhido",
+            defaultValue: "POSTS DE {jogo}",
+            maxLength: 80,
+            hint: "{jogo} vira o nome do jogo filtrado. Título todo em maiúsculas deixa o nome em maiúsculas também.",
+          },
+          {
+            name: "busca",
+            label: "Texto da caixa de busca",
+            defaultValue: "Pesquisar no blog",
+            maxLength: 40,
+          },
+          {
+            name: "voltar",
+            label: "Link de voltar (na página do post)",
+            defaultValue: "← Voltar ao blog",
+            maxLength: 40,
+          },
+          {
+            name: "mais",
+            label: "Título dos posts relacionados (no fim do post)",
+            defaultValue: "MAIS POSTS",
+            maxLength: 60,
+          },
+        ],
       },
     ],
   },
@@ -409,7 +460,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         // Mesmo formato de GUIAS POPULARES (2026-10-09): 3 cards altos e, na
         // 4ª coluna, uma notícia baixa + o card "Visitar blog".
         extraFields: blogCardExtraFields(
-          "Vazio leva às notícias do jogo da página (/noticias?jogo=…). Aceita caminho interno ou https.",
+          "Vazio leva às notícias do jogo da página (/blog?jogo=…). Aceita caminho interno ou https.",
         ),
         list: {
           itemLabel: "notícia",
@@ -524,19 +575,11 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         subtitleLabel: "Texto do balão",
         defaultSubtitle: "Fale com a nossa equipe. Respondemos rapidinho!",
         hasImage: true,
-        imageHint: "Foto do botão do chat: quadrada, 144×144 (aparece redonda, com 64px). Vazio usa o ícone de balão.",
+        imageHint:
+          "Foto do botão do chat quando NINGUÉM está online: quadrada, 144×144 (aparece redonda, com 64px). Com atendentes online, o botão mostra as fotos deles. Vazio usa o ícone de balão.",
         extraFields: [
-          {
-            name: "status",
-            label: "Atendimento",
-            defaultValue: "online",
-            maxLength: 10,
-            hint: "O pontinho no botão: verde = online, vermelho = offline.",
-            options: [
-              { value: "online", label: "Online (pontinho verde)" },
-              { value: "offline", label: "Offline (pontinho vermelho)" },
-            ],
-          },
+          // O antigo "status" (online/offline à mão) saiu em 2026-10-16: o
+          // status agora vem dos ATENDENTES online (botão no topo do painel).
           {
             // De que lado do TEXTO a bolinha (foto) fica — o botão em si fica
             // sempre no canto direito da tela (correção de 2026-10-12).
@@ -567,7 +610,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
             label: "Mensagem quando estiver offline",
             defaultValue: "Estamos offline agora. Deixe sua mensagem que respondemos assim que voltarmos.",
             maxLength: 200,
-            hint: "Aparece no topo do atendimento quando o status é Offline.",
+            hint: "Aparece no topo do atendimento quando nenhum atendente está online.",
           },
           // Mesmo nome de campo dos outros blocos; aqui a escolha também
           // move o BOTÃO (pedido do usuário, 2026-10-15).
@@ -580,6 +623,23 @@ export const SITE_PAGES: readonly SitePageDef[] = [
             },
           ),
         ],
+      },
+      {
+        // Horário de atendimento (2026-10-16): grade por dia, mostrada na
+        // pílula "Online/Offline" do cabeçalho. Cada dia é um extra
+        // "HH:MM-HH:MM" (vazio = fechado) — ver `features/support/hours.ts`.
+        key: "horario",
+        label: "Horário de atendimento",
+        titleLabel: "Título do horário (no cabeçalho)",
+        defaultTitle: "Horário de atendimento",
+        hasImage: false,
+        extraFields: WEEKDAYS.map((day) => ({
+          name: day.key,
+          label: day.long,
+          defaultValue: "",
+          maxLength: 11,
+          kind: "hours" as const,
+        })),
       },
       {
         key: "header-selo",

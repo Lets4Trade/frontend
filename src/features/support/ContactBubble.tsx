@@ -6,12 +6,15 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
+import { backendAsset } from "@/lib/publicApi";
 import { listConversations, unreadCount } from "./api";
 import { ConversationThread } from "./ConversationThread";
 import { NewConversationForm } from "./NewConversationForm";
 import { useSupportSocket } from "./socket";
 import type { ChatConfig } from "./chatConfig";
+import { attendantsLabel, type Attendant, type SupportPresence } from "./presenceTypes";
 import { listTime, type ConversationSummary } from "./types";
+import { usePresence } from "./usePresence";
 
 /**
  * Bolinha de contato flutuante + popup de atendimento (2026-09-15).
@@ -49,8 +52,24 @@ function subscribeCookies(onChange: () => void) {
 }
 const hasSessionHint = () => /(?:^|;\s*)pt_authed_client=/.test(document.cookie);
 
-export function ContactBubble({ whatsappHref, config }: { whatsappHref?: string; config: ChatConfig }) {
+export function ContactBubble({
+  whatsappHref,
+  config,
+  presence: initialPresence,
+}: {
+  whatsappHref?: string;
+  config: ChatConfig;
+  /**
+   * Atendentes online (2026-10-16): com alguém online, o botão mostra as FOTOS
+   * deles no lugar da foto do painel, e o status é este — não mais um
+   * interruptor manual. Ver `presence.ts`.
+   */
+  presence: SupportPresence;
+}) {
   const pathname = usePathname() ?? "/";
+  const presence = usePresence(initialPresence);
+  const online = presence.online;
+  const showTeam = online && presence.attendants.length > 0;
   const signedIn = useSyncExternalStore(subscribeCookies, hasSessionHint, () => false);
   const hidden = HIDDEN_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 
@@ -109,7 +128,7 @@ export function ContactBubble({ whatsappHref, config }: { whatsappHref?: string;
   if (hidden) return null;
 
   const loginHref = `/login?redirect=${encodeURIComponent(`${pathname}${OPEN_HASH}`)}`;
-  const statusLabel = config.online ? "Online agora" : "Offline no momento";
+  const statusLabel = online ? "Online agora" : "Offline no momento";
   // Título e texto do painel DENTRO do botão (fechado). Desligado no painel = só a foto.
   const withText = config.showBalloon && !open;
   const centerOnMobile = config.mobileTextAlign === "center";
@@ -134,12 +153,18 @@ export function ContactBubble({ whatsappHref, config }: { whatsappHref?: string;
               className="pointer-events-none absolute -top-[60px] left-1/2 h-[120px] w-[260px] -translate-x-1/2 rounded-full bg-brand-orange/25 blur-[40px]"
             />
             <div className="relative flex items-center gap-[12px]">
-              <ChatAvatar config={config} size={44} />
+              {showTeam ? (
+                <AttendantStack attendants={presence.attendants} total={presence.total} size={38} max={3} />
+              ) : (
+                <ChatAvatar config={config} size={44} />
+              )}
               <div className="min-w-0 flex-1">
                 <p className="truncate font-poppins text-[16px] font-semibold text-white">Atendimento Lets4Trade</p>
                 <p className="mt-[2px] flex items-center gap-[6px] font-helvetica text-[12px] text-brand-fg-muted">
-                  <StatusDot online={config.online} />
-                  {statusLabel}
+                  <StatusDot online={online} />
+                  <span className="truncate">
+                    {showTeam ? `${attendantsLabel(presence)} ${presence.total > 1 ? "online" : "online agora"}` : statusLabel}
+                  </span>
                 </p>
               </div>
               <button
@@ -151,7 +176,7 @@ export function ContactBubble({ whatsappHref, config }: { whatsappHref?: string;
                 ×
               </button>
             </div>
-            {!config.online ? (
+            {!online ? (
               <p className="relative mt-[12px] rounded-[12px] border border-red-500/30 bg-red-500/10 px-[12px] py-[8px] font-helvetica text-[12px] leading-[17px] text-white/85">
                 {config.offlineText}
               </p>
@@ -228,8 +253,8 @@ export function ContactBubble({ whatsappHref, config }: { whatsappHref?: string;
                 // Do lado da foto a borda é curta (a foto redonda enche a ponta);
                 // sem foto, o ícone solto pede um pouco mais de respiro.
                 iconRight
-                  ? cn("flex-row-reverse pl-[18px]", config.iconUrl ? "pr-[6px] sm:pr-[8px]" : "pr-[16px]")
-                  : cn("pr-[18px]", config.iconUrl ? "pl-[6px] sm:pl-[8px]" : "pl-[16px]"),
+                  ? cn("flex-row-reverse pl-[18px]", config.iconUrl || showTeam ? "pr-[6px] sm:pr-[8px]" : "pr-[16px]")
+                  : cn("pr-[18px]", config.iconUrl || showTeam ? "pl-[6px] sm:pl-[8px]" : "pl-[16px]"),
               )
             : "size-[64px] shrink-0 justify-center sm:size-[72px]",
           open && "border-brand-orange/70",
@@ -241,18 +266,30 @@ export function ContactBubble({ whatsappHref, config }: { whatsappHref?: string;
               ×
             </span>
             <span className="absolute right-[3px] bottom-[3px]">
-              <StatusDot online={config.online} ring />
+              <StatusDot online={online} ring />
             </span>
           </>
         ) : (
           <span className="relative shrink-0">
-            {/* Na pílula sem foto, a caixa do ícone tem o tamanho do desenho:
-                numa caixa de 52px o ícone de 24px sobrava ~14px de cada lado e
-                afastava o texto (relato do usuário). */}
-            <ChatAvatar config={config} size={withText ? (config.iconUrl ? 52 : 26) : 56} />
+            {/* Com atendentes online (2026-10-16): as fotos deles, sobrepostas.
+                Na pílula cabem 3; no botão redondo, 2 (o resto vira "+N").
+                Ninguém online: a foto do painel, como antes. */}
+            {showTeam ? (
+              <AttendantStack
+                attendants={presence.attendants}
+                total={presence.total}
+                size={withText ? 44 : 34}
+                max={withText ? 3 : 2}
+              />
+            ) : (
+              // Na pílula sem foto, a caixa do ícone tem o tamanho do desenho:
+              // numa caixa de 52px o ícone de 24px sobrava ~14px de cada lado e
+              // afastava o texto (relato do usuário).
+              <ChatAvatar config={config} size={withText ? (config.iconUrl ? 52 : 26) : 56} />
+            )}
             {withText ? null : (
               <span className="absolute right-[1px] bottom-[1px]">
-                <StatusDot online={config.online} ring />
+                <StatusDot online={online} ring />
               </span>
             )}
             {unread > 0 ? (
@@ -287,7 +324,7 @@ export function ContactBubble({ whatsappHref, config }: { whatsappHref?: string;
         ) : null}
         {withText ? (
           <span className="flex shrink-0 items-center">
-            <StatusDot online={config.online} ring />
+            <StatusDot online={online} ring />
           </span>
         ) : null}
       </button>
@@ -314,6 +351,63 @@ function ChatAvatar({ config, size }: { config: ChatConfig; size: number }) {
       style={{ width: size, height: size }}
     >
       <Image src="/icons/home/chat-dialog.svg" alt="" width={24} height={24} aria-hidden className="size-[24px]" />
+    </span>
+  );
+}
+
+/**
+ * Fotos dos atendentes online, sobrepostas (2026-10-16). Até `max` rostos; com
+ * mais gente, o último lugar vira "+N". Sem foto na conta, a inicial do nome.
+ * O nome vai no `title` (passar o mouse) e no rótulo do botão via status.
+ */
+export function AttendantStack({
+  attendants,
+  total,
+  size,
+  max,
+}: {
+  attendants: readonly Attendant[];
+  total: number;
+  size: number;
+  max: number;
+}) {
+  const overflow = total > max;
+  const faces = attendants.slice(0, overflow ? max - 1 : max);
+  const rest = total - faces.length;
+  const overlap = Math.round(size * 0.32);
+
+  return (
+    <span aria-hidden className="flex shrink-0 items-center">
+      {faces.map((attendant, index) => {
+        const src = backendAsset(attendant.avatarUrl);
+        return (
+          <span
+            key={`${attendant.name}-${index}`}
+            title={attendant.name}
+            className="relative block shrink-0 overflow-hidden rounded-full ring-2 ring-black"
+            style={{ width: size, height: size, marginLeft: index === 0 ? 0 : -overlap, zIndex: max - index }}
+          >
+            {src ? (
+              <Image src={src} alt="" fill sizes={`${size}px`} className="object-cover" />
+            ) : (
+              <span
+                className="flex size-full items-center justify-center bg-[image:var(--brand-orange-gradient)] font-poppins font-bold text-white uppercase"
+                style={{ fontSize: Math.round(size * 0.42) }}
+              >
+                {attendant.name.charAt(0)}
+              </span>
+            )}
+          </span>
+        );
+      })}
+      {overflow ? (
+        <span
+          className="relative flex shrink-0 items-center justify-center rounded-full bg-white/15 font-poppins font-bold text-white ring-2 ring-black backdrop-blur"
+          style={{ width: size, height: size, marginLeft: -overlap, fontSize: Math.round(size * 0.34) }}
+        >
+          +{rest}
+        </span>
+      ) : null}
     </span>
   );
 }

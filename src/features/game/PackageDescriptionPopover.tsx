@@ -10,6 +10,7 @@ import {
 } from "react";
 import Image from "next/image";
 import { createPortal } from "react-dom";
+import { SectionContentView } from "./SectionContentView";
 import type { ServiceContent } from "./types";
 
 const WIDTH = 440;
@@ -213,28 +214,7 @@ export function PackageDescriptionPopover({
                 <div className="relative min-h-0 flex-1 overflow-hidden pb-[24px]">
                   {content.sections.map((section, index) => (
                     <div key={index} className="mt-[18px]">
-                      {section.title ? (
-                        <p className="font-poppins text-[15px] leading-[22px] font-bold tracking-[0.15px] text-white">
-                          {section.title}
-                        </p>
-                      ) : null}
-                      {section.items.length > 0 ? (
-                        <ul className="mt-[6px] flex flex-col gap-[4px]">
-                          {section.items.map((item, itemIndex) => (
-                            <li
-                              key={itemIndex}
-                              className="flex gap-[8px] font-helvetica text-[14px] leading-[22px] tracking-[0.14px] text-brand-placeholder"
-                            >
-                              <span aria-hidden className="text-brand-orange">
-                                ●
-                              </span>
-                              <span className="min-w-0 break-words">
-                                {item}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
+                      <SectionContentView section={section} variant="popover" />
                     </div>
                   ))}
                   {/* Texto além da janela: some num degradê em vez de cortar seco. */}

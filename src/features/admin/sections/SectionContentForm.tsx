@@ -11,6 +11,8 @@ import { resetSectionAction, saveSectionAction } from "@/features/site/actions";
 import type { SectionContent } from "@/features/site/list";
 import type { GameOption, SiteSectionDef } from "@/features/site/sections";
 import { ACTION_FAILED_MESSAGE, ACTION_FAILED_UPLOAD_MESSAGE, runAction } from "@/lib/safeAction";
+import { cn } from "@/lib/cn";
+import { HoursGrid } from "./HoursExtraField";
 import { SectionItemsEditor } from "./SectionItemsEditor";
 
 /**
@@ -21,6 +23,11 @@ import { SectionItemsEditor } from "./SectionItemsEditor";
  * "Configurações da loja" e "Cabeçalho"/"Rodapé" — o mesmo formulário em três
  * lugares, gravando pela mesma action. Grava DIRETO na loja (o modelo
  * `SiteSectionContent` não tem rascunho).
+ *
+ * `layout="grid"` (2026-10-16, Configurações da loja reorganizadas): campos
+ * curtos em duas colunas, texto longo/imagem/horário na largura toda, e o
+ * rodapé com Salvar à direita + aviso de alteração não salva. O padrão
+ * (`stack`) é o de sempre, para as telas de páginas.
  */
 export function SectionContentForm({
   fullKey,
@@ -28,6 +35,8 @@ export function SectionContentForm({
   content,
   games,
   onSaved,
+  layout = "stack",
+  compactList = false,
 }: {
   /** `layout:contatos`. */
   fullKey: string;
@@ -36,6 +45,9 @@ export function SectionContentForm({
   games: GameOption[];
   /** Depois de gravar (ou de mexer na lista): o conteúdo novo, ou `null` se voltou ao padrão. */
   onSaved: (content: SectionContent | null) => void;
+  layout?: "stack" | "grid";
+  /** Lista de itens em grade de cartões menores (redes sociais nas Configurações). */
+  compactList?: boolean;
 }) {
   const [title, setTitle] = useState(content?.title ?? "");
   const [subtitle, setSubtitle] = useState(content?.subtitle ?? "");
@@ -53,6 +65,22 @@ export function SectionContentForm({
   const hasFootnote = def.defaultFootnote !== undefined || Boolean(def.footnoteLabel);
   const hasExtras = (def.extraFields?.length ?? 0) > 0;
   const hasFields = hasTitle || hasSubtitle || hasFootnote || def.hasBody || def.hasImage || hasExtras;
+  const grid = layout === "grid";
+  const hoursFields = (def.extraFields ?? []).filter((field) => field.kind === "hours");
+  const otherExtras = (def.extraFields ?? []).filter((field) => field.kind !== "hours");
+  const setExtra = (name: string, value: string) => setExtras((current) => ({ ...current, [name]: value }));
+
+  // Alteração não salva: o rodapé avisa (no modo grade). Compara com o que a
+  // loja tem agora — depois de salvar, o `content` novo chega e o aviso some.
+  const dirty =
+    imageName !== null ||
+    title !== (content?.title ?? "") ||
+    subtitle !== (content?.subtitle ?? "") ||
+    footnote !== (content?.footnote ?? "") ||
+    body !== (content?.body ?? "") ||
+    Object.entries(extras).some(([name, value]) => value !== (content?.extras?.[name] ?? ""));
+  /** Largura toda na grade. */
+  const full = grid ? "md:col-span-2" : undefined;
 
   function save() {
     const form = new FormData();
@@ -109,16 +137,18 @@ export function SectionContentForm({
   return (
     <div className="flex flex-col gap-[18px]">
       {hasFields ? (
-        <div className="flex flex-col gap-[16px]">
+        <div className={grid ? "grid gap-x-[20px] gap-y-[18px] md:grid-cols-2" : "flex flex-col gap-[16px]"}>
           {hasTitle && def.rich?.includes("title") ? (
-            <RichTextField
-              label={def.titleLabel ?? "Título"}
-              value={title}
-              placeholder={def.defaultTitle}
-              maxLength={160}
-              hint="Selecione um trecho para formatar · Shift+Enter quebra a linha."
-              onChange={setTitle}
-            />
+            <div className={full}>
+              <RichTextField
+                label={def.titleLabel ?? "Título"}
+                value={title}
+                placeholder={def.defaultTitle}
+                maxLength={160}
+                hint="Selecione um trecho para formatar · Shift+Enter quebra a linha."
+                onChange={setTitle}
+              />
+            </div>
           ) : hasTitle ? (
             <TextField
               label={def.titleLabel ?? "Título"}
@@ -131,13 +161,15 @@ export function SectionContentForm({
           ) : null}
           {/* 200, não 300: é o limite do backend (`sections.dto.ts`). */}
           {hasSubtitle && def.rich?.includes("subtitle") ? (
-            <RichTextField
-              label={def.subtitleLabel ?? "Subtítulo"}
-              value={subtitle}
-              placeholder={def.defaultSubtitle}
-              maxLength={200}
-              onChange={setSubtitle}
-            />
+            <div className={full}>
+              <RichTextField
+                label={def.subtitleLabel ?? "Subtítulo"}
+                value={subtitle}
+                placeholder={def.defaultSubtitle}
+                maxLength={200}
+                onChange={setSubtitle}
+              />
+            </div>
           ) : hasSubtitle ? (
             <TextField
               label={def.subtitleLabel ?? "Subtítulo"}
@@ -158,25 +190,29 @@ export function SectionContentForm({
             />
           ) : null}
           {def.hasBody && def.rich?.includes("body") ? (
-            <RichTextField
-              label={def.bodyLabel ?? "Texto"}
-              value={body}
-              placeholder={def.defaultBody}
-              maxLength={4000}
-              multiline
-              onChange={setBody}
-            />
+            <div className={full}>
+              <RichTextField
+                label={def.bodyLabel ?? "Texto"}
+                value={body}
+                placeholder={def.defaultBody}
+                maxLength={4000}
+                multiline
+                onChange={setBody}
+              />
+            </div>
           ) : def.hasBody ? (
-            <TextAreaField
-              label={def.bodyLabel ?? "Texto"}
-              value={body}
-              placeholder={def.defaultBody}
-              rows={4}
-              maxLength={4000}
-              onChange={(event) => setBody(event.target.value)}
-            />
+            <div className={full}>
+              <TextAreaField
+                label={def.bodyLabel ?? "Texto"}
+                value={body}
+                placeholder={def.defaultBody}
+                rows={4}
+                maxLength={4000}
+                onChange={(event) => setBody(event.target.value)}
+              />
+            </div>
           ) : null}
-          {def.extraFields?.map((field) => (
+          {otherExtras.map((field) => (
             <div key={field.name}>
               {field.options ? (
                 // Escolha: vazio no banco = o padrão, então o select mostra o padrão.
@@ -202,8 +238,13 @@ export function SectionContentForm({
               ) : null}
             </div>
           ))}
+          {hoursFields.length > 0 ? (
+            <div className={full}>
+              <HoursGrid fields={hoursFields} values={extras} onChange={setExtra} />
+            </div>
+          ) : null}
           {def.hasImage ? (
-            <div>
+            <div className={full}>
               <p className="mb-[8px] font-helvetica text-[16px] font-bold text-white">Imagem</p>
               <div className="flex items-center gap-[12px]">
                 <span className="relative size-[64px] shrink-0 overflow-hidden rounded-[12px] border border-brand-border bg-black/40">
@@ -228,7 +269,18 @@ export function SectionContentForm({
             </div>
           ) : null}
 
-          <div className="flex flex-wrap items-center gap-[10px]">
+          <div
+            className={cn(
+              "flex flex-wrap items-center gap-[10px]",
+              grid && "justify-end border-t border-white/10 pt-[16px] md:col-span-2",
+            )}
+          >
+            {grid && dirty ? (
+              <span className="mr-auto flex items-center gap-[8px] font-poppins text-[12px] text-brand-orange">
+                <span aria-hidden className="size-[7px] rounded-full bg-brand-orange" />
+                Alterações não salvas
+              </span>
+            ) : null}
             <button
               type="button"
               onClick={save}
@@ -260,6 +312,7 @@ export function SectionContentForm({
             sectionKey={fullKey}
             def={def.list}
             games={games}
+            compact={compactList}
             onChanged={() => onSaved(content ?? null)}
           />
         </div>

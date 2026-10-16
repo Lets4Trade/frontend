@@ -2,6 +2,8 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import Image from "next/image";
+import { useRef } from "react";
+import { InlineVideo, useAutoplayInView } from "./InlineAutoplayVideo";
 import type { RevealKind } from "./reveal";
 import { youtubeEmbedUrl } from "./youtube";
 
@@ -15,6 +17,16 @@ import { youtubeEmbedUrl } from "./youtube";
  * `Dialog.Content` do Radix só existe no DOM enquanto está aberto: o iframe
  * nasce no clique e MORRE ao fechar — o que também para o som, sem precisar
  * falar com a API do player.
+ *
+ * ── Toca sozinho ao chegar na seção (2026-10-16, pedido do usuário) ───────
+ * Com a seção ~metade na tela, a capa dá lugar ao vídeo tocando ali mesmo,
+ * MUDO (regra dos navegadores) e com "Ativar som" — ver `InlineAutoplayVideo`.
+ * O peso continua só para quem chega à seção. A capa + modal acima segue para
+ * quem pediu menos movimento ou economia de dados, e para quem clica antes.
+ *
+ * A MOLDURA é sempre o mesmo elemento (com o `data-reveal` da entrada): só o
+ * conteúdo troca. Trocar o elemento faria a entrada da home recomeçar do zero
+ * e a moldura ficaria invisível (o `HomeMotion` marca o elemento, não o lugar).
  *
  * ── Sem vídeo, sem botão ──────────────────────────────────────────────────
  * Até 2026-09-14 isto era um `<button>` sem ação, sem vídeo nenhum por trás.
@@ -51,6 +63,8 @@ export function VideoPlayer({
   const frame =
     frameClassName ??
     "absolute top-0 left-[674px] h-[609px] w-[1146px] overflow-hidden rounded-[30px]";
+  const frameRef = useRef<HTMLDivElement>(null);
+  const { active, visible } = useAutoplayInView(frameRef);
 
   const thumb = (
     <Image
@@ -71,12 +85,26 @@ export function VideoPlayer({
     );
   }
 
+  if (active) {
+    return (
+      <div ref={frameRef} className={`${frame} bg-black`} {...revealAttrs}>
+        <InlineVideo
+          videoId={videoId}
+          videoFile={videoFile}
+          poster={image}
+          title="Vídeo de apresentação da Lets4Trade"
+          visible={visible}
+        />
+      </div>
+    );
+  }
+
   return (
+    <div ref={frameRef} className={frame} {...revealAttrs}>
     <Dialog.Root>
       <Dialog.Trigger
         aria-label="Assistir ao vídeo de apresentação"
-        className={`play-button ${frame}`}
-        {...revealAttrs}
+        className="play-button absolute inset-0 block size-full"
       >
         {thumb}
         {compact ? (
@@ -133,6 +161,7 @@ export function VideoPlayer({
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+    </div>
   );
 }
 

@@ -4,6 +4,7 @@ import { getServiceProducts } from "./content";
 import { pillClassName } from "./pill";
 import { ServiceConfigurator } from "./ServiceConfigurator";
 import { withEffectivePricing } from "./storefrontTabs";
+import { SectionContentView } from "./SectionContentView";
 import type { GamePage, GameTab, ServiceContent } from "./types";
 
 /**
@@ -137,9 +138,9 @@ const TITLE =
   "font-helvetica text-[18px] leading-none font-bold tracking-[0.18px] text-white";
 
 /**
- * Os textos da aba ("What you will get", "Requirements"...). TEXTO PURO: o
- * React escapa tudo, e nada aqui passa por `dangerouslySetInnerHTML` — o
- * conteúdo é escrito no painel e não pode virar marcação na loja.
+ * Os textos da aba ("What you will get", "Requirements"...). Markdown RESTRITO
+ * desenhado como elementos React — nada aqui passa por `dangerouslySetInnerHTML`
+ * (ver `SectionContentView`).
  */
 export function ServiceText({ content }: { content?: ServiceContent }) {
   if (!content || content.sections.length === 0) return null;
@@ -148,20 +149,7 @@ export function ServiceText({ content }: { content?: ServiceContent }) {
     <div className="min-w-0 flex-1 lg:max-w-[1016px] lg:pl-[29px]">
       {content.sections.map((section, index) => (
         <section key={index} className={index > 0 ? "mt-[40px]" : undefined}>
-          {section.title ? <h2 className={TITLE}>{section.title}</h2> : null}
-          {section.items.length > 0 ? (
-            <ul className={section.title ? "mt-[15px]" : undefined}>
-              {section.items.map((item, itemIndex) => (
-                <li
-                  key={itemIndex}
-                  className="flex gap-[8px] font-helvetica text-[16px] leading-[27px] tracking-[0.16px] text-brand-placeholder"
-                >
-                  <span aria-hidden>●</span>
-                  <span className="min-w-0 break-words">{item}</span>
-                </li>
-              ))}
-            </ul>
-          ) : null}
+          <SectionContentView section={section} />
         </section>
       ))}
     </div>

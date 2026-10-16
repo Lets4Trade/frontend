@@ -1,5 +1,5 @@
 /**
- * Filtros da lista `/noticias` — moram na URL (`?jogo=&busca=&pagina=`).
+ * Filtros da lista `/blog` — moram na URL (`?jogo=&busca=&pagina=`).
  *
  * Filtrar é NAVEGAR: a lista é montada no servidor, funciona sem JavaScript e o
  * endereço é compartilhável/indexável. Módulo puro (sem `next/headers`) para
@@ -66,10 +66,10 @@ export function blogListHref(query: BlogQuery, overrides: Partial<BlogQuery> = {
   if (next.search) params.set(BLOG_PARAM.search, next.search);
   if (next.page > 1) params.set(BLOG_PARAM.page, String(next.page));
   const qs = params.toString();
-  return qs ? `/noticias?${qs}` : "/noticias";
+  return qs ? `/blog?${qs}` : "/blog";
 }
 
 /** Caminho da matéria. */
 export function blogPostHref(slug: string): string {
-  return `/noticias/${encodeURIComponent(slug)}`;
+  return `/blog/${encodeURIComponent(slug)}`;
 }

@@ -80,7 +80,10 @@ describe("NewTabForm", () => {
     expect(onCreated).toHaveBeenCalledWith(expect.objectContaining({ id: "t9" }));
     // Rascunho limpo para a próxima aba.
     await waitFor(() => expect(screen.queryByText("+ Adicionar seção de texto")).toBeNull());
-  });
+  // 1º teste do arquivo: paga o carregamento do editor de seções (formatado,
+  // 2026-10-16). Sozinho leva ~0,6 s; com a suíte inteira em paralelo e os
+  // servidores de dev no ar passou de 5 s — teto maior para não falhar à toa.
+  }, 15_000);
 
   it("textos digitados e depois trocados para Catálogo não viajam", async () => {
     createTabAction.mockResolvedValue({ ok: true, data: tab("t9", "Moedas", "CATALOG") });

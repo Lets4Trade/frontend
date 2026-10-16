@@ -383,6 +383,8 @@ function RichAnswer({ source }: { source: string }) {
             </List>
           );
         }
+        // Imagem só existe com `images: true`, que a descrição não liga.
+        if (block.kind === "img") return null;
         // `##`/`###` no meio do texto: destaque em negrito, sem virar outro
         // nível de título (os títulos da descrição já são os campos dela).
         return (

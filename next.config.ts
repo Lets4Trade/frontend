@@ -169,6 +169,13 @@ const nextConfig: NextConfig = {
         destination: "/crie-seu-evento-na-lets4trade",
         permanent: true,
       },
+      // "Notícias" virou "Blog" (2026-10-16, pedido do usuário). 308: links já
+      // compartilhados, indexados ou gravados no banco (rodapé, cards da home,
+      // textos com link) continuam chegando — com a query (`?jogo=`) junto.
+      { source: "/noticias", destination: "/blog", permanent: true },
+      { source: "/noticias/:slug", destination: "/blog/:slug", permanent: true },
+      { source: "/admin/noticias", destination: "/admin/blog", permanent: true },
+      { source: "/admin/noticias/:path*", destination: "/admin/blog/:path*", permanent: true },
     ];
   },
   async headers() {

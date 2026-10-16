@@ -28,6 +28,11 @@ export function hubGroups(games: readonly { id: string; name: string }[] = []): 
         },
         { href: page("venda"), title: "Venda pra nós", description: "Título e textos do formulário de venda." },
         { href: page("fidelidade"), title: "Fidelidade", description: "Textos da página de níveis e benefícios." },
+        {
+          href: page("blog"),
+          title: "Blog",
+          description: "Títulos da página, da lista e da busca. Os posts ficam no menu Blog.",
+        },
       ],
     },
     {

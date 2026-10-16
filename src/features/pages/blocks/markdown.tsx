@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { CONTENT_IMAGE } from "@/features/game/sectionContent";
 
 /**
  * Markdown RESTRITO do bloco "Texto formatado" (2026-09-25).
@@ -21,18 +22,25 @@ export function Markdown({ source }: { source: string }) {
   return <>{parseBlocks(source).map((block, index) => renderBlock(block, index))}</>;
 }
 
-type MdBlock =
+export type MdBlock =
   | { kind: "h2" | "h3" | "p"; text: string }
-  | { kind: "ul" | "ol"; items: string[] };
+  | { kind: "ul" | "ol"; items: string[] }
+  | { kind: "img"; src: string; alt: string };
 
 /**
  * `keepLineBreaks`: linhas seguidas do mesmo parágrafo ficam separadas por
  * `\n` (quem desenha usa `whitespace-pre-line`) em vez de juntadas com espaço.
  * É o que a descrição do jogo promete a quem edita (2026-10-08).
+ *
+ * `images` (2026-10-16, textos da página do pacote): uma linha que é SÓ
+ * `![alt](/uploads/pages/<id>.webp)` vira bloco de imagem. Só arte enviada pelo
+ * painel (`CONTENT_IMAGE`); outro endereço some — imagem de host livre seria
+ * pixel de rastreamento de terceiro em cada visita. Desligado, a linha segue
+ * como texto, então blog e descrição do jogo não mudam.
  */
 export function parseBlocks(
   source: string,
-  { keepLineBreaks = false }: { keepLineBreaks?: boolean } = {},
+  { keepLineBreaks = false, images = false }: { keepLineBreaks?: boolean; images?: boolean } = {},
 ): MdBlock[] {
   const blocks: MdBlock[] = [];
   let paragraph: string[] = [];
@@ -52,6 +60,14 @@ export function parseBlocks(
     if (line === "") {
       flushParagraph();
       flushList();
+      continue;
+    }
+
+    const image = images ? /^!\[([^\]]*)\]\(([^)\s]+)\)$/.exec(line) : null;
+    if (image) {
+      flushParagraph();
+      flushList();
+      if (CONTENT_IMAGE.test(image[2])) blocks.push({ kind: "img", src: image[2], alt: image[1].trim() });
       continue;
     }
 
@@ -128,6 +144,9 @@ export function renderInline(text: string): ReactNode[] {
 
 function renderBlock(block: MdBlock, index: number) {
   switch (block.kind) {
+    // Só existe com `images: true`, que este componente não liga.
+    case "img":
+      return null;
     case "h2":
       return (
         <h3 key={index} className="font-helvetica text-[22px] leading-[28px] font-bold text-white">

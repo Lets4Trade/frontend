@@ -21,7 +21,7 @@ export type BlogCardTexts = { title: string; subtitle: string; href: string };
  * Link digitado no painel → `href` que a loja pode usar, ou `null`.
  *
  * Mesma allowlist de `safeLinkHref` (caminho interno ou https), mais a QUERY
- * num caminho interno — o caso natural aqui é `/noticias?jogo=diablo`, que o
+ * num caminho interno — o caso natural aqui é `/blog?jogo=diablo`, que o
  * `safeLinkHref` recusa. A query aceita só caracteres de parâmetro: nada de
  * `//`, espaço, aspas ou `javascript:`.
  */
@@ -33,9 +33,9 @@ export function safeBlogCardHref(value: string | null | undefined): string | nul
   return null;
 }
 
-/** As notícias de UM jogo na página do blog (`/noticias?jogo=<slug>`). */
+/** As notícias de UM jogo na página do blog (`/blog?jogo=<slug>`). */
 export function gameBlogHref(gameSlug: string): string {
-  return `/noticias?${new URLSearchParams({ [BLOG_PARAM.game]: gameSlug }).toString()}`;
+  return `/blog?${new URLSearchParams({ [BLOG_PARAM.game]: gameSlug }).toString()}`;
 }
 
 /**

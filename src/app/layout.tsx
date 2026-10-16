@@ -1,11 +1,12 @@
 // build bump
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Manrope, DM_Sans } from "next/font/google";
 import localFont from "next/font/local";
 import { PageViewTracker } from "@/features/admin/PageViewTracker";
 import { getContacts } from "@/features/site/contacts";
 import { getLayoutContent } from "@/features/site/layoutContent";
 import { ContactBubble } from "@/features/support/ContactBubble";
+import { getSupportPresence } from "@/features/support/presence";
 import { getMenuGames } from "@/features/game/menuGames";
 import { GlobalMobileNav } from "@/features/home/mobile/GlobalMobileNav";
 import { chatConfig } from "@/features/support/chatConfig";
@@ -122,6 +123,17 @@ const DEFAULT_ICON = "/images/logo.png";
  * ⚠️ Navegadores guardam favicon em cache por conta própria, e por bastante
  * tempo: quem já visitou pode demorar a ver o ícone novo.
  */
+/**
+ * Cor da barra do navegador no celular (Chrome/Android pinta a barra de
+ * endereço; Safari usa no recuo e no elástico da rolagem). Preto como o site —
+ * sem isto, a moldura do navegador e o fim da página apareciam brancos
+ * (2026-10-16). Sem `colorScheme`: ele mudaria o visual padrão de controles
+ * nativos (checkbox, arquivo) em telas que não foram revistas.
+ */
+export const viewport: Viewport = {
+  themeColor: "#000000",
+};
+
 export async function generateMetadata(): Promise<Metadata> {
   const icon = (await getLayoutContent()).text("icone").imageUrl;
   const url = icon ?? DEFAULT_ICON;
@@ -144,8 +156,15 @@ export default async function RootLayout({
   // Leitura cacheada (1h, invalidada pelo painel) — a mesma que o cabeçalho e o
   // rodapé já fazem; não soma ida ao backend.
   // Jogos do menu: a mesma leitura cacheada do cabeçalho (deduplicada).
-  const [contacts, layout, games] = await Promise.all([getContacts(), getLayoutContent(), getMenuGames()]);
-  // Botão do chat (foto, balão, lado, online/offline) — Configurações da loja.
+  // Atendentes online (2026-10-16): cacheada 30 s, compartilhada com o
+  // cabeçalho — ver `features/support/presence.ts`.
+  const [contacts, layout, games, presence] = await Promise.all([
+    getContacts(),
+    getLayoutContent(),
+    getMenuGames(),
+    getSupportPresence(),
+  ]);
+  // Botão do chat (foto, texto, lado) — Configurações da loja.
   const chat = chatConfig(layout.text("chat"));
 
   return (
@@ -162,7 +181,7 @@ export default async function RootLayout({
         {children}
         {/* Contato flutuante em toda a loja; ele mesmo some no checkout e no
             painel. Ver `features/support/ContactBubble.tsx`. */}
-        <ContactBubble whatsappHref={contacts.whatsapp?.href} config={chat} />
+        <ContactBubble whatsappHref={contacts.whatsapp?.href} config={chat} presence={presence} />
         {/* Atalhos flutuantes do celular em toda a loja (2026-10-15). */}
         <GlobalMobileNav games={games} />
       </body>

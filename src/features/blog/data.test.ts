@@ -35,7 +35,7 @@ describe("toBlogCard", () => {
       // 01:30 UTC = 22:30 do dia 27 em Brasília.
       date: "27/09/26",
       game: { slug: "path-of-exile-2", name: "Path of Exile 2", logo: "http://api.test/uploads/games/p.webp" },
-      href: "/noticias/nova-liga",
+      href: "/blog/nova-liga",
     });
   });
 

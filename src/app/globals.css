@@ -104,6 +104,15 @@ html {
   /* Trilho no fundo do site: a barra vira só o polegar laranja correndo sobre
      a página, sem a faixa clara atravessando a tela inteira. */
   scrollbar-color: var(--brand-orange) var(--brand-bg);
+  /* Fundo da PÁGINA, não só das caixas (2026-10-16): sem isto o `<html>` é
+     branco, e no celular o "elástico" da rolagem no fim da página, a área que
+     a barra do navegador libera ao sumir e o recuo do iPhone mostravam uma
+     faixa branca abaixo do rodapé. Todas as telas do site são escuras. */
+  background-color: var(--brand-bg);
+}
+
+body {
+  background-color: var(--brand-bg);
 }
 
 ::-webkit-scrollbar {
@@ -2406,5 +2415,24 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
      botão do chat, que sobe 88px. */
   html[data-bottom-nav] body {
     padding-bottom: 96px;
+  }
+}
+
+/* Card de VENDA no painel (2026-10-16): entra deslizando da direita. Sem
+   movimento para quem pediu menos movimento. */
+@keyframes sale-alert-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sale-alert-in {
+    animation: sale-alert-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
 }

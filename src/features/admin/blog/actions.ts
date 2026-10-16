@@ -7,7 +7,7 @@ import { apiDelete, apiPatchFormData, apiPostFormData, type ApiResult } from "@/
 import { blogPostSchema, coverProblem, ID_RE, readBlogForm, type BlogPostField } from "./schema";
 
 /**
- * Escritas do painel de notícias (`/admin/noticias`) — contrato blog.md.
+ * Escritas do painel de notícias (`/admin/blog`) — contrato blog.md.
  *
  * Mesmo desenho das actions de jogo/produto:
  *   - PAPEL conferido aqui também (ADMIN ou EDITOR — notícia é conteúdo):
@@ -35,10 +35,10 @@ type SavedPost = { id?: unknown; slug?: unknown; game?: { slug?: unknown } | nul
 
 const MESSAGES = {
   unauthenticated: "Sua sessão expirou. Entre de novo para continuar.",
-  forbidden: "Sua conta não tem permissão para editar notícias.",
-  conflict: "Esse link já está em uso por outra notícia. Escolha outro.",
+  forbidden: "Sua conta não tem permissão para editar o blog.",
+  conflict: "Esse link já está em uso por outro post. Escolha outro.",
   invalid: "O servidor recusou os dados enviados. Confira os campos.",
-  notFound: "Esta notícia não existe mais.",
+  notFound: "Este post não existe mais.",
   error: "Não conseguimos salvar agora. Tente novamente em instantes.",
 } as const;
 
@@ -119,9 +119,9 @@ function failureFrom(response: Extract<ApiResult<unknown>, { ok: false }>): Fail
  */
 function revalidateBlog(saved?: { slug?: string; gameSlug?: string }) {
   updateTag(BLOG_TAG);
-  revalidatePath("/noticias");
-  revalidatePath("/admin/noticias");
-  if (saved?.slug) revalidatePath(`/noticias/${saved.slug}`);
+  revalidatePath("/blog");
+  revalidatePath("/admin/blog");
+  if (saved?.slug) revalidatePath(`/blog/${saved.slug}`);
   if (saved?.gameSlug) revalidatePath(`/games/${saved.gameSlug}`);
 }
 
@@ -156,7 +156,7 @@ export async function updateBlogPostAction(id: string, form: FormData): Promise<
   const denied = await guard();
   if (denied) return denied;
   if (typeof id !== "string" || !ID_RE.test(id)) {
-    return { ok: false, reason: "invalid", message: "Notícia inválida." };
+    return { ok: false, reason: "invalid", message: "Post inválido." };
   }
 
   const payload = buildPayload(form, "update");
@@ -173,7 +173,7 @@ export async function updateBlogPostAction(id: string, form: FormData): Promise<
 export async function deleteBlogPostAction(id: string): Promise<{ ok: true } | { ok: false; message: string }> {
   const denied = await guard();
   if (denied) return { ok: false, message: denied.message };
-  if (typeof id !== "string" || !ID_RE.test(id)) return { ok: false, message: "Notícia inválida." };
+  if (typeof id !== "string" || !ID_RE.test(id)) return { ok: false, message: "Post inválido." };
 
   const response = await apiDelete(`/admin/blog/${encodeURIComponent(id)}`);
   // 2xx sem `data` no envelope (DELETE que não devolve o recurso) também é
@@ -183,7 +183,7 @@ export async function deleteBlogPostAction(id: string): Promise<{ ok: true } | {
       ok: false,
       message:
         response.status === 404
-          ? "Esta notícia já não existe."
+          ? "Este post já não existe."
           : response.status === 403
             ? MESSAGES.forbidden
             : "Não conseguimos excluir agora. Tente novamente em instantes.",

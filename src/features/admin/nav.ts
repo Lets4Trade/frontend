@@ -60,9 +60,9 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
   // NÃO está no arquivo do Figma: o blog (contrato blog.md, 2026-09-28). É
   // conteúdo, então o EDITOR também vê — ao lado de "Páginas".
   {
-    label: "Notícias",
-    href: "/admin/noticias",
-    match: ["/admin/noticias"],
+    label: "Blog",
+    href: "/admin/blog",
+    match: ["/admin/blog"],
     roles: ["ADMIN", "EDITOR"],
   },
   // NÃO está no Figma (2026-10-01): WhatsApp, logo, CNPJ e redes estavam

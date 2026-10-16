@@ -14,12 +14,19 @@ export function Field({
   htmlFor,
   error,
   errorId,
+  hideLabel = false,
   children,
 }: {
   label: string;
   htmlFor: string;
   error?: string;
   errorId: string;
+  /**
+   * Rótulo só para leitor de tela (2026-10-16): linhas de tabela, como a grade
+   * de horário, têm o nome da coluna UMA vez no topo — repetir em cada linha
+   * só empilha texto.
+   */
+  hideLabel?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -30,7 +37,10 @@ export function Field({
         // Sobre o Produto Vendido:") é mais larga que a coluna de 315px e
         // transborda sobre o espaço vazio ao lado, em vez de quebrar em duas
         // linhas e empurrar o campo para baixo.
-        className="font-helvetica text-[18px] leading-[21px] font-bold tracking-[0.18px] whitespace-nowrap text-white"
+        className={cn(
+          "font-helvetica text-[18px] leading-[21px] font-bold tracking-[0.18px] whitespace-nowrap text-white",
+          hideLabel && "sr-only",
+        )}
       >
         {label}
       </label>

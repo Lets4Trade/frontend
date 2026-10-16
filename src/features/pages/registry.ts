@@ -169,6 +169,16 @@ const GAMES_SHARED: ContentPageDef = {
   previewPath: null,
 };
 
+/** Textos fixos da página do blog (2026-10-16). Os POSTS ficam no menu Blog. */
+const BLOG: ContentPageDef = {
+  kind: "content",
+  slug: "blog",
+  label: "Blog",
+  href: "/blog",
+  catalogPage: "blog",
+  previewPath: null,
+};
+
 const LEGAL: ContentPageDef = {
   kind: "content",
   slug: "legal",
@@ -178,7 +188,7 @@ const LEGAL: ContentPageDef = {
   previewPath: null,
 };
 
-export const STATIC_PAGES: readonly BuilderPageDef[] = [HOME, VENDA, FIDELIDADE, CABECALHO, RODAPE, GAMES_SHARED, LEGAL];
+export const STATIC_PAGES: readonly BuilderPageDef[] = [HOME, VENDA, FIDELIDADE, BLOG, CABECALHO, RODAPE, GAMES_SHARED, LEGAL];
 
 /** Resolve o slug (inclusive `jogo-<id>`, com a lista de jogos). */
 export function builderPage(

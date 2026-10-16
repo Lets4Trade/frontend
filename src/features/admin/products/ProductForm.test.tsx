@@ -306,4 +306,27 @@ describe("ProductForm — página do pacote (2026-10-01)", () => {
       sections: [{ title: "What you will get", items: [] }],
     });
   });
+
+  it("seção formatada: texto, marcador e cor viajam; padrões não", () => {
+    const { container } = render(<ProductForm games={games} prefill={prefill} initialTabs={tabs} />);
+    fireEvent.click(screen.getByRole("button", { name: "+ Adicionar seção de texto" }));
+    fireEvent.change(screen.getByLabelText("Texto da seção 1"), { target: { value: "- Rápido\n- Seguro" } });
+    fireEvent.click(screen.getByRole("button", { name: "Check" }));
+    fireEvent.click(screen.getByRole("button", { name: /Verde/ }));
+    expect(JSON.parse(field(container, "content").value)).toEqual({
+      sections: [{ title: "", items: [], body: "- Rápido\n- Seguro", marker: "check", markerColor: "green" }],
+    });
+    // A prévia usa o desenho da loja.
+    expect(screen.getByText("Rápido").closest("li")?.textContent).toBe("✓Rápido");
+  });
+
+  it("textos do formato antigo abrem como lista no editor", () => {
+    const product = {
+      id: "p1", name: "X", priceCents: 100, platform: "STEAM", tabId: "t1", imageUrl: null, serverId: "s1",
+      categoryId: null, createdAt: "", game: { id: "g1", slug: "poe", name: "Path of Exile" }, server: null, category: null,
+      content: { sections: [{ title: "Req", items: ["Conta", "Nível 90"] }] },
+    };
+    render(<ProductForm games={games} product={product} initialTabs={tabs} />);
+    expect(screen.getByLabelText("Texto da seção 1")).toHaveValue("- Conta\n- Nível 90");
+  });
 });

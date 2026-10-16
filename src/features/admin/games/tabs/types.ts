@@ -1,4 +1,12 @@
 import { z } from "zod";
+import {
+  CONTENT_IMAGE,
+  MAX_SECTION_BODY,
+  SECTION_MARKERS,
+  SECTION_MARKER_COLORS,
+  bodyImagesAreOwn,
+  type ServiceSection,
+} from "@/features/game/sectionContent";
 
 /**
  * Abas por jogo (contrato `.claude/context/game-tabs.md`, 2026-09-28) — tipos,
@@ -15,7 +23,8 @@ export const TAB_LAYOUT_VALUES = ["CATALOG", "SERVICE", "QUANTITY", "PACKAGES", 
 
 export type TabLayout = (typeof TAB_LAYOUT_VALUES)[number];
 
-export type TabSection = { title: string; items: string[] };
+/** Formato v2 (2026-10-16): título, texto formatado, marcador e imagem — ver `sectionContent.ts`. */
+export type TabSection = ServiceSection;
 
 /** `GameTabDto` do contrato. */
 export type GameTab = {
@@ -134,17 +143,32 @@ const linkHref = z
     "Use um caminho do site (ex.: /venda) ou um endereço https://.",
   );
 
-/** Texto PURO: a vitrine renderiza como texto, nunca como HTML. */
-const sectionSchema = z.object({
-  title: z
-    .string()
-    .trim()
-    .min(1, "Toda seção de texto precisa de um título.")
-    .max(200, "O título de uma seção pode ter no máximo 200 caracteres."),
-  items: z
-    .array(z.string().trim().min(1).max(2_000, "Cada item pode ter no máximo 2.000 caracteres."))
-    .max(100, "Cada seção pode ter no máximo 100 itens."),
-});
+/**
+ * Seção da coluna esquerda. Título e itens são texto PURO; o `body` é o
+ * Markdown RESTRITO da loja, com imagem só do próprio painel. A vitrine nunca
+ * desenha nada disso como HTML.
+ */
+const sectionSchema = z
+  .object({
+    title: z.string().trim().max(200, "O título de uma seção pode ter no máximo 200 caracteres."),
+    items: z
+      .array(z.string().trim().min(1).max(2_000, "Cada item pode ter no máximo 2.000 caracteres."))
+      .max(100, "Cada seção pode ter no máximo 100 itens.")
+      .default([]),
+    body: z
+      .string()
+      .trim()
+      .max(MAX_SECTION_BODY, "O texto de uma seção pode ter no máximo 20.000 caracteres.")
+      .refine((value) => !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value), "O texto tem um caractere inválido.")
+      .refine(bodyImagesAreOwn, "Envie as imagens do texto pelo botão Imagem.")
+      .optional(),
+    marker: z.enum(SECTION_MARKERS).optional(),
+    markerColor: z.enum(SECTION_MARKER_COLORS).optional(),
+    markerIcon: z.string().regex(CONTENT_IMAGE, "Envie o ícone dos itens pelo painel.").optional(),
+  })
+  .refine((section) => section.title || section.items.length > 0 || section.body, {
+    message: "Toda seção de texto precisa de um título ou de um texto.",
+  });
 
 export const tabContentSchema = z.object({
   // Tetos altos (2026-10-06): espelham o `GameTabContentDto` do backend.

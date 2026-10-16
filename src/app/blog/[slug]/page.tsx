@@ -8,6 +8,7 @@ import { BlogCard, PostMeta } from "@/features/blog/BlogCard";
 import { getBlogPost } from "@/features/blog/data";
 import { newsArticleJsonLd, serializeJsonLd } from "@/features/blog/seo";
 import { Markdown } from "@/features/pages/blocks/markdown";
+import { getBlogTexts } from "@/features/blog/texts";
 
 type RouteParams = { slug: string };
 
@@ -41,7 +42,7 @@ export async function generateMetadata({ params }: { params: Promise<RouteParams
 }
 
 /**
- * Matéria `/noticias/[slug]` — NÃO está no Figma (contrato `blog.md`).
+ * Matéria `/blog/[slug]` — NÃO está no Figma (contrato `blog.md`).
  *
  * Mesma linguagem visual da lista: capa grande de raio 30, título Poppins
  * Bold, a linha jogo · data do card, corpo em Markdown RESTRITO (o renderer dos
@@ -53,7 +54,7 @@ export async function generateMetadata({ params }: { params: Promise<RouteParams
  */
 export default async function NoticiaPage({ params }: { params: Promise<RouteParams> }) {
   const { slug } = await params;
-  const post = await getBlogPost(slug);
+  const [post, texts] = await Promise.all([getBlogPost(slug), getBlogTexts()]);
   // Inexistente, rascunho ou slug fora do formato: 404 (fail secure).
   if (!post) notFound();
 
@@ -72,10 +73,10 @@ export default async function NoticiaPage({ params }: { params: Promise<RoutePar
       <main className="flex-1">
         <article className="mx-auto w-full max-w-[1746px] px-4 pt-[25px] pb-[80px] sm:px-6 xl:px-[16px]">
           <Link
-            href="/noticias"
+            href="/blog"
             className="inline-block font-poppins text-[15px] font-semibold text-brand-fg-muted transition-colors hover:text-brand-orange"
           >
-            ← Voltar às notícias
+            {texts.back}
           </Link>
 
           {post.cover ? (
@@ -122,7 +123,7 @@ export default async function NoticiaPage({ params }: { params: Promise<RoutePar
               id="mais-noticias"
               className="mt-[50px] font-poppins text-[22px] leading-none font-bold tracking-[0.22px] text-white"
             >
-              MAIS NOTÍCIAS
+              {texts.related}
             </h2>
             <ul className="mt-[30px] grid grid-cols-1 gap-[30px] md:grid-cols-2 lg:grid-cols-3 lg:gap-[50px]">
               {post.related.map((item) => (

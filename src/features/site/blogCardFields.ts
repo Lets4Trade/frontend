@@ -27,6 +27,12 @@ export type SectionExtraField = {
    * select em vez de texto; `defaultValue` precisa ser um dos valores.
    */
   options?: readonly { value: string; label: string }[];
+  /**
+   * `hours` (2026-10-16, horário de atendimento): o formulário desenha
+   * Aberto/Fechado + abre/fecha em vez de texto; o valor é "HH:MM-HH:MM" ou
+   * vazio (fechado). Ver `features/support/hours.ts`.
+   */
+  kind?: "hours";
 };
 
 export function blogCardExtraFields(linkHint: string): SectionExtraField[] {

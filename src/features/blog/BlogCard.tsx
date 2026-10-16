@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { BlogCardView } from "./types";
 
 /**
- * Card de notícia — Figma 1889:864 (lista `/noticias`).
+ * Card de notícia — Figma 1889:864 (lista `/blog`).
  *
  * `wide` (a lista): 1714×376, borda 2px branca a 10%, raio 30. Capa de 513×372
  * à esquerda + divisor de 1px; à direita, com 50px de recuo, título (y=50),
@@ -62,6 +62,21 @@ export function BlogCard({
               priority={priority}
               className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
             />
+          ) : post.game?.logo ? (
+            // Post SEM capa (2026-10-16): o logo do jogo no centro de um fundo
+            // escuro com brilho da marca — o retângulo cinza vazio parecia
+            // imagem quebrada. Capa enviada no painel sempre vence.
+            <span className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(ellipse_at_center,rgba(255,115,0,0.16),#0a0a0a_70%)]">
+              <span className="relative h-[40%] w-[60%]">
+                <Image
+                  src={post.game.logo}
+                  alt=""
+                  fill
+                  sizes="300px"
+                  className="object-contain opacity-90 transition-transform duration-300 group-hover:scale-[1.04]"
+                />
+              </span>
+            </span>
           ) : null}
         </div>
 
@@ -74,7 +89,7 @@ export function BlogCard({
         <div
           className={
             wide
-              ? "flex min-w-0 flex-1 flex-col px-[20px] py-[24px] lg:px-[50px] lg:pt-[48px] lg:pb-0"
+              ? "flex min-w-0 flex-1 flex-col py-[24px] pr-[20px] pl-[20px] lg:pt-[48px] lg:pr-[50px] lg:pb-0 lg:pl-[48px]"
               : "flex min-w-0 flex-1 flex-col px-[24px] py-[24px]"
           }
         >
@@ -84,15 +99,17 @@ export function BlogCard({
 
           {post.excerpt ? (
             <p
+              // Largo: caixa de 4 linhas FIXA (80px) — a linha jogo · data fica
+              // sempre em y=194 do card, como no arquivo, com resumo curto ou longo.
               className={`mt-[15px] max-w-[1099px] font-helvetica text-[16px] leading-[20px] tracking-[0.16px] text-brand-placeholder ${
-                wide ? "line-clamp-4" : "line-clamp-3"
+                wide ? "line-clamp-4 lg:h-[80px]" : "line-clamp-3"
               }`}
             >
               {post.excerpt}
             </p>
           ) : null}
 
-          <PostMeta post={post} className={wide ? "mt-[22px]" : "mt-auto pt-[20px]"} />
+          <PostMeta post={post} className={wide ? (post.excerpt ? "mt-[22px]" : "mt-[117px]") : "mt-auto pt-[20px]"} />
         </div>
       </article>
     </Link>
@@ -102,11 +119,12 @@ export function BlogCard({
 /**
  * Linha "logo · jogo | data" (y=194 no card): círculo de 45px com a logo do
  * jogo em fundo escuro (cinza sem jogo/arte), nome em Poppins SemiBold 16,
- * divisor 1×29 a 20% e a data dd/mm/aa.
+ * divisor 1×29 a 20% e a data dd/mm/aa. Vãos do arquivo: círculo → nome 12,
+ * nome → divisor 8, divisor → data 12.
  */
 export function PostMeta({ post, className = "" }: { post: BlogCardView; className?: string }) {
   return (
-    <div className={`flex items-center gap-[10px] ${className}`}>
+    <div className={`flex items-center gap-[12px] ${className}`}>
       <span
         aria-hidden
         className={`relative flex size-[45px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 ${
@@ -119,7 +137,7 @@ export function PostMeta({ post, className = "" }: { post: BlogCardView; classNa
       </span>
       {post.game ? (
         <>
-          <span className="truncate font-poppins text-[16px] leading-[27px] font-semibold text-white">
+          <span className="-mr-[4px] truncate font-poppins text-[16px] leading-[27px] font-semibold tracking-[0.08px] text-white">
             {post.game.name}
           </span>
           <span aria-hidden className="h-[29px] w-px shrink-0 bg-white/20" />

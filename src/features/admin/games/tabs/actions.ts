@@ -18,6 +18,7 @@ import {
   isValidId,
   updateTabSchema,
   type CreateTabInput,
+  type TabSection,
   type GameTab,
   type ScopedCategoryRow,
   type UpdateTabInput,
@@ -300,12 +301,16 @@ export async function saveTabCategoriesAction(
   return { ok: true, data: Array.isArray(result.data) ? result.data : [] };
 }
 
-/** Remonta o conteúdo: só `title` e `items` viajam (itens vazios já caíram no zod). */
-function copyContent(content: { sections: { title: string; items: string[] }[] }) {
+/** Remonta o conteúdo campo a campo: só o formato do contrato viaja (itens vazios já caíram no zod). */
+function copyContent(content: { sections: TabSection[] }) {
   return {
     sections: content.sections.map((section) => ({
       title: section.title,
       items: [...section.items],
+      ...(section.body ? { body: section.body } : {}),
+      ...(section.marker ? { marker: section.marker } : {}),
+      ...(section.markerColor ? { markerColor: section.markerColor } : {}),
+      ...(section.markerIcon ? { markerIcon: section.markerIcon } : {}),
     })),
   };
 }

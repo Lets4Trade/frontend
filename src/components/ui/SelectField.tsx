@@ -30,6 +30,8 @@ type SelectFieldProps = {
   required?: boolean;
   className?: string;
   id?: string;
+  /** Rótulo só para leitor de tela — ver `Field`. */
+  hideLabel?: boolean;
 };
 
 /**
@@ -71,6 +73,7 @@ export function SelectField({
   error,
   className,
   id,
+  hideLabel,
   ...props
 }: SelectFieldProps) {
   const generatedId = useId();
@@ -78,7 +81,7 @@ export function SelectField({
   const errorId = `${selectId}-error`;
 
   return (
-    <Field label={label} htmlFor={selectId} error={error} errorId={errorId}>
+    <Field label={label} htmlFor={selectId} error={error} errorId={errorId} hideLabel={hideLabel}>
       <Select.Root {...props}>
         <Select.Trigger
           id={selectId}

@@ -1,4 +1,4 @@
-import { SETTINGS_GROUPS, SETTINGS_PAGE } from "@/features/admin/settings/catalog";
+import { SECTION_INFO, SETTINGS_GROUPS, SETTINGS_PAGE } from "@/features/admin/settings/catalog";
 import { ADMIN_NAV } from "@/features/admin/nav";
 import { hubGroups } from "@/features/pages/hub";
 import { STATIC_PAGES } from "@/features/pages/registry";
@@ -35,7 +35,7 @@ const ACTIONS: readonly Gated[] = [
   { id: "acao:fidelidade-niveis", title: "Níveis de fidelidade", where: "Ação", href: "/admin/fidelidade", keywords: ["cashback", "nível", "rank", "bronze", "prata", "ouro", "diamante", "adamantium", "ícone", "lets coin"] },
   { id: "acao:ordem", title: "Ordem dos produtos", where: "Ação", href: "/admin/produtos/ordem", keywords: ["ordenar", "posição", "vitrine"] },
   { id: "acao:novo-jogo", title: "Cadastrar jogo", where: "Ação", href: "/admin/jogos/novo", keywords: ["novo", "criar", "game"] },
-  { id: "acao:nova-noticia", title: "Nova notícia", where: "Ação", href: "/admin/noticias/nova", keywords: ["blog", "post", "matéria"], roles: ["ADMIN", "EDITOR"] },
+  { id: "acao:nova-noticia", title: "Novo post", where: "Ação", href: "/admin/blog/nova", keywords: ["blog", "post", "matéria"], roles: ["ADMIN", "EDITOR"] },
 ];
 
 /**
@@ -95,7 +95,13 @@ function staticEntries(): Gated[] {
       title: group.title,
       where: "Configurações",
       href: `/admin/configuracoes#${group.id}`,
-      keywords: [group.description, ...group.keywords, ...defs.flatMap((def) => [def.label, ...fieldWords(def)])],
+      // + título e "onde aparece" de cada sessão (cartões das Configurações, 2026-10-16).
+      keywords: [
+        group.description,
+        ...group.keywords,
+        ...group.sections.flatMap((suffix) => (SECTION_INFO[suffix] ? [SECTION_INFO[suffix].title, SECTION_INFO[suffix].description] : [])),
+        ...defs.flatMap((def) => [def.label, ...fieldWords(def)]),
+      ],
       roles: ["ADMIN", "EDITOR"],
     });
   }

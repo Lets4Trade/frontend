@@ -1,3 +1,4 @@
+import type { ServiceSection } from "./sectionContent";
 import type { BlogCardTexts } from "@/features/home/blogCard";
 import type { SectionView } from "@/features/site/content";
 import type { ComponentProps } from "react";
@@ -66,8 +67,11 @@ export type GameBanner = {
  */
 export type GameTabLayout = "CATALOG" | "SERVICE" | "QUANTITY" | "PACKAGES" | "SELL" | "LINK";
 
-/** Os textos da aba (SERVICE/QUANTITY/PACKAGES). Texto PURO — nunca HTML. */
-export type ServiceContent = { sections: { title: string; items: string[] }[] };
+/**
+ * Os textos da aba (SERVICE/QUANTITY/PACKAGES) e da página do pacote. Markdown
+ * RESTRITO + imagem do painel, nunca HTML — formato em `sectionContent.ts`.
+ */
+export type ServiceContent = { sections: ServiceSection[] };
 
 /** Aba do jogo: MOEDAS, ITENS, GOLD, BOOSTING… */
 export type GameTab = {

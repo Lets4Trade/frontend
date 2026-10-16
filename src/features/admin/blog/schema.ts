@@ -46,7 +46,7 @@ export const blogPostSchema = z.object({
   excerpt: z
     .string()
     .trim()
-    .min(1, "Escreva o resumo da notícia.")
+    .min(1, "Escreva o resumo do post.")
     .max(EXCERPT_MAX, `O resumo pode ter no máximo ${EXCERPT_MAX} caracteres.`),
   body: z.string().max(BODY_MAX, `O texto pode ter no máximo ${BODY_MAX.toLocaleString("pt-BR")} caracteres.`),
   gameId: z.string().trim().refine((value) => value === "" || ID_RE.test(value), {

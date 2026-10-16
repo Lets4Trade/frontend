@@ -164,10 +164,10 @@ export function storePageMap(game: { id: string }): StoreMapPart[] {
     },
     {
       title: "Referências, notícias e dúvidas",
-      hint: "Iguais em todas as páginas de jogo. Notícias publicadas no blog para este jogo aparecem aqui.",
+      hint: "Iguais em todas as páginas de jogo. Posts publicados no blog para este jogo aparecem aqui.",
       links: [
         { label: "Referências e dúvidas", href: shared },
-        { label: "Notícias (blog)", href: "/admin/noticias" },
+        { label: "Blog", href: "/admin/blog" },
       ],
     },
     {

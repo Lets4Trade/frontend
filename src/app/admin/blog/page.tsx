@@ -10,7 +10,7 @@ import { getAdminGames } from "@/features/admin/catalog";
 import { ADMIN_SHELL } from "@/features/admin/layout";
 
 export const metadata: Metadata = {
-  title: "Notícias | Lets4Trade",
+  title: "Blog | Lets4Trade",
   robots: { index: false, follow: false },
 };
 
@@ -44,9 +44,15 @@ export default async function AdminBlogPage({
     <div className={`${ADMIN_SHELL} pb-[120px]`}>
       <div className="flex flex-wrap items-end justify-between gap-[20px]">
         <div>
-          <h1 className="font-helvetica text-[30px] leading-none font-bold tracking-[0.3px] text-white">Notícias</h1>
+          <h1 className="font-helvetica text-[30px] leading-none font-bold tracking-[0.3px] text-white">Blog</h1>
           <p className="mt-[12px] font-poppins text-[15px] text-brand-fg-muted">
-            {page ? `${page.total} notícia${page.total === 1 ? "" : "s"}${filtering ? " encontradas" : ""}` : "-"}
+            {page ? `${page.total} post${page.total === 1 ? "" : "s"}${filtering ? (page.total === 1 ? " encontrado" : " encontrados") : ""}` : "-"}
+            {/* Os textos FIXOS da página (título, lista, busca) moram em Páginas
+                — atalho para não precisar procurar (2026-10-16). */}
+            <span aria-hidden className="mx-[8px] text-white/30">·</span>
+            <Link href="/admin/paginas?pagina=blog" className="text-brand-orange hover:underline">
+              Textos da página →
+            </Link>
           </p>
         </div>
 
@@ -81,30 +87,30 @@ export default async function AdminBlogPage({
             ]}
           />
           <AdminSearchBox
-            action="/admin/noticias"
+            action="/admin/blog"
             name="q"
             defaultValue={query.search}
-            placeholder="Buscar notícia"
+            placeholder="Buscar post"
             hidden={{ jogo: query.game, status: query.status }}
           />
           <Link
-            href="/admin/noticias/nova"
+            href="/admin/blog/nova"
             className="flex h-[50px] items-center rounded-full bg-brand-orange px-[30px] font-poppins text-[14px] font-bold text-black transition-opacity hover:opacity-90"
           >
-            + Nova notícia
+            + Novo post
           </Link>
         </div>
       </div>
 
       {page === null ? (
-        <Empty message="Não conseguimos carregar as notícias agora. Tente recarregar a página." />
+        <Empty message="Não conseguimos carregar o blog agora. Tente recarregar a página." />
       ) : page.items.length === 0 ? (
         filtering ? (
-          <Empty message="Nenhuma notícia com esses filtros." action={{ href: "/admin/noticias", label: "Limpar filtros" }} />
+          <Empty message="Nenhum post com esses filtros." action={{ href: "/admin/blog", label: "Limpar filtros" }} />
         ) : (
           <Empty
-            message="Nenhuma notícia escrita ainda."
-            action={{ href: "/admin/noticias/nova", label: "Escrever a primeira notícia →" }}
+            message="Nenhum post escrito ainda."
+            action={{ href: "/admin/blog/nova", label: "Escrever o primeiro post →" }}
           />
         )
       ) : (
@@ -138,13 +144,13 @@ export default async function AdminBlogPage({
                       : "border border-white/15 text-brand-fg-muted"
                   }`}
                 >
-                  {post.isPublished ? "Publicada" : "Rascunho"}
+                  {post.isPublished ? "Publicado" : "Rascunho"}
                 </span>
 
                 <div className="flex items-center gap-[10px]">
                   {post.isPublished && post.slug ? (
                     <Link
-                      href={`/noticias/${post.slug}`}
+                      href={`/blog/${post.slug}`}
                       target="_blank"
                       className="flex h-[36px] items-center rounded-full border border-white/10 px-[18px] font-poppins text-[13px] font-bold text-white transition-opacity hover:opacity-80"
                     >
@@ -152,7 +158,7 @@ export default async function AdminBlogPage({
                     </Link>
                   ) : null}
                   <Link
-                    href={`/admin/noticias/${post.id}/editar`}
+                    href={`/admin/blog/${post.id}/editar`}
                     aria-label={`Editar ${post.title}`}
                     className="flex size-[36px] items-center justify-center rounded-[8px] border border-white/10 bg-[image:var(--brand-surface-fill)] transition-opacity hover:opacity-90"
                   >
@@ -168,7 +174,7 @@ export default async function AdminBlogPage({
             current={page.page}
             pageCount={page.pageCount}
             href={(next) => adminBlogHref(query, { page: next })}
-            label="das notícias"
+            label="dos posts"
             className="mt-[50px]"
           />
         </>

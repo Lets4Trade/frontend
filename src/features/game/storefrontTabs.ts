@@ -3,6 +3,7 @@ import { effectivePricing, pricingSchema } from "@/features/pricing/quote";
 import { toCategoryTree } from "./categoryTree";
 export { scopeCategories } from "./catalog";
 import { templateIcon } from "./tabs";
+import { parseSection } from "./sectionContent";
 import type { GameCategory, GameProduct, GameTab, GameTabLayout, ServiceContent } from "./types";
 
 /**
@@ -74,27 +75,19 @@ export function safeLinkHref(value: string | null | undefined): string | null {
   return null;
 }
 
-/** `content` da aba (SERVICE/QUANTITY/PACKAGES), saneado: só texto, nos limites do contrato. */
+/**
+ * `content` da aba (SERVICE/QUANTITY/PACKAGES), saneado: só o formato do
+ * contrato (`parseSection`), nos limites dele.
+ */
 export function parseServiceContent(raw: unknown): ServiceContent | undefined {
   if (!raw || typeof raw !== "object") return undefined;
   const sections = (raw as { sections?: unknown }).sections;
   if (!Array.isArray(sections)) return undefined;
 
-  const clean = sections
-    .slice(0, 30)
-    .map((section) => {
-      const s = (section ?? {}) as { title?: unknown; items?: unknown };
-      const title = typeof s.title === "string" ? s.title.trim().slice(0, 200) : "";
-      const items = Array.isArray(s.items)
-        ? s.items
-            .filter((item): item is string => typeof item === "string")
-            .map((item) => item.trim().slice(0, 2_000))
-            .filter(Boolean)
-            .slice(0, 100)
-        : [];
-      return { title, items };
-    })
-    .filter((section) => section.title || section.items.length > 0);
+  const clean = sections.slice(0, 30).flatMap((section) => {
+    const parsed = parseSection(section);
+    return parsed ? [parsed] : [];
+  });
 
   return clean.length > 0 ? { sections: clean } : undefined;
 }

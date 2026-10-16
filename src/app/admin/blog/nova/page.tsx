@@ -4,7 +4,7 @@ import { BlogPostForm } from "@/features/admin/blog/BlogPostForm";
 import { getAdminGames } from "@/features/admin/catalog";
 
 export const metadata: Metadata = {
-  title: "Nova notícia | Lets4Trade",
+  title: "Novo post | Lets4Trade",
   robots: { index: false, follow: false },
 };
 
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export default async function NewBlogPostPage() {
   const games = await getAdminGames();
   return (
-    <AdminFormCard title="NOVA NOTÍCIA" headingId="nova-noticia-heading">
+    <AdminFormCard title="NOVO POST" headingId="nova-noticia-heading">
       <BlogPostForm games={games.map((game) => ({ value: game.id, label: game.name }))} />
     </AdminFormCard>
   );

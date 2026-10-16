@@ -32,32 +32,57 @@ export const SETTINGS_GROUPS: readonly SettingsGroup[] = [
   {
     id: "atendimento",
     title: "Atendimento",
-    description: "Canais oficiais e o botão do chat (foto, balão, lado e online/offline).",
-    sections: ["contatos", "chat"],
-    keywords: ["whatsapp", "zap", "discord", "contato", "chat", "suporte", "telefone", "online", "offline", "balao"],
+    description: "WhatsApp, Discord, o botão do chat e o horário de atendimento.",
+    sections: ["contatos", "chat", "horario"],
+    keywords: ["whatsapp", "zap", "discord", "contato", "chat", "suporte", "telefone", "online", "offline", "balao", "horario", "atendimento", "expediente"],
   },
   {
     id: "marca",
     title: "Marca",
-    description: "Logo usada no site inteiro e o ícone da aba do navegador.",
+    description: "Logo do site e ícone da aba do navegador.",
     sections: ["marca", "icone"],
     keywords: ["logo", "logotipo", "icone", "favicon", "marca", "imagem"],
   },
   {
     id: "empresa",
     title: "Dados da empresa",
-    description: "CNPJ, telefone, e-mail e copyright, no pé do rodapé.",
+    description: "CNPJ, telefone, e-mail e copyright do rodapé.",
     sections: ["footer-empresa"],
     keywords: ["cnpj", "empresa", "email", "e-mail", "telefone", "copyright", "direitos"],
   },
   {
     id: "redes",
     title: "Redes sociais",
-    description: "Os ícones com link para os perfis, no rodapé.",
+    description: "Ícones com link para os perfis, no rodapé.",
     sections: ["footer-redes"],
     keywords: ["redes", "instagram", "youtube", "tiktok", "twitter", "x", "facebook", "linkedin", "discord"],
   },
 ];
+
+/**
+ * Título e uma linha de "onde isto aparece" por sessão (2026-10-16): cada
+ * sessão virou um cartão próprio na tela, e quem edita precisa saber o EFEITO
+ * antes de ler os campos. Sem entrada aqui, o cartão usa o rótulo do catálogo.
+ */
+export const SECTION_INFO: Readonly<Record<string, { title: string; description: string }>> = {
+  contatos: {
+    title: "Canais oficiais",
+    description: "O WhatsApp vira o botão “Falar no WhatsApp” do chat, do checkout e de “Venda pra nós”.",
+  },
+  chat: {
+    title: "Botão do chat",
+    description:
+      "O botão flutuante de atendimento em toda a loja. Com atendentes online, ele mostra as fotos deles no lugar desta imagem.",
+  },
+  horario: {
+    title: "Horário de atendimento",
+    description: "Aparece no cabeçalho ao passar o mouse no ● Online/Offline (e no menu do celular). Horário de Brasília.",
+  },
+  marca: { title: "Logo", description: "Cabeçalho, rodapé e painel." },
+  icone: { title: "Ícone da aba", description: "O ícone pequeno da aba do navegador (favicon)." },
+  "footer-empresa": { title: "Dados da empresa", description: "Pé do rodapé, em todas as páginas." },
+  "footer-redes": { title: "Redes sociais", description: "Cada rede vira um ícone com link no rodapé. A ordem da lista é a da loja." },
+};
 
 /** Sessões `layout:*` que moram em Configurações — e não em Cabeçalho/Rodapé. */
 export const SETTINGS_SECTION_KEYS: ReadonlySet<string> = new Set(

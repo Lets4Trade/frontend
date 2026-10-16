@@ -81,3 +81,51 @@ function prefixLines(value: string, start: number, end: number, format: "ul" | "
     selectionEnd: lineStart + block.length,
   };
 }
+
+/**
+ * Subtítulo (`### `) nas linhas da seleção. Clicar de novo numa linha que já é
+ * subtítulo tira a marcação — o botão liga e desliga, como o negrito.
+ */
+export function toggleHeading(value: string, start: number, end: number): Edit {
+  const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+  const nextBreak = value.indexOf("\n", end);
+  const lineEnd = nextBreak === -1 ? value.length : nextBreak;
+
+  const lines = value.slice(lineStart, lineEnd).split("\n");
+  const allHeadings = lines.every((line) => /^#{2,3}\s+/.test(line) || line.trim() === "");
+  const block = lines
+    .map((line) => {
+      if (line.trim() === "") return line;
+      const plain = line.replace(/^#{2,3}\s+/, "").replace(/^\s*(?:[-*]|\d{1,3}[.)])\s+/, "");
+      return allHeadings ? plain : `### ${plain || "Subtítulo"}`;
+    })
+    .join("\n");
+
+  return {
+    value: value.slice(0, lineStart) + block + value.slice(lineEnd),
+    selectionStart: lineStart,
+    selectionEnd: lineStart + block.length,
+  };
+}
+
+/**
+ * Imagem enviada pelo painel, numa linha SÓ dela (é assim que a loja a
+ * reconhece): no fim da linha do cursor, com linha em branco antes e depois
+ * para não grudar num parágrafo ou numa lista.
+ */
+export function insertImage(value: string, position: number, url: string, alt = "imagem"): Edit {
+  const nextBreak = value.indexOf("\n", position);
+  const at = nextBreak === -1 ? value.length : nextBreak;
+  const before = value.slice(0, at);
+  const after = value.slice(at);
+  const syntax = `![${alt}](${url})`;
+  const lead = before === "" ? "" : before.endsWith("\n\n") ? "" : before.endsWith("\n") ? "\n" : "\n\n";
+  const trail = after === "" ? "\n" : after.startsWith("\n\n") ? "" : after.startsWith("\n") ? "\n" : "\n\n";
+  const inserted = lead + syntax + trail;
+  const caret = before.length + lead.length + syntax.length;
+  return {
+    value: before + inserted + after,
+    selectionStart: caret,
+    selectionEnd: caret,
+  };
+}

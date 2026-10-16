@@ -76,7 +76,7 @@ export function gameSectionTarget(key: string, gameId: string, gameSlug = ""): G
         kind: "shared",
         sectionKeys: ["noticias"],
         // Notícia publicada no blog para o jogo VENCE os itens daqui.
-        links: [{ label: "Notícias do blog", href: "/admin/noticias" }],
+        links: [{ label: "Posts do blog", href: "/admin/blog" }],
       };
     case "faq":
       return {

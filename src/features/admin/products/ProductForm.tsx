@@ -367,7 +367,7 @@ export function ProductForm({
    * = não mexer — trocar o produto de aba não apaga o que foi escrito.
    */
   const contentSections = fromSectionDrafts(packageSections).filter(
-    (section) => section.title !== "" || section.items.length > 0,
+    (section) => section.title !== "" || section.items.length > 0 || Boolean(section.body),
   );
   const contentField = isPackages
     ? contentSections.length > 0

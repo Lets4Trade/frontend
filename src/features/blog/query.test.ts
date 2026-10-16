@@ -37,16 +37,16 @@ describe("blogListHref", () => {
   const base = { game: "diablo-4", search: "", page: 2 };
 
   it("omite página 1 e filtros vazios", () => {
-    expect(blogListHref({ game: "", search: "", page: 1 })).toBe("/noticias");
+    expect(blogListHref({ game: "", search: "", page: 1 })).toBe("/blog");
   });
 
   it("preserva os filtros e troca só o pedido", () => {
-    expect(blogListHref(base, { page: 3 })).toBe("/noticias?jogo=diablo-4&pagina=3");
-    expect(blogListHref(base, { game: "", page: 1 })).toBe("/noticias");
-    expect(blogListHref({ ...base, search: "a&b" }, { page: 1 })).toBe("/noticias?jogo=diablo-4&busca=a%26b");
+    expect(blogListHref(base, { page: 3 })).toBe("/blog?jogo=diablo-4&pagina=3");
+    expect(blogListHref(base, { game: "", page: 1 })).toBe("/blog");
+    expect(blogListHref({ ...base, search: "a&b" }, { page: 1 })).toBe("/blog?jogo=diablo-4&busca=a%26b");
   });
 
   it("caminho da matéria", () => {
-    expect(blogPostHref("minha-materia")).toBe("/noticias/minha-materia");
+    expect(blogPostHref("minha-materia")).toBe("/blog/minha-materia");
   });
 });

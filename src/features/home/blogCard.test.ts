@@ -9,8 +9,8 @@ const withExtras =
 
 describe("safeBlogCardHref", () => {
   it("aceita caminho interno, com ou sem query, e https", () => {
-    expect(safeBlogCardHref("/noticias")).toBe("/noticias");
-    expect(safeBlogCardHref("/noticias?jogo=diablo")).toBe("/noticias?jogo=diablo");
+    expect(safeBlogCardHref("/blog")).toBe("/blog");
+    expect(safeBlogCardHref("/blog?jogo=diablo")).toBe("/blog?jogo=diablo");
     expect(safeBlogCardHref(" https://blog.lets4trade.com.br/x ")).toBe("https://blog.lets4trade.com.br/x");
   });
 
@@ -18,7 +18,7 @@ describe("safeBlogCardHref", () => {
     expect(safeBlogCardHref("javascript:alert(1)")).toBeNull();
     expect(safeBlogCardHref("http://exemplo.com")).toBeNull();
     expect(safeBlogCardHref("//exemplo.com")).toBeNull();
-    expect(safeBlogCardHref('/noticias?jogo="><script>')).toBeNull();
+    expect(safeBlogCardHref('/blog?jogo="><script>')).toBeNull();
     expect(safeBlogCardHref("")).toBeNull();
   });
 });
@@ -28,21 +28,21 @@ describe("blogCardTexts", () => {
     expect(blogCardTexts(none)).toEqual({
       title: "VISITAR BLOG",
       subtitle: "Veja mais artigos como esses",
-      href: "/noticias",
+      href: "/blog",
     });
-    expect(blogCardTexts(none, gameBlogHref("path-of-exile-2")).href).toBe("/noticias?jogo=path-of-exile-2");
+    expect(blogCardTexts(none, gameBlogHref("path-of-exile-2")).href).toBe("/blog?jogo=path-of-exile-2");
   });
 
   it("usa os textos e o link editados", () => {
     const texts = blogCardTexts(
-      withExtras({ "blog-titulo": "VER NOTÍCIAS", "blog-texto": "Tudo do jogo", "blog-link": "/noticias?jogo=diablo" }),
+      withExtras({ "blog-titulo": "VER NOTÍCIAS", "blog-texto": "Tudo do jogo", "blog-link": "/blog?jogo=diablo" }),
     );
-    expect(texts).toEqual({ title: "VER NOTÍCIAS", subtitle: "Tudo do jogo", href: "/noticias?jogo=diablo" });
+    expect(texts).toEqual({ title: "VER NOTÍCIAS", subtitle: "Tudo do jogo", href: "/blog?jogo=diablo" });
   });
 
   it("link inválido no banco cai no padrão em vez de virar href (fail secure)", () => {
-    expect(blogCardTexts(withExtras({ "blog-link": "javascript:alert(1)" }), "/noticias?jogo=x").href).toBe(
-      "/noticias?jogo=x",
+    expect(blogCardTexts(withExtras({ "blog-link": "javascript:alert(1)" }), "/blog?jogo=x").href).toBe(
+      "/blog?jogo=x",
     );
   });
 });

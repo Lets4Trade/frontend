@@ -44,8 +44,8 @@ export type BlogFormPost = {
 };
 
 /**
- * Formulário de notícia — criar (`/admin/noticias/nova`) e editar
- * (`/admin/noticias/[id]/editar`). Fora do Figma; usa o kit do painel (moldura
+ * Formulário de notícia — criar (`/admin/blog/nova`) e editar
+ * (`/admin/blog/[id]/editar`). Fora do Figma; usa o kit do painel (moldura
  * `AdminFormCard`, grade de 315px, pílulas dos campos).
  *
  * - Link (slug) acompanha o TÍTULO até ser editado, como no `GameForm`.
@@ -150,12 +150,12 @@ export function BlogPostForm({
       }
 
       if (!post) {
-        toastOk("Notícia criada.");
-        router.push(`/admin/noticias/${encodeURIComponent(result.id)}/editar`);
+        toastOk("Post criado.");
+        router.push(`/admin/blog/${encodeURIComponent(result.id)}/editar`);
         return;
       }
 
-      toastOk(isPublished ? "Notícia salva e publicada." : "Rascunho salvo.");
+      toastOk(isPublished ? "Post salvo e publicado." : "Rascunho salvo.");
       if (result.slug) setSlug(result.slug);
       choosePreview(null);
       setRemoveCover(false);
@@ -173,7 +173,7 @@ export function BlogPostForm({
         <TextField
           label="Título"
           name="title"
-          placeholder="Título da notícia"
+          placeholder="Título do post"
           autoComplete="off"
           maxLength={TITLE_MAX}
           error={errors.title}
@@ -185,7 +185,7 @@ export function BlogPostForm({
           <TextField
             label="Link:"
             name="slug"
-            placeholder="link-da-noticia"
+            placeholder="link-do-post"
             autoComplete="off"
             maxLength={120}
             error={errors.slug}
@@ -196,7 +196,7 @@ export function BlogPostForm({
             }}
           />
           <p className="mt-[6px] truncate pl-[25px] font-helvetica text-[12px] text-brand-fg-subtle">
-            /noticias/{slugify(shownSlug) || "…"}
+            /blog/{slugify(shownSlug) || "…"}
           </p>
         </div>
 
@@ -268,7 +268,7 @@ export function BlogPostForm({
         <TextAreaField
           label="Resumo (aparece no card e no Google)"
           name="excerpt"
-          placeholder="Uma ou duas frases sobre a notícia"
+          placeholder="Uma ou duas frases sobre o post"
           maxLength={EXCERPT_MAX}
           error={errors.excerpt}
           value={excerpt}
@@ -326,7 +326,7 @@ export function BlogPostForm({
             aria-hidden
             className="relative h-[28px] w-[50px] rounded-full border border-white/15 bg-white/10 transition-colors peer-checked:bg-brand-orange peer-focus-visible:ring-2 peer-focus-visible:ring-brand-orange peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-brand-bg after:absolute after:top-[3px] after:left-[3px] after:size-[20px] after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-[22px]"
           />
-          {isPublished ? "Publicada" : "Rascunho"}
+          {isPublished ? "Publicado" : "Rascunho"}
         </label>
 
         {isPublished ? (
@@ -344,7 +344,7 @@ export function BlogPostForm({
 
       <AdminFormActions className="mt-[50px]">
         <Button type="submit" variant="primary" fullWidth disabled={isSubmitting}>
-          {isSubmitting ? "SALVANDO…" : post ? "SALVAR" : "CRIAR NOTÍCIA"}
+          {isSubmitting ? "SALVANDO…" : post ? "SALVAR" : "CRIAR POST"}
         </Button>
 
         {formError ? (
@@ -354,12 +354,12 @@ export function BlogPostForm({
         ) : null}
 
         <div className="flex flex-wrap gap-x-[20px] gap-y-[6px]">
-          <Link href="/admin/noticias" className="font-poppins text-[13px] text-brand-fg-muted hover:text-white">
+          <Link href="/admin/blog" className="font-poppins text-[13px] text-brand-fg-muted hover:text-white">
             ← Voltar à lista
           </Link>
           {post?.isPublished && post.slug ? (
             <Link
-              href={`/noticias/${post.slug}`}
+              href={`/blog/${post.slug}`}
               target="_blank"
               className="font-poppins text-[13px] text-brand-fg-muted hover:text-brand-orange"
             >
