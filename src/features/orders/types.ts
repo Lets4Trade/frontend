@@ -13,6 +13,18 @@ export const ORDER_STEPS = [
 
 export type OrderStepKey = (typeof ORDER_STEPS)[number]["key"];
 
+/**
+ * Posição na trilha (2026-10-15). Era um campo próprio (`step`) que o backend
+ * nunca atualizava; agora sai da situação:
+ *   pendente → feito · aprovado → aprovado · em_andamento → entrega (ativas)
+ *   entregue → finalizado com TODAS as etapas concluídas (`done`)
+ *   cancelado → a última etapa alcançada, marcada com o X vermelho (`canceled`)
+ */
+export type OrderTrack = {
+  step: OrderStepKey;
+  state: "active" | "done" | "canceled";
+};
+
 /** Situação exibida na pílula colorida ao lado do botão de chat. */
 export type OrderStatus =
   | "pendente"
@@ -45,8 +57,14 @@ export type Order = {
   /** Data já formatada (dd/mm/aa), como no design. */
   date: string;
   status: OrderStatus;
-  /** Etapa ATUAL do pedido. As anteriores contam como concluídas. */
-  currentStep: OrderStepKey;
+  /** Onde o pedido está na trilha — DERIVADO da situação (ver `OrderTrack`). */
+  track: OrderTrack;
+  /**
+   * Quando o pedido entrou em cada etapa, já formatado ("15/10 14:32"), e a
+   * data do cancelamento. Etapa sem data (pedido antigo, etapa pulada) fica
+   * ausente e a trilha não mostra nada embaixo dela.
+   */
+  stepDates: Partial<Record<OrderStepKey | "cancelado", string>>;
   /**
    * Só pedido de SERVIÇO: a conta do preço ("Nível 1 → 50" R$ 250,00,
    * "Prioridade" R$ 24,14) e as horas estimadas, já formatadas. Ausente/`null`
@@ -57,6 +75,27 @@ export type Order = {
   gift?: OrderGift | null;
   /** Cupom usado (2026-10-12): código e quanto abateu desta linha, formatado. */
   coupon?: { code: string; amount: string } | null;
+};
+
+/**
+ * Uma COMPRA (2026-10-15): os itens de um mesmo carrinho, que o backend grava
+ * como um pedido por item amarrados ao mesmo pagamento. Cada item segue com a
+ * PRÓPRIA situação e trilha — o admin entrega um de cada vez.
+ */
+export type Purchase = {
+  /** `paymentId`, ou o id do pedido avulso (antes da Cielo). */
+  id: string;
+  /** Referência do 1º item: é a rota da tela da compra. */
+  reference: string;
+  /** dd/mm/aa. */
+  date: string;
+  items: Order[];
+  /** Somas da compra, já formatadas — mesma conta de cada item. */
+  price: string;
+  discount: string | null;
+  paid: string;
+  /** Cupom da compra: código e quanto abateu no total. */
+  coupon: { code: string; amount: string } | null;
 };
 
 /**

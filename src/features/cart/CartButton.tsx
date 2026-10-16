@@ -32,7 +32,9 @@ export function CartButton({ tiers, gifts }: { tiers: LoyaltyTierRule[]; gifts: 
         aria-label={
           count > 0 ? `Carrinho com ${count} ${count === 1 ? "item" : "itens"}` : "Carrinho"
         }
-        className="relative shrink-0 rounded-full transition-opacity hover:opacity-80"
+        // Celular: ícone de 34px, mas área de toque de 42 (padding invisível
+        // compensado pela margem negativa — o layout não muda).
+        className="relative shrink-0 rounded-full transition-opacity hover:opacity-80 max-md:-m-[4px] max-md:p-[4px]"
       >
         {/* O asset exportado (nó 1946:1074) já É o botão inteiro: 50×50 com o
             círculo de borda e gradiente embutidos no SVG. Envolver numa borda
@@ -43,7 +45,7 @@ export function CartButton({ tiers, gifts }: { tiers: LoyaltyTierRule[]; gifts: 
           width={50}
           height={50}
           aria-hidden
-          className="size-[42px] md:size-[50px]"
+          className="size-[34px] md:size-[50px]"
         />
 
         {count > 0 ? (

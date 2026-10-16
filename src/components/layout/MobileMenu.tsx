@@ -40,9 +40,9 @@ export function MobileMenu({
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger
         aria-label="Abrir menu"
-        className="shrink-0 rounded-full transition-opacity hover:opacity-80 md:hidden"
+        className="-m-[4px] shrink-0 rounded-full p-[4px] transition-opacity hover:opacity-80 md:hidden"
       >
-        <Image src="/icons/menu.svg" alt="" width={50} height={50} aria-hidden className="size-[42px]" />
+        <Image src="/icons/menu.svg" alt="" width={50} height={50} aria-hidden className="size-[34px]" />
       </Dialog.Trigger>
 
       <Dialog.Portal>

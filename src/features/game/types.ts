@@ -37,10 +37,18 @@ export type ImageRef = {
   height: number;
 };
 
+/**
+ * Arte do banner no CELULAR (2026-10-16): 2:1, a proporção da caixa do slider
+ * abaixo de 640px. Medida recomendada no painel = o dobro da exibida (~390px).
+ */
+export const MOBILE_BANNER = { width: 800, height: 400 } as const;
+
 /** Slide do banner do topo (1715×490 no arquivo). */
 export type GameBanner = {
   id: string;
   image: ImageRef;
+  /** Arte do celular (2:1, abaixo de 640px). Ausente = recorta a `image`. */
+  mobileImage?: ImageRef;
   /** Para onde o slide leva. Vazio = arte sem ação. */
   href?: string;
 };

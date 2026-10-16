@@ -4,6 +4,7 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/Button";
 import { AdminSearchBox } from "@/features/admin/AdminFilters";
 import { DeleteGameButton } from "@/features/admin/builder/DeleteGameButton";
+import { GameMenuOrderButtons } from "@/features/admin/games/GameMenuOrderButtons";
 import { getBuilderGames } from "@/features/admin/builder/list";
 import { centralHref } from "@/features/admin/games/central";
 import { requireAdminPage } from "@/features/admin/guard";
@@ -22,6 +23,10 @@ export const metadata: Metadata = {
  * loja, produtos, ações). Antes eram cartões largos, cada um com o seu jeito.
  *
  * A busca é por nome ou link, na lista que já veio (poucos jogos; não pagina).
+ *
+ * A ORDEM da tabela é a do menu GAMES da loja (2026-10-15), e a coluna
+ * "Ordem" muda essa posição com ↑/↓. Com busca ativa as setas somem: trocar
+ * vizinhos de uma lista filtrada mexeria com jogos que não estão na tela.
  */
 export default async function AdminGamesPage({
   searchParams,
@@ -34,6 +39,7 @@ export default async function AdminGamesPage({
   const search = rawSearch.toLocaleLowerCase("pt-BR");
 
   const games = await getBuilderGames();
+  const menuIds = games.map((game) => game.id);
   const visible = search
     ? games.filter(
         (game) => game.name.toLocaleLowerCase("pt-BR").includes(search) || game.slug.includes(search),
@@ -77,13 +83,19 @@ export default async function AdminGamesPage({
         ) : (
           <>
             <p className="mb-[10px] font-helvetica text-[13px] text-brand-fg-subtle">
-              {visible.length} {visible.length === 1 ? "jogo" : "jogos"}
+              {visible.length} {visible.length === 1 ? "jogo" : "jogos"} ·{" "}
+              {search
+                ? "limpe a busca para mudar a ordem do menu GAMES."
+                : "a ordem abaixo é a do menu GAMES da loja (use ↑ ↓)."}
             </p>
             <div className="overflow-hidden rounded-[18px] border border-brand-border bg-[image:var(--brand-surface-fill)]">
               <table className="w-full table-fixed border-collapse text-left">
                 <thead className="border-b border-white/10 font-poppins text-[12px] font-bold tracking-[0.04em] text-brand-fg-subtle uppercase">
                   <tr>
-                    <th scope="col" className="py-[12px] pr-[12px] pl-[18px]">
+                    <th scope="col" className="w-[130px] py-[12px] pr-[12px] pl-[18px]">
+                      Ordem
+                    </th>
+                    <th scope="col" className="px-[12px] py-[12px]">
                       Jogo
                     </th>
                     <th scope="col" className="hidden w-[260px] px-[12px] py-[12px] md:table-cell">
@@ -103,6 +115,15 @@ export default async function AdminGamesPage({
                     return (
                       <tr key={game.id} className="transition-colors hover:bg-white/[0.03]">
                         <td className="py-[10px] pr-[12px] pl-[18px]">
+                          {search ? (
+                            <span className="font-poppins text-[14px] font-bold text-white/60">
+                              {menuIds.indexOf(game.id) + 1}
+                            </span>
+                          ) : (
+                            <GameMenuOrderButtons ids={menuIds} index={menuIds.indexOf(game.id)} name={game.name} />
+                          )}
+                        </td>
+                        <td className="px-[12px] py-[10px]">
                           <div className="flex min-w-0 items-center gap-[12px]">
                             <span className="relative size-[44px] shrink-0 overflow-hidden rounded-[10px] border border-white/10 bg-[#2f2f2f]">
                               {art ? <Image src={art} alt="" fill sizes="44px" className="object-contain" /> : null}

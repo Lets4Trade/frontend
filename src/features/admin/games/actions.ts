@@ -3,7 +3,7 @@
 import { revalidatePath, updateTag } from "next/cache";
 import { getSessionRole } from "@/features/auth/session";
 import { GAMES_MENU_TAG } from "@/features/game/menuGames";
-import { apiDelete, apiPostFormData } from "@/lib/serverApi";
+import { apiDelete, apiPostFormData, apiPut } from "@/lib/serverApi";
 import { MAX_IMAGE_BYTES } from "./options";
 import { createGameSchema } from "./schema";
 
@@ -167,6 +167,51 @@ export async function deactivateGameAction(
   // excluído seguiria no menu por até uma hora.
   updateTag(GAMES_MENU_TAG);
   revalidatePath("/admin/builder");
+  revalidatePath("/admin/jogos");
+  return { ok: true };
+}
+
+/** Teto da lista, igual ao do DTO do backend (jogos ativos). */
+const MAX_MENU_GAMES = 200;
+const GAME_ID = /^[A-Za-z0-9_-]{1,100}$/;
+
+/**
+ * Ordem do menu GAMES (2026-10-15) — home, cabeçalho e celular usam a mesma
+ * lista. Recebe TODOS os jogos ativos na ordem nova; o backend recusa (400)
+ * uma lista que não confere, e a mensagem pede para recarregar.
+ *
+ * Grava na hora, sem botão "salvar": é o padrão da ordem dos banners.
+ */
+export async function reorderGamesMenuAction(
+  ids: string[],
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const role = await getSessionRole();
+  if (role !== "ADMIN") {
+    return { ok: false, message: "Sua conta não tem permissão para mudar a ordem dos games." };
+  }
+  if (
+    !Array.isArray(ids) ||
+    ids.length === 0 ||
+    ids.length > MAX_MENU_GAMES ||
+    ids.some((id) => typeof id !== "string" || !GAME_ID.test(id))
+  ) {
+    return { ok: false, message: "Ordem dos games inválida." };
+  }
+
+  const response = await apiPut<{ ids: string[] }>("/admin/games/menu-order", { ids });
+  if (!response.ok) {
+    return {
+      ok: false,
+      message:
+        response.status === 400
+          ? "A lista de games mudou. Recarregue a página e tente de novo."
+          : "Não conseguimos salvar a ordem agora. Tente novamente em instantes.",
+    };
+  }
+
+  // O menu é cacheado por etiqueta (`menuGames.ts`): sem isto a loja levaria
+  // até uma hora para mostrar a ordem nova.
+  updateTag(GAMES_MENU_TAG);
   revalidatePath("/admin/jogos");
   return { ok: true };
 }

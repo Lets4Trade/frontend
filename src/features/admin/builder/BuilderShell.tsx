@@ -359,6 +359,7 @@ function toDraft(game: BuilderGame): Draft {
     banners: game.banners.map((banner) => ({
       id: banner.id,
       imageUrl: banner.imageUrl,
+      mobileImageUrl: banner.mobileImageUrl ?? null,
       href: banner.href,
     })),
   };

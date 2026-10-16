@@ -1,13 +1,16 @@
 import { toOrderGift } from "@/features/gifts/orderGift";
 import { apiGet } from "@/lib/serverApi";
-import type { Order, OrderStatus, OrderStepKey } from "./types";
+import type { Order, OrderStatus, OrderTrack, Purchase } from "./types";
 
 /**
  * Leitura dos pedidos do usuário autenticado.
  *
  * ── Contrato (../backend/src/app/orders) ────────────────────────────────────
- *   GET /orders?page&limit → { data: { items, page, limit, total, pageCount } }
- *   401                    → sem sessão
+ *   GET /orders/purchases?page&limit → { data: { items: compras, page, limit, total, pageCount } }
+ *   401                              → sem sessão
+ *
+ * Desde 2026-10-15 a tela lista COMPRAS (itens do mesmo carrinho juntos), não
+ * pedidos soltos — ver `Purchase`.
  *
  * A tradução para o formato da tela mora AQUI, na borda, e não no componente:
  * o backend manda enum em maiúsculas, preço como string decimal e data em ISO,
@@ -29,7 +32,13 @@ export type ApiOrder = {
   coinsSpent?: number;
   discountCents?: number;
   status: string;
-  step: string;
+  /** Legado: a trilha sai de `status` + datas (a coluna nunca mudava). */
+  step?: string;
+  /** Quando entrou em cada etapa (ISO). Ausentes = sem data conhecida. */
+  approvedAt?: string | null;
+  inDeliveryAt?: string | null;
+  deliveredAt?: string | null;
+  canceledAt?: string | null;
   createdAt: string;
   /**
    * Só pedido de SERVIÇO (contrato game-tabs): a escolha e a conta do preço,
@@ -43,49 +52,92 @@ export type ApiOrder = {
   couponCents?: number;
 };
 
-type ApiOrderPage = {
-  items: ApiOrder[];
+export type ApiPurchase = {
+  id: string;
+  reference: string;
+  createdAt: string;
+  orders: ApiOrder[];
+};
+
+type ApiPurchasePage = {
+  items: ApiPurchase[];
   page: number;
   limit: number;
   total: number;
   pageCount: number;
 };
 
-export type OrdersResult =
-  | { ok: true; orders: Order[]; total: number; page: number; pageCount: number }
+export type PurchasesResult =
+  | { ok: true; purchases: Purchase[]; total: number; page: number; pageCount: number }
   | { ok: false; reason: "unauthenticated" | "error" };
 
 /**
- * Uma PÁGINA de pedidos do usuário.
+ * Uma PÁGINA de compras do usuário.
  *
- * O backend pagina desde o primeiro dia (`GET /orders?page&limit`, teto de 50),
- * mas esta função só pedia a primeira página e descartava `page`/`pageCount` —
- * na prática o cliente ficava preso nos 20 pedidos mais recentes e o 21º era
- * inalcançável pela interface. Quem compra sempre é justamente quem perde o
- * acesso ao histórico, que é o oposto do que a tela existe para fazer.
+ * A página é de COMPRAS, não de itens: paginar por item cortaria um carrinho
+ * ao meio entre duas páginas.
  *
- * `page` é saneado AQUI e não confiado à URL: vem de `?page=` e um valor
+ * `page` é saneado AQUI e não confiado à URL: vem de `?pagina=` e um valor
  * absurdo (0, -1, "abc") viraria `skip` negativo ou `NaN` no banco.
  */
-export async function getMyOrders(page = 1, limit = 20): Promise<OrdersResult> {
+export async function getMyPurchases(page = 1, limit = 10): Promise<PurchasesResult> {
   const current = Number.isFinite(page) ? Math.max(1, Math.trunc(page)) : 1;
-  const result = await apiGet<ApiOrderPage>(`/orders?page=${current}&limit=${limit}`);
+  const result = await apiGet<ApiPurchasePage>(`/orders/purchases?page=${current}&limit=${limit}`);
   if (!result.ok) return { ok: false, reason: result.reason };
 
   const items = Array.isArray(result.data.items) ? result.data.items : [];
   const total = typeof result.data.total === "number" ? result.data.total : items.length;
   return {
     ok: true,
-    orders: items.map(toOrder),
+    purchases: items.map(toPurchase).filter((purchase): purchase is Purchase => purchase !== null),
     total,
     page: typeof result.data.page === "number" ? result.data.page : current,
-    // Quem manda no total de páginas é o backend; o cálculo local é só a
-    // reserva para uma resposta antiga que não traga o campo.
     pageCount:
       typeof result.data.pageCount === "number"
         ? result.data.pageCount
         : Math.max(1, Math.ceil(total / limit)),
   };
+}
+
+/**
+ * Compra da API → tela. As somas são feitas em CENTAVOS inteiros (o preço vem
+ * como string decimal): somar reais em ponto flutuante erra o centavo.
+ * Compra sem item (resposta inesperada) vira `null` e some da lista.
+ */
+export function toPurchase(api: ApiPurchase): Purchase | null {
+  const orders = Array.isArray(api.orders) ? api.orders : [];
+  if (orders.length === 0) return null;
+
+  const currency = orders[0].currency || "BRL";
+  let priceCents = 0;
+  let coinsCents = 0;
+  let couponCents = 0;
+  for (const order of orders) {
+    priceCents += toCents(order.totalPrice);
+    coinsCents += order.discountCents || 0;
+    couponCents += order.couponCents || 0;
+  }
+  const couponCode = orders.find((order) => order.couponCode)?.couponCode ?? null;
+
+  return {
+    id: api.id,
+    reference: api.reference,
+    date: formatDate(api.createdAt),
+    items: orders.map(toOrder),
+    price: formatCents(priceCents, currency),
+    discount: coinsCents + couponCents > 0 ? formatCents(coinsCents + couponCents, currency) : null,
+    paid: formatCents(Math.max(0, priceCents - coinsCents - couponCents), currency),
+    coupon: couponCode && couponCents > 0 ? { code: couponCode, amount: formatCents(couponCents, currency) } : null,
+  };
+}
+
+function toCents(value: string) {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? Math.round(amount * 100) : 0;
+}
+
+function formatCents(cents: number, currency: string) {
+  return formatPrice((cents / 100).toFixed(2), currency);
 }
 
 /**
@@ -129,7 +181,8 @@ export function toOrder(api: ApiOrder): Order {
         : null,
     date: formatDate(api.createdAt),
     status: toStatus(api.status),
-    currentStep: toStep(api.step),
+    track: toTrack(api),
+    stepDates: toStepDates(api),
     details: toOrderDetails(api.details, api.currency),
     gift: toOrderGift(api.gift),
   };
@@ -193,17 +246,64 @@ const STATUS_MAP: Record<string, OrderStatus> = {
   CANCELADO: "cancelado",
 };
 
-const STEP_MAP: Record<string, OrderStepKey> = {
-  FEITO: "feito",
-  APROVADO: "aprovado",
-  ENTREGA: "entrega",
-  FINALIZADO: "finalizado",
-};
-
 function toStatus(value: string): OrderStatus {
   return STATUS_MAP[value] ?? "pendente";
 }
 
-function toStep(value: string): OrderStepKey {
-  return STEP_MAP[value] ?? "feito";
+/**
+ * Situação → posição na trilha (2026-10-15). A etapa vem da SITUAÇÃO, que é o
+ * que pagamento e painel atualizam; o antigo `step` do backend nunca mudava.
+ *
+ * Cancelado marca a última etapa que o pedido ALCANÇOU (pelas datas): um
+ * pedido cancelado depois de aprovado mostra "aprovado" concluído e o X no
+ * lugar da entrega — a diferença entre "não pagou" e "foi estornado".
+ */
+export function toTrack(api: Pick<ApiOrder, "status" | "approvedAt" | "inDeliveryAt" | "deliveredAt">): OrderTrack {
+  switch (toStatus(api.status)) {
+    case "aprovado":
+      return { step: "aprovado", state: "active" };
+    case "em_andamento":
+      return { step: "entrega", state: "active" };
+    case "entregue":
+      return { step: "finalizado", state: "done" };
+    case "cancelado":
+      return {
+        step: api.deliveredAt
+          ? "finalizado"
+          : api.inDeliveryAt
+            ? "entrega"
+            : api.approvedAt
+              ? "aprovado"
+              : "feito",
+        state: "canceled",
+      };
+    default:
+      return { step: "feito", state: "active" };
+  }
+}
+
+/** Mesmo fuso fixo da data do card, com a hora — "15/10 14:32". */
+const stepDateFormatter = new Intl.DateTimeFormat("pt-BR", {
+  day: "2-digit",
+  month: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "America/Sao_Paulo",
+});
+
+function toStepDates(api: ApiOrder): Order["stepDates"] {
+  const dates: Order["stepDates"] = {};
+  const entries: [keyof Order["stepDates"], string | null | undefined][] = [
+    ["feito", api.createdAt],
+    ["aprovado", api.approvedAt],
+    ["entrega", api.inDeliveryAt],
+    ["finalizado", api.deliveredAt],
+    ["cancelado", api.canceledAt],
+  ];
+  for (const [key, iso] of entries) {
+    if (!iso) continue;
+    const date = new Date(iso);
+    if (!Number.isNaN(date.getTime())) dates[key] = stepDateFormatter.format(date).replace(",", "");
+  }
+  return dates;
 }

@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { TabsRow } from "./TabsRow";
 import type { GamePage, GameTab } from "./types";
 import { tabHrefWithServer } from "./storefrontTabs";
 
@@ -22,9 +21,10 @@ export function GameIdentity({ page, server = "" }: { page: GamePage; server?: s
   // card do configurador, e ela ficaria por cima dele.
   const isService = page.tabs.find((tab) => tab.id === page.activeTabId)?.layout === "SERVICE";
 
-  // Celular (2026-10-09): logo menor ao lado do título e as abas numa fileira
-  // de largura cheia que ROLA de lado — embrulhadas, nove abas de 130px viravam
-  // cinco linhas. O `contents` do miolo põe título e abas direto no `flex` de
+  // Celular: logo menor ao lado do título e as abas numa grade de DUAS colunas,
+  // cada aba com o ícone à esquerda e o rótulo à direita (2026-10-16, pedido do
+  // usuário). Antes era uma fileira que rolava de lado (2026-10-09) e escondia
+  // as abas do fim. O `contents` do miolo põe título e abas direto no `flex` de
   // fora no celular; no desktop o miolo volta a ser a coluna do arquivo.
   return (
     <div className="relative flex flex-wrap items-center gap-x-[14px] gap-y-[18px] lg:flex-nowrap lg:items-start lg:gap-[30px]">
@@ -37,11 +37,11 @@ export function GameIdentity({ page, server = "" }: { page: GamePage; server?: s
 
         {/* Jogo sem aba ativa: sem a fileira vazia (e sem o vão de 25px). */}
         {page.tabs.length > 0 ? (
-          <TabsRow className="-mx-[16px] flex w-[calc(100%+32px)] basis-full gap-[10px] overflow-x-auto px-[16px] pb-[4px] [scrollbar-width:none] lg:mx-0 lg:mt-[25px] lg:w-auto lg:flex-wrap lg:gap-[15px] lg:overflow-visible lg:px-0 lg:pb-0">
+          <nav className="grid basis-full grid-cols-2 gap-[8px] lg:mt-[25px] lg:flex lg:flex-wrap lg:gap-[15px]">
             {page.tabs.map((tab) => (
               <TabLink key={tab.id} tab={tab} server={server} active={tab.id === page.activeTabId} />
             ))}
-          </TabsRow>
+          </nav>
         ) : null}
       </div>
 
@@ -183,20 +183,23 @@ export function LogoHalo({
  *
  * `min-w` em vez de largura fixa porque o rótulo é editável — no próprio
  * arquivo "VENDA PRA NÓS" já é 13px mais larga que as outras.
+ *
+ * No celular a aba vira linha (ícone à esquerda, rótulo à direita) e ocupa meia
+ * largura da grade; rótulo longo quebra em até duas linhas em vez de vazar.
  */
 function TabLink({ tab, server, active }: { tab: GameTab; server: string; active: boolean }) {
   return (
     <Link
       href={tabHrefWithServer(tab, server)}
       aria-current={active ? "page" : undefined}
-      className={`relative flex h-[82px] min-w-[96px] shrink-0 flex-col items-center justify-start rounded-[8px] border-2 border-white/10 px-[8px] pt-[8px] backdrop-blur-[100px] transition-opacity hover:opacity-90 lg:h-[99px] lg:min-w-[130px] lg:px-[10px] lg:pt-[11px] ${
+      className={`relative flex h-[56px] min-w-0 items-center gap-[10px] rounded-[8px] border-2 border-white/10 px-[10px] backdrop-blur-[100px] transition-opacity hover:opacity-90 lg:h-[99px] lg:min-w-[130px] lg:shrink-0 lg:flex-col lg:justify-start lg:gap-0 lg:px-[10px] lg:pt-[11px] ${
         active
           ? "bg-[image:var(--brand-orange-gradient)] text-white"
           : "bg-[image:var(--brand-surface-fill)] text-white/80"
       }`}
     >
       <TabIcon tab={tab} />
-      <span className="mt-[5px] font-poppins text-[12px] leading-none font-bold tracking-[0.15px] whitespace-nowrap lg:text-[15px]">
+      <span className="line-clamp-2 min-w-0 font-poppins text-[12px] leading-[1.2] font-bold tracking-[0.15px] lg:mt-[5px] lg:line-clamp-none lg:text-[15px] lg:leading-none lg:whitespace-nowrap">
         {tab.label}
       </span>
     </Link>
@@ -216,14 +219,14 @@ function TabIcon({ tab }: { tab: GameTab }) {
   // Fica inteiro dentro dos 50×50. Só os SVGs padrão (`/icons/`) sangram.
   if (!tab.icon.src.startsWith("/icons/")) {
     return (
-      <span className="relative block size-[40px] lg:size-[50px]">
+      <span className="relative block size-[32px] shrink-0 lg:size-[50px]">
         <Image src={tab.icon.src} alt="" fill sizes="50px" aria-hidden className="object-contain" />
       </span>
     );
   }
 
   return (
-    <span className="relative block size-[40px] lg:size-[50px]">
+    <span className="relative block size-[32px] shrink-0 lg:size-[50px]">
       <span className="absolute" style={{ inset: ICON_BLEED }}>
         <Image
           src={tab.icon.src}

@@ -3,8 +3,10 @@
  * para serem testadas. Dinheiro em CENTAVOS inteiros, como na API.
  */
 
-/** Mesmo teto do `priceCents` do backend (`CreateProductDto`). */
-export const MAX_PRICE_CENTS = 10_000_000;
+import { MAX_PRICE_CENTS } from "@/features/pricing/quote";
+
+/** Mesmo teto do `priceCents` do backend (`CreateProductDto`): R$ 20 mi. */
+export { MAX_PRICE_CENTS };
 
 /** Mesmo teto do lote no backend (`MAX_PRICE_BATCH` = uma aba inteira). */
 export const MAX_PRICE_BATCH = 300;

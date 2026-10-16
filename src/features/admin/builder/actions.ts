@@ -235,6 +235,56 @@ export async function reorderBannersAction(
   return { ok: true, data: result.data };
 }
 
+/**
+ * Etapa 2 — arte do CELULAR de um banner (2026-10-16). Substitui a anterior;
+ * grava na hora, como o upload do banner.
+ */
+export async function uploadBannerMobileAction(
+  gameId: string,
+  bannerId: string,
+  form: FormData,
+): Promise<BuilderResult<{ id: string; mobileImageUrl: string }>> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
+  const file = form.get("image");
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, reason: "invalid", message: "Escolha uma imagem." };
+  }
+  if (file.size > MAX_IMAGE_BYTES) return IMAGE_TOO_LARGE;
+
+  const body = new FormData();
+  body.append("image", file);
+
+  const result = await apiPutFormData<{ id: string; mobileImageUrl: string }>(
+    `/admin/game-page/${encodeURIComponent(gameId)}/banners/${encodeURIComponent(bannerId)}/mobile`,
+    body,
+  );
+  if (!result.ok) return failure(result);
+  return {
+    ok: true,
+    data: {
+      id: result.data.id,
+      mobileImageUrl: backendAsset(result.data.mobileImageUrl) ?? result.data.mobileImageUrl,
+    },
+  };
+}
+
+/** Etapa 2 — tira a arte do celular; o banner volta a usar a do computador. */
+export async function removeBannerMobileAction(
+  gameId: string,
+  bannerId: string,
+): Promise<BuilderResult<{ id: string }>> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
+  const result = await apiDelete<{ id: string }>(
+    `/admin/game-page/${encodeURIComponent(gameId)}/banners/${encodeURIComponent(bannerId)}/mobile`,
+  );
+  if (!result.ok) return failure(result);
+  return { ok: true, data: result.data };
+}
+
 /** Etapa 2 — remove um banner. */
 export async function removeBannerAction(
   gameId: string,

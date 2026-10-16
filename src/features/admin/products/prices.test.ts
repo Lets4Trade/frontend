@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  MAX_PRICE_CENTS,
   applyPercent,
   buildPriceChanges,
   changeRatio,
@@ -24,7 +25,7 @@ describe("parsePriceInput", () => {
     expect(parsePriceInput(raw)).toBe(cents);
   });
 
-  it.each(["", "abc", "4,105", "-4", "0", "0,00", "4,,1", "100000,01"])("%s é inválido", (raw) => {
+  it.each(["", "abc", "4,105", "-4", "0", "0,00", "4,,1", "20000000,01"])("%s é inválido", (raw) => {
     expect(parsePriceInput(raw)).toBeNull();
   });
 
@@ -44,7 +45,9 @@ describe("applyPercent / parsePercent", () => {
 
   it("recusa resultado fora da faixa", () => {
     expect(applyPercent(1, -99)).toBeNull();
-    expect(applyPercent(9_000_000, 50)).toBeNull();
+    expect(applyPercent(1_900_000_000, 50)).toBeNull();
+    // Acima dos antigos R$ 100 mil já é aceito (teto de 2026-10-15).
+    expect(applyPercent(9_000_000, 50)).toBe(13_500_000);
   });
 
   it.each([
@@ -85,4 +88,10 @@ describe("buildPriceChanges", () => {
 it("changeRatio", () => {
   expect(changeRatio(1000, 1500)).toBe(0.5);
   expect(changeRatio(0, 10)).toBe(0);
+});
+
+describe("teto de preço (2026-10-15)", () => {
+  it("é o técnico de R$ 20 mi, não mais R$ 100 mil", () => {
+    expect(MAX_PRICE_CENTS).toBe(2_000_000_000);
+  });
 });

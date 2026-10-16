@@ -22,8 +22,19 @@
  */
 import { z } from "zod";
 
-/** Teto de sanidade de um pedido de serviço: R$ 100.000,00. */
-export const MAX_SERVICE_TOTAL_CENTS = 10_000_000;
+/**
+ * Teto de PREÇO de produto e de pedido de serviço: R$ 20 milhões (2026-10-15).
+ *
+ * Era R$ 100.000,00 e o usuário pediu para tirar o limite do painel. O que
+ * sobra é o teto TÉCNICO: `Payment.amountCents` é Int de 32 bits (até R$ 21,4
+ * mi) — o mesmo `MAX_CART_CENTS` do checkout. Acima disso o carrinho nem pode
+ * ser cobrado. As contas do serviço continuam inteiras seguras em JS: 100 mil
+ * níveis × R$ 20 mi = 2×10¹⁴ < 2⁵³.
+ */
+export const MAX_PRICE_CENTS = 2_000_000_000;
+
+/** O total de um serviço tem o mesmo teto do preço. */
+export const MAX_SERVICE_TOTAL_CENTS = MAX_PRICE_CENTS;
 
 const cents = z.number().int().min(0).max(MAX_SERVICE_TOTAL_CENTS);
 const hours = z.number().min(0).max(10_000);

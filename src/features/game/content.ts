@@ -17,7 +17,7 @@ import {
   type ApiGameTab,
 } from "./storefrontTabs";
 import { toGameDescription } from "./description";
-import { FAQ_DESCRIPTION_GROUP } from "./types";
+import { FAQ_DESCRIPTION_GROUP, MOBILE_BANNER } from "./types";
 import type { GameNewsItem, GamePage, GameProduct } from "./types";
 
 /**
@@ -71,7 +71,8 @@ type StorefrontGame = {
    * plana com `parentId` — `toCategoryTree` resolve as duas.
    */
   categories: StorefrontCategory[];
-  banners: { id: string; imageUrl: string; href?: string | null }[];
+  /** `mobileImageUrl` ausente no backend antigo (antes de 2026-10-16). */
+  banners: { id: string; imageUrl: string; mobileImageUrl?: string | null; href?: string | null }[];
   /**
    * Personalização do Builder de Páginas. Ausentes = "não personalizado", e a
    * página cai no valor derivado — não em texto em branco. Ver o `Game` no
@@ -199,6 +200,14 @@ export async function getGamePage(slug: string): Promise<GamePage | null> {
               width: 1715,
               height: 490,
             },
+            mobileImage: banner.mobileImageUrl
+              ? {
+                  src: backendAsset(banner.mobileImageUrl) ?? banner.mobileImageUrl,
+                  alt: "",
+                  width: MOBILE_BANNER.width,
+                  height: MOBILE_BANNER.height,
+                }
+              : undefined,
             href: banner.href ?? undefined,
           }))
         : editorial.banners,

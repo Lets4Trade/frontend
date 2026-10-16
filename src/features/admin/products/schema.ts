@@ -1,11 +1,12 @@
 import { z } from "zod";
+import { MAX_PRICE_CENTS } from "@/features/pricing/quote";
 
 /**
  * Validação do cadastro de produto (Figma 3806:6735).
  *
  * Validação de UX: avisa na hora, sem esperar o 400 voltar. Quem decide é o
  * `CreateProductDto` do backend, e os limites são os mesmos — nome de 2 a 160,
- * preço de 1 centavo a R$ 100.000,00.
+ * preço de 1 centavo a R$ 20 milhões (teto técnico, 2026-10-15).
  *
  * O que NÃO dá para validar aqui é a coerência com o jogo (a plataforma
  * escolhida ser mesmo uma das do jogo). A tela impede pela construção dos
@@ -13,8 +14,8 @@ import { z } from "zod";
  * conveniência e o endpoint aceita quem chamar direto.
  */
 
-/** Espelha o `@Max(10_000_000)` do DTO: R$ 100.000,00 em centavos. */
-export const MAX_PRICE_CENTS = 10_000_000;
+/** Espelha o `@Max(MAX_PRICE_CENTS)` do DTO: R$ 20 mi (era R$ 100 mil até 2026-10-15). */
+export { MAX_PRICE_CENTS };
 
 export const createProductSchema = z.object({
   gameId: z.string().min(1, "Escolha o jogo do produto."),
@@ -34,7 +35,7 @@ export const createProductSchema = z.object({
     .number()
     .int()
     .min(1, "Informe o preço do produto.")
-    .max(MAX_PRICE_CENTS, "O preço passa do teto de R$ 100.000,00."),
+    .max(MAX_PRICE_CENTS, "O preço passa do teto de R$ 20.000.000,00."),
 
 
   /**

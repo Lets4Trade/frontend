@@ -73,7 +73,7 @@ describe("createProductAction", () => {
     ["nome curto", { name: "x" }],
     ["preço zero", { priceCents: "0" }],
     ["preço fracionado", { priceCents: "10.5" }],
-    ["preço acima do teto", { priceCents: "10000001" }],
+    ["preço acima do teto", { priceCents: "2000000001" }],
     ["preço não numérico", { priceCents: "abc" }],
     ["sem aba", { tabId: "" }],
     ["aba com cara de caminho", { tabId: "../x" }],

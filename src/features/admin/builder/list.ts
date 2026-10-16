@@ -61,6 +61,7 @@ export async function getBuilderGame(gameId: string): Promise<BuilderGame | null
       // no banco), mas manter o tipo `string` evita um opcional que se
       // propagaria por toda a tela para um caso que não existe.
       imageUrl: backendAsset(banner.imageUrl) ?? banner.imageUrl,
+      mobileImageUrl: backendAsset(banner.mobileImageUrl) ?? null,
     })),
   };
 }

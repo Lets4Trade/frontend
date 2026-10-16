@@ -6,6 +6,8 @@ import { PageViewTracker } from "@/features/admin/PageViewTracker";
 import { getContacts } from "@/features/site/contacts";
 import { getLayoutContent } from "@/features/site/layoutContent";
 import { ContactBubble } from "@/features/support/ContactBubble";
+import { getMenuGames } from "@/features/game/menuGames";
+import { GlobalMobileNav } from "@/features/home/mobile/GlobalMobileNav";
 import { chatConfig } from "@/features/support/chatConfig";
 import "./globals.css";
 
@@ -141,7 +143,8 @@ export default async function RootLayout({
 }>) {
   // Leitura cacheada (1h, invalidada pelo painel) — a mesma que o cabeçalho e o
   // rodapé já fazem; não soma ida ao backend.
-  const [contacts, layout] = await Promise.all([getContacts(), getLayoutContent()]);
+  // Jogos do menu: a mesma leitura cacheada do cabeçalho (deduplicada).
+  const [contacts, layout, games] = await Promise.all([getContacts(), getLayoutContent(), getMenuGames()]);
   // Botão do chat (foto, balão, lado, online/offline) — Configurações da loja.
   const chat = chatConfig(layout.text("chat"));
 
@@ -160,6 +163,8 @@ export default async function RootLayout({
         {/* Contato flutuante em toda a loja; ele mesmo some no checkout e no
             painel. Ver `features/support/ContactBubble.tsx`. */}
         <ContactBubble whatsappHref={contacts.whatsapp?.href} config={chat} />
+        {/* Atalhos flutuantes do celular em toda a loja (2026-10-15). */}
+        <GlobalMobileNav games={games} />
       </body>
     </html>
   );

@@ -32,6 +32,8 @@ export type BuilderBanner = {
   id: string;
   /** Já absoluta, apontando para o backend. */
   imageUrl: string;
+  /** Arte do celular (2026-10-16), já absoluta. Nula = usa a do computador. */
+  mobileImageUrl?: string | null;
   href?: string | null;
 };
 
@@ -80,7 +82,13 @@ export type BuilderGame = {
    * montado OU lista plana com `parentId` — quem resolve é `toCategoryTree`.
    */
   categories: BuilderCategoryRow[];
-  banners: { id: string; imageUrl: string; href?: string | null; position: number }[];
+  banners: {
+    id: string;
+    imageUrl: string;
+    mobileImageUrl?: string | null;
+    href?: string | null;
+    position: number;
+  }[];
   /** Blocos visíveis, na ordem. Vazio = não personalizado. */
   sectionOrder?: string[] | null;
 };

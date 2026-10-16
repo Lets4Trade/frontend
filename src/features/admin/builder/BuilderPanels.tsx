@@ -8,8 +8,10 @@ import { toastError } from "@/components/ui/Toasts";
 import { ACTION_FAILED_MESSAGE, ACTION_FAILED_UPLOAD_MESSAGE, runAction } from "@/lib/safeAction";
 import {
   removeBannerAction,
+  removeBannerMobileAction,
   reorderBannersAction,
   uploadBannerAction,
+  uploadBannerMobileAction,
   uploadLogoAction,
 } from "./actions";
 import { DESCRIPTION_LIMITS } from "@/features/game/description";
@@ -798,6 +800,43 @@ export function BannerPanel({
     });
   }
 
+  // Arte do celular (2026-10-16): grava na hora, como o banner. `null` tira.
+  function setMobile(bannerId: string, file: File | null) {
+    startTransition(async () => {
+      if (file) {
+        const form = new FormData();
+        form.append("image", file);
+        const result = await runAction(() => uploadBannerMobileAction(gameId, bannerId, form), {
+          ok: false,
+          reason: "error",
+          message: ACTION_FAILED_UPLOAD_MESSAGE,
+        });
+        if (!result.ok) {
+          toastError(result.message ?? "Não foi possível enviar a arte do celular.");
+          return;
+        }
+        onChange(
+          banners.map((banner) =>
+            banner.id === bannerId ? { ...banner, mobileImageUrl: result.data.mobileImageUrl } : banner,
+          ),
+        );
+        return;
+      }
+      const result = await runAction(() => removeBannerMobileAction(gameId, bannerId), {
+        ok: false,
+        reason: "error",
+        message: ACTION_FAILED_MESSAGE,
+      });
+      if (!result.ok) {
+        toastError(result.message ?? "Não foi possível remover a arte do celular.");
+        return;
+      }
+      onChange(
+        banners.map((banner) => (banner.id === bannerId ? { ...banner, mobileImageUrl: null } : banner)),
+      );
+    });
+  }
+
   // A ordem grava NA HORA, como o upload: banner nunca fica "pendente de
   // publicação". A tela muda antes e volta atrás se o servidor recusar.
   function move(index: number, direction: -1 | 1) {
@@ -828,9 +867,19 @@ export function BannerPanel({
             <span className="w-[22px] text-center font-poppins text-[14px] font-bold text-white/60">
               {index + 1}
             </span>
-            <div className="relative h-[100px] w-[350px] max-w-full shrink-0 overflow-hidden rounded-[12px] border border-white/10">
-              <Image src={banner.imageUrl} alt="" fill sizes="350px" className="object-cover" />
-            </div>
+            <figure className="flex flex-col gap-[6px]">
+              <div className="relative h-[100px] w-[350px] max-w-full shrink-0 overflow-hidden rounded-[12px] border border-white/10">
+                <Image src={banner.imageUrl} alt="" fill sizes="350px" className="object-cover" />
+              </div>
+              <figcaption className="font-poppins text-[12px] text-brand-fg-subtle">Computador</figcaption>
+            </figure>
+            <MobileBannerSlot
+              index={index}
+              imageUrl={banner.mobileImageUrl ?? null}
+              pending={pending}
+              onPick={(file) => setMobile(banner.id, file)}
+              onRemove={() => setMobile(banner.id, null)}
+            />
             <RowButton
               label={`Mover banner ${index + 1} para cima`}
               onClick={() => move(index, -1)}
@@ -867,13 +916,90 @@ export function BannerPanel({
         />
       ) : null}
       <p className="-mt-[15px] font-poppins text-[13px] text-brand-fg-subtle">
-        Tamanho da imagem W:1715 H:490. Com mais de um, a loja mostra um slider
+        Tamanho da imagem W:1715 H:490; no celular (opcional, por banner)
+        W:800 H:400 — sem ela, o celular recorta a do computador. Com mais de um, a loja mostra um slider
         na ordem acima (passa sozinho a cada 6 segundos, com setas e barrinhas).
         Dá para escolher várias imagens de uma vez; até {MAX_BANNERS} banners
         ({banners.length} de {MAX_BANNERS}). Sem nenhum, a faixa do topo não
         aparece na loja.
       </p>
     </>
+  );
+}
+
+/**
+ * Arte do celular de um banner (2026-10-16): caixa 2:1 ao lado da do
+ * computador. Vazia, a própria caixa é o seletor de arquivo; preenchida, mostra
+ * a arte com "Trocar" e "Tirar".
+ */
+function MobileBannerSlot({
+  index,
+  imageUrl,
+  pending,
+  onPick,
+  onRemove,
+}: {
+  index: number;
+  imageUrl: string | null;
+  pending: boolean;
+  onPick: (file: File) => void;
+  onRemove: () => void;
+}) {
+  const picker = (
+    <input
+      type="file"
+      accept="image/png,image/jpeg,image/webp,image/avif"
+      disabled={pending}
+      className="sr-only"
+      onChange={(event) => {
+        const file = event.target.files?.[0];
+        event.target.value = "";
+        if (file) onPick(file);
+      }}
+    />
+  );
+
+  return (
+    <figure className="flex flex-col gap-[6px]">
+      {imageUrl ? (
+        <div className="relative h-[100px] w-[200px] shrink-0 overflow-hidden rounded-[12px] border border-white/10">
+          <Image src={imageUrl} alt="" fill sizes="200px" className="object-cover" />
+        </div>
+      ) : (
+        <label
+          aria-label={`Enviar arte do celular do banner ${index + 1}`}
+          className={`flex h-[100px] w-[200px] shrink-0 flex-col items-center justify-center gap-[4px] rounded-[12px] border border-dashed border-white/20 bg-black/30 text-center font-poppins text-[13px] font-bold text-white/70 transition-colors hover:border-brand-orange hover:text-white ${
+            pending ? "pointer-events-none opacity-50" : "cursor-pointer"
+          }`}
+        >
+          + Arte do celular
+          <span className="text-[11px] font-normal text-white/45">800×400 (opcional)</span>
+          {picker}
+        </label>
+      )}
+      <figcaption className="flex items-center gap-[10px] font-poppins text-[12px] text-brand-fg-subtle">
+        Celular
+        {imageUrl ? (
+          <>
+            <label
+              className={`font-bold text-white/80 hover:text-white ${pending ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
+            >
+              Trocar
+              {picker}
+            </label>
+            <button
+              type="button"
+              onClick={onRemove}
+              disabled={pending}
+              aria-label={`Tirar a arte do celular do banner ${index + 1}`}
+              className="font-bold text-brand-orange hover:opacity-90 disabled:opacity-40"
+            >
+              Tirar
+            </button>
+          </>
+        ) : null}
+      </figcaption>
+    </figure>
   );
 }
 

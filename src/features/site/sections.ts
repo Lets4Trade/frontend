@@ -1,5 +1,6 @@
 import type { MaskKind } from "@/lib/masks";
 import { blogCardExtraFields, type SectionExtraField } from "./blogCardFields";
+import { mobileAlignField } from "./mobileAlign";
 
 /**
  * O catálogo de PÁGINAS e SESSÕES do site — a tela "Edição de sessões"
@@ -247,6 +248,8 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         subtitleLabel: "Link do botão “Veja nossas referências” (YouTube)",
         // Subtítulo e legenda são LINKS — só o título é texto formatado.
         rich: ["title"],
+        // Celular: título e textos centralizados por padrão (2026-10-15).
+        extraFields: [mobileAlignField()],
       },
       {
         key: "reviews",
@@ -278,6 +281,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         hasBody: true,
         hasImage: false,
         rich: ["title", "subtitle", "body"],
+        extraFields: [mobileAlignField()],
         list: {
           itemLabel: "membro",
           title: "Nome",
@@ -565,6 +569,16 @@ export const SITE_PAGES: readonly SitePageDef[] = [
             maxLength: 200,
             hint: "Aparece no topo do atendimento quando o status é Offline.",
           },
+          // Mesmo nome de campo dos outros blocos; aqui a escolha também
+          // move o BOTÃO (pedido do usuário, 2026-10-15).
+          mobileAlignField(
+            "Botão no celular",
+            "Posição do botão e do texto dele na tela do celular. No computador o botão fica no canto direito.",
+            {
+              center: "Centralizado (botão no meio da tela, texto ao centro)",
+              left: "Canto direito (texto à esquerda)",
+            },
+          ),
         ],
       },
       {
@@ -674,6 +688,14 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         defaultBody: "© {ano} Lets4Trade. Todos os direitos reservados.",
         bodyLabel: "Copyright (use {ano} para o ano atual)",
         hasImage: false,
+        // O rodapé não tem um bloco "geral": a escolha mora aqui, no último
+        // bloco dele, e vale para o rodapé INTEIRO (2026-10-15).
+        extraFields: [
+          mobileAlignField(
+            "Alinhamento do rodapé no celular",
+            "Vale para o rodapé inteiro (logo, redes, links, texto e estes dados), só no celular.",
+          ),
+        ],
       },
       {
         key: "footer-sobre",

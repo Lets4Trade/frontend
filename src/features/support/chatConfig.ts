@@ -1,3 +1,5 @@
+import { mobileAlignOf, type MobileAlign } from "@/features/site/mobileAlign";
+
 /**
  * Configuração do BOTÃO do chat flutuante (2026-10-09, pedido do usuário):
  * foto do ícone, título em negrito + texto DENTRO do botão (pílula, desde
@@ -38,6 +40,12 @@ export type ChatConfig = {
   online: boolean;
   showBalloon: boolean;
   offlineText: string;
+  /**
+   * CELULAR (2026-10-15): "center" põe o botão no meio da parte de baixo da
+   * tela e centraliza o texto dele (padrão); "left" = canto direito, texto à
+   * esquerda, como no desktop.
+   */
+  mobileTextAlign: MobileAlign;
 };
 
 /**
@@ -58,5 +66,6 @@ export function chatConfig(section: {
     online: section.extra(CHAT_EXTRA.status, "online") !== "offline",
     showBalloon: section.extra(CHAT_EXTRA.balloon, "mostrar") !== "esconder",
     offlineText: section.extra(CHAT_EXTRA.offline, CHAT_DEFAULTS.offline),
+    mobileTextAlign: mobileAlignOf(section.extra),
   };
 }

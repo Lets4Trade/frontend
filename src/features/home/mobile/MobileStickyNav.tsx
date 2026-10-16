@@ -22,7 +22,13 @@ export function MobileStickyNav({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const target = document.getElementById("home-mobile-tabs");
-    if (!target) return;
+    // Fora da home (2026-10-15) não há fileira original para substituir: a
+    // flutuante aparece direto. Num quadro de animação, e não na hora, para
+    // a entrada animar (e não ser um setState síncrono dentro do efeito).
+    if (!target) {
+      const frame = requestAnimationFrame(() => setVisible(true));
+      return () => cancelAnimationFrame(frame);
+    }
     const observer = new IntersectionObserver(
       ([entry]) => {
         // Só aparece depois que a fileira original passou PARA CIMA da tela —

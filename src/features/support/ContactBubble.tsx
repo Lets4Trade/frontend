@@ -112,6 +112,7 @@ export function ContactBubble({ whatsappHref, config }: { whatsappHref?: string;
   const statusLabel = config.online ? "Online agora" : "Offline no momento";
   // Título e texto do painel DENTRO do botão (fechado). Desligado no painel = só a foto.
   const withText = config.showBalloon && !open;
+  const centerOnMobile = config.mobileTextAlign === "center";
 
   return (
     <>
@@ -212,7 +213,14 @@ export function ContactBubble({ whatsappHref, config }: { whatsappHref?: string;
             : `Atendimento (${statusLabel})`
         }
         className={cn(
-          "chat-launcher contact-float fixed right-[16px] bottom-[16px] z-40 flex items-center rounded-full border border-white/15 bg-black/60 shadow-[0_10px_30px_rgba(0,0,0,.45)] backdrop-blur-[10.8px] transition-[border-color,transform] duration-[var(--dur-micro,160ms)] hover:scale-[1.03] hover:border-brand-orange/70 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none sm:right-[24px] sm:bottom-[24px]",
+          "chat-launcher contact-float fixed bottom-[16px] z-40 flex items-center rounded-full border border-white/15 bg-black/60 shadow-[0_10px_30px_rgba(0,0,0,.45)] backdrop-blur-[10.8px] transition-[border-color,transform] duration-[var(--dur-micro,160ms)] hover:scale-[1.03] hover:border-brand-orange/70 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none sm:bottom-[24px]",
+          // Celular centralizado (padrão do painel, 2026-10-15): `inset-x-0` +
+          // `mx-auto` + `w-fit` centra sem `translate` — a propriedade
+          // `translate` já é usada por `.contact-float` para subir o botão
+          // acima da barra de navegação de baixo. Do `lg` em diante, canto direito.
+          centerOnMobile
+            ? "inset-x-0 mx-auto w-fit lg:right-[24px] lg:left-auto lg:mx-0"
+            : "right-[16px] sm:right-[24px]",
           withText
             ? cn(
                 "h-[64px] max-w-[min(320px,calc(100vw-32px))] sm:h-[72px]",
@@ -260,7 +268,15 @@ export function ContactBubble({ whatsappHref, config }: { whatsappHref?: string;
         {withText ? (
           // Vãos diferentes dos dois lados do texto (pedido do usuário): colado
           // na foto (10px), mais folga até o pontinho de status (18px).
-          <span className={cn("min-w-0 flex-1 text-left", iconRight ? "mr-[10px] ml-[18px]" : "mr-[18px] ml-[10px]")}>
+          // Celular: centralizado por padrão, escolha do painel (2026-10-15);
+          // no desktop segue à esquerda.
+          <span
+            className={cn(
+              "min-w-0 flex-1",
+              config.mobileTextAlign === "center" ? "text-center lg:text-left" : "text-left",
+              iconRight ? "mr-[10px] ml-[18px]" : "mr-[18px] ml-[10px]",
+            )}
+          >
             <span className="block truncate font-poppins text-[14px] leading-[18px] font-bold text-white">
               {config.title}
             </span>

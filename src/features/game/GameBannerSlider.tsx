@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import Image, { getImageProps } from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import type { GameBanner } from "./types";
@@ -85,8 +85,9 @@ export function GameBannerSlider({
       aria-roledescription="carrossel"
       aria-label="Banners"
       // Celular (2026-10-09): mais baixo e com o canto menor — 490px de altura
-      // ocupavam mais da metade da tela.
-      className="group relative h-[180px] touch-pan-y overflow-hidden rounded-[20px] border border-white/10 bg-[#2f2f2f] sm:h-[280px] lg:h-[490px] lg:rounded-[30px]"
+      // ocupavam mais da metade da tela. Abaixo de 640px a caixa é 2:1
+      // (2026-10-16), a proporção da arte de celular enviada no painel.
+      className="group relative aspect-[2/1] touch-pan-y overflow-hidden rounded-[20px] border border-white/10 bg-[#2f2f2f] sm:aspect-auto sm:h-[280px] lg:h-[490px] lg:rounded-[30px]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
@@ -167,7 +168,49 @@ export function GameBannerSlider({
   );
 }
 
+/** Abaixo disto a caixa é 2:1 e entra a arte do celular, se houver. */
+const MOBILE_MEDIA = "(max-width: 639px)";
+
+/**
+ * Com arte de celular (2026-10-16), `<picture>` em vez de duas `<Image>`
+ * escondidas por CSS: o navegador escolhe a fonte pela tela e baixa SÓ uma.
+ * Duas `<img>` com `priority` baixariam as duas artes em todo acesso.
+ *
+ * Sem `preload` aqui: o `<link rel=preload>` apontaria para uma das duas e
+ * desperdiçaria o download na outra tela. A primeira arte vai com
+ * `fetchPriority="high"` e `loading="eager"`, que valem para a fonte escolhida.
+ */
 function BannerArt({ banner, priority }: { banner: GameBanner; priority: boolean }) {
+  if (banner.mobileImage) {
+    const loading = priority ? ("eager" as const) : undefined;
+    const fetchPriority = priority ? ("high" as const) : undefined;
+    const {
+      props: { srcSet: mobile },
+    } = getImageProps({
+      src: banner.mobileImage.src,
+      alt: "",
+      width: banner.mobileImage.width,
+      height: banner.mobileImage.height,
+      sizes: "100vw",
+    });
+    const { props: desktop } = getImageProps({
+      src: banner.image.src,
+      alt: banner.image.alt ?? "",
+      width: banner.image.width,
+      height: banner.image.height,
+      sizes: "(min-width: 1920px) 1715px, 100vw",
+      loading,
+      fetchPriority,
+    });
+    return (
+      <picture className="block size-full">
+        <source media={MOBILE_MEDIA} srcSet={mobile} />
+        {/* eslint-disable-next-line jsx-a11y/alt-text -- `alt` vem do getImageProps */}
+        <img {...desktop} className="size-full object-cover" />
+      </picture>
+    );
+  }
+
   return (
     <Image
       src={banner.image.src}

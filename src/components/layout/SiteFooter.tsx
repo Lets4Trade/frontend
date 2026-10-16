@@ -9,6 +9,8 @@ import {
 } from "@/features/site/contacts";
 import { withNewsLink } from "@/features/site/footerLinks";
 import { getLayoutContent } from "@/features/site/layoutContent";
+import { mobileAlignOf } from "@/features/site/mobileAlign";
+import { cn } from "@/lib/cn";
 import { GlowBar } from "./GlowBar";
 
 /**
@@ -69,6 +71,9 @@ export async function SiteFooter() {
   const email = parseEmail(company.footnote);
   const copyright = resolveCopyright(company.body, new Date().getFullYear());
   const hasCompany = Boolean(cnpj || phone || email || copyright);
+  // Celular (< lg): rodapé inteiro centralizado por padrão; o admin escolhe em
+  // "Dados da empresa" (2026-10-15). `max-lg:` deixa o desktop como estava.
+  const center = mobileAlignOf(company.extra) === "center";
 
   const columns = LINK_COLUMNS.map((key) => ({
     key,
@@ -78,9 +83,11 @@ export async function SiteFooter() {
   })).filter((column) => column.links.length > 0);
 
   return (
-    <footer className="relative w-full border-t border-white/20 bg-gradient-to-br from-black via-[#020202] to-black">
-      <div className="mx-auto max-w-[1720px] px-4 py-11 sm:px-6 lg:px-[100px]">
-        <div className="flex flex-wrap items-center justify-between gap-8">
+    // `site-footer`: no celular reserva espaço no fim para o botão do chat (e a
+    // barra de atalhos da home) não cobrirem os últimos textos — `globals.css`.
+    <footer className="site-footer relative w-full border-t border-white/20 bg-gradient-to-br from-black via-[#020202] to-black">
+      <div className="mx-auto max-w-[1720px] px-4 py-11 max-lg:pt-9 max-lg:pb-6 sm:px-6 lg:px-[100px]">
+        <div className={cn("flex flex-wrap items-center justify-between gap-8", center && "max-lg:flex-col max-lg:justify-center")}>
           <Image
             data-admin-section="layout:marca"
             // A arte padrão continua no `public/`: ela é a identidade da loja e
@@ -90,17 +97,22 @@ export async function SiteFooter() {
             width={174}
             height={82}
             // Mesma regra do cabeçalho: `cover` só para o arquivo de fábrica.
-            className={`h-[82px] w-[174px] ${brand.imageUrl ? "object-contain" : "object-cover"}`}
+            className={`h-[66px] w-[140px] lg:h-[82px] lg:w-[174px] ${brand.imageUrl ? "object-contain" : "object-cover"}`}
           />
 
           {social.length > 0 ? (
-            <ul className="flex flex-wrap items-center gap-[25px]" data-admin-section="layout:footer-redes">
+            <ul
+              // Celular (2026-10-15): caixas de 44 com vão de 10 — as seis redes
+              // cabem numa fileira só em 358px, em vez de quebrar 4 + 2.
+              className={cn("flex flex-wrap items-center gap-[10px] lg:gap-[25px]", center && "max-lg:justify-center")}
+              data-admin-section="layout:footer-redes"
+            >
               {social.map((network) => (
                 <li key={network.id}>
                   <Link
                     href={network.href}
                     aria-label={network.label}
-                    className="flex size-[60px] items-center justify-center rounded-[12px] border border-white/10 bg-gradient-to-b from-white/[0.04] to-white/[0.01] transition-colors hover:border-white/30"
+                    className="flex size-[44px] items-center justify-center rounded-[12px] border border-white/10 bg-gradient-to-b from-white/[0.04] to-white/[0.01] transition-colors hover:border-white/30 lg:size-[60px]"
                   >
                     {network.image ? (
                       <Image
@@ -136,20 +148,27 @@ export async function SiteFooter() {
 
         {columns.length > 0 ? (
           <>
-            <hr className="mt-10 border-0 border-t border-brand-hairline" />
+            <hr className="mt-8 border-0 border-t border-brand-hairline lg:mt-10" />
 
-            <div className="mt-11 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3 lg:gap-[122px] lg:[grid-template-columns:repeat(3,174px)]">
+            {/* Celular (2026-10-15): DUAS colunas em vez de uma lista comprida;
+                a coluna que sobra sozinha (3ª) ocupa a linha inteira. */}
+            <div
+              className={cn(
+                "mt-8 grid grid-cols-2 gap-x-6 gap-y-8 max-lg:[&>:last-child:nth-child(odd)]:col-span-2 lg:mt-11 lg:grid-cols-3 lg:gap-[122px] lg:[grid-template-columns:repeat(3,174px)]",
+                center && "max-lg:text-center",
+              )}
+            >
               {columns.map((column) => (
                 <nav key={column.key} aria-label={column.title} data-admin-section={`layout:${column.key}`}>
-                  <h2 className="font-poppins text-[16px] font-bold tracking-[0.16px] text-white">
+                  <h2 className="font-poppins text-[14px] font-bold tracking-[0.16px] text-white lg:text-[16px]">
                     {column.title}
                   </h2>
-                  <ul className="mt-6 flex flex-col gap-[27px]">
+                  <ul className="mt-4 flex flex-col gap-[14px] lg:mt-6 lg:gap-[27px]">
                     {column.links.map((link) => (
                       <li key={link.id}>
                         <Link
                           href={link.href}
-                          className="font-poppins text-[15px] font-medium tracking-[0.15px] text-brand-fg-muted transition-colors hover:text-white"
+                          className="font-poppins text-[14px] font-medium tracking-[0.15px] text-brand-fg-muted transition-colors hover:text-white lg:text-[15px]"
                         >
                           {link.label}
                         </Link>
@@ -164,14 +183,17 @@ export async function SiteFooter() {
 
         {about ? (
           <>
-            <hr className="mt-11 border-0 border-t border-brand-hairline" />
+            <hr className="mt-8 border-0 border-t border-brand-hairline lg:mt-11" />
 
             {/* Parágrafo em Helvetica Neue Medium no design — não Poppins.
                 `whitespace-pre-line` porque o campo do painel é um `textarea`:
                 quem escreve em dois parágrafos espera ver dois parágrafos. */}
             <p
               data-admin-section="layout:footer-sobre"
-              className="mt-10 max-w-[772px] font-helvetica text-[16px] font-medium tracking-[0.16px] whitespace-pre-line text-brand-fg-subtle"
+              className={cn(
+                "mt-8 max-w-[772px] font-helvetica text-[14px] font-medium tracking-[0.16px] whitespace-pre-line text-brand-fg-subtle lg:mt-10 lg:text-[16px]",
+                center && "max-lg:mx-auto max-lg:text-center",
+              )}
             >
               {about}
             </p>
@@ -180,15 +202,18 @@ export async function SiteFooter() {
 
         {hasCompany ? (
           <>
-            <hr className="mt-11 border-0 border-t border-brand-hairline" />
+            <hr className="mt-8 border-0 border-t border-brand-hairline lg:mt-11" />
 
             <div
               data-admin-section="layout:footer-empresa"
-              className="mt-8 flex flex-col gap-4 font-poppins text-[14px] tracking-[0.14px] text-brand-fg-subtle lg:flex-row lg:items-center lg:justify-between"
+              className={cn(
+                "mt-6 flex flex-col gap-3 font-poppins text-[13px] tracking-[0.14px] text-brand-fg-subtle lg:mt-8 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:text-[14px]",
+                center && "max-lg:items-center max-lg:text-center",
+              )}
             >
               {copyright ? <p>{copyright}</p> : <span />}
 
-              <ul className="flex flex-wrap items-center gap-x-[25px] gap-y-2">
+              <ul className={cn("flex flex-wrap items-center gap-x-[25px] gap-y-2", center && "max-lg:justify-center")}>
                 {cnpj ? <li>CNPJ {cnpj}</li> : null}
                 {phone ? (
                   <li>

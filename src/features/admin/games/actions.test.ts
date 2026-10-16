@@ -1,14 +1,14 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getSessionRole } from "@/features/auth/session";
-import { apiDelete, apiPostFormData } from "@/lib/serverApi";
+import { apiDelete, apiPostFormData, apiPut } from "@/lib/serverApi";
 import { revalidatePath, updateTag } from "next/cache";
 import { GAMES_MENU_TAG } from "@/features/game/menuGames";
 import { apiFail, apiOk, bigImage, formEntries, smallImage } from "@/test/actionFixtures";
-import { createGameAction, deactivateGameAction } from "./actions";
+import { createGameAction, deactivateGameAction, reorderGamesMenuAction } from "./actions";
 
 vi.mock("@/features/auth/session", () => ({ getSessionRole: vi.fn() }));
-vi.mock("@/lib/serverApi", () => ({ apiPostFormData: vi.fn(), apiDelete: vi.fn() }));
+vi.mock("@/lib/serverApi", () => ({ apiPostFormData: vi.fn(), apiDelete: vi.fn(), apiPut: vi.fn() }));
 vi.mock("next/cache", () => ({ updateTag: vi.fn(), revalidatePath: vi.fn() }));
 
 const role = vi.mocked(getSessionRole);
@@ -161,6 +161,35 @@ describe("deactivateGameAction", () => {
     del.mockResolvedValue(apiFail(404));
     const result = await deactivateGameAction("g1");
     expect(result).toEqual({ ok: false, message: "Este game já não existe." });
+    expect(updateTag).not.toHaveBeenCalled();
+  });
+});
+
+describe("reorderGamesMenuAction (2026-10-15)", () => {
+  const put = vi.mocked(apiPut);
+
+  it("manda a lista inteira ao backend e derruba o cache do menu", async () => {
+    put.mockResolvedValue(apiOk({ ids: ["b", "a"] }));
+    expect(await reorderGamesMenuAction(["b", "a"])).toEqual({ ok: true });
+    expect(put).toHaveBeenCalledWith("/admin/games/menu-order", { ids: ["b", "a"] });
+    expect(updateTag).toHaveBeenCalledWith(GAMES_MENU_TAG);
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/jogos");
+  });
+
+  it("não-ADMIN e lista inválida não chamam a API", async () => {
+    role.mockResolvedValue("EDITOR");
+    expect((await reorderGamesMenuAction(["a"])).ok).toBe(false);
+    role.mockResolvedValue("ADMIN");
+    for (const ids of [[], ["../x"], [""], [1 as unknown as string]]) {
+      expect((await reorderGamesMenuAction(ids)).ok).toBe(false);
+    }
+    expect(put).not.toHaveBeenCalled();
+  });
+
+  it("400 do backend (lista velha) pede para recarregar, sem derrubar o cache", async () => {
+    put.mockResolvedValue(apiFail(400));
+    const result = await reorderGamesMenuAction(["a", "b"]);
+    expect(result).toEqual({ ok: false, message: expect.stringContaining("Recarregue") });
     expect(updateTag).not.toHaveBeenCalled();
   });
 });

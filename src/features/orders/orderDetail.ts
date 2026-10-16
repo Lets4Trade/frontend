@@ -5,26 +5,27 @@ import {
   type ChatMessage,
   type ConversationSummary,
 } from "@/features/support/types";
-import type { Order } from "./types";
-import { toOrder, type ApiOrder } from "./ordersService";
+import type { Purchase } from "./types";
+import { toPurchase, type ApiPurchase } from "./ordersService";
 
 /**
- * Um pedido, pela referência que o cliente vê.
+ * A COMPRA que contém o pedido desta referência (2026-10-15): todos os itens
+ * do mesmo carrinho, cada um com a própria situação e trilha.
  *
  * ── Contrato (../backend/src/app/orders) ────────────────────────────────────
- *   GET /orders/:reference → { data: <pedido> }
- *   404                    → não é dele, ou não existe
+ *   GET /orders/:reference/purchase → { data: <compra> }
+ *   404                             → não é dele, ou não existe
  *
  * O backend casa referência E dono na mesma consulta, então 404 cobre os dois
  * casos de propósito: a diferença entre "não existe" e "não é seu" revelaria a
  * existência de pedidos alheios.
  */
-export type OrderDetailResult =
-  | { ok: true; order: Order; reference: string }
+export type PurchaseDetailResult =
+  | { ok: true; purchase: Purchase }
   | { ok: false; reason: "unauthenticated" | "notfound" | "error" };
 
-export async function getOrderDetail(reference: string): Promise<OrderDetailResult> {
-  const result = await apiGet<ApiOrder>(`/orders/${encodeURIComponent(reference)}`);
+export async function getPurchaseDetail(reference: string): Promise<PurchaseDetailResult> {
+  const result = await apiGet<ApiPurchase>(`/orders/${encodeURIComponent(reference)}/purchase`);
 
   if (!result.ok) {
     return {
@@ -38,11 +39,14 @@ export async function getOrderDetail(reference: string): Promise<OrderDetailResu
     };
   }
 
-  return { ok: true, order: toOrder(result.data), reference: result.data.reference };
+  const purchase = toPurchase(result.data);
+  return purchase ? { ok: true, purchase } : { ok: false, reason: "error" };
 }
 
 /**
- * A conversa de atendimento MAIS RECENTE do pedido, com o histórico.
+ * A conversa de atendimento MAIS RECENTE da COMPRA, com o histórico — o
+ * backend procura entre todos os itens do mesmo pagamento (uma conversa por
+ * compra, 2026-10-15).
  *
  *   GET /support/orders/:reference → { data: { conversation?, messages? } }
  *

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import { quote, type Selection } from "@/features/pricing/quote";
+import { MAX_SERVICE_TOTAL_CENTS, quote, type Selection } from "@/features/pricing/quote";
 import { cn } from "@/lib/cn";
 import {
   PRICING_MODES,
@@ -473,7 +473,8 @@ function CentsInput({
       placeholder="R$ 0,00"
       onChange={(event) => {
         const digits = event.target.value.replace(/\D/g, "").slice(0, 12);
-        onChange(digits === "" ? 0 : Math.min(Number(digits), 10_000_000));
+        // Teto técnico (R$ 20 mi), o mesmo do backend — era R$ 100 mil.
+        onChange(digits === "" ? 0 : Math.min(Number(digits), MAX_SERVICE_TOTAL_CENTS));
       }}
       className={MINI_INPUT}
     />

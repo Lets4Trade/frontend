@@ -3,8 +3,9 @@ import { redirect } from "next/navigation";
 import { AccountShell } from "@/features/account/AccountShell";
 import { getAccountProfile } from "@/features/account/profile";
 import { Pagination } from "@/components/ui/Pagination";
-import { OrderCard } from "@/features/orders/OrderCard";
-import { getMyOrders } from "@/features/orders/ordersService";
+import { OrdersLiveRefresh } from "@/features/orders/OrdersLiveRefresh";
+import { PurchaseCard } from "@/features/orders/PurchaseCard";
+import { getMyPurchases } from "@/features/orders/ordersService";
 
 export const metadata: Metadata = {
   title: "Meus Pedidos | Lets4Trade",
@@ -19,8 +20,10 @@ export const metadata: Metadata = {
  * A moldura (header logado, card de perfil e painel da direita) vive em
  * `AccountShell`, compartilhada com a aba de edição.
  *
- * DADOS REAIS, lidos no servidor: perfil de `GET /me` e pedidos de
- * `GET /orders`, os dois com o cookie de sessão reencaminhado. Nada de `fetch`
+ * DADOS REAIS, lidos no servidor: perfil de `GET /me` e compras de
+ * `GET /orders/purchases` (itens do mesmo carrinho juntos, 2026-10-15), os
+ * dois com o cookie de sessão reencaminhado. Mudou a situação de um pedido
+ * (pagamento, painel), a tela relê sozinha — `OrdersLiveRefresh`. Nada de `fetch`
  * no cliente — o token é `httpOnly` e o JS da página não o alcança.
  *
  * A rota é GUARDADA: sem sessão válida vai para o login. Isso deixou de ser
@@ -33,27 +36,28 @@ export default async function MeusPedidosPage({
 }) {
   const [profileResult, ordersResult] = await Promise.all([
     getAccountProfile(),
-    getMyOrders(parsePage(await searchParams)),
+    getMyPurchases(parsePage(await searchParams)),
   ]);
 
   if (!profileResult.ok) redirect("/login?redirect=/conta/pedidos");
 
   return (
     <AccountShell profile={profileResult.profile} activeTab="pedidos" title="Meus Pedidos">
+      <OrdersLiveRefresh />
       {/* A caixa de 724px do arquivo agora empilha a lista e a paginação. A
           lista fica com `flex-1`, então enquanto houver UMA página só ela ocupa
           os 724px inteiros e a tela é idêntica ao desenho — a paginação não
           renderiza nada nesse caso. */}
       <div className="absolute top-[124px] left-[50px] flex h-[724px] w-[1039px] flex-col">
-        {/* Lista rolável: três cartões de 239px com vão de 25 não cabem na
+        {/* Lista rolável: os cartões (altura varia com os itens da compra) não cabem na
             altura disponível, então a barra do design aparece de verdade — não
             é decoração. `min-h-0` é o que permite um filho de flex encolher
             abaixo do conteúdo; sem ele a lista empurraria a paginação para fora
             da caixa em vez de rolar. */}
         <div className="scrollbar-orange flex min-h-0 flex-1 flex-col gap-[25px] overflow-y-auto">
-          {ordersResult.ok && ordersResult.orders.length > 0 ? (
-            ordersResult.orders.map((order) => (
-              <OrderCard key={order.id} order={order} />
+          {ordersResult.ok && ordersResult.purchases.length > 0 ? (
+            ordersResult.purchases.map((purchase) => (
+              <PurchaseCard key={purchase.id} purchase={purchase} />
             ))
           ) : (
             <EmptyState failed={!ordersResult.ok} />

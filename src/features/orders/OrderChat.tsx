@@ -23,11 +23,14 @@ import { useConversation } from "@/features/support/useConversation";
  */
 export function OrderChat({
   reference,
+  subject,
   initialConversationId,
   initialMessages,
   userAvatar,
 }: {
   reference: string;
+  /** Assunto da conversa aberta aqui. Padrão: "Pedido <referência>". */
+  subject?: string;
   initialConversationId: string | null;
   initialMessages: ChatMessage[];
   userAvatar?: string;
@@ -62,7 +65,7 @@ export function OrderChat({
     try {
       if (!conversationId) {
         const created = await createConversation({
-          subject: `Pedido ${reference}`,
+          subject: subject ?? `Pedido ${reference}`,
           body: text,
           orderReference: reference,
         });

@@ -2388,3 +2388,23 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
     transform: translate3d(0, -10px, 0) scale(0.97);
   }
 }
+
+/* Rodapé (2026-10-15): o botão do chat (fixo, embaixo) cobria os últimos
+   textos. Reserva a altura dele — no desktop 72 + 24 de margem; no celular
+   64 + 16 + folga e, com a barra de atalhos da home visível, a dela também
+   (o botão sobe 88px). */
+.site-footer {
+  padding-bottom: 96px;
+}
+@media (max-width: 1023.98px) {
+  .site-footer {
+    padding-bottom: 104px;
+  }
+  /* Com a fileira de atalhos (agora em toda a loja), a página inteira ganha
+     a altura dela no fim — o último conteúdo de qualquer tela (rodapé, chat
+     do pedido) não fica por baixo. Somado aos 104 do rodapé, cobre também o
+     botão do chat, que sobe 88px. */
+  html[data-bottom-nav] body {
+    padding-bottom: 96px;
+  }
+}

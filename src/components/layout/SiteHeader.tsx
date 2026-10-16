@@ -147,13 +147,22 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
           data-admin-section="layout:header-selo"
           className="pointer-events-none absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center leading-none md:hidden xl:flex"
         >
-          <div className="flex items-center gap-2">
-            <span className="bg-gradient-to-b from-brand-orange to-brand-orange-deep bg-clip-text font-korataki text-[15px] font-bold tracking-[0.2px] text-transparent md:text-[20px]">
+          {/* Celular menor (2026-10-15, pedido do usuário): o selo disputava a
+              linha com a logo, o carrinho e o menu. */}
+          <div className="flex items-center gap-[5px] md:gap-2">
+            <span className="bg-gradient-to-b from-brand-orange to-brand-orange-deep bg-clip-text font-korataki text-[12px] font-bold tracking-[0.2px] text-transparent md:text-[20px]">
               <CountUp value={badge.title} />
             </span>
-            <Image src="/icons/youtube-color.svg" alt="" width={19} height={19} aria-hidden />
+            <Image
+              src="/icons/youtube-color.svg"
+              alt=""
+              width={19}
+              height={19}
+              aria-hidden
+              className="size-[14px] md:size-[19px]"
+            />
           </div>
-          <span className="mt-1 font-korataki text-[10px] tracking-[0.13px] text-white md:text-[13px]">
+          <span className="mt-[3px] font-korataki text-[8px] tracking-[0.13px] text-white md:mt-1 md:text-[13px]">
             {badge.subtitle}
           </span>
         </div>

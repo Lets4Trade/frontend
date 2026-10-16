@@ -25,7 +25,7 @@ import {
   type CreateProductResult,
 } from "./actions";
 import { ACTION_FAILED_UPLOAD_MESSAGE, runAction } from "@/lib/safeAction";
-import { MAX_HIGHLIGHT_CHARS, MAX_HIGHLIGHTS, createProductSchema, parseHighlights } from "./schema";
+import { MAX_HIGHLIGHT_CHARS, MAX_HIGHLIGHTS, MAX_PRICE_CENTS, createProductSchema, parseHighlights } from "./schema";
 import { productImage, type AdminProduct } from "./catalog";
 import { formatPrice } from "@/features/game/content";
 import { PackageCard } from "@/features/game/PackageCard";
@@ -745,6 +745,9 @@ export function ProductForm({
                 name="priceCents"
                 placeholder="R$ 0,00"
                 defaultCents={product?.priceCents}
+                // Teto técnico (R$ 20 mi, 2026-10-15). Sem isto o campo usava o
+                // padrão do MoneyField (R$ 100 mil) e cortava o valor digitado.
+                maxCents={MAX_PRICE_CENTS}
                 onCentsChange={onPriceChange}
                 error={fieldErrors.priceCents}
               />

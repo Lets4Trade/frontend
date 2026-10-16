@@ -8,6 +8,7 @@ import {
   ReferencesSection,
 } from "@/features/game/GameSections";
 import { GameBannerSlider } from "@/features/game/GameBannerSlider";
+import { MOBILE_BANNER } from "@/features/game/types";
 import { ProductCardShell } from "@/features/game/ProductCardShell";
 import { buttonVariants } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
@@ -276,6 +277,9 @@ function renderBlock(key: GameSectionKey, ctx: BlockContext) {
           banners={draft.banners.map((item) => ({
             id: item.id,
             image: { src: item.imageUrl, alt: "", width: 1715, height: 490 },
+            mobileImage: item.mobileImageUrl
+              ? { src: item.mobileImageUrl, alt: "", ...MOBILE_BANNER }
+              : undefined,
           }))}
         />
       ) : (

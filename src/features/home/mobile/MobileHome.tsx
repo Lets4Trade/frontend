@@ -4,23 +4,21 @@ import { buttonVariants } from "@/components/ui/Button";
 import { CountUp } from "@/components/ui/CountUp";
 import type { SectionItemView, SectionView } from "@/features/site/content";
 import { MAX_HOME_STATS } from "@/features/site/sections";
+import { mobileAlignOf } from "@/features/site/mobileAlign";
 import { cn } from "@/lib/cn";
 import { RichText, alignClass, richToPlain, splitAlign } from "@/features/site/richText";
 import { safeLinkHref } from "@/features/game/storefrontTabs";
 import { blogCardTexts, type BlogCardTexts } from "../blogCard";
 import type { HomeBlock } from "../homeBlocks";
-import { getMenuGames, type MenuGame } from "@/features/game/menuGames";
-import { NAV_ITEMS } from "../HomeNav";
+import { getMenuGames } from "@/features/game/menuGames";
 import { reveal, revealDelay } from "../reveal";
 import { Stars } from "../ReviewsSection";
 import { TEAM_DEFAULT_BODY } from "../TeamSection";
 import { VideoPlayer } from "../VideoPlayer";
 import { videoTexts } from "../VideoSection";
 import { youtubeId, youtubeWatchUrl } from "../youtube";
-import { MobileGamesMenu } from "./MobileGamesMenu";
 import { MobileHeroBanner } from "./MobileHeroBanner";
-import { NavTileFace } from "./NavTileFace";
-import { MobileStickyNav } from "./MobileStickyNav";
+import { NavTiles } from "./NavTiles";
 
 /**
  * A home no CELULAR (Figma 2667:1864, frame de 402px).
@@ -146,52 +144,10 @@ async function MobileNav({ stats }: { stats: SectionItemView[] }) {
 
       <Divider />
 
-      {/* A mesma fileira, flutuando no rodapé da tela quando a de cima sai de
-          vista. Ali o dropdown de jogos abre PARA CIMA. */}
-      <MobileStickyNav>
-        <NavTiles compact games={games} />
-      </MobileStickyNav>
+      {/* A versão FLUTUANTE desta fileira mora no layout raiz desde 2026-10-15
+          (`GlobalMobileNav`): aparece em todas as telas da loja, e aqui na
+          home só depois que esta sai de vista. */}
     </section>
-  );
-}
-
-/**
- * Os quatro atalhos da home (mesma lista do desktop, `NAV_ITEMS`).
- *
- * O GAMES não é link: abre o dropdown com os jogos (`MobileGamesMenu`) — para
- * cima na versão compacta (rodapé flutuante), para baixo na do corpo.
- */
-export function NavTiles({ compact = false, games }: { compact?: boolean; games: MenuGame[] }) {
-  return (
-    <ul className="grid grid-cols-4">
-      {NAV_ITEMS.map((item) => (
-        <li key={item.label} className="flex justify-center">
-          {item.label === "GAMES" ? (
-            <MobileGamesMenu
-              label={item.label}
-              icon={item.icon}
-              games={games}
-              compact={compact}
-              side={compact ? "top" : "bottom"}
-            />
-          ) : (
-            <Link
-              href={item.href}
-              aria-current={item.active ? "page" : undefined}
-              className="nav-item flex flex-col items-center"
-            >
-              <NavTileFace
-                label={item.label}
-                icon={item.icon}
-                active={item.active}
-                compact={compact}
-                chevron={item.dropdown}
-              />
-            </Link>
-          )}
-        </li>
-      ))}
-    </ul>
   );
 }
 
@@ -202,6 +158,9 @@ export function MobileVideo({ section }: { section: SectionView }) {
   const videoId = youtubeId(section.footnote);
   // Mesmo critério do desktop: link próprio do botão, senão o do player.
   const buttonVideoId = youtubeId(section.subtitle) ?? videoId;
+  // Título e parágrafos: centralizados por padrão, escolha do painel
+  // (2026-10-15). A assinatura (foto + nome) segue como linha própria.
+  const center = mobileAlignOf(section.extra) === "center";
 
   return (
     <section aria-labelledby="video-title-mobile">
@@ -216,15 +175,23 @@ export function MobileVideo({ section }: { section: SectionView }) {
 
       <h2 {...reveal("mask")}
         id="video-title-mobile"
-        className="mt-[24px] font-poppins text-[26px] leading-[1.05] font-semibold whitespace-pre-line text-white"
+        className={cn(
+          "mt-[24px] font-poppins text-[26px] leading-[1.05] font-semibold whitespace-pre-line text-white",
+          center && "text-center",
+        )}
       >
         <RichText value={section.title} />
       </h2>
 
-      <p className="mt-[12px] font-helvetica text-[15px] leading-[1.25] whitespace-pre-line text-brand-placeholder">
+      <p
+        className={cn(
+          "mt-[12px] font-helvetica text-[15px] leading-[1.25] whitespace-pre-line text-brand-placeholder",
+          center && "text-center",
+        )}
+      >
         <RichText value={t.saudacao} /> <RichText value={t.apresentacao} />
       </p>
-      <p className="mt-[16px] font-helvetica text-[15px] leading-[1.25] text-brand-placeholder">
+      <p className={cn("mt-[16px] font-helvetica text-[15px] leading-[1.25] text-brand-placeholder", center && "text-center")}>
         <RichText value={t.chamada} />
       </p>
 
@@ -371,23 +338,29 @@ function MobileTeam({ section, items }: { section: SectionView; items: SectionIt
     ...items.slice(MOBILE_TEAM_ORDER.length),
   ];
   const [featured, ...rest] = ordered;
+  // Centralizado por padrão, escolha do painel (2026-10-15).
+  const center = mobileAlignOf(section.extra) === "center";
 
   return (
-    <section aria-labelledby="team-title-mobile" className="relative">
+    <section aria-labelledby="team-title-mobile" className={cn("relative", center && "text-center")}>
       <Divider />
 
-      <div className="relative mt-[40px]">
-        <Image
-          src="/images/home/deco-equipe.webp"
-          alt=""
-          width={50}
-          height={50}
-          aria-hidden
-          className="pointer-events-none absolute -top-[20px] -left-[14px] size-[50px] object-cover"
-        />
-        <h2 {...reveal("mask")} id="team-title-mobile" className="relative font-poppins text-[26px] leading-none font-semibold text-white">
-          <RichText value={section.title || "EQUIPE LETS 4 TRADE"} />
-        </h2>
+      {/* O chapéu acompanha o TÍTULO: a caixa é do tamanho do texto (inline),
+          então centralizar o título leva o chapéu junto, colado no "E". */}
+      <div className={cn("mt-[40px]", center && "flex justify-center")}>
+        <div className="relative inline-block">
+          <Image
+            src="/images/home/deco-equipe.webp"
+            alt=""
+            width={50}
+            height={50}
+            aria-hidden
+            className="pointer-events-none absolute -top-[20px] -left-[14px] size-[50px] object-cover"
+          />
+          <h2 {...reveal("mask")} id="team-title-mobile" className="relative font-poppins text-[26px] leading-none font-semibold text-white">
+            <RichText value={section.title || "EQUIPE LETS 4 TRADE"} />
+          </h2>
+        </div>
       </div>
       <p className="mt-[12px] font-helvetica text-[15px] font-bold text-white">
         <RichText value={section.subtitle || "Especialistas no que há de melhor no mercado relacionado a ARPGs"} />

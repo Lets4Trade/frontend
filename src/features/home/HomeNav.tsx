@@ -6,6 +6,7 @@ import { CountUp } from "@/components/ui/CountUp";
 import { getMenuGames } from "@/features/game/menuGames";
 import { HomeGamesMenu } from "./HomeGamesMenu";
 import { HomeNavTileFace } from "./HomeNavTileFace";
+import { NAV_ITEMS } from "./navItems";
 import { reveal, revealDelay } from "./reveal";
 
 /**
@@ -28,12 +29,7 @@ import { reveal, revealDelay } from "./reveal";
  * usuário). FIDELIDADE e VENDA PRA NÓS tinham a seta do design sem submenu
  * nenhum; saíram em 2026-10-06 (pedido do usuário): são links diretos.
  */
-export const NAV_ITEMS = [
-  { label: "HOME", icon: "/icons/home/nav-home.svg", href: "/", left: 679, active: true, dropdown: false },
-  { label: "GAMES", icon: "/icons/home/nav-games.svg", href: "/games", left: 784, active: false, dropdown: true },
-  { label: "FIDELIDADE", icon: "/icons/home/nav-fidelidade.svg", href: "/fidelidade", left: 905, active: false, dropdown: false },
-  { label: "VENDA PRA NÓS", icon: "/icons/home/nav-venda.svg", href: "/venda", left: 1047, active: false, dropdown: false },
-];
+export { NAV_ITEMS } from "./navItems";
 
 /**
  * O CENTRO de cada contador.

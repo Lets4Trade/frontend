@@ -18,13 +18,15 @@ describe("chatConfig", () => {
       online: true,
       showBalloon: true,
       offlineText: CHAT_DEFAULTS.offline,
+      // Celular: centralizado por padrão (2026-10-15).
+      mobileTextAlign: "center",
     });
   });
 
   it("usa o que o admin escolheu", () => {
     const config = chatConfig(
       section(
-        { lado: "esquerda", status: "offline", balao: "esconder", offline: "Volte às 9h" },
+        { lado: "esquerda", status: "offline", balao: "esconder", offline: "Volte às 9h", "alinhamento-celular": "esquerda" },
         { title: "Oi!", subtitle: "Bora conversar", imageUrl: "https://cdn/x.webp" },
       ),
     );
@@ -36,6 +38,7 @@ describe("chatConfig", () => {
       online: false,
       showBalloon: false,
       offlineText: "Volte às 9h",
+      mobileTextAlign: "left",
     });
   });
 

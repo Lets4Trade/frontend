@@ -4,6 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("next/image", () => ({
   // eslint-disable-next-line @next/next/no-img-element -- stub de teste
   default: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
+  // Basta o formato que o `<picture>` consome: `srcSet` e os atributos do `<img>`.
+  getImageProps: ({ src, ...rest }: { src: string } & Record<string, unknown>) => ({
+    props: { src, srcSet: `${src} 1x`, alt: rest.alt, loading: rest.loading, fetchPriority: rest.fetchPriority },
+  }),
 }));
 
 import { GameBannerSlider } from "./GameBannerSlider";
@@ -86,5 +90,24 @@ describe("GameBannerSlider", () => {
     const first = screen.getAllByRole("group", { hidden: true })[0];
     expect(first.hasAttribute("inert")).toBe(true);
     expect(first.querySelector("a")?.getAttribute("href")).toBe("/promo");
+  });
+
+  it("com arte de celular: <picture> com a fonte do celular e UMA <img> só (a do computador)", () => {
+    const withMobile: GameBanner = {
+      ...banner("a"),
+      mobileImage: { src: "/a-mobile.webp", alt: "", width: 800, height: 400 },
+    };
+    const { container } = render(<GameBannerSlider banners={[withMobile, banner("b")]} />);
+
+    const picture = container.querySelector("picture");
+    const source = picture?.querySelector("source");
+    expect(source?.getAttribute("media")).toBe("(max-width: 639px)");
+    expect(source?.getAttribute("srcset")).toBe("/a-mobile.webp 1x");
+    expect(picture?.querySelectorAll("img")).toHaveLength(1);
+    expect(picture?.querySelector("img")?.getAttribute("src")).toBe("/a.webp");
+    // Primeira arte: prioridade alta pela fonte escolhida, sem preload de uma só.
+    expect(picture?.querySelector("img")?.getAttribute("fetchpriority")).toBe("high");
+    // Banner sem arte de celular continua na <Image> de sempre.
+    expect(container.querySelectorAll("picture")).toHaveLength(1);
   });
 });
