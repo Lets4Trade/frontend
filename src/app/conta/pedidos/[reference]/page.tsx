@@ -11,7 +11,8 @@ import { getAccountProfile } from "@/features/account/profile";
 import { getOrderConversation, getPurchaseDetail } from "@/features/orders/orderDetail";
 import { OrdersLiveRefresh } from "@/features/orders/OrdersLiveRefresh";
 import { OrderStatusTracker } from "@/features/orders/OrderStatusTracker";
-import { ORDER_STATUS_STYLES, type Order } from "@/features/orders/types";
+import { statusPill, trackNote } from "@/features/orders/PurchaseCard";
+import type { OrderItem } from "@/features/orders/types";
 import {
   OrderLineBlock,
   ServiceDetailsBlock,
@@ -27,7 +28,10 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-type PageProps = { params: Promise<{ reference: string }> };
+type PageProps = {
+  params: Promise<{ reference: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
 /**
  * Acompanhamento do pedido — Figma nó 2569:1682 ("VENDAS E PEDIDOS").
@@ -39,18 +43,20 @@ type PageProps = { params: Promise<{ reference: string }> };
  * no lugar do formulário de pagamento, e uma conversa sobre a compra à
  * esquerda. Se o fluxo pretendido for outro, o que muda é de onde se linka.
  *
- * O que é REAL: a COMPRA inteira que contém o pedido da URL (2026-10-15) —
- * todos os itens do mesmo carrinho, cada um com a própria situação e trilha,
- * e o total da compra —, de `GET /orders/:reference/purchase`. A trilha anda
- * sozinha quando a situação muda (`OrdersLiveRefresh`). A conversa é UMA por
- * compra: qualquer item da compra abre a mesma.
+ * O que é REAL: o PEDIDO da URL (desde 2026-10-16, a compra inteira: vários
+ * itens, uma situação, uma trilha e o total), de `GET /orders/:reference/purchase`.
+ * A URL pode ter o código de um item antigo (quando cada item era um pedido) —
+ * o backend acha o pedido por ele. A trilha anda sozinha quando a situação
+ * muda (`OrdersLiveRefresh`). Uma conversa por pedido.
  *
  * A CONVERSA é real e em tempo real por SOCKET (ver `OrderChat`): o histórico
  * vem pronto daqui, do servidor, e o socket cuida do que acontece dali em
  * diante. O que ainda não existe é o comprovante.
  */
-export default async function PedidoPage({ params }: PageProps) {
-  const { reference } = await params;
+export default async function PedidoPage({ params, searchParams }: PageProps) {
+  const [{ reference }, query] = await Promise.all([params, searchParams]);
+  // `?pago=1`: veio direto do pagamento aprovado (2026-10-16) — aviso no chat.
+  const justPaid = query.pago === "1";
 
   const [result, chat, profile] = await Promise.all([
     getPurchaseDetail(reference),
@@ -69,7 +75,8 @@ export default async function PedidoPage({ params }: PageProps) {
 
   const purchase = result.ok ? result.purchase : null;
   const single = purchase?.items.length === 1;
-  const only = single ? purchase.items[0] : null;
+  const pill = purchase ? statusPill(purchase) : null;
+  const note = purchase ? trackNote(purchase) : null;
 
   return (
     <CheckoutShell>
@@ -81,12 +88,13 @@ export default async function PedidoPage({ params }: PageProps) {
             reference={purchase?.reference ?? reference}
             subject={
               purchase && !single
-                ? `Compra ${purchase.reference} (${purchase.items.length} itens)`
+                ? `Pedido ${purchase.reference} (${purchase.items.length} itens)`
                 : undefined
             }
             initialConversationId={chat.conversation?.id ?? null}
             initialMessages={chat.messages}
             userAvatar={profile.ok ? profile.profile.avatar : undefined}
+            justPaid={justPaid}
           />
         </div>
 
@@ -96,33 +104,37 @@ export default async function PedidoPage({ params }: PageProps) {
 
           {purchase ? (
             <>
-              {/* Compra de UM item: a trilha grande no topo, como no arquivo.
-                  Com vários, cada item leva a sua (compacta) logo abaixo dele. */}
-              {only ? (
-                <>
-                  <div className="mt-[49px] hidden justify-center lg:flex">
-                    <OrderStatusTracker track={only.track} dates={only.stepDates} size="page" />
-                  </div>
-                  {/* A trilha de 575px não cabe no celular: versão compacta. */}
-                  <div className="mt-[32px] flex justify-center lg:hidden">
-                    <OrderStatusTracker track={only.track} dates={only.stepDates} size="compact" />
-                  </div>
-                </>
-              ) : null}
+              {/* UMA trilha para o pedido inteiro (2026-10-16), grande no
+                  topo como no arquivo; com o status personalizado no lugar do
+                  nome da etapa atual, quando houver. */}
+              <div className="mt-[49px] hidden justify-center lg:flex">
+                <OrderStatusTracker track={purchase.track} dates={purchase.stepDates} note={note} size="page" />
+              </div>
+              {/* A trilha de 575px não cabe no celular: versão compacta. */}
+              <div className="mt-[32px] flex justify-center lg:hidden">
+                <OrderStatusTracker track={purchase.track} dates={purchase.stepDates} note={note} size="compact" />
+              </div>
 
-              <h2 className="mt-[50px] font-poppins text-[22px] leading-[28px] font-semibold tracking-[-0.44px] text-white">
-                {single ? "Ordem" : `Ordem · ${purchase.items.length} itens`}
-              </h2>
+              <div className="mt-[50px] flex flex-wrap items-center justify-between gap-[12px]">
+                <h2 className="font-poppins text-[22px] leading-[28px] font-semibold tracking-[-0.44px] text-white">
+                  {single ? "Ordem" : `Ordem · ${purchase.items.length} itens`}
+                </h2>
+                {pill ? (
+                  <span
+                    className={cn(
+                      "flex h-[24px] max-w-full min-w-[100px] items-center justify-center truncate rounded-[66px] border border-white/5 px-[12px] font-helvetica text-[14px] tracking-[0.14px]",
+                      pill.className,
+                    )}
+                  >
+                    {pill.label}
+                  </span>
+                ) : null}
+              </div>
+              <SummaryRow label="Pedido" value={purchase.reference} />
               <div aria-hidden className="mt-[15px] h-px w-full bg-white/25" />
 
               {purchase.items.map((item, index) => (
-                <PurchaseItem
-                  key={item.id}
-                  item={item}
-                  withTracker={!single}
-                  highlighted={!single && item.reference === reference}
-                  divider={index > 0}
-                />
+                <PurchaseItem key={item.id} item={item} date={purchase.date} divider={index > 0} />
               ))}
 
               {purchase.coupon ? (
@@ -182,31 +194,13 @@ export default async function PedidoPage({ params }: PageProps) {
 }
 
 /**
- * Um item da compra no painel "Ordem": produto, servidor, quantidade e preço;
- * a conta do serviço e o brinde quando houver. Em compra com vários itens,
- * também a referência, a situação e a trilha do item — cada um é entregue no
- * seu tempo. O item da URL (o que a pessoa clicou) ganha um realce discreto.
+ * Um item do pedido no painel "Ordem": produto, servidor, quantidade e preço;
+ * a conta do serviço e o brinde quando houver. A situação e a trilha são do
+ * pedido inteiro (topo), não do item (2026-10-16).
  */
-function PurchaseItem({
-  item,
-  withTracker,
-  highlighted,
-  divider,
-}: {
-  item: Order;
-  withTracker: boolean;
-  highlighted: boolean;
-  divider: boolean;
-}) {
-  const status = ORDER_STATUS_STYLES[item.status];
+function PurchaseItem({ item, date, divider }: { item: OrderItem; date: string; divider: boolean }) {
   return (
-    <section
-      aria-label={`${item.productName} — ${status.label}`}
-      className={cn(
-        divider && "mt-[26px] border-t border-white/10",
-        highlighted && "-mx-[16px] rounded-[20px] bg-white/[0.03] px-[16px] pb-[16px]",
-      )}
-    >
+    <section aria-label={item.productName} className={cn(divider && "mt-[26px] border-t border-white/10")}>
       <OrderLineBlock
         line={{
           id: item.id,
@@ -214,36 +208,18 @@ function PurchaseItem({
           platform: item.platform,
           quantity: item.quantity,
           price: item.price,
-          date: item.date,
+          date,
         }}
       />
 
-      {withTracker ? <SummaryRow label="Pedido" value={item.reference} /> : null}
+      {item.details ? <ServiceDetailsBlock lines={item.details.lines} hours={item.details.hours} /> : null}
 
-      {item.details ? (
-        <ServiceDetailsBlock lines={item.details.lines} hours={item.details.hours} />
-      ) : null}
-
-      {/* Brinde do jogo (2026-10-12): vai junto na entrega deste item. */}
+      {/* Brinde do jogo (2026-10-12): vai junto na entrega. */}
       {item.gift ? (
         <p className="mt-[22px] rounded-[15px] border border-[#22c55e]/35 bg-[#22c55e]/10 px-[18px] py-[12px] font-helvetica text-[15px] leading-[21px] text-white">
           <strong className="font-bold text-[#4ade80]">Brinde: {item.gift.text}</strong>
           {item.gift.server ? <span className="text-white/70"> · entregue em {item.gift.server}</span> : null}
         </p>
-      ) : null}
-
-      {withTracker ? (
-        <div className="mt-[22px] flex flex-col items-center gap-[16px]">
-          <span
-            className={cn(
-              "flex h-[24px] min-w-[100px] items-center justify-center self-start rounded-[66px] border border-white/5 px-[12px] font-helvetica text-[14px] tracking-[0.14px]",
-              status.className,
-            )}
-          >
-            {status.label}
-          </span>
-          <OrderStatusTracker track={item.track} dates={item.stepDates} size="compact" />
-        </div>
       ) : null}
     </section>
   );

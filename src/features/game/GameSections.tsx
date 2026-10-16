@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { blogCardTexts } from "@/features/home/blogCard";
 import { VisitBlogCard } from "@/features/home/VisitBlogCard";
-import { parseBlocks, renderInline } from "@/features/pages/blocks/markdown";
+import { BodyImage, parseBlocks, renderInline } from "@/features/pages/blocks/markdown";
 import { GameBannerSlider } from "./GameBannerSlider";
 import type { GameDescriptionGroup } from "./description";
 import { FAQ_DESCRIPTION_GROUP } from "./types";
@@ -367,7 +367,7 @@ export function GameFaqSection({
 function RichAnswer({ source }: { source: string }) {
   return (
     <div className="flex flex-col gap-[12px]">
-      {parseBlocks(source, { keepLineBreaks: true }).map((block, index) => {
+      {parseBlocks(source, { keepLineBreaks: true, images: true }).map((block, index) => {
         if ("items" in block) {
           const List = block.kind;
           return (
@@ -383,8 +383,8 @@ function RichAnswer({ source }: { source: string }) {
             </List>
           );
         }
-        // Imagem só existe com `images: true`, que a descrição não liga.
-        if (block.kind === "img") return null;
+        // Imagem na descrição (2026-10-16): arte do painel ou link do Imgur.
+        if (block.kind === "img") return <BodyImage key={index} src={block.src} alt={block.alt} />;
         // `##`/`###` no meio do texto: destaque em negrito, sem virar outro
         // nível de título (os títulos da descrição já são os campos dela).
         return (

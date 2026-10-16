@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { legacyCentralHref } from "@/features/admin/games/central";
-import { requireAdminPage } from "@/features/admin/guard";
+import { requirePanelArea } from "@/features/admin/guard";
 
 /**
  * `/admin/jogos/[id]/categorias` virou uma seção da Central do jogo
@@ -15,7 +15,7 @@ export default async function LegacyGameRoute({
   params: Promise<{ id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireAdminPage();
+  await requirePanelArea("catalog");
   const { id } = await params;
   redirect(legacyCentralHref(id, "categorias", await searchParams));
 }

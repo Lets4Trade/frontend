@@ -40,6 +40,19 @@ describe("horário de atendimento (2026-10-16)", () => {
   it("dois dias seguidos viram 'e'; dia inválido conta como fechado; nada aberto = vazio", () => {
     const grid: Partial<Record<WeekdayKey, string>> = { sab: "10:00-14:00", dom: "10:00-14:00", qua: "lixo" };
     expect(scheduleLines((day) => grid[day])).toEqual([{ days: "Sáb e Dom", hours: "10h às 14h" }]);
+  });
+
+  it("os sete dias iguais viram 'TODOS OS DIAS DAS 09 ÀS 00H' (24:00 = 00)", () => {
+    expect(scheduleLines(() => "09:00-24:00")).toEqual([{ days: "TODOS OS DIAS", hours: "DAS 09 ÀS 00H" }]);
+    expect(scheduleLines(() => "08:30-18:00")).toEqual([{ days: "TODOS OS DIAS", hours: "DAS 08:30 ÀS 18H" }]);
+  });
+
+  it("meia-noite como fim do dia sai 00h nas linhas comuns", () => {
+    const grid: Partial<Record<WeekdayKey, string>> = { sex: "18:00-24:00", sab: "10:00-24:00" };
+    expect(scheduleLines((day) => grid[day])).toEqual([
+      { days: "Sex", hours: "18h às 00h" },
+      { days: "Sáb", hours: "10h às 00h" },
+    ]);
     expect(scheduleLines(() => undefined)).toEqual([]);
   });
 });

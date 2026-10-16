@@ -180,6 +180,7 @@ export function ServiceSectionsEditor({
               onChange={(body) => patchSection(section.key, { body })}
               onUploadImage={uploadImage}
               imageHint={BODY_IMAGE_HINT}
+              imageLinks
             />
 
             <SectionPreview section={section} />

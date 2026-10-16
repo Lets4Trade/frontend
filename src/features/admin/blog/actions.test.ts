@@ -151,7 +151,7 @@ describe("createBlogPostAction", () => {
     expect(updateTag).toHaveBeenCalledWith(BLOG_TAG);
     const paths = vi.mocked(revalidatePath).mock.calls.map(([path]) => path);
     expect(paths).toEqual(
-      expect.arrayContaining(["/blog", "/admin/blog", "/blog/nova-liga-de-poe-2", "/games/path-of-exile-2"]),
+      expect.arrayContaining(["/blog", "/admin/blog", "/blog/nova-liga-de-poe-2", "/path-of-exile-2"]),
     );
   });
 

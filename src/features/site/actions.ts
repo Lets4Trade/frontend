@@ -138,7 +138,7 @@ export async function resetSectionAction(
  */
 function revalidateStore() {
   revalidatePath("/", "layout");
-  revalidatePath("/games", "layout");
+  revalidatePath("/[slug]", "page");
 
   // O cabeçalho e o rodapé leem CACHEADOS, com TTL de uma hora — é o que os
   // impede de bater no backend em toda requisição do site (ver

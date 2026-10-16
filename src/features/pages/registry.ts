@@ -1,5 +1,6 @@
 import { GAME_SECTIONS, DEFAULT_SECTION_ORDER, gapBefore, type GameSectionKey } from "@/features/game/sections";
 import { HOME_SHARED_KEYS, HOME_SHARED_LABELS } from "./homeShared";
+import { gameHref } from "@/features/game/href";
 
 /**
  * As PÁGINAS do construtor (fase 4, 2026-09-25) — espelha a allowlist do
@@ -115,7 +116,7 @@ export function gamePageDef(game: { id: string; name: string; slug: string }): B
     kind: "blocks",
     slug: `jogo-${game.id}`,
     label: `Jogo: ${game.name}`,
-    href: `/games/${game.slug}`,
+    href: gameHref(game.slug),
     frame: "game",
     legacyKeys: DEFAULT_SECTION_ORDER,
     legacyLabels: GAME_LABELS,

@@ -2,7 +2,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getAdminGames } from "@/features/admin/catalog";
-import { requireAdminPage } from "@/features/admin/guard";
+import { requirePanelArea } from "@/features/admin/guard";
 import { getGameTabs } from "@/features/admin/games/tabs/list";
 import { isProductTab } from "@/features/admin/games/tabs/types";
 import { ADMIN_SHELL } from "@/features/admin/layout";
@@ -31,7 +31,7 @@ export default async function AdminProductsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireAdminPage();
+  await requirePanelArea("catalog");
   const params = await searchParams;
 
   // Os jogos vêm primeiro porque a query precisa deles para VALIDAR o filtro de

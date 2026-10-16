@@ -27,8 +27,15 @@ export function OrderChat({
   initialConversationId,
   initialMessages,
   userAvatar,
+  justPaid = false,
 }: {
   reference: string;
+  /**
+   * Chegou aqui logo depois de pagar (2026-10-16): aviso de pagamento aprovado
+   * no topo e uma primeira mensagem já escrita — a equipe só é avisada quando
+   * o cliente escreve, então o caminho mais curto é um "Enviar".
+   */
+  justPaid?: boolean;
   /** Assunto da conversa aberta aqui. Padrão: "Pedido <referência>". */
   subject?: string;
   initialConversationId: string | null;
@@ -42,7 +49,18 @@ export function OrderChat({
     // mensagem que acabou de ser enviada.
     loadHistory: false,
   });
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState(() =>
+    justPaid && initialMessages.length === 0 ? `Olá! Acabei de pagar o pedido ${reference}.` : "",
+  );
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Recém-pago: o cursor já no campo, pronto para enviar. O `?pago=1` sai do
+  // endereço (sem navegar), para recarregar a página não repetir o aviso.
+  useEffect(() => {
+    if (!justPaid) return;
+    inputRef.current?.focus();
+    window.history.replaceState(window.history.state, "", window.location.pathname);
+  }, [justPaid]);
   const [sending, setSending] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -94,6 +112,18 @@ export function OrderChat({
       aria-label="Conversa sobre o pedido"
       className="flex h-[560px] w-full max-w-[555px] flex-col rounded-[30px] border border-white/20 bg-[#070707] p-[16px] lg:h-[696px] lg:p-[25px]"
     >
+      {justPaid ? (
+        <div
+          role="status"
+          className="mb-[16px] shrink-0 rounded-[18px] border border-[#22c55e]/35 bg-[#22c55e]/10 px-[18px] py-[14px]"
+        >
+          <p className="font-poppins text-[16px] font-bold text-[#4ade80]">Pagamento aprovado!</p>
+          <p className="mt-[4px] font-helvetica text-[14px] leading-[20px] text-white/85">
+            Seu pedido {reference} já está com a equipe. Fale com o atendente por aqui para combinar a entrega.
+          </p>
+        </div>
+      ) : null}
+
       <div ref={listRef} className="scrollbar-orange min-h-0 flex-1 overflow-y-auto">
         {messages.length === 0 ? (
           <p className="pt-[60px] text-center font-poppins text-[16px] text-brand-fg-muted">
@@ -116,6 +146,7 @@ export function OrderChat({
       <form onSubmit={handleSend} className="mt-[25px] shrink-0">
         <div className="flex items-center gap-[15px]">
           <input
+            ref={inputRef}
             type="text"
             value={draft}
             onChange={(event) => setDraft(event.currentTarget.value)}

@@ -4,7 +4,7 @@ import {
   MAX_SECTION_BODY,
   SECTION_MARKERS,
   SECTION_MARKER_COLORS,
-  bodyImagesAreOwn,
+  bodyImagesAllowed,
   type ServiceSection,
 } from "@/features/game/sectionContent";
 
@@ -160,7 +160,7 @@ const sectionSchema = z
       .trim()
       .max(MAX_SECTION_BODY, "O texto de uma seção pode ter no máximo 20.000 caracteres.")
       .refine((value) => !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value), "O texto tem um caractere inválido.")
-      .refine(bodyImagesAreOwn, "Envie as imagens do texto pelo botão Imagem.")
+      .refine(bodyImagesAllowed, "Use o botão Imagem ou um link direto do Imgur (i.imgur.com/….png).")
       .optional(),
     marker: z.enum(SECTION_MARKERS).optional(),
     markerColor: z.enum(SECTION_MARKER_COLORS).optional(),

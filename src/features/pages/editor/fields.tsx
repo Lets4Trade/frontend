@@ -10,6 +10,7 @@ import { cn } from "@/lib/cn";
 import { ACTION_FAILED_UPLOAD_MESSAGE, runAction } from "@/lib/safeAction";
 import { backendAsset } from "@/lib/publicApi";
 import { uploadPageAssetAction } from "../actions";
+import { MarkdownTextArea } from "@/features/admin/MarkdownTextArea";
 import { categorySelectOptions } from "@/features/admin/products/categoryOptions";
 import { youtubeId } from "@/features/home/youtube";
 import type { FieldSpec, SubFieldSpec } from "../catalog";
@@ -60,13 +61,24 @@ export function BlockField({ spec, value, props, games, onChange }: FieldProps) 
     case "textarea":
       return (
         <div>
-          <TextAreaField
-            label={spec.label + (spec.required ? " *" : "")}
-            value={typeof value === "string" ? value : ""}
-            maxLength={spec.max}
-            rows={spec.rows ?? 4}
-            onChange={(event) => onChange(emptyToUndefined(event.target.value, spec.required))}
-          />
+          {spec.markdown ? (
+            <MarkdownTextArea
+              label={spec.label + (spec.required ? " *" : "")}
+              value={typeof value === "string" ? value : ""}
+              maxLength={spec.max}
+              onChange={(next) => onChange(emptyToUndefined(next, spec.required))}
+              className="h-[240px] resize-y"
+              imageLinks
+            />
+          ) : (
+            <TextAreaField
+              label={spec.label + (spec.required ? " *" : "")}
+              value={typeof value === "string" ? value : ""}
+              maxLength={spec.max}
+              rows={spec.rows ?? 4}
+              onChange={(event) => onChange(emptyToUndefined(event.target.value, spec.required))}
+            />
+          )}
           {spec.hint ? <Hint>{spec.hint}</Hint> : null}
         </div>
       );

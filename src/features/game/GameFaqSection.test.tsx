@@ -35,6 +35,31 @@ describe("GameFaqSection", () => {
     expect(screen.queryByText("Quanto tempo?")).toBeNull();
   });
 
+  it("imagem do Imgur na descrição vira <img> sem referrer; outro host não (2026-10-16)", () => {
+    const { container } = render(
+      <GameFaqSection
+        groups={[general]}
+        description={[
+          {
+            title: "Sobre",
+            items: [
+              {
+                subtitle: "Como fica?",
+                text: "Antes ![mapa](https://i.imgur.com/AbC1234.png) depois\n![x](https://evil.com/a.png)",
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+    const images = container.querySelectorAll("img");
+    expect(images).toHaveLength(1);
+    expect(images[0].getAttribute("src")).toBe("https://i.imgur.com/AbC1234.png");
+    expect(images[0].getAttribute("referrerpolicy")).toBe("no-referrer");
+    expect(screen.getByText("Antes")).not.toBeNull();
+    expect(screen.getByText("depois")).not.toBeNull();
+  });
+
   it("bloco sem título é só a lista; sem subtítulo, é só parágrafo", () => {
     render(
       <GameFaqSection

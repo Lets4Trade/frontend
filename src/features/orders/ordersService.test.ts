@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/serverApi", () => ({ apiGet: vi.fn() }));
 
-import { toOrderDetails, toPurchase, toTrack, type ApiOrder } from "./ordersService";
-import { stepStates } from "./OrderStatusTracker";
+import { toOrderDetails, toPurchase, toTrack, type ApiOrderItem, type ApiPurchase } from "./ordersService";
+import { noteIndex, stepStates } from "./OrderStatusTracker";
 
 describe("toOrderDetails", () => {
   it("formata linhas e horas do pedido de serviço", () => {
@@ -29,17 +29,19 @@ describe("toOrderDetails", () => {
 });
 
 
-function apiOrder(overrides: Partial<ApiOrder> = {}): ApiOrder {
+function apiItem(overrides: Partial<ApiOrderItem> = {}): ApiOrderItem {
+  return { id: "i1", productName: "Gold", platform: "SC", quantity: "1x", totalPrice: "10.10", ...overrides };
+}
+
+function apiPurchase(overrides: Partial<ApiPurchase> = {}): ApiPurchase {
   return {
     id: "o1",
     reference: "V1",
-    productName: "Gold",
-    platform: "SC",
-    quantity: "1x",
-    totalPrice: "10.10",
     currency: "BRL",
+    totalPrice: "10.10",
     status: "APROVADO",
     createdAt: "2026-10-15T12:00:00.000Z",
+    items: [apiItem()],
     ...overrides,
   };
 }
@@ -75,35 +77,65 @@ describe("stepStates", () => {
   });
 });
 
-describe("toPurchase", () => {
-  it("soma em centavos: preço, desconto (coins + cupom) e pago; cupom da compra", () => {
-    const purchase = toPurchase({
-      id: "pay1",
-      reference: "V1",
-      createdAt: "2026-10-15T12:00:00.000Z",
-      orders: [
-        apiOrder({ id: "a", totalPrice: "0.10", discountCents: 5 }),
-        apiOrder({ id: "b", totalPrice: "0.20", couponCode: "BEMVINDO", couponCents: 3 }),
-      ],
-    });
-    expect(purchase?.items.map((item) => item.id)).toEqual(["a", "b"]);
+describe("noteIndex — onde o status personalizado entra na trilha (2026-10-16)", () => {
+  it("na etapa atual; na última quando entregue; no X quando cancelado", () => {
+    expect(noteIndex({ step: "entrega", state: "active" })).toBe(2);
+    expect(noteIndex({ step: "finalizado", state: "done" })).toBe(3);
+    expect(noteIndex({ step: "aprovado", state: "canceled" })).toBe(2);
+  });
+});
+
+describe("toPurchase — pedido com vários itens (2026-10-16)", () => {
+  it("totais do PEDIDO (preço, desconto = coins + cupom, pago) e o desconto de cada item", () => {
+    const purchase = toPurchase(
+      apiPurchase({
+        totalPrice: "0.30",
+        discountCents: 5,
+        couponCode: "BEMVINDO",
+        couponCents: 3,
+        items: [
+          apiItem({ id: "a", totalPrice: "0.10", discountCents: 5 }),
+          apiItem({ id: "b", totalPrice: "0.20", couponCents: 3, gameName: "D4" }),
+        ],
+      }),
+    );
+    expect(purchase?.items.map((item) => [item.id, item.gameName])).toEqual([
+      ["a", null],
+      ["b", "D4"],
+    ]);
     expect(purchase?.price).toMatch(/0,30/);
     expect(purchase?.discount).toMatch(/0,08/);
     expect(purchase?.paid).toMatch(/0,22/);
     expect(purchase?.coupon).toEqual({ code: "BEMVINDO", amount: expect.stringMatching(/0,03/) });
+    expect(purchase?.items[0].discount).toMatch(/0,05/);
+    expect(purchase?.items[0].paid).toMatch(/0,05/);
+    expect(purchase?.items[1].discount).toMatch(/0,03/);
   });
 
-  it("datas das etapas no fuso de São Paulo, com hora", () => {
-    const purchase = toPurchase({
-      id: "pay1",
-      reference: "V1",
-      createdAt: "2026-10-15T12:00:00.000Z",
-      orders: [apiOrder({ approvedAt: "2026-10-15T13:05:00.000Z" })],
-    });
-    expect(purchase?.items[0].stepDates).toEqual({ feito: "15/10 09:00", aprovado: "15/10 10:05" });
+  it("UMA situação e UMA trilha para o pedido; datas no fuso de São Paulo, com hora", () => {
+    const purchase = toPurchase(apiPurchase({ approvedAt: "2026-10-15T13:05:00.000Z" }));
+    expect(purchase?.status).toBe("aprovado");
+    expect(purchase?.track).toEqual({ step: "aprovado", state: "active" });
+    expect(purchase?.stepDates).toEqual({ feito: "15/10 09:00", aprovado: "15/10 10:05" });
+    expect(purchase?.delivery).toBeNull();
   });
 
-  it("compra sem itens some (null)", () => {
-    expect(toPurchase({ id: "x", reference: "V", createdAt: "", orders: [] })).toBeNull();
+  it("status de entrega personalizado: nome, cor da paleta (fora dela = cinza) e quando", () => {
+    const purchase = toPurchase(
+      apiPurchase({
+        status: "EM_ANDAMENTO",
+        deliveryStatus: { id: "ds1", label: " Farmando ", color: "blue" },
+        deliveryStatusAt: "2026-10-16T18:30:00.000Z",
+      }),
+    );
+    expect(purchase?.delivery).toEqual({ id: "ds1", label: "Farmando", color: "blue", date: "16/10 15:30" });
+    expect(toPurchase(apiPurchase({ deliveryStatus: { id: "x", label: "Y", color: "url(javascript:1)" } }))?.delivery?.color).toBe(
+      "gray",
+    );
+    expect(toPurchase(apiPurchase({ deliveryStatus: { label: "sem id" } }))?.delivery).toBeNull();
+  });
+
+  it("pedido sem itens some (null)", () => {
+    expect(toPurchase(apiPurchase({ items: [] }))).toBeNull();
   });
 });

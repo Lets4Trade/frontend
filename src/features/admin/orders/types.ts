@@ -1,3 +1,9 @@
+import {
+  DELIVERY_COLOR_STYLES,
+  toDeliveryStatus,
+  type DeliveryStatusColor,
+  type DeliveryStatusView,
+} from "@/features/orders/deliveryStatus";
 import { ORDER_STATUS_STYLES, type OrderStatus } from "@/features/orders/types";
 
 /**
@@ -22,40 +28,102 @@ import { ORDER_STATUS_STYLES, type OrderStatus } from "@/features/orders/types";
  */
 export const UNASSIGNED = "sem-atendente";
 
-export type AdminOrder = {
+/** Um produto do pedido (2026-10-16), como o backend o devolve. */
+export type AdminOrderItem = {
   id: string;
-  reference: string;
   productName: string;
   /** Caminho servido pelo BACKEND, ou ausente. */
   productImageUrl?: string | null;
   platform: string;
   quantity: string;
+  gameName?: string | null;
+  gameImageUrl?: string | null;
   /** STRING, não número: veio de um `Decimal` e não passa por float. */
   totalPrice: string;
+  coinsSpent?: number;
+  discountCents?: number;
+  couponCents?: number;
+  /** Escolha e conta do serviço — ler com `toOrderDetails`. */
+  details?: unknown;
+  /** Brinde do jogo congelado (2026-10-12) — ler com `toOrderGift`. */
+  gift?: unknown;
+  /** Código que este item tinha quando cada item era um pedido (antes de 2026-10-16). */
+  legacyReference?: string | null;
+};
+
+/**
+ * Uma linha da tabela: o PEDIDO (desde 2026-10-16, a compra inteira — vários
+ * itens, uma situação, um entregador).
+ */
+export type AdminOrder = {
+  id: string;
+  reference: string;
+  /** Preço CHEIO do pedido (soma dos itens). */
+  totalPrice: string;
   currency: string;
-  /** Ausente nos pedidos anteriores a 2026-09-10 — a coluna mostra um traço. */
-  gameName?: string | null;
-  /**
-   * Arte do JOGO congelada no pedido — o emblema de 27px que fecha a linha.
-   *
-   * Opcional porque o backend apaga campos vazios da resposta, e porque pedido
-   * anterior à coluna (ou de jogo já removido) não tem arte nenhuma.
-   */
-  gameImageUrl?: string | null;
+  coinsSpent?: number;
+  discountCents?: number;
+  /** Cupom (2026-10-12): ausentes sem cupom. */
+  couponCode?: string | null;
+  couponCents?: number;
   /** Valor do enum do backend: PENDENTE, APROVADO, EM_ANDAMENTO… */
   status: string;
   step: string;
   createdAt: string;
+  /** Status de entrega personalizado — ler com `toDeliveryStatus`. */
+  deliveryStatus?: unknown;
+  deliveryStatusAt?: string | null;
+  items: AdminOrderItem[];
+  /** Os jogos do pedido, sem repetir: a coluna "Jogo" e o emblema da linha. */
+  games?: { name: string; imageUrl?: string | null }[];
   customerName: string;
   customerPhone?: string | null;
   assigneeId?: string | null;
   assigneeName?: string | null;
-  /** Brinde do jogo congelado (2026-10-12) — ler com `toOrderGift`. */
-  gift?: unknown;
-  /** Cupom (2026-10-12): ausentes sem cupom. */
-  couponCode?: string | null;
-  couponCents?: number;
 };
+
+/** Um status de entrega personalizado, como o cadastro devolve. */
+export type AdminDeliveryStatus = {
+  id: string;
+  label: string;
+  color: DeliveryStatusColor;
+  /** A etapa em que conta: APROVADO, EM_ANDAMENTO, ENTREGUE ou CANCELADO. */
+  base: string;
+  position?: number;
+  archivedAt?: string | null;
+};
+
+/**
+ * As etapas que um status personalizado pode ter — sem PENDENTE, que é "ainda
+ * não pagou" e só o pagamento muda.
+ */
+export const DELIVERY_STATUS_BASES = ["APROVADO", "EM_ANDAMENTO", "ENTREGUE", "CANCELADO"] as const;
+
+/**
+ * Valor do select de situação: o enum (PENDENTE…) ou `ds:<id>` para um status
+ * personalizado. Prefixo porque os dois vivem na mesma lista, e um id nunca
+ * pode ser confundido com um nome de situação.
+ */
+export const CUSTOM_PREFIX = "ds:";
+
+export function statusValue(order: Pick<AdminOrder, "status" | "deliveryStatus">): string {
+  const custom = toDeliveryStatus(order.deliveryStatus);
+  return custom ? `${CUSTOM_PREFIX}${custom.id}` : order.status;
+}
+
+/** Rótulo e cor da pílula da linha: o personalizado, ou a situação padrão. */
+export function orderPill(order: Pick<AdminOrder, "status" | "deliveryStatus">): { label: string; className: string } {
+  const custom: DeliveryStatusView | null = toDeliveryStatus(order.deliveryStatus);
+  if (custom) return { label: custom.label, className: DELIVERY_COLOR_STYLES[custom.color].className };
+  return statusStyle(order.status);
+}
+
+/** "3 itens" / o nome do único produto — a coluna e o título do detalhe. */
+export function itemsSummary(order: Pick<AdminOrder, "items">): string {
+  const items = Array.isArray(order.items) ? order.items : [];
+  if (items.length === 1) return items[0].productName;
+  return `${items.length} itens`;
+}
 
 export type AdminOrderPage = {
   items: AdminOrder[];

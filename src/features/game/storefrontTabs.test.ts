@@ -31,8 +31,8 @@ describe("tabsFromApi", () => {
 
   it("usa o slug como id, primeira não-LINK sem ?aba=, LINK leva ao linkHref", () => {
     expect(tabs.map((tab) => [tab.id, tab.layout, tab.href])).toEqual([
-      ["moedas", "CATALOG", "/games/poe2"],
-      ["boosting", "SERVICE", "/games/poe2?aba=boosting"],
+      ["moedas", "CATALOG", "/poe2"],
+      ["boosting", "SERVICE", "/poe2?aba=boosting"],
       ["venda", "LINK", "/venda"],
     ]);
   });
@@ -129,9 +129,9 @@ describe("layouts v2 (QUANTITY, PACKAGES, SELL)", () => {
 
   it("aceita os três; SELL é aba da própria página (não navega para fora)", () => {
     expect(tabs.map((tab) => [tab.id, tab.layout, tab.href])).toEqual([
-      ["gold", "QUANTITY", "/games/poe2"],
-      ["pacotes", "PACKAGES", "/games/poe2?aba=pacotes"],
-      ["venda", "SELL", "/games/poe2?aba=venda"],
+      ["gold", "QUANTITY", "/poe2"],
+      ["pacotes", "PACKAGES", "/poe2?aba=pacotes"],
+      ["venda", "SELL", "/poe2?aba=venda"],
     ]);
   });
 
@@ -181,11 +181,11 @@ describe("withEffectivePricing", () => {
 describe("tabHrefWithServer (servidor se mantém ao trocar de aba)", async () => {
   const { tabHrefWithServer } = await import("./storefrontTabs");
   it("anexa o servidor nas abas da página e não mexe em aba de link", () => {
-    expect(tabHrefWithServer({ href: "/games/poe2?aba=boosting", layout: "PACKAGES" }, "hardcore")).toBe(
-      "/games/poe2?aba=boosting&servidor=hardcore",
+    expect(tabHrefWithServer({ href: "/poe2?aba=boosting", layout: "PACKAGES" }, "hardcore")).toBe(
+      "/poe2?aba=boosting&servidor=hardcore",
     );
-    expect(tabHrefWithServer({ href: "/games/poe2", layout: "CATALOG" }, "hardcore")).toBe("/games/poe2?servidor=hardcore");
+    expect(tabHrefWithServer({ href: "/poe2", layout: "CATALOG" }, "hardcore")).toBe("/poe2?servidor=hardcore");
     expect(tabHrefWithServer({ href: "/fidelidade", layout: "LINK" }, "hardcore")).toBe("/fidelidade");
-    expect(tabHrefWithServer({ href: "/games/poe2", layout: "CATALOG" }, "")).toBe("/games/poe2");
+    expect(tabHrefWithServer({ href: "/poe2", layout: "CATALOG" }, "")).toBe("/poe2");
   });
 });

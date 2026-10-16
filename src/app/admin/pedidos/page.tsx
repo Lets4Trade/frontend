@@ -8,8 +8,10 @@ import {
   buildHref,
   getAdminOrders,
   getAttendants,
+  getDeliveryStatuses,
   parseOrdersQuery,
 } from "@/features/admin/orders/list";
+import { DeliveryStatusManager } from "@/features/admin/orders/DeliveryStatusManager";
 import { OrdersTable } from "@/features/admin/orders/OrdersTable";
 import { ADMIN_SHELL } from "@/features/admin/layout";
 import {
@@ -17,7 +19,7 @@ import {
   attendantName,
   statusStyle,
 } from "@/features/admin/orders/types";
-import { requireAdminPage } from "@/features/admin/guard";
+import { requirePanelArea } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
   title: "Vendas e pedidos | Lets4Trade",
@@ -43,14 +45,15 @@ type PageProps = {
  * página: é o número que responde "quantos pedidos tenho para atender".
  */
 export default async function AdminOrdersPage({ searchParams }: PageProps) {
-  await requireAdminPage();
+  await requirePanelArea("orders");
   const query = parseOrdersQuery(await searchParams, ORDER_STATUSES);
 
-  // As duas leituras em paralelo: a lista de atendentes não depende do filtro,
-  // e em série ela somaria latência à tela toda vez.
-  const [page, attendants] = await Promise.all([
+  // As leituras em paralelo: atendentes e status de entrega não dependem do
+  // filtro, e em série somariam latência à tela toda vez.
+  const [page, attendants, statuses] = await Promise.all([
     getAdminOrders(query),
     getAttendants(),
+    getDeliveryStatuses(),
   ]);
 
   /**
@@ -118,6 +121,8 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
         </div>
 
         <div className="flex flex-wrap items-center gap-[20px]">
+          {/* Status de entrega personalizados (2026-10-16): admin e atendente. */}
+          <DeliveryStatusManager statuses={statuses} />
           <FilterMenu
             key={`situacao-${filterKey}`}
             width={249}
@@ -163,6 +168,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
         <OrdersTable
           orders={page.items}
           attendants={attendants}
+          statuses={statuses}
           apiOrigin={apiOrigin}
         />
 

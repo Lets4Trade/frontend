@@ -108,7 +108,7 @@ export default async function NoticiaPage({ params }: { params: Promise<RoutePar
             <hr className="mt-[30px] border-0 border-t border-white/10" />
 
             <div className="mt-[30px] flex flex-col gap-[18px]">
-              <Markdown source={post.body} />
+              <Markdown source={post.body} images />
             </div>
           </div>
         </article>

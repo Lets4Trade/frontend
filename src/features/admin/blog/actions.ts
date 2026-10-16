@@ -5,6 +5,7 @@ import { canEditContent, getSessionRole } from "@/features/auth/session";
 import { BLOG_TAG } from "@/features/blog/format";
 import { apiDelete, apiPatchFormData, apiPostFormData, type ApiResult } from "@/lib/serverApi";
 import { blogPostSchema, coverProblem, ID_RE, readBlogForm, type BlogPostField } from "./schema";
+import { gameHref } from "@/features/game/href";
 
 /**
  * Escritas do painel de notícias (`/admin/blog`) — contrato blog.md.
@@ -122,7 +123,7 @@ function revalidateBlog(saved?: { slug?: string; gameSlug?: string }) {
   revalidatePath("/blog");
   revalidatePath("/admin/blog");
   if (saved?.slug) revalidatePath(`/blog/${saved.slug}`);
-  if (saved?.gameSlug) revalidatePath(`/games/${saved.gameSlug}`);
+  if (saved?.gameSlug) revalidatePath(gameHref(saved.gameSlug));
 }
 
 function savedFrom(data: unknown, fallbackId?: string): { id: string; slug: string; gameSlug?: string } | null {

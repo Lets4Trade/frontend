@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getSessionRole } from "@/features/auth/session";
+import { canAccess } from "@/features/admin/permissions";
 import { cleanCategories } from "@/features/admin/builder/payload";
 import {
   apiDelete,
@@ -27,9 +28,9 @@ import {
 /**
  * Escritas das ABAS POR JOGO (contrato `.claude/context/game-tabs.md`).
  *
- * Só ADMIN: aba é estrutura do catálogo (define onde produto mora e como a
- * página do jogo se desenha), não conteúdo — o EDITOR segue no Builder. A
- * conferência aqui é a segunda porta; a de verdade é o `@Roles('ADMIN')` do
+ * Catálogo (ADMIN e EDITOR desde 2026-10-16): aba é estrutura do catálogo
+ * (define onde produto mora e como a página do jogo se desenha). A
+ * conferência aqui é a segunda porta; a de verdade é o `@Roles(...)` do
  * backend. Está aqui porque server action é endereço PÚBLICO e não passa pelo
  * layout que protege a tela.
  *
@@ -53,7 +54,7 @@ export type TabsResult<T = undefined> =
 async function requireAdmin(): Promise<TabsResult<never> | null> {
   const role = await getSessionRole();
   if (role === null) return { ok: false, reason: "unauthenticated" };
-  if (role !== "ADMIN") return { ok: false, reason: "forbidden" };
+  if (!canAccess(role, "catalog")) return { ok: false, reason: "forbidden" };
   return null;
 }
 
@@ -77,7 +78,7 @@ function revalidate() {
   revalidatePath("/admin/jogos", "layout");
   revalidatePath("/admin/produtos", "layout");
   revalidatePath("/admin/builder", "layout");
-  revalidatePath("/games/[slug]", "page");
+  revalidatePath("/[slug]", "page");
 }
 
 /**

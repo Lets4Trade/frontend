@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
-import { formatBrl as formatCents } from "@/features/payment/types";
+import { formatBrl as formatCents, paidOrderHref } from "@/features/payment/types";
 import { fetchPaymentStatus, payPayment, sandboxPayPix } from "./api";
 import type { PaymentView } from "./types";
 
@@ -112,7 +113,33 @@ export function PaymentStatusClient({ initial }: { initial: PaymentView }) {
   );
 }
 
+/** Segundos que a confirmação fica na tela antes de abrir o chat. */
+const REDIRECT_SECONDS = 3;
+
+/**
+ * Confirmação do pagamento (2026-10-16, pedido do usuário): a tela de
+ * "Pagamento aprovado" APARECE, com o aviso de que vai abrir o chat com o
+ * atendente e a contagem; no fim, vai sozinha para a tela do pedido (que é a
+ * conversa com a equipe). O botão leva na hora.
+ *
+ * `replace` e não `push`: o "voltar" do navegador não cai de novo num
+ * pagamento já resolvido.
+ */
 function Paid({ payment }: { payment: PaymentView }) {
+  const router = useRouter();
+  const href = paidOrderHref(payment);
+  const [left, setLeft] = useState(REDIRECT_SECONDS);
+
+  useEffect(() => {
+    if (!href) return;
+    const timer = window.setInterval(() => setLeft((value) => Math.max(0, value - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [href]);
+
+  useEffect(() => {
+    if (href && left === 0) router.replace(href);
+  }, [href, left, router]);
+
   return (
     <>
       <p className="bg-[image:var(--brand-orange-gradient)] bg-clip-text font-poppins text-[26px] leading-[32px] font-bold text-transparent">
@@ -124,18 +151,46 @@ function Paid({ payment }: { payment: PaymentView }) {
               payment.card.installments > 1 ? ` em ${payment.card.installments}x` : ""
             }. `
           : ""}
-        Seus pedidos já estão na fila de entrega. Acompanhe e converse com a
-        equipe pela tela de cada pedido.
+        Seu pedido já está na fila de entrega.
       </p>
 
+      {href ? (
+        <div className="mt-[22px] rounded-[18px] border border-white/10 bg-white/[0.03] px-[20px] py-[16px]">
+          <p role="status" className="font-poppins text-[15px] font-semibold text-white">
+            {left > 0
+              ? `Abrindo o chat com o atendente em ${left}s…`
+              : "Abrindo o chat com o atendente…"}
+          </p>
+          <p className="mt-[4px] font-helvetica text-[13px] leading-[18px] text-brand-fg-subtle">
+            É por lá que a equipe combina a entrega com você.
+          </p>
+          {/* Barra que esvazia junto com a contagem. */}
+          <div aria-hidden className="mt-[12px] h-[4px] overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-[image:var(--brand-orange-gradient)] transition-[width] duration-1000 ease-linear"
+              style={{ width: `${(left / REDIRECT_SECONDS) * 100}%` }}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => router.replace(href)}
+            className="mt-[16px] flex h-[50px] w-full items-center justify-center rounded-full border border-[var(--brand-stroke-soft)] bg-[image:var(--brand-orange-gradient)] font-poppins text-[16px] font-bold tracking-[0.16px] text-black transition-opacity hover:opacity-90"
+          >
+            FALAR COM O ATENDENTE AGORA
+          </button>
+        </div>
+      ) : null}
+
       <ul className="mt-[25px] flex flex-col gap-[10px]">
-        {payment.orders.map((order) => (
+        {/* Um link por PEDIDO (2026-10-16): as linhas são produtos, e os
+            produtos de um pedido repetem o código dele. */}
+        {byReference(payment.orders).map((order) => (
           <li key={order.reference}>
             <Link
               href={`/conta/pedidos/${encodeURIComponent(order.reference)}`}
               className="brand-ring flex h-[50px] items-center justify-between rounded-full bg-[image:var(--brand-surface-fill)] px-[25px] font-poppins text-[15px] text-white transition-opacity hover:opacity-90"
             >
-              <span className="truncate">{order.productName}</span>
+              <span className="truncate">{order.label}</span>
               <span className="ml-[15px] shrink-0 font-bold">{order.reference}</span>
             </Link>
           </li>
@@ -144,7 +199,7 @@ function Paid({ payment }: { payment: PaymentView }) {
 
       <Link
         href="/conta/pedidos"
-        className="mt-[25px] flex h-[50px] w-full items-center justify-center rounded-full border border-[var(--brand-stroke-soft)] bg-[image:var(--brand-orange-gradient)] font-poppins text-[16px] font-bold tracking-[0.16px] text-black transition-opacity hover:opacity-90"
+        className="mt-[18px] flex h-[44px] w-full items-center justify-center rounded-full border border-brand-border font-poppins text-[14px] font-bold text-white/80 transition-colors hover:text-white"
       >
         VER MEUS PEDIDOS
       </Link>
@@ -337,4 +392,14 @@ function Countdown({ until }: { until: string }) {
       )}
     </p>
   );
+}
+
+/** Produtos → um item por pedido: o nome do único produto, ou "N itens". */
+function byReference(lines: PaymentView["orders"]) {
+  const groups = new Map<string, string[]>();
+  for (const line of lines) groups.set(line.reference, [...(groups.get(line.reference) ?? []), line.productName]);
+  return [...groups].map(([reference, names]) => ({
+    reference,
+    label: names.length === 1 ? names[0] : `${names.length} itens`,
+  }));
 }

@@ -8,7 +8,7 @@ import { getProductOrdering } from "@/features/admin/products/ordering";
 import { getGameTabs } from "@/features/admin/games/tabs/list";
 import { isProductTab } from "@/features/admin/games/tabs/types";
 import { cn } from "@/lib/cn";
-import { requireAdminPage } from "@/features/admin/guard";
+import { requirePanelArea } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
   title: "Organizar produtos | Lets4Trade",
@@ -34,7 +34,7 @@ function first(value: string | string[] | undefined) {
  * tem) antes de qualquer leitura — é input de URL.
  */
 export default async function ProductOrderPage({ searchParams }: PageProps) {
-  await requireAdminPage();
+  await requirePanelArea("catalog");
   const params = await searchParams;
   const games = await getAdminGames();
 

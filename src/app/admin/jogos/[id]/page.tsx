@@ -8,8 +8,11 @@ import { GiftSection, OverviewSection, StorePageSection, TabsSection } from "@/f
 import { GameAdminNav } from "@/features/admin/games/GameAdminNav";
 import { getGameTabs } from "@/features/admin/games/tabs/list";
 import { isValidId } from "@/features/admin/games/tabs/types";
-import { requireAdminPage } from "@/features/admin/guard";
+import { requirePanelArea } from "@/features/admin/guard";
+import { canAccess } from "@/features/admin/permissions";
+import { getSessionRole } from "@/features/auth/session";
 import { ADMIN_SHELL } from "@/features/admin/layout";
+import { gameHref } from "@/features/game/href";
 
 export const metadata: Metadata = {
   title: "Jogo | Lets4Trade",
@@ -30,15 +33,17 @@ type PageProps = {
  *   - `pagina`: atalhos para o Builder, o Construtor e a loja;
  *   - `brinde`: o brinde por compra do jogo (2026-10-12).
  *
- * Substitui `/editar`, `/abas` e `/categorias` (hoje redirecionamentos). Só
- * ADMIN: aba, produto e categoria são estrutura do catálogo — o EDITOR recebe
- * 404, como nas outras telas só-ADMIN.
+ * Substitui `/editar`, `/abas` e `/categorias` (hoje redirecionamentos).
+ * Catálogo: ADMIN e EDITOR (2026-10-16); a seção Brinde, só ADMIN.
  */
 export default async function GameCentralPage({ params, searchParams }: PageProps) {
-  await requireAdminPage();
-  const [{ id }, raw] = await Promise.all([params, searchParams]);
+  await requirePanelArea("catalog");
+  const [{ id }, raw, role] = await Promise.all([params, searchParams, getSessionRole()]);
   if (!isValidId(id)) notFound();
   const query = parseCentralQuery(raw);
+  // Brinde é promoção: só ADMIN (2026-10-16). O EDITOR cuida do resto da Central.
+  const canGift = canAccess(role, "promotions");
+  if (query.section === "brinde" && !canGift) notFound();
 
   // Jogo e abas em paralelo (as abas só na seção que as desenha). Jogo
   // inexistente, desativado ou leitura que falhou: 404, como no produto.
@@ -65,7 +70,7 @@ export default async function GameCentralPage({ params, searchParams }: PageProp
           <div className="mt-[4px] flex flex-wrap items-baseline gap-x-[14px]">
             <h1 className="truncate font-helvetica text-[28px] leading-tight font-bold text-white">{game.name}</h1>
             <a
-              href={`/games/${encodeURIComponent(game.slug)}`}
+              href={gameHref(encodeURIComponent(game.slug))}
               target="_blank"
               rel="noopener"
               className="font-poppins text-[13px] text-white/60 transition-colors hover:text-white"
@@ -74,7 +79,7 @@ export default async function GameCentralPage({ params, searchParams }: PageProp
             </a>
           </div>
         </div>
-        <GameAdminNav game={game} active={query.section} variant="bar" showExtras={false} />
+        <GameAdminNav game={game} active={query.section} canGift={canGift} variant="bar" showExtras={false} />
       </header>
 
       <div className="mt-[28px]">

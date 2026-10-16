@@ -75,8 +75,8 @@ describe("guarda de papel", () => {
     ["saveTabCategoriesAction", () => saveTabCategoriesAction("g1", "t1", null, [])],
   ] as const;
 
-  it.each(calls)("%s: EDITOR → forbidden, sem API", async (_n, call) => {
-    role.mockResolvedValue("EDITOR");
+  it.each(calls)("%s: ATENDENTE → forbidden, sem API", async (_n, call) => {
+    role.mockResolvedValue("SUPPORT");
     expect(await call()).toEqual({ ok: false, reason: "forbidden" });
     for (const fn of [get, post, patch, put, putForm, del]) expect(fn).not.toHaveBeenCalled();
   });
@@ -145,7 +145,7 @@ describe("createTabAction", () => {
       layout: "LINK",
       linkHref: "/venda",
     });
-    expect(revalidatePath).toHaveBeenCalledWith("/games/[slug]", "page");
+    expect(revalidatePath).toHaveBeenCalledWith("/[slug]", "page");
     expect(revalidatePath).toHaveBeenCalledWith("/admin/jogos", "layout");
   });
 

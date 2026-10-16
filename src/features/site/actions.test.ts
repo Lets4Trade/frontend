@@ -51,7 +51,7 @@ function form(fields: Record<string, string | File>): FormData {
 
 function expectStoreRevalidated() {
   expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
-  expect(revalidatePath).toHaveBeenCalledWith("/games", "layout");
+  expect(revalidatePath).toHaveBeenCalledWith("/[slug]", "page");
   expect(updateTag).toHaveBeenCalledWith(LAYOUT_TAG);
 }
 

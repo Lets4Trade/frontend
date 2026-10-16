@@ -8,6 +8,7 @@ import {
   type SectionLayout,
   type SectionLayoutRow,
 } from "./pageLayout";
+import { gameHref } from "@/features/game/href";
 
 /**
  * A leitura das SESSÕES para as páginas públicas do site.
@@ -190,7 +191,7 @@ export async function getSectionItemsFor(
         image: backendAsset(row.imageUrl) ?? undefined,
         secondaryImage:
           backendAsset(row.secondaryImageUrl ?? game?.imageUrl ?? null) ?? undefined,
-        href: game ? `/games/${game.slug}` : row.href?.trim() || undefined,
+        href: game?.slug ? gameHref(game.slug) : row.href?.trim() || undefined,
         createdAt: row.createdAt ?? undefined,
       };
     });

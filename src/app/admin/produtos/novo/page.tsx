@@ -10,7 +10,7 @@ import {
   safeReturnPath,
 } from "@/features/admin/products/links";
 import { ProductForm } from "@/features/admin/products/ProductForm";
-import { requireAdminPage } from "@/features/admin/guard";
+import { requirePanelArea } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
   title: "Cadastro de produto | Lets4Trade",
@@ -32,7 +32,7 @@ export default async function NewProductPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireAdminPage();
+  await requirePanelArea("catalog");
   const [games, params] = await Promise.all([getAdminGames(), searchParams]);
 
   // Pré-preenchimento pela URL (admin-games-ux.md, Etapa 1): `?jogo&aba&servidor

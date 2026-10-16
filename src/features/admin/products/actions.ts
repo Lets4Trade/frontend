@@ -1,6 +1,7 @@
 "use server";
 
 import { getSessionRole } from "@/features/auth/session";
+import { canAccess } from "@/features/admin/permissions";
 import { revalidatePath } from "next/cache";
 import { apiDelete, apiPatchFormData, apiPost, apiPostFormData, apiPut } from "@/lib/serverApi";
 import { MAX_IMAGE_BYTES } from "../games/options";
@@ -39,7 +40,7 @@ export async function createProductAction(
 ): Promise<CreateProductResult> {
   const role = await getSessionRole();
   if (role === null) return { ok: false, reason: "unauthenticated" };
-  if (role !== "ADMIN") return { ok: false, reason: "forbidden" };
+  if (!canAccess(role, "catalog")) return { ok: false, reason: "forbidden" };
 
   const parsed = createProductSchema.safeParse({
     gameId: form.get("gameId"),
@@ -152,7 +153,7 @@ export async function deleteProductAction(
   id: string,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const role = await getSessionRole();
-  if (role !== "ADMIN") {
+  if (!canAccess(role, "catalog")) {
     return { ok: false, message: "Sua conta não tem permissão para excluir produtos." };
   }
 
@@ -181,7 +182,7 @@ export async function reactivateProductAction(
   id: string,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const role = await getSessionRole();
-  if (role !== "ADMIN") {
+  if (!canAccess(role, "catalog")) {
     return { ok: false, message: "Sua conta não tem permissão para reativar produtos." };
   }
 
@@ -221,7 +222,7 @@ export async function updateProductAction(
 ): Promise<CreateProductResult> {
   const role = await getSessionRole();
   if (role === null) return { ok: false, reason: "unauthenticated" };
-  if (role !== "ADMIN") return { ok: false, reason: "forbidden" };
+  if (!canAccess(role, "catalog")) return { ok: false, reason: "forbidden" };
   if (!isValidId(id)) return { ok: false, reason: "invalid", message: "Produto inválido." };
 
   // `gameId` fica de FORA: o produto já tem jogo, o backend não aceita trocá-lo
@@ -320,7 +321,7 @@ export async function saveProductOrderAction(
   ids: string[],
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const role = await getSessionRole();
-  if (role !== "ADMIN") {
+  if (!canAccess(role, "catalog")) {
     return { ok: false, message: "Sua conta não tem permissão para organizar produtos." };
   }
   if (!isValidId(tabId)) {
@@ -368,7 +369,7 @@ export async function saveProductPricesAction(
   items: { id: string; priceCents: number; expectedPriceCents: number }[],
 ): Promise<{ ok: true; saved: number } | { ok: false; message: string }> {
   const role = await getSessionRole();
-  if (role !== "ADMIN") {
+  if (!canAccess(role, "catalog")) {
     return { ok: false, message: "Sua conta não tem permissão para alterar preços." };
   }
   const cents = (value: unknown, min: number) =>

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { PARAM } from "@/features/game/catalog";
 import { readHistory, withTerm, writeHistory } from "./searchHistory";
+import { gameHref } from "@/features/game/href";
 
 /**
  * Busca do cabeçalho: sugere jogos e produtos enquanto a pessoa digita
@@ -97,14 +98,14 @@ function productHref(product: RawProduct) {
   if (product.tabSlug) params.set(PARAM.tab, product.tabSlug);
   if (product.serverSlug) params.set(PARAM.server, product.serverSlug);
   params.set(PARAM.search, product.name);
-  return `/games/${product.gameSlug}?${params.toString()}`;
+  return gameHref(product.gameSlug, params);
 }
 
 function toSuggestions(results: Results): { games: Suggestion[]; products: Suggestion[] } {
   return {
     games: results.games.map((game) => ({
       key: `g:${game.slug}`,
-      href: `/games/${game.slug}`,
+      href: gameHref(game.slug),
       title: game.name,
       detail: "Jogo",
       image: asset(game.imageUrl),
@@ -170,7 +171,7 @@ function trackSearch(term: string) {
 }
 
 function categoryHref(category: RawCategory) {
-  return `/games/${category.gameSlug}?${new URLSearchParams({ [PARAM.tab]: category.tabSlug }).toString()}`;
+  return gameHref(category.gameSlug, new URLSearchParams({ [PARAM.tab]: category.tabSlug }));
 }
 
 type Status = "idle" | "loading" | "done" | "error";

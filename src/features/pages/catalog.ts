@@ -14,7 +14,17 @@ import type { Block, BlockPropsMap, BlockType } from "./types";
 
 export type FieldSpec =
   | { kind: "text"; name: string; label: string; max: number; required?: boolean; placeholder?: string }
-  | { kind: "textarea"; name: string; label: string; max: number; required?: boolean; rows?: number; hint?: string }
+  | {
+      kind: "textarea";
+      name: string;
+      label: string;
+      max: number;
+      required?: boolean;
+      rows?: number;
+      hint?: string;
+      /** Barra de formatação + imagem do Imgur (só onde o bloco desenha Markdown com imagem). */
+      markdown?: boolean;
+    }
   | { kind: "select"; name: string; label: string; options: readonly { value: string; label: string }[] }
   | { kind: "image"; name: string; label: string; hint?: string }
   | { kind: "cta"; name: string; label: string }
@@ -308,7 +318,8 @@ export const BLOCKS: { [K in BlockType]: BlockDefinition<K> } = {
         max: 8000,
         required: true,
         rows: 10,
-        hint: "## Título · ### Subtítulo · **negrito** · *itálico* · - item de lista · 1. lista numerada · [texto do link](/venda ou https://…)",
+        hint: "## Título · ### Subtítulo · **negrito** · *itálico* · - item de lista · 1. lista numerada · [texto do link](/venda ou https://…) · ![legenda](https://i.imgur.com/….png) numa linha só",
+        markdown: true,
       },
     ],
     defaults: () => ({

@@ -176,8 +176,8 @@ describe("reorderGamesMenuAction (2026-10-15)", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/admin/jogos");
   });
 
-  it("não-ADMIN e lista inválida não chamam a API", async () => {
-    role.mockResolvedValue("EDITOR");
+  it("sem catálogo (atendente) e lista inválida não chamam a API", async () => {
+    role.mockResolvedValue("SUPPORT");
     expect((await reorderGamesMenuAction(["a"])).ok).toBe(false);
     role.mockResolvedValue("ADMIN");
     for (const ids of [[], ["../x"], [""], [1 as unknown as string]]) {

@@ -5,6 +5,7 @@ export { scopeCategories } from "./catalog";
 import { templateIcon } from "./tabs";
 import { parseSection } from "./sectionContent";
 import type { GameCategory, GameProduct, GameTab, GameTabLayout, ServiceContent } from "./types";
+import { gameHref } from "./href";
 
 /**
  * Tradução PURA das respostas da vitrine para o modelo da página — abas por
@@ -112,7 +113,7 @@ export function tabsFromApi(gameSlug: string, raw: readonly ApiGameTab[]): GameT
       if (!link) continue; // aba de link sem destino válido não é clicável
       href = link;
     } else {
-      href = defaultTaken ? `/games/${gameSlug}?aba=${tab.slug}` : `/games/${gameSlug}`;
+      href = defaultTaken ? gameHref(gameSlug, `aba=${tab.slug}`) : gameHref(gameSlug);
       defaultTaken = true;
     }
 

@@ -6,7 +6,8 @@
  * (a "bolinha") e imagem — "100% de personalização".
  *
  *   body        Markdown RESTRITO da loja (`pages/blocks/markdown.tsx`) + imagem
- *               em linha própria `![alt](/uploads/pages/<id>.webp)`.
+ *               em linha própria `![alt](/uploads/pages/<id>.webp)` ou
+ *               `![alt](https://i.imgur.com/<id>.png)`.
  *   marker      o que vai na frente de cada item de lista.
  *   markerColor a cor do marcador (ausente = a cor de cada tela).
  *   markerIcon  arte própria do marcador (só com `marker = "icon"`).
@@ -23,6 +24,20 @@ export type SectionMarkerColor = (typeof SECTION_MARKER_COLORS)[number];
 
 /** Arte enviada pelo painel (`POST /admin/pages/assets`). Nenhum outro endereço vira `<img>` na loja. */
 export const CONTENT_IMAGE = /^\/uploads\/pages\/[A-Za-z0-9_-]+\.webp$/;
+
+/**
+ * Link DIRETO de imagem do Imgur (2026-10-16, pedido do usuário: "colocar
+ * imagem por imgur, um link"). Um host só e o formato exato do link direto —
+ * imagem de endereço livre continua recusada (pixel de rastreamento de
+ * terceiro). Vale só no TEXTO; o ícone dos itens segue sendo do painel.
+ * Espelha `backend/src/app/games/section-content.ts`.
+ */
+export const IMGUR_IMAGE = /^https:\/\/i\.imgur\.com\/[A-Za-z0-9]{5,10}\.(?:png|jpe?g|gif|webp)$/;
+
+/** Imagem que pode aparecer no texto: arte do painel ou link direto do Imgur. */
+export function isBodyImage(src: string): boolean {
+  return CONTENT_IMAGE.test(src) || IMGUR_IMAGE.test(src);
+}
 
 export const MAX_SECTION_BODY = 20_000;
 export const MAX_SECTION_TITLE = 200;
@@ -73,10 +88,10 @@ export const MARKER_COLOR_CLASS: Record<SectionMarkerColor, string> = {
 
 const IMAGE_SYNTAX = /!\[[^\]\n]*\]\(([^)\n]*)\)/g;
 
-/** Toda imagem citada no texto é arte do próprio painel. */
-export function bodyImagesAreOwn(body: string): boolean {
+/** Toda imagem citada no texto é arte do painel ou link direto do Imgur. */
+export function bodyImagesAllowed(body: string): boolean {
   for (const match of body.matchAll(IMAGE_SYNTAX)) {
-    if (!CONTENT_IMAGE.test(match[1].trim())) return false;
+    if (!isBodyImage(match[1].trim())) return false;
   }
   return true;
 }
@@ -98,7 +113,7 @@ export function parseSection(raw: unknown): ServiceSection | null {
         .slice(0, 100)
     : [];
   const body =
-    typeof s.body === "string" && s.body.length <= MAX_SECTION_BODY && bodyImagesAreOwn(s.body)
+    typeof s.body === "string" && s.body.length <= MAX_SECTION_BODY && bodyImagesAllowed(s.body)
       ? s.body.trim()
       : "";
   if (!title && items.length === 0 && !body) return null;

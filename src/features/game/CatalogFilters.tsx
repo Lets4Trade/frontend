@@ -11,6 +11,7 @@ import {
 } from "./catalog";
 import { pillClassName } from "./pill";
 import type { GamePage } from "./types";
+import { gameHref } from "@/features/game/href";
 
 /**
  * Filtros do catálogo (Figma 1471:1798, 1486:1815, 1507:1897, 1184:651).
@@ -198,7 +199,7 @@ export function CatalogToolbar({
 function SearchBox({ page, query }: { page: GamePage; query: CatalogQuery }) {
   return (
     <form
-      action={`/games/${page.slug}`}
+      action={gameHref(page.slug)}
       method="get"
       role="search"
       className="relative col-span-2 h-[50px] w-full lg:w-[219px]"

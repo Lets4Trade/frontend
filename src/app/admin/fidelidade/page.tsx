@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { requireAdminPage } from "@/features/admin/guard";
+import { requirePanelArea } from "@/features/admin/guard";
 import { ADMIN_SHELL } from "@/features/admin/layout";
 import { getAdminLoyaltyTiers } from "@/features/admin/loyalty/data";
 import { LoyaltyTiersEditor } from "@/features/admin/loyalty/LoyaltyTiersEditor";
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
  * página /fidelidade continuam em Páginas → Fidelidade.
  */
 export default async function LoyaltyTiersPage() {
-  await requireAdminPage();
+  await requirePanelArea("promotions");
   const tiers = await getAdminLoyaltyTiers();
 
   return (

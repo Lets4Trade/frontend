@@ -24,8 +24,11 @@ const OPEN_OPTIONS = Array.from({ length: 1440 / STEP }, (_, index) => {
   const minutes = index * STEP;
   return { value: String(minutes), label: formatClock(minutes) };
 });
-/** Fechar vai até "24:00" (fim do dia). */
-const CLOSE_OPTIONS = [...OPEN_OPTIONS.slice(1), { value: "1440", label: "24:00" }];
+/** Fechar vai até o fim do dia (24:00 gravado, "00:00" na tela). */
+// Mostrado como "00:00" — é como a loja escreve meia-noite (2026-10-16). O
+// valor gravado continua 24:00 (fim do dia), para "abre 09 fecha 00" não virar
+// um intervalo invertido.
+const CLOSE_OPTIONS = [...OPEN_OPTIONS.slice(1), { value: "1440", label: "00:00" }];
 
 type DayField = { name: string; label: string };
 

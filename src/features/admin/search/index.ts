@@ -1,5 +1,6 @@
 import { SECTION_INFO, SETTINGS_GROUPS, SETTINGS_PAGE } from "@/features/admin/settings/catalog";
 import { ADMIN_NAV } from "@/features/admin/nav";
+import { canAccess, type PanelArea, type PanelRole } from "@/features/admin/permissions";
 import { hubGroups } from "@/features/pages/hub";
 import { STATIC_PAGES } from "@/features/pages/registry";
 import { sitePage, type SiteSectionDef } from "@/features/site/sections";
@@ -14,7 +15,8 @@ import { sitePage, type SiteSectionDef } from "@/features/site/sections";
  * ninguém lembrar de cadastrá-lo aqui. Puro e testável.
  */
 
-export type Role = "ADMIN" | "EDITOR";
+/** Cargo de painel (ver `permissions.ts`). */
+export type Role = PanelRole;
 
 export type SearchEntry = {
   id: string;
@@ -25,17 +27,18 @@ export type SearchEntry = {
   keywords: readonly string[];
 };
 
-type Gated = SearchEntry & { roles?: readonly Role[] };
+/** Cada entrada diz a ÁREA do painel; quem não tem a área não a vê na busca. */
+type Gated = SearchEntry & { area: PanelArea };
 
 const ACTIONS: readonly Gated[] = [
-  { id: "acao:novo-produto", title: "Cadastrar produto", where: "Ação", href: "/admin/produtos/novo", keywords: ["novo", "criar", "adicionar"] },
-  { id: "acao:precos", title: "Editar preços", where: "Ação", href: "/admin/produtos/precos", keywords: ["preço", "valor", "lote", "tabela"] },
-  { id: "acao:cupons", title: "Cupons de desconto", where: "Ação", href: "/admin/cupons", keywords: ["cupom", "cupons", "desconto", "promoção", "código", "voucher"] },
-  { id: "acao:novo-cupom", title: "Novo cupom", where: "Ação", href: "/admin/cupons/novo", keywords: ["cupom", "desconto", "promoção", "código", "criar"] },
-  { id: "acao:fidelidade-niveis", title: "Níveis de fidelidade", where: "Ação", href: "/admin/fidelidade", keywords: ["cashback", "nível", "rank", "bronze", "prata", "ouro", "diamante", "adamantium", "ícone", "lets coin"] },
-  { id: "acao:ordem", title: "Ordem dos produtos", where: "Ação", href: "/admin/produtos/ordem", keywords: ["ordenar", "posição", "vitrine"] },
-  { id: "acao:novo-jogo", title: "Cadastrar jogo", where: "Ação", href: "/admin/jogos/novo", keywords: ["novo", "criar", "game"] },
-  { id: "acao:nova-noticia", title: "Novo post", where: "Ação", href: "/admin/blog/nova", keywords: ["blog", "post", "matéria"], roles: ["ADMIN", "EDITOR"] },
+  { id: "acao:novo-produto", title: "Cadastrar produto", where: "Ação", href: "/admin/produtos/novo", keywords: ["novo", "criar", "adicionar"], area: "catalog" },
+  { id: "acao:precos", title: "Editar preços", where: "Ação", href: "/admin/produtos/precos", keywords: ["preço", "valor", "lote", "tabela"], area: "catalog" },
+  { id: "acao:cupons", title: "Cupons de desconto", where: "Ação", href: "/admin/cupons", keywords: ["cupom", "cupons", "desconto", "promoção", "código", "voucher"], area: "promotions" },
+  { id: "acao:novo-cupom", title: "Novo cupom", where: "Ação", href: "/admin/cupons/novo", keywords: ["cupom", "desconto", "promoção", "código", "criar"], area: "promotions" },
+  { id: "acao:fidelidade-niveis", title: "Níveis de fidelidade", where: "Ação", href: "/admin/fidelidade", keywords: ["cashback", "nível", "rank", "bronze", "prata", "ouro", "diamante", "adamantium", "ícone", "lets coin"], area: "promotions" },
+  { id: "acao:ordem", title: "Ordem dos produtos", where: "Ação", href: "/admin/produtos/ordem", keywords: ["ordenar", "posição", "vitrine"], area: "catalog" },
+  { id: "acao:novo-jogo", title: "Cadastrar jogo", where: "Ação", href: "/admin/jogos/novo", keywords: ["novo", "criar", "game"], area: "catalog" },
+  { id: "acao:nova-noticia", title: "Novo post", where: "Ação", href: "/admin/blog/nova", keywords: ["blog", "post", "matéria"], area: "content" },
 ];
 
 /**
@@ -72,7 +75,7 @@ function staticEntries(): Gated[] {
 
   for (const item of ADMIN_NAV) {
     if (!item.href) continue;
-    entries.push({ id: `menu:${item.href}`, title: item.label, where: "Menu", href: item.href, keywords: [], roles: item.roles });
+    entries.push({ id: `menu:${item.href}`, title: item.label, where: "Menu", href: item.href, keywords: [], area: item.area });
   }
 
   entries.push(...ACTIONS);
@@ -82,7 +85,7 @@ function staticEntries(): Gated[] {
     where: "Página",
     href: "/admin/paginas/desenho?pagina=home",
     keywords: ["home", "desenho", "textos", "imagens", "banner", "hero", "contadores", "reviews", "equipe", "guias"],
-    roles: ["ADMIN", "EDITOR"],
+    area: "content",
   });
 
   const layout = sitePage(SETTINGS_PAGE);
@@ -102,7 +105,7 @@ function staticEntries(): Gated[] {
         ...group.sections.flatMap((suffix) => (SECTION_INFO[suffix] ? [SECTION_INFO[suffix].title, SECTION_INFO[suffix].description] : [])),
         ...defs.flatMap((def) => [def.label, ...fieldWords(def)]),
       ],
-      roles: ["ADMIN", "EDITOR"],
+      area: "content",
     });
   }
 
@@ -113,7 +116,7 @@ function staticEntries(): Gated[] {
       where: "Página",
       href: pageHref(page.slug),
       keywords: ["página", "editar"],
-      roles: ["ADMIN", "EDITOR"],
+      area: "content",
     });
 
     if (page.kind === "content") {
@@ -128,7 +131,7 @@ function staticEntries(): Gated[] {
           where: page.label,
           href: pageHref(page.slug, key),
           keywords: fieldWords(def),
-          roles: ["ADMIN", "EDITOR"],
+          area: "content",
         });
       }
     } else if (page.content.kind === "sections") {
@@ -141,7 +144,7 @@ function staticEntries(): Gated[] {
           where: page.label,
           href: pageHref(page.slug),
           keywords: def ? fieldWords(def) : [],
-          roles: ["ADMIN", "EDITOR"],
+          area: "content",
         });
       }
     }
@@ -164,17 +167,19 @@ const STATIC = staticEntries();
 
 /** O índice visível para o cargo. Jogos entram quando a lista chega. */
 export function buildIndex(role: Role, games: readonly { id: string; name: string }[] = []): SearchEntry[] {
-  const visible: SearchEntry[] = STATIC.filter((entry) => (entry.roles ?? ["ADMIN"]).includes(role)).map(
+  const visible: SearchEntry[] = STATIC.filter((entry) => canAccess(role, entry.area)).map(
     (entry) => ({ id: entry.id, title: entry.title, where: entry.where, href: entry.href, keywords: entry.keywords }),
   );
-  const gameEntries: SearchEntry[] = games.map((game) => ({
-    id: `jogo:${game.id}`,
-    title: game.name,
-    where: "Jogo",
-    // ADMIN cai na Central do jogo; o EDITOR não vê o catálogo, só o Builder.
-    href: role === "ADMIN" ? `/admin/jogos/${game.id}` : `/admin/builder/${game.id}`,
-    keywords: ["jogo", "game", "abas", "produtos", "servidores"],
-  }));
+  // Jogo abre a Central (catálogo); o atendente não tem jogos na busca.
+  const gameEntries: SearchEntry[] = canAccess(role, "catalog")
+    ? games.map((game) => ({
+        id: `jogo:${game.id}`,
+        title: game.name,
+        where: "Jogo",
+        href: `/admin/jogos/${game.id}`,
+        keywords: ["jogo", "game", "abas", "produtos", "servidores"],
+      }))
+    : [];
   return [...visible, ...gameEntries];
 }
 

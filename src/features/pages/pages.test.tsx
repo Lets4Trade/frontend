@@ -42,7 +42,7 @@ describe("catálogo de blocos", () => {
 
 describe("resolveHref", () => {
   it("jogo resolve pelo slug atual; jogo sumido = sem link", () => {
-    expect(resolveHref({ kind: "game", gameId: "g1" }, refs)).toBe("/games/diablo");
+    expect(resolveHref({ kind: "game", gameId: "g1" }, refs)).toBe("/diablo");
     expect(resolveHref({ kind: "game", gameId: "nope" }, refs)).toBeNull();
   });
 
@@ -137,6 +137,22 @@ describe("markdown restrito (Texto formatado)", async () => {
     expect(safeHref("http://site.com")).toBeNull();
   });
 
+  it("imagem do Imgur numa linha só vira bloco; outro host some; sem `images` é texto (2026-10-16)", () => {
+    const source = "antes\n![foto](https://i.imgur.com/AbC1234.png)\n![x](https://evil.com/a.png)\ndepois";
+    expect(parseBlocks(source, { images: true })).toEqual([
+      { kind: "p", text: "antes" },
+      { kind: "img", src: "https://i.imgur.com/AbC1234.png", alt: "foto" },
+      { kind: "p", text: "depois" },
+    ]);
+    expect(parseBlocks(source).some((block) => block.kind === "img")).toBe(false);
+    // Colada no meio do parágrafo: ganha linha própria em vez de virar link "!foto".
+    expect(parseBlocks("antes ![foto](https://i.imgur.com/AbC1234.png) depois", { images: true })).toEqual([
+      { kind: "p", text: "antes" },
+      { kind: "img", src: "https://i.imgur.com/AbC1234.png", alt: "foto" },
+      { kind: "p", text: "depois" },
+    ]);
+  });
+
   it("link proibido vira só o rótulo, sem href", () => {
     const [node] = renderInline("[clique](javascript:alert(1))").filter(Boolean) as React.ReactElement<{ href?: string; children: string }>[];
     expect(node.props.href).toBeUndefined();
@@ -179,7 +195,7 @@ describe("fase 4 — várias páginas", async () => {
     expect(builderPage("cabecalho", games)?.kind).toBe("content");
     expect(builderPage("rodape", games)?.kind).toBe("content");
     const game = builderPage("jogo-g1", games);
-    expect(game).toMatchObject({ kind: "blocks", frame: "game", href: "/games/diablo" });
+    expect(game).toMatchObject({ kind: "blocks", frame: "game", href: "/diablo" });
     expect(builderPage("jogo-nao-existe", games)).toBeNull();
     expect(builderPage("../admin", games)).toBeNull();
   });

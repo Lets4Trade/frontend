@@ -58,7 +58,7 @@ describe("parseCatalogQuery com abas do banco", () => {
 
   it("buildHref preserva a aba", () => {
     const query = parseCatalogQuery({ aba: "power-leveling" }, page);
-    expect(buildHref("poe2", query, { server: "hc" })).toBe("/games/poe2?aba=power-leveling&servidor=hc");
+    expect(buildHref("poe2", query, { server: "hc" })).toBe("/poe2?aba=power-leveling&servidor=hc");
   });
 });
 

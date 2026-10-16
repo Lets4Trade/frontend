@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyFormat, insertImage, toggleHeading } from "./markdownFormat";
+import { applyFormat, imgurImageUrl, insertImage, toggleHeading } from "./markdownFormat";
 
 describe("applyFormat", () => {
   it("negrito envolve a seleção e mantém o trecho selecionado", () => {
@@ -49,6 +49,29 @@ describe("toggleHeading e insertImage (2026-10-16)", () => {
     expect(insertImage("um\n\ndois", 1, url).value).toBe(`um\n\n![imagem](${url})\n\ndois`);
     const end = insertImage("texto", 5, url);
     expect(end.value).toBe(`texto\n\n![imagem](${url})\n`);
-    expect(end.selectionStart).toBe(end.value.length - 1);
+    expect(end.selectionStart).toBe(end.value.length);
+    const middle = insertImage("um\ndois", 1, url);
+    // Na linha em branco entre a imagem e o texto seguinte.
+    expect(middle.value.slice(middle.selectionStart)).toBe("\ndois");
+  });
+});
+
+describe("imgurImageUrl (2026-10-16)", () => {
+  it("transforma o que o admin cola no link direto da imagem", () => {
+    expect(imgurImageUrl("https://i.imgur.com/AbC1234.png")).toEqual({ url: "https://i.imgur.com/AbC1234.png" });
+    expect(imgurImageUrl(" https://i.imgur.com/AbC1234.JPG?1 ")).toEqual({ url: "https://i.imgur.com/AbC1234.jpg" });
+    expect(imgurImageUrl("https://imgur.com/AbC1234")).toEqual({ url: "https://i.imgur.com/AbC1234.png" });
+    expect(imgurImageUrl("imgur.com/AbC1234")).toEqual({ url: "https://i.imgur.com/AbC1234.png" });
+    expect(imgurImageUrl("https://i.imgur.com/AbC1234.gifv")).toEqual({ url: "https://i.imgur.com/AbC1234.gif" });
+  });
+
+  it("recusa álbum, outro site e esquema estranho", () => {
+    expect(imgurImageUrl("https://imgur.com/a/AbC1234")).toHaveProperty("error", expect.stringMatching(/álbum/));
+    expect(imgurImageUrl("https://imgur.com/gallery/AbC1234")).toHaveProperty("error");
+    expect(imgurImageUrl("https://i.imgur.com.evil.com/AbC1234.png")).toHaveProperty("error");
+    expect(imgurImageUrl("https://evil.com/AbC1234.png")).toHaveProperty("error");
+    expect(imgurImageUrl("javascript:alert(1)")).toHaveProperty("error");
+    expect(imgurImageUrl("https://i.imgur.com/AbC1234.svg")).toHaveProperty("error");
+    expect(imgurImageUrl("")).toHaveProperty("error");
   });
 });

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { AdminFormCard } from "@/features/admin/AdminFormCard";
 import { GameForm } from "@/features/admin/games/GameForm";
-import { requireAdminPage } from "@/features/admin/guard";
+import { requirePanelArea } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
   title: "Cadastro de jogo | Lets4Trade",
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
  * moldura do card, em `AdminFormCard`, compartilhada com o cadastro de produto.
  */
 export default async function NewGamePage() {
-  await requireAdminPage();
+  await requirePanelArea("catalog");
   return (
     <AdminFormCard title="CADASTRO DE JOGO" headingId="cadastro-jogo-heading">
       <GameForm />

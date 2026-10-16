@@ -2,6 +2,7 @@
 
 import { revalidatePath, updateTag } from "next/cache";
 import { getSessionRole } from "@/features/auth/session";
+import { canAccess } from "@/features/admin/permissions";
 import { GAMES_MENU_TAG } from "@/features/game/menuGames";
 import { apiDelete, apiPostFormData, apiPut } from "@/lib/serverApi";
 import { MAX_IMAGE_BYTES } from "./options";
@@ -46,7 +47,7 @@ export type CreateGameResult =
 export async function createGameAction(form: FormData): Promise<CreateGameResult> {
   const role = await getSessionRole();
   if (role === null) return { ok: false, reason: "unauthenticated" };
-  if (role !== "ADMIN") return { ok: false, reason: "forbidden" };
+  if (!canAccess(role, "catalog")) return { ok: false, reason: "forbidden" };
 
   const parsed = createGameSchema.safeParse({
     name: form.get("name"),
@@ -143,7 +144,7 @@ export async function deactivateGameAction(
   id: string,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const role = await getSessionRole();
-  if (role !== "ADMIN") {
+  if (!canAccess(role, "catalog")) {
     return { ok: false, message: "Sua conta não tem permissão para excluir games." };
   }
   // O id vai para o CAMINHO da URL: formato fechado, senão um `../` vindo do
@@ -186,7 +187,7 @@ export async function reorderGamesMenuAction(
   ids: string[],
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const role = await getSessionRole();
-  if (role !== "ADMIN") {
+  if (!canAccess(role, "catalog")) {
     return { ok: false, message: "Sua conta não tem permissão para mudar a ordem dos games." };
   }
   if (

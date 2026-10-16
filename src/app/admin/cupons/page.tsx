@@ -10,7 +10,7 @@ import {
   usageLabel,
   validityLabel,
 } from "@/features/admin/coupons/types";
-import { requireAdminPage } from "@/features/admin/guard";
+import { requirePanelArea } from "@/features/admin/guard";
 import { ADMIN_SHELL } from "@/features/admin/layout";
 import { cn } from "@/lib/cn";
 
@@ -32,7 +32,7 @@ export default async function AdminCouponsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireAdminPage();
+  await requirePanelArea("promotions");
   const params = await searchParams;
   const search = first(params.q).trim().slice(0, 40);
   const page = Math.max(1, Number.parseInt(first(params.pagina), 10) || 1);

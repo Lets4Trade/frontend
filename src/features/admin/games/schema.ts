@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { isReservedGameSlug, RESERVED_SLUG_MESSAGE } from "@/features/game/href";
+import { slugify } from "@/lib/slugify";
 import { PLATFORMS, TAB_TEMPLATE_OPTIONS } from "./options";
 
 /**
@@ -38,10 +40,16 @@ export const createGameSchema = z.object({
     .min(2, "O nome do jogo precisa ter ao menos 2 caracteres.")
     .max(120, "O nome do jogo é longo demais."),
 
-  // Link na loja (`/games/<slug>`), editável desde 2026-09-25. Vazio = o
-  // servidor deriva do nome. A normalização acontece nas duas pontas (prévia
-  // aqui, gravação no backend); o que o schema barra é só o tamanho.
-  slug: z.string().trim().max(80, "O link pode ter no máximo 80 caracteres.").default(""),
+  // Link na loja (`/<slug>` desde 2026-10-16), editável desde 2026-09-25.
+  // Vazio = o servidor deriva do nome. A normalização acontece nas duas pontas
+  // (prévia aqui, gravação no backend). Barra o tamanho e os links de página
+  // do site — a página do jogo divide a raiz com elas.
+  slug: z
+    .string()
+    .trim()
+    .max(80, "O link pode ter no máximo 80 caracteres.")
+    .refine((value) => !isReservedGameSlug(slugify(value)), RESERVED_SLUG_MESSAGE)
+    .default(""),
 
   platform: z.enum(platformValues, {
     message: "Escolha a plataforma do jogo.",

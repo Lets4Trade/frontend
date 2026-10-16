@@ -1,5 +1,6 @@
 import { apiGet } from "@/lib/serverApi";
-import { UNASSIGNED, type AdminOrderPage, type Attendant } from "./types";
+import { isDeliveryColor } from "@/features/orders/deliveryStatus";
+import { UNASSIGNED, type AdminDeliveryStatus, type AdminOrderPage, type Attendant } from "./types";
 
 // Re-exportado para quem lê a URL não precisar saber que a constante mudou de
 // arquivo. A definição foi para `types.ts` porque a TABELA também precisa dela,
@@ -108,6 +109,18 @@ export async function getAdminOrders(query: OrdersQuery): Promise<AdminOrderPage
   return result.ok
     ? result.data
     : { items: [], total: 0, page: 1, limit: 25, pageCount: 1 };
+}
+
+/**
+ * Status de entrega personalizados (2026-10-16), ativos, na ordem do select.
+ * Lista vazia em qualquer imprevisto — o select fica só com as situações.
+ */
+export async function getDeliveryStatuses(): Promise<AdminDeliveryStatus[]> {
+  const result = await apiGet<{ items?: AdminDeliveryStatus[] }>("/admin/delivery-statuses");
+  if (!result.ok || !Array.isArray(result.data.items)) return [];
+  return result.data.items.filter(
+    (status) => typeof status?.id === "string" && typeof status.label === "string" && isDeliveryColor(status.color),
+  );
 }
 
 /** Os atendentes do select. Lista vazia em qualquer imprevisto. */

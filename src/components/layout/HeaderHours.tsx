@@ -20,10 +20,10 @@ export function HeaderHours({ title, schedule }: { title: string; schedule: read
   return (
     <div className="@container hidden min-w-0 flex-1 md:block" data-admin-section="layout:horario">
       <div className="hidden flex-col items-center text-center @min-[220px]:flex">
-        <span className="font-poppins text-[10px] leading-[14px] font-bold tracking-[0.08em] text-brand-fg-subtle uppercase">
+        <span className="font-poppins text-[10px] leading-[14px] font-bold tracking-[0.08em] text-brand-orange uppercase">
           {title}
         </span>
-        <span className="mt-[3px] flex flex-wrap justify-center gap-x-[10px] font-poppins text-[13px] leading-[18px] text-white">
+        <span className="mt-[3px] flex flex-wrap justify-center gap-x-[10px] font-poppins text-[13px] leading-[18px] font-bold text-white">
           {schedule.map((line, index) => (
             <span key={line.days} className="whitespace-nowrap">
               {index > 0 ? (
@@ -53,11 +53,11 @@ export function HeaderHoursStrip({ title, schedule }: { title: string; schedule:
       className="flex flex-wrap items-center justify-center gap-x-[8px] gap-y-[2px] border-t border-white/10 px-[16px] py-[6px] text-center md:hidden"
       data-admin-section="layout:horario"
     >
-      <span className="font-poppins text-[9px] leading-[14px] font-bold tracking-[0.08em] text-brand-fg-subtle uppercase">
+      <span className="font-poppins text-[9px] leading-[14px] font-bold tracking-[0.08em] text-brand-orange uppercase">
         {title}
       </span>
       {schedule.map((line) => (
-        <span key={line.days} className="font-poppins text-[11px] leading-[14px] whitespace-nowrap text-white">
+        <span key={line.days} className="font-poppins text-[11px] leading-[14px] font-bold whitespace-nowrap text-white">
           <span className="font-bold">{line.days}</span> {line.hours}
         </span>
       ))}

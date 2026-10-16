@@ -28,7 +28,7 @@ export type UsersQuery = {
   page: number;
 };
 
-const ROLES = new Set(["ADMIN", "EDITOR", "USER"]);
+const ROLES = new Set(["ADMIN", "EDITOR", "SUPPORT", "USER"]);
 
 type RawParams = Record<string, string | string[] | undefined>;
 

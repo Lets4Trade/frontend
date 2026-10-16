@@ -48,11 +48,8 @@ export default async function PaymentPage({ params }: PageProps) {
     0,
   );
   // Coins + cupom (2026-10-12): o quadro mostra um "Desconto" só, que é o que
-  // separa o preço cheio do valor cobrado.
-  const discount = payment.orders.reduce(
-    (sum, order) => sum + (order.discountCents ?? 0) + (order.couponCents ?? 0),
-    0,
-  );
+  // separa o preço cheio do valor cobrado. Somas da cobrança (2026-10-16).
+  const discount = (payment.discountCents ?? 0) + (payment.couponCents ?? 0);
 
   return (
     <CheckoutShell>
@@ -70,11 +67,12 @@ export default async function PaymentPage({ params }: PageProps) {
           </h2>
           <div aria-hidden className="mt-[15px] h-px w-full bg-white/25" />
 
-          {payment.orders.map((order) => (
+          {/* Uma linha por PRODUTO; vários produtos repetem o código do pedido (2026-10-16). */}
+          {payment.orders.map((order, index) => (
             <OrderLineBlock
-              key={order.reference}
+              key={`${order.reference}-${index}`}
               line={{
-                id: order.reference,
+                id: `${order.reference}-${index}`,
                 name: order.productName,
                 platform: order.platform,
                 quantity: order.quantity,

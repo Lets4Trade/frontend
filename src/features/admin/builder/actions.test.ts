@@ -197,7 +197,7 @@ describe("savePageAction", () => {
 
   it("sucesso invalida vitrine, builder, home (slides do hero) e o menu GAMES", async () => {
     await savePageAction("g1", page());
-    expect(revalidatePath).toHaveBeenCalledWith("/games/poe2");
+    expect(revalidatePath).toHaveBeenCalledWith("/poe2");
     expect(revalidatePath).toHaveBeenCalledWith("/admin/builder", "layout");
     expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
     expect(updateTag).toHaveBeenCalledWith(GAMES_MENU_TAG);

@@ -77,7 +77,9 @@ function contentSecurityPolicy({ checkout = false, framableBySelf = false } = {}
     "default-src": ["'self'"],
     "script-src": ["'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : []), ...threeDs],
     "style-src": ["'self'", "'unsafe-inline'"],
-    "img-src": ["'self'", "data:", "blob:", apiOrigin, ...anyHttps],
+    // `i.imgur.com`: imagem por link do Imgur no texto do blog/seções/descrição
+    // (2026-10-16). Só esse host — o mesmo que `IMGUR_IMAGE` aceita no texto.
+    "img-src": ["'self'", "data:", "blob:", apiOrigin, "https://i.imgur.com", ...anyHttps],
     "font-src": ["'self'", "data:"],
     "connect-src": ["'self'", apiOrigin, apiSocket, ...(isDev ? ["ws:"] : []), ...anyHttps],
     // `'self'` para o editor de páginas embutir a prévia (`/previa/...`) — só a
@@ -176,6 +178,11 @@ const nextConfig: NextConfig = {
       { source: "/noticias/:slug", destination: "/blog/:slug", permanent: true },
       { source: "/admin/noticias", destination: "/admin/blog", permanent: true },
       { source: "/admin/noticias/:path*", destination: "/admin/blog/:path*", permanent: true },
+      // Página do jogo foi para a RAIZ (2026-10-16): `/games/diablo` → `/diablo`,
+      // com a query junto (`?aba=`, `?servidor=`). `/games` sozinho nunca foi
+      // página; manda para a home em vez de 404.
+      { source: "/games", destination: "/", permanent: true },
+      { source: "/games/:slug", destination: "/:slug", permanent: true },
     ];
   },
   async headers() {
@@ -241,7 +248,9 @@ const nextConfig: NextConfig = {
     // permanecer LIGADA lá. Liberamos o IP privado SOMENTE fora de produção.
     dangerouslyAllowLocalIP: process.env.NODE_ENV !== "production",
     // Next 16 exige declarar as qualidades usadas na prop `quality` (default 75).
-    // Valores em uso hoje: 75 (default), 90 (EventCardContent), 100 (LandingPage).
+    // Valores em uso hoje: 75 (default), 90 (EventCardContent e, desde
+    // 2026-10-16, os ROSTOS pequenos — atendentes no chat e assinatura da home,
+    // que a 75 ficavam borrados em 40–60px), 100 (LandingPage).
     qualities: [75, 90, 100],
     remotePatterns: [
       { protocol: "https", hostname: "*.lets4trade.com.br" },

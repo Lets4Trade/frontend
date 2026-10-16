@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getSessionRole } from "@/features/auth/session";
+import { canAccess } from "@/features/admin/permissions";
 import { apiPatch } from "@/lib/serverApi";
 import type { AdminOrder } from "./types";
 
@@ -26,7 +27,7 @@ export type UpdateOrderResult =
     };
 
 /**
- * Altera situação e/ou atendente de um pedido.
+ * Altera situação, status de entrega personalizado e/ou atendente de um pedido.
  *
  * ── `undefined` não é `null` ───────────────────────────────────────────────
  * Campo ausente no corpo significa "não mexa"; `null` em `assigneeId` significa
@@ -35,11 +36,11 @@ export type UpdateOrderResult =
  */
 export async function updateOrderAction(
   id: string,
-  patch: { status?: string; assigneeId?: string | null },
+  patch: { status?: string; assigneeId?: string | null; deliveryStatusId?: string | null },
 ): Promise<UpdateOrderResult> {
   const role = await getSessionRole();
   if (role === null) return { ok: false, reason: "unauthenticated" };
-  if (role !== "ADMIN") return { ok: false, reason: "forbidden" };
+  if (!canAccess(role, "orders")) return { ok: false, reason: "forbidden" };
 
   // Formato fechado, e não só "não vazio": o id vai para o CAMINHO da URL, e
   // um `../` vindo do cliente viraria outra rota do backend no `fetch`.
@@ -50,9 +51,11 @@ export async function updateOrderAction(
     return { ok: false, reason: "invalid" };
   }
 
-  const body: { status?: string; assigneeId?: string | null } = {};
+  const body: { status?: string; assigneeId?: string | null; deliveryStatusId?: string | null } = {};
   if (patch.status !== undefined) body.status = patch.status;
   if (patch.assigneeId !== undefined) body.assigneeId = patch.assigneeId;
+  // Status de entrega personalizado (2026-10-16): id opaco; `null` tira.
+  if (patch.deliveryStatusId !== undefined) body.deliveryStatusId = patch.deliveryStatusId;
 
   if (Object.keys(body).length === 0) {
     return { ok: false, reason: "invalid", message: "Nada para alterar." };

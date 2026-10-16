@@ -24,16 +24,21 @@ describe("busca do painel", () => {
     expect(search(buildIndex("ADMIN"), "editar preços")[0]?.href).toBe("/admin/produtos/precos");
   });
 
-  it("jogo: ADMIN vai à Central, EDITOR ao Builder", () => {
+  it("jogo: ADMIN e EDITOR vão à Central; o atendente não tem jogos", () => {
     expect(search(buildIndex("ADMIN", games), "path")[0]?.href).toBe("/admin/jogos/g1");
-    expect(search(buildIndex("EDITOR", games), "path")[0]?.href).toBe("/admin/builder/g1");
+    expect(search(buildIndex("EDITOR", games), "path")[0]?.href).toBe("/admin/jogos/g1");
+    expect(search(buildIndex("SUPPORT", games), "path")).toEqual([]);
   });
 
-  it("EDITOR não vê telas só de ADMIN", () => {
+  it("cada cargo vê só a sua área (2026-10-16)", () => {
     const editor = buildIndex("EDITOR");
     expect(editor.some((entry) => entry.href.startsWith("/admin/usuarios"))).toBe(false);
-    expect(editor.some((entry) => entry.href === "/admin/produtos/precos")).toBe(false);
+    expect(editor.some((entry) => entry.href.startsWith("/admin/cupons"))).toBe(false);
+    expect(editor.some((entry) => entry.href === "/admin/produtos/precos")).toBe(true);
     expect(search(editor, "whatsapp")[0]?.href).toBe("/admin/configuracoes#atendimento");
+
+    const support = buildIndex("SUPPORT");
+    expect(support.map((entry) => entry.href).sort()).toEqual(["/admin/chats", "/admin/pedidos"]);
   });
 
   it("busca vazia sugere o menu e as configurações", () => {

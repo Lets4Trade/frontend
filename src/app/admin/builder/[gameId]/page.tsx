@@ -7,6 +7,8 @@ import { getGamePage } from "@/features/game/content";
 import { GameAdminNav } from "@/features/admin/games/GameAdminNav";
 import { getGameTabs } from "@/features/admin/games/tabs/list";
 import { getSessionRole } from "@/features/auth/session";
+import { requirePanelArea } from "@/features/admin/guard";
+import { canAccess } from "@/features/admin/permissions";
 
 export const metadata: Metadata = {
   title: "Builder de Páginas | Lets4Trade",
@@ -33,6 +35,8 @@ export default async function BuilderPage({
   params: Promise<{ gameId: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  // Conteúdo: ADMIN e EDITOR (o atendente entra no painel, mas não aqui).
+  await requirePanelArea("content");
   const [{ gameId }, query] = await Promise.all([params, searchParams]);
   const game = await getBuilderGame(gameId);
   if (!game) notFound();
@@ -57,9 +61,10 @@ export default async function BuilderPage({
     // Memorizada por requisição: o layout do painel já a leu.
     getSessionRole(),
   ]);
-  // O EDITOR abre o Builder, mas a Central e Produtos são só-ADMIN: a
-  // navegação e os atalhos que dariam 404 somem para ele.
-  const canManage = role === "ADMIN";
+  // Catálogo (Central e Produtos): ADMIN e EDITOR desde 2026-10-16. A
+  // navegação e os atalhos que dariam 404 somem para quem não tem.
+  const canManage = canAccess(role, "catalog");
+  const canGift = canAccess(role, "promotions");
 
   // `?etapa=` (mapa da página na Central): só etapa que EDITA aqui e que o
   // cargo enxerga — atalho (`href`) ou valor inventado abre a pré-visualização.
@@ -73,7 +78,7 @@ export default async function BuilderPage({
       tabs={tabs}
       canManage={canManage}
       initialStep={initialStep}
-      nav={<GameAdminNav game={game} active={null} canManage={canManage} variant="bar" />}
+      nav={<GameAdminNav game={game} active={null} canManage={canManage} canGift={canGift} variant="bar" />}
       shared={
         published
           ? {

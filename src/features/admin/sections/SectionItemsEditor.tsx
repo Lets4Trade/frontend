@@ -411,7 +411,7 @@ function ItemRow({
                 o admin precisar procurar — ele mora no cadastro do jogo. */}
             <p className="mt-[6px] font-poppins text-[12px] text-brand-fg-subtle">
               {item?.game
-                ? `Link: /games/${item.game.slug} (para mudar, edite o jogo no Builder).`
+                ? `Link: /${item.game.slug} (para mudar, edite o jogo no Builder).`
                 : item?.gameRemoved
                   ? `O jogo deste ${def.itemLabel} foi excluído e está FORA da loja. Escolha outro jogo.`
                   : item?.title
@@ -446,7 +446,7 @@ function ItemRow({
                 name="href"
                 defaultValue={item?.href ?? ""}
                 maxLength={500}
-                placeholder="/games/diablo"
+                placeholder="/diablo"
                 className={INPUT}
               />
             </Field>

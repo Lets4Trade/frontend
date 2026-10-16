@@ -2,6 +2,7 @@
 
 import { revalidatePath, updateTag } from "next/cache";
 import { getSessionRole } from "@/features/auth/session";
+import { canAccess } from "@/features/admin/permissions";
 import { PRESENCE_TAG } from "@/features/support/presence";
 import { apiGet, apiPut, apiPutFormData } from "@/lib/serverApi";
 
@@ -14,7 +15,7 @@ import { apiGet, apiPut, apiPutFormData } from "@/lib/serverApi";
  * Next derruba esse cache. Com `updateTag`, quem clica em Online (ou troca a
  * foto) aparece no cabeçalho e no botão do chat no mesmo instante.
  *
- * Só ADMIN — é quem atende (o EDITOR não vê chats). O backend confere de novo.
+ * ADMIN e ATENDENTE — quem atende (o EDITOR não vê chats). O backend confere de novo.
  */
 
 export type PresenceStatus = {
@@ -34,7 +35,7 @@ const PHOTO_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 async function denied(): Promise<{ ok: false; message: string } | null> {
   const role = await getSessionRole();
   if (role === null) return { ok: false, message: "Sua sessão expirou. Entre de novo." };
-  if (role !== "ADMIN") return { ok: false, message: "Só atendentes (ADMIN) ficam online no chat." };
+  if (!canAccess(role, "support")) return { ok: false, message: "Só atendentes ficam online no chat." };
   return null;
 }
 

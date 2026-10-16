@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getSessionRole } from "@/features/auth/session";
+import { canAccess } from "@/features/admin/permissions";
 import { savePageAction, type BuilderResult } from "@/features/admin/builder/actions";
 import { isGlobalCategory, type BuilderGame } from "@/features/admin/builder/types";
 import { toCategoryTree } from "@/features/game/categoryTree";
@@ -21,8 +22,8 @@ import { apiGet, apiPost } from "@/lib/serverApi";
  *
  * Reaproveitar `savePageAction` mantém UMA montagem de corpo e UMA tradução de
  * erro (a recusa "servidor com produtos ligados" chega com a mensagem do
- * backend). A diferença é a porta: aqui só ADMIN, porque é o catálogo, não o
- * conteúdo — o EDITOR segue editando a página pelo Builder.
+ * backend). A diferença é a porta: aqui a área é o catálogo (ADMIN e EDITOR
+ * desde 2026-10-16), não o conteúdo.
  *
  * Risco residual: leitura + gravação não são atômicas. Se alguém salvar o
  * Builder do mesmo jogo entre as duas, os textos da página gravados aqui são os
@@ -41,7 +42,7 @@ export async function updateGameAction(
 ): Promise<BuilderResult<BuilderGame>> {
   const role = await getSessionRole();
   if (role === null) return { ok: false, reason: "unauthenticated" };
-  if (role !== "ADMIN") return { ok: false, reason: "forbidden" };
+  if (!canAccess(role, "catalog")) return { ok: false, reason: "forbidden" };
 
   // O id vai para o CAMINHO da URL do backend: formato fechado.
   if (typeof gameId !== "string" || !/^[A-Za-z0-9_-]{1,100}$/.test(gameId)) {
@@ -110,7 +111,7 @@ const PATH_ID = /^[A-Za-z0-9_-]{1,100}$/;
 /**
  * Duplica um servidor (2026-10-08): o backend cria "Nome (cópia)" logo abaixo
  * do original, com as categorias e os produtos ATIVOS dele, numa transação.
- * Só ADMIN (a cópia cria produtos). O nome se troca depois, na própria lista.
+ * Catálogo: ADMIN e EDITOR (a cópia cria produtos). O nome se troca depois, na própria lista.
  */
 export async function duplicateServerAction(
   gameId: string,
@@ -118,7 +119,7 @@ export async function duplicateServerAction(
 ): Promise<BuilderResult<DuplicatedServer>> {
   const role = await getSessionRole();
   if (role === null) return { ok: false, reason: "unauthenticated" };
-  if (role !== "ADMIN") return { ok: false, reason: "forbidden" };
+  if (!canAccess(role, "catalog")) return { ok: false, reason: "forbidden" };
   if (typeof gameId !== "string" || !PATH_ID.test(gameId) || typeof serverId !== "string" || !PATH_ID.test(serverId)) {
     return { ok: false, reason: "invalid", message: "Servidor inválido." };
   }

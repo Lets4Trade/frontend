@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { canAccess } from "@/features/admin/permissions";
 import { getSessionRole } from "@/features/auth/session";
 import { SETTINGS_PAGE } from "@/features/admin/settings/catalog";
 import { SettingsBoard } from "@/features/admin/settings/SettingsBoard";
 import { getSectionsAdmin } from "@/features/site/list";
+import { requirePanelArea } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
   title: "Configurações da loja | Lets4Trade",
@@ -19,6 +21,8 @@ export const metadata: Metadata = {
  * painel; quem autoriza a escrita é o `RolesGuard` do backend.
  */
 export default async function StoreSettingsPage() {
+  // Conteúdo: ADMIN e EDITOR (o atendente entra no painel, mas não aqui).
+  await requirePanelArea("content");
   const [snapshot, role] = await Promise.all([getSectionsAdmin(), getSessionRole()]);
   const sections = snapshot.sections.filter((section) => section.key.startsWith(`${SETTINGS_PAGE}:`));
 
@@ -29,7 +33,7 @@ export default async function StoreSettingsPage() {
         Contatos, marca, dados da empresa e redes sociais. Cada cartão salva sozinho e a loja muda na hora.
       </p>
       {/* Atalho só para ADMIN: a tela de níveis mexe em cashback (dinheiro). */}
-      {role === "ADMIN" ? (
+      {canAccess(role, "promotions") ? (
         <p className="mt-[10px] font-helvetica text-[14px] text-brand-fg-muted">
           Níveis, cashback e ícones da fidelidade:{" "}
           <Link href="/admin/fidelidade" className="font-bold text-brand-orange hover:underline">

@@ -166,7 +166,7 @@ function GamePicker({
                 className="cursor-pointer rounded-[12px] px-[12px] py-[8px] font-poppins text-[14px] text-white outline-none data-[highlighted]:bg-white/5"
               >
                 {game.name}
-                <span className="ml-[8px] text-[12px] text-brand-fg-subtle">/games/{game.slug}</span>
+                <span className="ml-[8px] text-[12px] text-brand-fg-subtle">/{game.slug}</span>
               </DropdownMenu.Item>
             ))
           )}

@@ -50,7 +50,7 @@ export function SupportStatusDetails({
 
     {schedule.length > 0 ? (
       <div className="mt-[14px] border-t border-brand-hairline pt-[12px]">
-        <p className="font-poppins text-[12px] font-bold tracking-[0.06em] text-brand-fg-subtle uppercase">
+        <p className="font-poppins text-[12px] font-bold tracking-[0.06em] text-brand-orange uppercase">
           {title}
         </p>
         <dl className="mt-[8px] flex flex-col gap-[6px]">

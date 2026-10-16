@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CouponForm } from "@/features/admin/coupons/CouponForm";
 import { getAdminCoupon, getCouponTargetGames } from "@/features/admin/coupons/data";
-import { requireAdminPage } from "@/features/admin/guard";
+import { requirePanelArea } from "@/features/admin/guard";
 import { ADMIN_SHELL } from "@/features/admin/layout";
 
 export const metadata: Metadata = {
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 /** Painel → Cupons → um cupom. Só ADMIN. Inexistente ou leitura que falhou: 404. */
 export default async function EditCouponPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireAdminPage();
+  await requirePanelArea("promotions");
   const { id } = await params;
   const [coupon, games] = await Promise.all([getAdminCoupon(id), getCouponTargetGames()]);
   if (coupon === null) notFound();

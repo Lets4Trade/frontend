@@ -29,7 +29,7 @@ describe("getSectionItemsFor — item ligado a um JOGO", () => {
     const [slide] = (await getSectionItemsFor("home"))("hero");
     expect(slide).toMatchObject({
       title: "Diablo IV",
-      href: "/games/diablo-iv",
+      href: "/diablo-iv",
       secondaryImage: "https://api/uploads/games/d.webp",
     });
   });

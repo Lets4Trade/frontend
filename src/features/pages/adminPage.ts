@@ -5,6 +5,7 @@ import { defaultBlocksFor, defaultHomeBlocks } from "./defaults";
 import { normalizeBlocks } from "./legacy";
 import type { BlocksPageDef } from "./registry";
 import type { AdminPage } from "./types";
+import { gameSlugFromHref } from "@/features/game/href";
 
 /**
  * O rascunho da página para o editor e para a prévia.
@@ -29,8 +30,8 @@ export async function getAdminPage(page: BlocksPageDef): Promise<AdminPage | nul
   }
 
   if (page.frame === "game") {
-    // O `href` do registro é `/games/<slug>`: é por ele que a vitrine é lida.
-    const game = await getGamePage(page.href.replace(/^\/games\//, ""));
+    // O `href` do registro é `/<slug>` (`gameHref`): é por ele que a vitrine é lida.
+    const game = await getGamePage(gameSlugFromHref(page.href) ?? "");
     const visible = game?.sections ?? page.legacyKeys;
     return { ...data, blocks: defaultBlocksFor(page.legacyKeys, { visible }) };
   }

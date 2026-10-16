@@ -11,6 +11,7 @@ import { TextAreaField } from "@/components/ui/TextAreaField";
 import { TextField } from "@/components/ui/TextField";
 import { toastOk } from "@/components/ui/Toasts";
 import { AdminFieldGrid, AdminFormActions } from "@/features/admin/AdminFormCard";
+import { MarkdownTextArea } from "@/features/admin/MarkdownTextArea";
 import { Markdown } from "@/features/pages/blocks/markdown";
 import { ACTION_FAILED_UPLOAD_MESSAGE, runAction } from "@/lib/safeAction";
 import { slugify, slugifyDraft } from "@/lib/slugify";
@@ -285,19 +286,21 @@ export function BlogPostForm({
 
       <div className="mt-[30px] grid max-w-[1410px] grid-cols-1 gap-[30px] xl:grid-cols-2">
         <div>
-          <TextAreaField
+          {/* Barra de formatação + imagem do Imgur no meio do texto (2026-10-16). */}
+          <MarkdownTextArea
             label="Texto (Markdown restrito)"
             name="body"
             placeholder={"## Subtítulo\n\nTexto com **negrito**, *itálico* e [link](https://…).\n\n- item de lista"}
             maxLength={BODY_MAX}
             error={errors.body}
             value={body}
-            onChange={(event) => setBody(event.target.value)}
+            onChange={setBody}
             className="h-[460px] resize-y font-mono text-[14px]"
+            imageLinks
           />
           <p className="mt-[6px] pl-[10px] font-helvetica text-[12px] leading-[18px] text-brand-fg-subtle">
             Aceita: ## título · ### subtítulo · **negrito** · *itálico* · - lista · 1. lista · [texto](https://…
-            ou /caminho). Qualquer outra coisa sai como texto.
+            ou /caminho) · ![legenda](https://i.imgur.com/….png) numa linha só. Qualquer outra coisa sai como texto.
           </p>
         </div>
 
@@ -305,7 +308,7 @@ export function BlogPostForm({
           <p className="pl-[25px] font-poppins text-[16px] font-medium tracking-[0.16px] text-white">Prévia</p>
           <div className="scrollbar-orange mt-[12px] flex h-[460px] flex-col gap-[16px] overflow-y-auto rounded-[16px] border-2 border-white/10 bg-black/40 p-[20px]">
             {body.trim() ? (
-              <Markdown source={body} />
+              <Markdown source={body} images />
             ) : (
               <p className="font-helvetica text-[14px] text-brand-fg-subtle">A prévia aparece aqui enquanto você escreve.</p>
             )}

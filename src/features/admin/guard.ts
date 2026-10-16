@@ -1,15 +1,16 @@
 import { notFound } from "next/navigation";
 import { getSessionRole } from "@/features/auth/session";
+import { canAccess, type PanelArea } from "./permissions";
 
 /**
- * Telas do painel que o EDITOR NÃO vê (pedidos, produtos, usuários, logs,
- * chats, cadastro de jogo): 404, igual a quem não tem painel — nem a existência
+ * Segunda porta de cada tela do painel: quem não tem a ÁREA (ver
+ * `permissions.ts`) recebe 404, igual a quem não tem painel — nem a existência
  * da tela é confirmada.
  *
- * O layout do painel deixa ADMIN e EDITOR entrarem; esta é a segunda porta, por
- * tela. A autorização de verdade continua no `RolesGuard` do backend, rota por
- * rota — sem ela, nada aqui impediria uma chamada direta à API.
+ * O layout deixa entrar todo cargo de painel (ADMIN, EDITOR, SUPPORT); esta é a
+ * porta por tela. A autorização de verdade continua no `RolesGuard` do backend,
+ * rota por rota — sem ela, nada aqui impediria uma chamada direta à API.
  */
-export async function requireAdminPage(): Promise<void> {
-  if ((await getSessionRole()) !== "ADMIN") notFound();
+export async function requirePanelArea(area: PanelArea): Promise<void> {
+  if (!canAccess(await getSessionRole(), area)) notFound();
 }

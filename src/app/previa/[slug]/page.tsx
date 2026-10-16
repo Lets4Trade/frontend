@@ -18,6 +18,7 @@ import { homeSharedNodes } from "@/features/pages/homeSharedNodes";
 import { builderPage, type BlocksPageDef } from "@/features/pages/registry";
 import { SellPageBody } from "@/features/sell/SellPageBody";
 import { getSectionItemsFor, getSectionsFor } from "@/features/site/content";
+import { gameSlugFromHref } from "@/features/game/href";
 
 export const metadata: Metadata = {
   title: "Prévia | Lets4Trade",
@@ -91,7 +92,7 @@ async function legacyFor(page: BlocksPageDef): Promise<{ desktop: LegacyNodes; m
       };
     }
     case "game": {
-      const base = await getGamePage(page.href.replace(/^\/games\//, ""));
+      const base = await getGamePage(gameSlugFromHref(page.href) ?? "");
       if (!base) return { desktop: {} };
       const query = parseCatalogQuery({}, base);
       return { desktop: gameSectionNodes(withActiveTab(base, query.tab), query) };

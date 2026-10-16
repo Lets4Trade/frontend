@@ -122,10 +122,43 @@ export function insertImage(value: string, position: number, url: string, alt = 
   const lead = before === "" ? "" : before.endsWith("\n\n") ? "" : before.endsWith("\n") ? "\n" : "\n\n";
   const trail = after === "" ? "\n" : after.startsWith("\n\n") ? "" : after.startsWith("\n") ? "\n" : "\n\n";
   const inserted = lead + syntax + trail;
-  const caret = before.length + lead.length + syntax.length;
+  // O cursor vai para DEPOIS da imagem (linha seguinte): quem continua
+  // digitando escreve o próximo parágrafo, não grudado no link da imagem.
+  const caret = before.length + inserted.length;
   return {
     value: before + inserted + after,
     selectionStart: caret,
     selectionEnd: caret,
   };
+}
+
+const NOT_IMGUR = "Cole o link de uma imagem do Imgur, como https://i.imgur.com/abc1234.png.";
+const IMGUR_ALBUM =
+  "Esse link é de um álbum ou post. Abra a imagem, clique nela com o botão direito e escolha “Copiar endereço da imagem”.";
+
+/**
+ * Link do Imgur colado pelo admin → link DIRETO da imagem
+ * (`https://i.imgur.com/<id>.<ext>`), o único formato que a loja desenha
+ * (`IMGUR_IMAGE` em `game/sectionContent.ts`).
+ *
+ * Aceita o link direto e a página de uma imagem (`imgur.com/<id>`, que vira
+ * `.png` — o Imgur entrega a imagem pelo id com qualquer extensão). `.gifv` vira
+ * `.gif`. Álbum/post (`/a/`, `/gallery/`) não tem como virar imagem sem a API
+ * deles, então o erro ensina a copiar o endereço da imagem.
+ */
+export function imgurImageUrl(input: string): { url: string } | { error: string } {
+  const text = input.trim();
+  let url: URL;
+  try {
+    url = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(text) ? text : `https://${text}`);
+  } catch {
+    return { error: NOT_IMGUR };
+  }
+  if (!/^(?:www\.|m\.|i\.)?imgur\.com$/i.test(url.hostname)) return { error: NOT_IMGUR };
+  const path = url.pathname.replace(/\/+$/, "");
+  if (/^\/(?:a|gallery|t|r|user)\//i.test(path)) return { error: IMGUR_ALBUM };
+  const match = /^\/([A-Za-z0-9]{5,10})(?:\.(png|jpe?g|gifv?|webp))?$/i.exec(path);
+  if (!match) return { error: NOT_IMGUR };
+  const ext = (match[2] ?? "png").toLowerCase().replace("gifv", "gif");
+  return { url: `https://i.imgur.com/${match[1]}.${ext}` };
 }

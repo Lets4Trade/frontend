@@ -8,6 +8,7 @@ import { getAdminBlogPosts } from "@/features/admin/blog/list";
 import { ADMIN_BLOG_STATUS, adminBlogHref, parseAdminBlogQuery } from "@/features/admin/blog/query";
 import { getAdminGames } from "@/features/admin/catalog";
 import { ADMIN_SHELL } from "@/features/admin/layout";
+import { requirePanelArea } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
   title: "Blog | Lets4Trade",
@@ -27,6 +28,8 @@ export default async function AdminBlogPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  // Conteúdo: ADMIN e EDITOR (o atendente entra no painel, mas não aqui).
+  await requirePanelArea("content");
   const params = await searchParams;
   // Os jogos primeiro: validam o `?jogo=` (id inventado vira "sem filtro").
   const games = await getAdminGames();

@@ -32,6 +32,7 @@ import { PackageCard } from "@/features/game/PackageCard";
 import { ProductCardShell } from "@/features/game/ProductCardShell";
 import type { ProductPrefill } from "./links";
 import { categorySelectOptions } from "./categoryOptions";
+import { gameHref } from "@/features/game/href";
 
 type ErrorField =
   | "gameId"
@@ -889,7 +890,7 @@ export function ProductForm({
               </p>
               {saved.gameSlug ? (
                 <Link
-                  href={`/games/${encodeURIComponent(saved.gameSlug)}`}
+                  href={gameHref(encodeURIComponent(saved.gameSlug))}
                   target="_blank"
                   rel="noopener"
                   className="font-helvetica text-[13px] text-brand-fg-subtle underline underline-offset-2 hover:text-white"

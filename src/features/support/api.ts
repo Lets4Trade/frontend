@@ -124,13 +124,15 @@ export async function listRecentOrders(): Promise<{ reference: string; label: st
       headers: HEADERS,
     });
     if (!response.ok) return [];
+    // Cada pedido traz os itens (2026-10-16): o rótulo é o 1º produto e quantos mais.
     const body = (await response.json()) as {
-      data?: { items?: { reference: string; productName?: string }[] };
+      data?: { items?: { reference: string; items?: { productName?: string }[] }[] };
     };
-    return (body.data?.items ?? []).map((order) => ({
-      reference: order.reference,
-      label: order.productName ? `${order.reference} · ${order.productName}` : order.reference,
-    }));
+    return (body.data?.items ?? []).map((order) => {
+      const names = (order.items ?? []).map((item) => item.productName).filter(Boolean);
+      const label = names.length > 1 ? `${names[0]} +${names.length - 1}` : names[0];
+      return { reference: order.reference, label: label ? `${order.reference} · ${label}` : order.reference };
+    });
   } catch {
     return [];
   }

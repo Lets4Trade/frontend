@@ -1,16 +1,21 @@
 import { toOrderGift } from "@/features/gifts/orderGift";
 import { apiGet } from "@/lib/serverApi";
-import type { Order, OrderStatus, OrderTrack, Purchase } from "./types";
+import { toDeliveryStatus } from "./deliveryStatus";
+import { toOrderDetails } from "./details";
+import type { OrderItem, OrderStatus, OrderTrack, Purchase } from "./types";
+
+// Pura (sem `serverApi`): o detalhe do painel, que é client, também usa.
+export { toOrderDetails };
 
 /**
  * Leitura dos pedidos do usuário autenticado.
  *
  * ── Contrato (../backend/src/app/orders) ────────────────────────────────────
- *   GET /orders/purchases?page&limit → { data: { items: compras, page, limit, total, pageCount } }
+ *   GET /orders/purchases?page&limit → { data: { items: pedidos, page, limit, total, pageCount } }
  *   401                              → sem sessão
  *
- * Desde 2026-10-15 a tela lista COMPRAS (itens do mesmo carrinho juntos), não
- * pedidos soltos — ver `Purchase`.
+ * Desde 2026-10-16 cada pedido é uma COMPRA com vários itens e uma situação só
+ * (antes, um pedido por item, agrupados aqui pelo pagamento).
  *
  * A tradução para o formato da tela mora AQUI, na borda, e não no componente:
  * o backend manda enum em maiúsculas, preço como string decimal e data em ISO,
@@ -18,45 +23,50 @@ import type { Order, OrderStatus, OrderTrack, Purchase } from "./types";
  * de quem exibe.
  */
 
-export type ApiOrder = {
+export type ApiOrderItem = {
   id: string;
-  reference: string;
   productName: string;
   productImageUrl?: string | null;
   platform: string;
   quantity: string;
+  gameName?: string | null;
+  gameImageUrl?: string | null;
   totalPrice: string;
-  currency: string;
-  /** Desconto pago com Lets Coins. Ausente quando não houve resgate — o
-   *  backend apaga campos zerados da resposta. */
+  /** Descontos DESTE item. Ausentes quando zero — o backend apaga campos zerados. */
   coinsSpent?: number;
   discountCents?: number;
-  status: string;
-  /** Legado: a trilha sai de `status` + datas (a coluna nunca mudava). */
-  step?: string;
-  /** Quando entrou em cada etapa (ISO). Ausentes = sem data conhecida. */
-  approvedAt?: string | null;
-  inDeliveryAt?: string | null;
-  deliveredAt?: string | null;
-  canceledAt?: string | null;
-  createdAt: string;
+  couponCents?: number;
   /**
-   * Só pedido de SERVIÇO (contrato game-tabs): a escolha e a conta do preço,
+   * Só item de SERVIÇO (contrato game-tabs): a escolha e a conta do preço,
    * gravadas pelo backend. `unknown` de propósito — lido por `toOrderDetails`.
    */
   details?: unknown;
   /** Brinde congelado (2026-10-12) — lido por `toOrderGift`. */
   gift?: unknown;
-  /** Cupom (2026-10-12). Ausentes sem cupom (o backend apaga zero/nulo). */
-  couponCode?: string | null;
-  couponCents?: number;
 };
 
+/** O pedido como a API manda: cabeçalho, situação e itens. */
 export type ApiPurchase = {
   id: string;
   reference: string;
+  currency?: string;
   createdAt: string;
-  orders: ApiOrder[];
+  /** Preço CHEIO do pedido e os descontos (somas dos itens). */
+  totalPrice: string;
+  coinsSpent?: number;
+  discountCents?: number;
+  couponCode?: string | null;
+  couponCents?: number;
+  status: string;
+  /** Quando entrou em cada etapa (ISO). Ausentes = sem data conhecida. */
+  approvedAt?: string | null;
+  inDeliveryAt?: string | null;
+  deliveredAt?: string | null;
+  canceledAt?: string | null;
+  /** Status de entrega personalizado (2026-10-16) — lido por `toDeliveryStatus`. */
+  deliveryStatus?: unknown;
+  deliveryStatusAt?: string | null;
+  items: ApiOrderItem[];
 };
 
 type ApiPurchasePage = {
@@ -72,10 +82,7 @@ export type PurchasesResult =
   | { ok: false; reason: "unauthenticated" | "error" };
 
 /**
- * Uma PÁGINA de compras do usuário.
- *
- * A página é de COMPRAS, não de itens: paginar por item cortaria um carrinho
- * ao meio entre duas páginas.
+ * Uma PÁGINA de pedidos do usuário.
  *
  * `page` é saneado AQUI e não confiado à URL: vem de `?pagina=` e um valor
  * absurdo (0, -1, "abc") viraria `skip` negativo ou `NaN` no banco.
@@ -100,34 +107,54 @@ export async function getMyPurchases(page = 1, limit = 10): Promise<PurchasesRes
 }
 
 /**
- * Compra da API → tela. As somas são feitas em CENTAVOS inteiros (o preço vem
- * como string decimal): somar reais em ponto flutuante erra o centavo.
- * Compra sem item (resposta inesperada) vira `null` e some da lista.
+ * Pedido da API → tela. Contas em CENTAVOS inteiros (o preço vem como string
+ * decimal): subtrair reais em ponto flutuante erra o centavo. Pedido sem item
+ * (resposta inesperada) vira `null` e some da lista.
  */
 export function toPurchase(api: ApiPurchase): Purchase | null {
-  const orders = Array.isArray(api.orders) ? api.orders : [];
-  if (orders.length === 0) return null;
+  const items = Array.isArray(api.items) ? api.items : [];
+  if (items.length === 0) return null;
 
-  const currency = orders[0].currency || "BRL";
-  let priceCents = 0;
-  let coinsCents = 0;
-  let couponCents = 0;
-  for (const order of orders) {
-    priceCents += toCents(order.totalPrice);
-    coinsCents += order.discountCents || 0;
-    couponCents += order.couponCents || 0;
-  }
-  const couponCode = orders.find((order) => order.couponCode)?.couponCode ?? null;
+  const currency = api.currency || "BRL";
+  const priceCents = toCents(api.totalPrice);
+  const coinsCents = api.discountCents || 0;
+  const couponCents = api.couponCents || 0;
+  const delivery = toDeliveryStatus(api.deliveryStatus);
 
   return {
     id: api.id,
     reference: api.reference,
     date: formatDate(api.createdAt),
-    items: orders.map(toOrder),
+    status: toStatus(api.status),
+    track: toTrack(api),
+    stepDates: toStepDates(api),
+    delivery: delivery ? { ...delivery, date: formatStepDate(api.deliveryStatusAt) } : null,
+    items: items.map((item) => toItem(item, currency)),
     price: formatCents(priceCents, currency),
+    // "Desconto" = coins + cupom (2026-10-12); o cupom também sai em `coupon`.
     discount: coinsCents + couponCents > 0 ? formatCents(coinsCents + couponCents, currency) : null,
     paid: formatCents(Math.max(0, priceCents - coinsCents - couponCents), currency),
-    coupon: couponCode && couponCents > 0 ? { code: couponCode, amount: formatCents(couponCents, currency) } : null,
+    coupon: api.couponCode && couponCents > 0 ? { code: api.couponCode, amount: formatCents(couponCents, currency) } : null,
+  };
+}
+
+export function toItem(api: ApiOrderItem, currency = "BRL"): OrderItem {
+  const priceCents = toCents(api.totalPrice);
+  const off = (api.discountCents || 0) + (api.couponCents || 0);
+  return {
+    id: api.id,
+    productName: api.productName,
+    platform: api.platform,
+    quantity: api.quantity,
+    gameName: api.gameName || null,
+    productImageUrl: api.productImageUrl || null,
+    gameImageUrl: api.gameImageUrl || null,
+    // O preço do PRODUTO; o abatimento vai numa linha própria, como no comprovante.
+    price: formatCents(priceCents, currency),
+    discount: off > 0 ? formatCents(off, currency) : null,
+    paid: formatCents(Math.max(0, priceCents - off), currency),
+    details: toOrderDetails(api.details, currency),
+    gift: toOrderGift(api.gift),
   };
 }
 
@@ -151,73 +178,6 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   year: "2-digit",
   timeZone: "America/Sao_Paulo",
 });
-
-export function toOrder(api: ApiOrder): Order {
-  return {
-    id: api.id,
-    reference: api.reference,
-    productName: api.productName,
-    platform: api.platform,
-    quantity: api.quantity,
-    price: formatPrice(api.totalPrice, api.currency),
-    // O card mostra o preço do PRODUTO; o abatimento vai numa linha própria,
-    // como no comprovante. Um preço já líquido faria o histórico mentir sobre
-    // quanto o produto custava no dia.
-    // "Desconto" = coins + cupom (2026-10-12); o cupom também sai em `coupon`.
-    discount:
-      (api.discountCents || 0) + (api.couponCents || 0) > 0
-        ? formatPrice((((api.discountCents || 0) + (api.couponCents || 0)) / 100).toFixed(2), api.currency)
-        : null,
-    coinsSpent: api.coinsSpent || 0,
-    paid: formatPrice(
-      (
-        Math.max(0, Math.round(Number(api.totalPrice) * 100) - (api.discountCents || 0) - (api.couponCents || 0)) / 100
-      ).toFixed(2),
-      api.currency,
-    ),
-    coupon:
-      api.couponCode && (api.couponCents || 0) > 0
-        ? { code: api.couponCode, amount: formatPrice(((api.couponCents || 0) / 100).toFixed(2), api.currency) }
-        : null,
-    date: formatDate(api.createdAt),
-    status: toStatus(api.status),
-    track: toTrack(api),
-    stepDates: toStepDates(api),
-    details: toOrderDetails(api.details, api.currency),
-    gift: toOrderGift(api.gift),
-  };
-}
-
-/**
- * `Order.details` → o que a tela mostra: as linhas da conta e as horas. Tudo
- * conferido campo a campo — é JSON do banco, e um formato inesperado vira
- * "sem detalhes" (a tela cai na quantidade), nunca um erro na página.
- */
-export function toOrderDetails(raw: unknown, currency = "BRL"): Order["details"] {
-  if (!raw || typeof raw !== "object") return null;
-  const value = raw as { lines?: unknown; hours?: unknown };
-
-  const lines = Array.isArray(value.lines)
-    ? value.lines
-        .filter(
-          (line): line is { label: string; cents: number } =>
-            !!line &&
-            typeof (line as { label?: unknown }).label === "string" &&
-            Number.isFinite((line as { cents?: unknown }).cents),
-        )
-        .slice(0, 30)
-        .map((line) => ({
-          label: line.label.slice(0, 120),
-          price: formatPrice((line.cents / 100).toFixed(2), currency),
-        }))
-    : [];
-  const hours =
-    typeof value.hours === "number" && Number.isFinite(value.hours) && value.hours > 0
-      ? value.hours.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-      : null;
-
-  return lines.length > 0 || hours ? { lines, hours } : null;
-}
 
 function formatPrice(value: string, currency: string) {
   const amount = Number(value);
@@ -258,7 +218,9 @@ function toStatus(value: string): OrderStatus {
  * pedido cancelado depois de aprovado mostra "aprovado" concluído e o X no
  * lugar da entrega — a diferença entre "não pagou" e "foi estornado".
  */
-export function toTrack(api: Pick<ApiOrder, "status" | "approvedAt" | "inDeliveryAt" | "deliveredAt">): OrderTrack {
+export function toTrack(
+  api: Pick<ApiPurchase, "status" | "approvedAt" | "inDeliveryAt" | "deliveredAt">,
+): OrderTrack {
   switch (toStatus(api.status)) {
     case "aprovado":
       return { step: "aprovado", state: "active" };
@@ -291,9 +253,15 @@ const stepDateFormatter = new Intl.DateTimeFormat("pt-BR", {
   timeZone: "America/Sao_Paulo",
 });
 
-function toStepDates(api: ApiOrder): Order["stepDates"] {
-  const dates: Order["stepDates"] = {};
-  const entries: [keyof Order["stepDates"], string | null | undefined][] = [
+function formatStepDate(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? null : stepDateFormatter.format(date).replace(",", "");
+}
+
+function toStepDates(api: ApiPurchase): Purchase["stepDates"] {
+  const dates: Purchase["stepDates"] = {};
+  const entries: [keyof Purchase["stepDates"], string | null | undefined][] = [
     ["feito", api.createdAt],
     ["aprovado", api.approvedAt],
     ["entrega", api.inDeliveryAt],
@@ -301,9 +269,8 @@ function toStepDates(api: ApiOrder): Order["stepDates"] {
     ["cancelado", api.canceledAt],
   ];
   for (const [key, iso] of entries) {
-    if (!iso) continue;
-    const date = new Date(iso);
-    if (!Number.isNaN(date.getTime())) dates[key] = stepDateFormatter.format(date).replace(",", "");
+    const formatted = formatStepDate(iso);
+    if (formatted) dates[key] = formatted;
   }
   return dates;
 }

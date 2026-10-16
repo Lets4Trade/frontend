@@ -49,8 +49,8 @@ beforeEach(() => {
 });
 
 describe("updateGameAction", () => {
-  it("EDITOR → forbidden, sem ler nem gravar", async () => {
-    role.mockResolvedValue("EDITOR");
+  it("ATENDENTE → forbidden, sem ler nem gravar", async () => {
+    role.mockResolvedValue("SUPPORT");
     expect(await updateGameAction("g1", INPUT)).toEqual({ ok: false, reason: "forbidden" });
     expect(get).not.toHaveBeenCalled();
     expect(save).not.toHaveBeenCalled();
@@ -98,8 +98,8 @@ describe("updateGameAction", () => {
 describe("duplicateServerAction", () => {
   const copy = { server: { id: "s9", label: "Softcore (cópia)", slug: "softcore-copia", position: 1 }, categories: 2, products: 30 };
 
-  it("só ADMIN; ids com cara de caminho são recusados sem API", async () => {
-    role.mockResolvedValue("EDITOR");
+  it("só catálogo (ADMIN/EDITOR); ids com cara de caminho são recusados sem API", async () => {
+    role.mockResolvedValue("SUPPORT");
     expect(await duplicateServerAction("g1", "s1")).toEqual({ ok: false, reason: "forbidden" });
     role.mockResolvedValue("ADMIN");
     expect(await duplicateServerAction("g1", "../x")).toMatchObject({ ok: false, reason: "invalid" });

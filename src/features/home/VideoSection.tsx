@@ -149,17 +149,21 @@ export function VideoSection({
       {/* Assinatura do CEO (avatar 529:1068, nome 529:1067, cargo 819:108). */}
       {/* No editor, clicar na foto troca a SEGUNDA arte da sessão (a
           primeira é a capa do vídeo). */}
+      {/* Aro laranja com folga e qualidade 90 (2026-10-16, "a imagem tá meio
+          ruim"): a foto tem fundo escuro e sumia no preto da seção. Mesmos
+          60px e a mesma posição do arquivo — o aro fica por fora. */}
       <Image
         src={avatar}
         alt=""
         width={60}
         height={60}
+        quality={90}
         aria-hidden
         data-edit-image="home:video"
         data-edit-slot="secondary"
         {...reveal("pop")}
         style={revealDelay(4)}
-        className="absolute top-[544px] left-0 size-[60px] rounded-full object-cover"
+        className="absolute top-[544px] left-0 size-[60px] rounded-full object-cover ring-2 ring-brand-orange ring-offset-[3px] ring-offset-black"
       />
       <p
         data-edit-field="home:video:extra.assinatura-nome"

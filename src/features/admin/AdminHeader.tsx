@@ -10,6 +10,7 @@ import { SaleAlerts, SalesBadge } from "@/features/admin/sales/SaleAlerts";
 import type { SessionUser } from "@/features/auth/session";
 import { cn } from "@/lib/cn";
 import { ADMIN_NAV } from "./nav";
+import { canAccess, type PanelRole } from "./permissions";
 import { AdminSearch } from "./search/AdminSearch";
 
 /**
@@ -43,8 +44,8 @@ export function AdminHeader({
   logoUrl,
 }: {
   user: SessionUser;
-  /** Filtra o menu: o EDITOR só vê o que é conteúdo. */
-  role: "ADMIN" | "EDITOR";
+  /** Filtra o menu e os botões pelo cargo (`permissions.ts`). */
+  role: PanelRole;
   /** "Logo da marca" do painel (2026-09-24); ausente = o arquivo de fábrica. */
   logoUrl?: string;
 }) {
@@ -73,7 +74,7 @@ export function AdminHeader({
           aria-label="Seções do painel"
           className="absolute top-1/2 left-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-[22px] xl:flex"
         >
-          {ADMIN_NAV.filter((item) => (item.roles ?? ["ADMIN"]).includes(role)).map((item) => {
+          {ADMIN_NAV.filter((item) => canAccess(role, item.area)).map((item) => {
             const active =
               item.match?.some((prefix) => pathname.startsWith(prefix)) ?? false;
             const baseClass = cn(
@@ -101,7 +102,7 @@ export function AdminHeader({
               >
                 {item.label}
                 {/* Vendas novas desde a última visita à lista (2026-10-16). */}
-                {item.href === "/admin/pedidos" && role === "ADMIN" ? <SalesBadge /> : null}
+                {item.href === "/admin/pedidos" && canAccess(role, "orders") ? <SalesBadge /> : null}
               </Link>
             );
           })}
@@ -109,12 +110,12 @@ export function AdminHeader({
 
         {/* Busca (Ctrl+K). Abaixo de xl o menu não cabe e ela vira a navegação. */}
         <div className="ml-auto flex shrink-0 items-center gap-[16px]">
-          {/* Online/Offline do atendente no chat da loja (2026-10-16). Só
-              ADMIN atende — o EDITOR não vê chats. */}
-          {role === "ADMIN" ? <PresenceToggle /> : null}
-          {/* Aviso de venda (card, som, contador, notificação) — só ADMIN, que
-              é quem entrega e vê pedidos (2026-10-16). */}
-          {role === "ADMIN" ? <SaleAlerts /> : null}
+          {/* Online/Offline do atendente no chat da loja (2026-10-16). ADMIN
+              e ATENDENTE atendem — o EDITOR não vê chats. */}
+          {canAccess(role, "support") ? <PresenceToggle /> : null}
+          {/* Aviso de venda (card, som, contador, notificação) — para quem
+              entrega e vê pedidos: ADMIN e ATENDENTE (2026-10-16). */}
+          {canAccess(role, "orders") ? <SaleAlerts /> : null}
           <AdminSearch role={role} />
           <UserMenu user={user} />
         </div>

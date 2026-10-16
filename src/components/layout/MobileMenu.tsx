@@ -9,6 +9,7 @@ import type { MenuGame } from "@/features/game/menuGames";
 import { cn } from "@/lib/cn";
 import { HeaderSearch } from "./HeaderSearch";
 import { SupportStatusCard } from "./SupportStatusCard";
+import { gameHref } from "@/features/game/href";
 
 /**
  * Menu do cabeçalho no CELULAR (Figma 2667:1864) — o botão de três linhas ao
@@ -88,7 +89,7 @@ export function MobileMenu({
                 {games.map((game) => (
                   <li key={game.slug}>
                     <Link
-                      href={`/games/${game.slug}`}
+                      href={gameHref(game.slug)}
                       onClick={close}
                       className="flex items-center gap-[12px] rounded-[12px] px-[8px] py-[8px] font-poppins text-[15px] text-white transition-colors hover:bg-white/5"
                     >

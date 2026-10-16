@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { parseBlocks, renderInline } from "@/features/pages/blocks/markdown";
+import { BodyImage, parseBlocks, renderInline } from "@/features/pages/blocks/markdown";
 import { backendAsset } from "@/lib/publicApi";
 import {
   MARKER_COLOR_CLASS,
@@ -140,22 +140,8 @@ export function SectionContentView({
               block.kind === "ol",
               index,
             );
-          case "img": {
-            const src = backendAsset(block.src);
-            return src ? (
-              // Dimensão desconhecida (o admin envia qualquer proporção): `<img>`
-              // com largura máxima da coluna e altura pela proporção da arte.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={index}
-                src={src}
-                alt={block.alt}
-                loading="lazy"
-                decoding="async"
-                className="h-auto max-w-full rounded-[14px]"
-              />
-            ) : null;
-          }
+          case "img":
+            return <BodyImage key={index} src={block.src} alt={block.alt} />;
         }
       })
     : null;

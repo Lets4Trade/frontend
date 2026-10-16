@@ -12,13 +12,14 @@ import { centralNavLinks, type CentralSection } from "./central";
  *     largura — nunca a página inteira).
  *   - `bar` (o Builder): sempre a fileira, acima do cabeçalho dele.
  *
- * `canManage` = cargo ADMIN. O EDITOR só vê o que abre para ele (ver
+ * `canManage` = acesso ao catálogo (ADMIN e EDITOR, 2026-10-16). Quem não tem só vê o que abre para ele (ver
  * `centralNavLinks`) — link que daria 404 não é oferecido.
  */
 export function GameAdminNav({
   game,
   active,
   canManage = true,
+  canGift = true,
   variant = "sidebar",
   showExtras = true,
 }: {
@@ -26,11 +27,13 @@ export function GameAdminNav({
   /** Seção aberta; `null` fora da Central (no Builder). */
   active: CentralSection | null;
   canManage?: boolean;
+  /** Seção Brinde (promoção, só ADMIN). */
+  canGift?: boolean;
   variant?: "sidebar" | "bar";
   /** Falso quando a página já mostra "← Jogos" e "Ver na loja" no cabeçalho. */
   showExtras?: boolean;
 }) {
-  const { sections, extras: allExtras } = centralNavLinks(game, canManage);
+  const { sections, extras: allExtras } = centralNavLinks(game, canManage, canGift);
   const extras = showExtras ? allExtras : [];
   const sidebar = variant === "sidebar";
 

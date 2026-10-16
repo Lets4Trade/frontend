@@ -13,7 +13,7 @@ import {
 import { ROLE_OPTIONS } from "@/features/admin/users/types";
 import { cn } from "@/lib/cn";
 import { ADMIN_SHELL } from "@/features/admin/layout";
-import { requireAdminPage } from "@/features/admin/guard";
+import { requirePanelArea } from "@/features/admin/guard";
 import { getLoyaltyTiers } from "@/features/loyalty/publicTiers";
 
 export const metadata: Metadata = {
@@ -44,7 +44,7 @@ export default async function AdminUsersPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireAdminPage();
+  await requirePanelArea("users");
   const query = parseUsersQuery(await searchParams);
   // Os nomes dos níveis vêm da tabela do painel (cacheada, etiqueta derrubada
   // ao salvar os níveis) — é o que o campo "Nível de fidelidade" mostra.

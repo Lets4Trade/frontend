@@ -18,6 +18,7 @@ import {
   type SavePageCategory,
 } from "./payload";
 import { MAX_BANNERS, type BuilderGame } from "./types";
+import { gameHref } from "@/features/game/href";
 
 /**
  * As escritas do "Builder de Páginas".
@@ -315,7 +316,7 @@ const IMAGE_TOO_LARGE = {
 
 /** A vitrine e o próprio builder passam a mostrar o que acabou de ser salvo. */
 function revalidate(slug: string) {
-  revalidatePath(`/games/${slug}`);
+  revalidatePath(gameHref(slug));
   revalidatePath("/admin/builder", "layout");
   // Nome e link do jogo aparecem nos slides do hero da home (itens ligados ao
   // jogo, 2026-09-25): trocar o link no builder tem que chegar lá na hora.

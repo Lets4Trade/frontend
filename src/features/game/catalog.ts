@@ -1,4 +1,5 @@
 import type { GameCategory, GamePage, GameProduct, GameTab } from "./types";
+import { gameHref } from "@/features/game/href";
 
 /**
  * Estado do catálogo. Ele mora na URL, e não em `useState`, por três motivos
@@ -188,7 +189,7 @@ export function buildHref(
   if (patch.pkg) params.set(PARAM.pkg, patch.pkg);
 
   const qs = params.toString();
-  return qs ? `/games/${slug}?${qs}` : `/games/${slug}`;
+  return gameHref(slug, qs);
 }
 
 /**

@@ -10,7 +10,7 @@ export function RichTextBlock({ props }: { props: BlockPropsMap["richText"] }) {
   return (
     <section className="mx-auto flex w-full max-w-[860px] flex-col gap-[16px]">
       {props.title ? <BlockHeading>{props.title}</BlockHeading> : null}
-      <Markdown source={props.body} />
+      <Markdown source={props.body} images />
     </section>
   );
 }

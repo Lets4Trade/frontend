@@ -10,6 +10,7 @@ import { hubGroups } from "@/features/pages/hub";
 import { PagesHub } from "@/features/pages/PagesHub";
 import { builderPage } from "@/features/pages/registry";
 import { getSectionsAdmin } from "@/features/site/list";
+import { requirePanelArea } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
   title: "Páginas | Lets4Trade",
@@ -36,6 +37,8 @@ type PageProps = {
  * verdade é o `RolesGuard` do backend em cada rota.
  */
 export default async function AdminPagesPage({ searchParams }: PageProps) {
+  // Conteúdo: ADMIN e EDITOR (o atendente entra no painel, mas não aqui).
+  await requirePanelArea("content");
   const params = await searchParams;
   const slug = typeof params.pagina === "string" ? params.pagina : null;
   if (slug === "layout") redirect("/admin/paginas?pagina=cabecalho");

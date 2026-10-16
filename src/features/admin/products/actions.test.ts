@@ -431,7 +431,7 @@ describe("saveProductPricesAction", () => {
     { id: "b", priceCents: 3675, expectedPriceCents: 3500 },
   ];
 
-  it.each([[null], ["USER" as const], ["EDITOR" as const]])("sessão %s não chama a API", async (r) => {
+  it.each([[null], ["USER" as const], ["SUPPORT" as const]])("sessão %s não chama a API", async (r) => {
     role.mockResolvedValue(r);
     expect(await saveProductPricesAction("g1", items)).toMatchObject({ ok: false });
     expect(put).not.toHaveBeenCalled();

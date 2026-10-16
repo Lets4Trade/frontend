@@ -5,7 +5,7 @@ import { getAdminGames } from "@/features/admin/catalog";
 import { CENTRAL_PARAM, centralHref } from "@/features/admin/games/central";
 import { getGameTabs } from "@/features/admin/games/tabs/list";
 import { hasTabContent, isProductTab } from "@/features/admin/games/tabs/types";
-import { requireAdminPage } from "@/features/admin/guard";
+import { requirePanelArea } from "@/features/admin/guard";
 import { ADMIN_SHELL } from "@/features/admin/layout";
 import { PARAM } from "@/features/admin/products/catalog";
 import { getProductOrdering } from "@/features/admin/products/ordering";
@@ -34,7 +34,7 @@ function first(value: string | string[] | undefined) {
  * servidores), para trocar de servidor sem perder o que já foi digitado.
  */
 export default async function ProductPricesPage({ searchParams }: PageProps) {
-  await requireAdminPage();
+  await requirePanelArea("catalog");
   const params = await searchParams;
   const games = await getAdminGames();
   const listed = games.find((item) => item.id === first(params[PARAM.game]));

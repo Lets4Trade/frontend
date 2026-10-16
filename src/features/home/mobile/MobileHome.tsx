@@ -216,8 +216,10 @@ export function MobileVideo({ section }: { section: SectionView }) {
           alt=""
           width={50}
           height={50}
+          quality={90}
           aria-hidden
-          className="size-[50px] rounded-full object-cover"
+          // Mesmo aro do desktop (2026-10-16): a foto escura sumia no fundo.
+          className="size-[50px] rounded-full object-cover ring-2 ring-brand-orange ring-offset-[3px] ring-offset-black"
         />
         <div className="min-w-0 flex-1">
           <p className="font-poppins text-[16px] leading-[22px] font-bold text-white">{t.assinaturaNome}</p>

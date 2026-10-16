@@ -1,5 +1,6 @@
 "use client";
 
+import { isReservedGameSlug, RESERVED_SLUG_MESSAGE } from "@/features/game/href";
 import { slugify, slugifyDraft } from "@/lib/slugify";
 import Image from "next/image";
 import { useRef, useTransition } from "react";
@@ -124,6 +125,9 @@ export function NamePanel({
 }) {
   const nextSlug = slugify(draft.slug);
   const changing = nextSlug !== "" && nextSlug !== publishedSlug;
+  // Página do jogo na raiz (2026-10-16): link de página do site não pode — o
+  // backend recusa; aqui o aviso aparece antes de publicar.
+  const reserved = nextSlug !== "" && isReservedGameSlug(nextSlug);
 
   return (
     <>
@@ -144,11 +148,15 @@ export function NamePanel({
         onChange={(event) => patch({ slug: slugifyDraft(event.target.value) })}
       />
       <p className="-mt-[15px] font-poppins text-[13px] text-brand-fg-subtle">
-        Endereço: <span className="text-white">/games/{nextSlug || publishedSlug}</span>
-        {changing ? (
+        Endereço: <span className="text-white">/{nextSlug || publishedSlug}</span>
+        {reserved ? (
+          <span role="alert" className="ml-[6px] text-brand-orange">
+            {RESERVED_SLUG_MESSAGE}
+          </span>
+        ) : changing ? (
           <>
             {" "}
-            Ao publicar, <span className="text-white">/games/{publishedSlug}</span> deixa de
+            Ao publicar, <span className="text-white">/{publishedSlug}</span> deixa de
             funcionar. Os slides da home que usam este game acompanham sozinhos; links
             digitados à mão em outros lugares (rodapé, guias) precisam ser trocados.
           </>
@@ -335,6 +343,7 @@ function DescriptionItemRow({
         value={item.text}
         maxLength={DESCRIPTION_LIMITS.text}
         onChange={(text) => onChange({ text })}
+        imageLinks
       />
     </li>
   );

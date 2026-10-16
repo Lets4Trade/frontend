@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { cn } from "@/lib/cn";
-import { ORDER_STEPS, type Order, type OrderTrack } from "./types";
+import { ORDER_STEPS, type OrderTrack, type Purchase } from "./types";
 
 /**
  * Trilha de progresso do pedido.
@@ -26,6 +26,11 @@ import { ORDER_STEPS, type Order, type OrderTrack } from "./types";
  * vinha de um campo que o backend nunca atualizava, e a trilha ficava parada
  * em "Pedido Feito" com o pedido já entregue. Entregue conclui TODAS as
  * etapas; cancelado conclui as alcançadas e põe o X na seguinte.
+ *
+ * ── Status personalizado (2026-10-16) ──────────────────────────────────────
+ * Com `note` ("Farmando", na cor escolhida no painel), a etapa onde o pedido
+ * está mostra o nome do status no lugar do nome padrão da etapa, e a data de
+ * quando ele foi posto.
  */
 const STEP_ICON = {
   done: "/icons/order/step-1.svg",
@@ -87,6 +92,15 @@ type StepState = "done" | "current" | "pending" | "canceled";
  * pagar = X em "Aprovado"); um pedido estornado depois de entregue põe o X na
  * última, que é onde ele estava.
  */
+/** A etapa onde o pedido ESTÁ: a atual, a última (entregue) ou a do X (cancelado). */
+export function noteIndex(track: OrderTrack): number {
+  const reached = ORDER_STEPS.findIndex((step) => step.key === track.step);
+  const last = ORDER_STEPS.length - 1;
+  if (track.state === "done") return last;
+  if (track.state === "canceled") return Math.min(reached + 1, last);
+  return reached;
+}
+
 export function stepStates(track: OrderTrack): StepState[] {
   const reached = ORDER_STEPS.findIndex((step) => step.key === track.step);
   const last = ORDER_STEPS.length - 1;
@@ -106,21 +120,26 @@ export function stepStates(track: OrderTrack): StepState[] {
 export function OrderStatusTracker({
   track,
   dates,
+  note,
   size = "card",
   className,
 }: {
   track: OrderTrack;
   /** Data de cada etapa ("15/10 14:32"). Ausente = trilha sem datas. */
-  dates?: Order["stepDates"];
+  dates?: Purchase["stepDates"];
+  /** Status de entrega personalizado: nome, cor do texto (hex da paleta) e quando. */
+  note?: { label: string; color: string; date?: string | null } | null;
   size?: TrackerSize;
   className?: string;
 }) {
   const states = stepStates(track);
+  const noteAt = note ? noteIndex(track) : -1;
   const m = SIZES[size];
   const showDates = !!dates && Object.keys(dates).length > 0;
 
-  const summary =
-    track.state === "canceled"
+  const summary = note
+    ? note.label
+    : track.state === "canceled"
       ? "Cancelado"
       : track.state === "done"
         ? "Finalizado"
@@ -140,13 +159,16 @@ export function OrderStatusTracker({
       {ORDER_STEPS.map((step, index) => {
         const state = states[index];
         const left = index * m.gap;
-        const date = !showDates
-          ? undefined
-          : state === "canceled"
-            ? dates?.cancelado
-            : state === "pending"
-              ? undefined
-              : dates?.[step.key];
+        const noted = index === noteAt && note;
+        const date = noted && note.date
+          ? note.date
+          : !showDates
+            ? undefined
+            : state === "canceled"
+              ? dates?.cancelado
+              : state === "pending"
+                ? undefined
+                : dates?.[step.key];
 
         return (
           <div key={step.key}>
@@ -190,10 +212,18 @@ export function OrderStatusTracker({
               }}
             >
               <span
-                className={cn("font-poppins font-bold whitespace-pre-line", m.labelClass)}
-                style={{ color: state === "canceled" ? CANCELED_RED : state === "pending" ? "rgba(255,255,255,.45)" : "#fff" }}
+                className={cn("font-poppins font-bold whitespace-pre-line", noted && "line-clamp-2 break-words", m.labelClass)}
+                style={{
+                  color: noted
+                    ? note.color
+                    : state === "canceled"
+                      ? CANCELED_RED
+                      : state === "pending"
+                        ? "rgba(255,255,255,.45)"
+                        : "#fff",
+                }}
               >
-                {state === "canceled" ? "Cancelado" : step.label}
+                {noted ? note.label : state === "canceled" ? "Cancelado" : step.label}
               </span>
               {date ? (
                 <span className={cn("font-helvetica whitespace-nowrap text-brand-placeholder", m.dateClass)}>{date}</span>

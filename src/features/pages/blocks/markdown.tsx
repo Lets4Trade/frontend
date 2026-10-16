@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { CONTENT_IMAGE } from "@/features/game/sectionContent";
+import { CONTENT_IMAGE, IMGUR_IMAGE, isBodyImage } from "@/features/game/sectionContent";
+import { backendAsset } from "@/lib/publicApi";
 
 /**
  * Markdown RESTRITO do bloco "Texto formatado" (2026-09-25).
@@ -14,12 +15,40 @@ import { CONTENT_IMAGE } from "@/features/game/sectionContent";
  *
  *   ## título · ### subtítulo · **negrito** · *itálico*
  *   - lista · 1. lista numerada · [texto](https://… ou /caminho)
+ *   ![legenda](link) numa linha só (com `images`; ver `parseBlocks`)
  *
  * Qualquer outra coisa sai como texto literal. Link com outro esquema vira
  * texto simples (o rótulo), sem `href`.
+ *
+ * `images` liga a linha de imagem (ver `parseBlocks`) — blog e "Texto
+ * formatado" do construtor desde 2026-10-16.
  */
-export function Markdown({ source }: { source: string }) {
-  return <>{parseBlocks(source).map((block, index) => renderBlock(block, index))}</>;
+export function Markdown({ source, images = false }: { source: string; images?: boolean }) {
+  return <>{parseBlocks(source, { images }).map((block, index) => renderBlock(block, index))}</>;
+}
+
+/**
+ * Imagem do texto: arte do painel (`/uploads/pages/`, servida pela API) ou link
+ * direto do Imgur. `<img>` e não `next/image`: a proporção é qualquer uma (a
+ * largura é a da coluna, a altura vem da arte) e GIF do Imgur continua animado.
+ * `no-referrer`: o Imgur não fica sabendo qual página da loja o cliente abriu.
+ */
+export function BodyImage({ src, alt, className }: { src: string; alt: string; className?: string }) {
+  const url = IMGUR_IMAGE.test(src) ? src : CONTENT_IMAGE.test(src) ? backendAsset(src) : null;
+  if (!url) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={url}
+      alt={alt}
+      loading="lazy"
+      decoding="async"
+      referrerPolicy="no-referrer"
+      // `self-start`: dentro de coluna flex a `<img>` esticaria até a largura
+      // toda — imagem pequena ficaria ampliada e borrada.
+      className={className ?? "h-auto max-w-full self-start rounded-[14px]"}
+    />
+  );
 }
 
 export type MdBlock =
@@ -32,11 +61,12 @@ export type MdBlock =
  * `\n` (quem desenha usa `whitespace-pre-line`) em vez de juntadas com espaço.
  * É o que a descrição do jogo promete a quem edita (2026-10-08).
  *
- * `images` (2026-10-16, textos da página do pacote): uma linha que é SÓ
- * `![alt](/uploads/pages/<id>.webp)` vira bloco de imagem. Só arte enviada pelo
- * painel (`CONTENT_IMAGE`); outro endereço some — imagem de host livre seria
+ * `images` (2026-10-16, textos da página do pacote): `![alt](/uploads/pages/<id>.webp)`
+ * vira bloco de imagem (no meio de uma linha, quebra o parágrafo em volta). Só arte enviada pelo
+ * painel (`CONTENT_IMAGE`) ou link direto do Imgur (`IMGUR_IMAGE`, pedido do
+ * usuário no mesmo dia); outro endereço some — imagem de host livre seria
  * pixel de rastreamento de terceiro em cada visita. Desligado, a linha segue
- * como texto, então blog e descrição do jogo não mudam.
+ * como texto.
  */
 export function parseBlocks(
   source: string,
@@ -55,7 +85,13 @@ export function parseBlocks(
     list = null;
   };
 
-  for (const raw of source.replace(/\r\n?/g, "\n").split("\n")) {
+  let text = source.replace(/\r\n?/g, "\n");
+  // Imagem no MEIO de uma linha também vale: ela ganha linha própria (o texto
+  // antes e depois vira parágrafo). Sem isto, `![a](…)` colado num parágrafo
+  // apareceria como link "!a" — e quem edita moveu a imagem "como quis".
+  if (images) text = text.replace(/[ \t]*(!\[[^\]\n]*\]\([^)\s]+\))[ \t]*/g, "\n$1\n");
+
+  for (const raw of text.split("\n")) {
     const line = raw.trim();
     if (line === "") {
       flushParagraph();
@@ -67,7 +103,7 @@ export function parseBlocks(
     if (image) {
       flushParagraph();
       flushList();
-      if (CONTENT_IMAGE.test(image[2])) blocks.push({ kind: "img", src: image[2], alt: image[1].trim() });
+      if (isBodyImage(image[2])) blocks.push({ kind: "img", src: image[2], alt: image[1].trim() });
       continue;
     }
 
@@ -144,9 +180,8 @@ export function renderInline(text: string): ReactNode[] {
 
 function renderBlock(block: MdBlock, index: number) {
   switch (block.kind) {
-    // Só existe com `images: true`, que este componente não liga.
     case "img":
-      return null;
+      return <BodyImage key={index} src={block.src} alt={block.alt} />;
     case "h2":
       return (
         <h3 key={index} className="font-helvetica text-[22px] leading-[28px] font-bold text-white">

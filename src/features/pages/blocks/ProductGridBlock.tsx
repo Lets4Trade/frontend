@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { BlockPropsMap, PageRefs } from "../types";
 import { assetUrl, BlockHeading, formatPriceCents } from "./shared";
+import { gameHref } from "@/features/game/href";
 
 /**
  * "Produtos": os itens de um jogo, já filtrados e ordenados pelo BACKEND
@@ -31,7 +32,7 @@ export function ProductGridBlock({
             <li key={product.id}>
               <Link
                 // Com aba escolhida, a vitrine já abre nela (`?aba=` é validado lá).
-                href={`/games/${product.gameSlug}${props.tabSlug ? `?aba=${encodeURIComponent(props.tabSlug)}` : ""}`}
+                href={gameHref(product.gameSlug, props.tabSlug ? `aba=${encodeURIComponent(props.tabSlug)}` : null)}
                 className="group flex h-full flex-col overflow-hidden rounded-[24px] border border-brand-border bg-black/20 transition-colors hover:border-brand-orange"
               >
                 <span className="relative block aspect-square w-full bg-[#2f2f2f]">

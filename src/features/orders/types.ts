@@ -1,4 +1,5 @@
 import type { OrderGift } from "@/features/gifts/orderGift";
+import type { DeliveryStatusView } from "./deliveryStatus";
 
 /**
  * Etapas do pedido, na ordem em que aparecem no tracker (Figma 2073:1612).
@@ -33,28 +34,51 @@ export type OrderStatus =
   | "entregue"
   | "cancelado";
 
-export type Order = {
+/**
+ * Um PRODUTO do pedido (2026-10-16). Até então cada produto era um pedido, com
+ * situação e trilha próprias; agora a situação é do pedido inteiro (`Purchase`).
+ */
+export type OrderItem = {
   id: string;
-  /** Código curto que o cliente vê e cita no suporte — é a chave da rota do pedido. */
-  reference: string;
   productName: string;
   platform: string;
   quantity: string;
-  /** Já formatado em BRL pelo servidor ou por `Intl.NumberFormat` na borda. */
+  /** Jogo do produto, congelado na compra. */
+  gameName: string | null;
+  /** Arte do produto e do jogo, congeladas (caminhos do backend). Nulas = sem arte. */
+  productImageUrl: string | null;
+  gameImageUrl: string | null;
+  /** Preço CHEIO do item, já formatado em BRL. */
   price: string;
   /**
-   * Abatimento pago com Lets Coins, já formatado. `null` quando não houve.
+   * Abatimento DESTE item (coins + cupom), já formatado. `null` quando não houve.
    *
-   * Separado de `price` porque `price` é o preço CONGELADO do produto: o que a
-   * pessoa pagou é a diferença dos dois, e juntá-los faria o histórico dizer
-   * que o produto custava menos do que custava.
+   * Separado de `price` porque `price` é o preço CONGELADO do produto: juntar
+   * os dois faria o histórico dizer que o produto custava menos do que custava.
    */
   discount: string | null;
-  /** Quantas coins pagaram esse abatimento. Zero quando não houve. */
-  coinsSpent: number;
-  /** `price - discount`, já formatado: o que a pessoa de fato pagou. */
+  /** `price - discount`, já formatado: o que a pessoa pagou por este item. */
   paid: string;
-  /** Data já formatada (dd/mm/aa), como no design. */
+  /**
+   * Só item de SERVIÇO: a conta do preço ("Nível 1 → 50" R$ 250,00,
+   * "Prioridade" R$ 24,14) e as horas estimadas, já formatadas. `null` =
+   * catálogo — a tela mostra só a quantidade.
+   */
+  details?: { lines: { label: string; price: string }[]; hours: string | null } | null;
+  /** Brinde do jogo que vai com este item (2026-10-12). Ausente = nenhum. */
+  gift?: OrderGift | null;
+};
+
+/**
+ * O PEDIDO (2026-10-16): uma compra com vários itens, UMA situação, UMA trilha
+ * e uma entrega. O nome do tipo ficou `Purchase` porque já era o agrupamento
+ * da tela de "Meus pedidos" desde 2026-10-15.
+ */
+export type Purchase = {
+  id: string;
+  /** Código que o cliente vê e cita no suporte — é a rota da tela do pedido. */
+  reference: string;
+  /** dd/mm/aa. */
   date: string;
   status: OrderStatus;
   /** Onde o pedido está na trilha — DERIVADO da situação (ver `OrderTrack`). */
@@ -66,35 +90,16 @@ export type Order = {
    */
   stepDates: Partial<Record<OrderStepKey | "cancelado", string>>;
   /**
-   * Só pedido de SERVIÇO: a conta do preço ("Nível 1 → 50" R$ 250,00,
-   * "Prioridade" R$ 24,14) e as horas estimadas, já formatadas. Ausente/`null`
-   * = pedido de catálogo — a tela mostra só a quantidade.
+   * Status de entrega personalizado ("Farmando"), quando a equipe pôs um: vai
+   * na pílula e no lugar do nome da etapa atual da trilha. `date` = quando.
    */
-  details?: { lines: { label: string; price: string }[]; hours: string | null } | null;
-  /** Brinde do jogo que este pedido carrega (2026-10-12). Ausente = nenhum. */
-  gift?: OrderGift | null;
-  /** Cupom usado (2026-10-12): código e quanto abateu desta linha, formatado. */
-  coupon?: { code: string; amount: string } | null;
-};
-
-/**
- * Uma COMPRA (2026-10-15): os itens de um mesmo carrinho, que o backend grava
- * como um pedido por item amarrados ao mesmo pagamento. Cada item segue com a
- * PRÓPRIA situação e trilha — o admin entrega um de cada vez.
- */
-export type Purchase = {
-  /** `paymentId`, ou o id do pedido avulso (antes da Cielo). */
-  id: string;
-  /** Referência do 1º item: é a rota da tela da compra. */
-  reference: string;
-  /** dd/mm/aa. */
-  date: string;
-  items: Order[];
-  /** Somas da compra, já formatadas — mesma conta de cada item. */
+  delivery: (DeliveryStatusView & { date: string | null }) | null;
+  items: OrderItem[];
+  /** Totais do pedido, já formatados. */
   price: string;
   discount: string | null;
   paid: string;
-  /** Cupom da compra: código e quanto abateu no total. */
+  /** Cupom do pedido: código e quanto abateu no total. */
   coupon: { code: string; amount: string } | null;
 };
 

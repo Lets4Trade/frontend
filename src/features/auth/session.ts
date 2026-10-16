@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { cache } from "react";
+import type { SessionRole } from "@/features/admin/permissions";
 import { internalHeaders } from "@/lib/internalKey";
 
 /**
@@ -164,8 +165,8 @@ export const getSessionUserId = cache(async (): Promise<string | null> => {
   return profile && typeof profile.id === "string" ? profile.id : null;
 });
 
-/** Espelha o enum `UserRole` do backend (prisma/schema.prisma). */
-export type SessionRole = "ADMIN" | "EDITOR" | "USER";
+/** Espelha o enum `UserRole` do backend (ver `features/admin/permissions.ts`). */
+export type { SessionRole };
 
 /**
  * Quem pode mexer em CONTEÚDO do site (construtor de páginas, sessões, Builder
@@ -195,5 +196,6 @@ export const getSessionRole = cache(async (): Promise<SessionRole | null> => {
   // Allowlist explícita: papel desconhecido continua caindo em USER.
   if (profile.role === "ADMIN") return "ADMIN";
   if (profile.role === "EDITOR") return "EDITOR";
+  if (profile.role === "SUPPORT") return "SUPPORT";
   return "USER";
 });

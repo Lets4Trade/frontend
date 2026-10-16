@@ -1,7 +1,8 @@
 "use server";
 
 import { getAdminGames } from "@/features/admin/catalog";
-import { canEditContent, getSessionRole } from "@/features/auth/session";
+import { canAccess } from "@/features/admin/permissions";
+import { getSessionRole } from "@/features/auth/session";
 
 /**
  * Jogos para a busca do painel — lidos só quando a busca abre pela primeira
@@ -11,7 +12,7 @@ import { canEditContent, getSessionRole } from "@/features/auth/session";
  * autoriza `/admin/games` é o `RolesGuard` do backend.
  */
 export async function adminSearchGamesAction(): Promise<{ id: string; name: string }[]> {
-  if (!canEditContent(await getSessionRole())) return [];
+  if (!canAccess(await getSessionRole(), "catalog")) return [];
   const games = await getAdminGames();
   return games.map(({ id, name }) => ({ id, name }));
 }

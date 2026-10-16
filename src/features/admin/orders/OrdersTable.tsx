@@ -10,13 +10,18 @@ import { ACTION_FAILED_MESSAGE, runAction } from "@/lib/safeAction";
 import { updateOrderAction } from "./actions";
 import { InlineSelect } from "./InlineSelect";
 import { OrderInfoDialog } from "./OrderInfoDialog";
+import { DELIVERY_COLOR_STYLES, toDeliveryStatus } from "@/features/orders/deliveryStatus";
 import {
+  CUSTOM_PREFIX,
   ORDER_STATUSES,
   UNASSIGNED,
   attendantName,
   formatDateTime,
   orDash,
+  orderPill,
   statusStyle,
+  statusValue,
+  type AdminDeliveryStatus,
   type AdminOrder,
   type Attendant,
 } from "./types";
@@ -100,10 +105,13 @@ const MIN_WIDTH = 1417;
 export function OrdersTable({
   orders,
   attendants,
+  statuses,
   apiOrigin,
 }: {
   orders: AdminOrder[];
   attendants: Attendant[];
+  /** Status de entrega personalizados ativos (2026-10-16) — entram no select de situação. */
+  statuses: AdminDeliveryStatus[];
   /**
    * Origem do BACKEND, para o link do comprovante.
    *
@@ -121,7 +129,7 @@ export function OrdersTable({
     return { ...order, ...overrides[order.id] };
   }
 
-  function change(order: AdminOrder, patch: { status?: string; assigneeId?: string | null }) {
+  function change(order: AdminOrder, patch: { status?: string; assigneeId?: string | null; deliveryStatusId?: string | null }) {
     startTransition(async () => {
       const result = await runAction(() => updateOrderAction(order.id, patch), {
         ok: false,
@@ -134,6 +142,8 @@ export function OrdersTable({
           ...current,
           [order.id]: {
             status: result.order.status,
+            // O backend apaga o campo nulo: ausente = sem personalizado.
+            deliveryStatus: result.order.deliveryStatus ?? null,
             assigneeId: result.order.assigneeId,
             assigneeName: result.order.assigneeName,
           },
@@ -201,8 +211,10 @@ export function OrdersTable({
             ) : (
               orders.map((raw) => {
                 const order = apply(raw);
-                const style = statusStyle(order.status);
-                const art = backendAsset(order.gameImageUrl);
+                const pill = orderPill(order);
+                const games = order.games ?? [];
+                const art = backendAsset(games[0]?.imageUrl);
+                const items = Array.isArray(order.items) ? order.items : [];
 
                 return (
                   <tr key={order.id} className="border-t border-white/15">
@@ -231,20 +243,24 @@ export function OrdersTable({
                         `InlineSelect`.
                       */}
                       <InlineSelect
-                        value={order.status}
+                        value={statusValue(order)}
                         disabled={pending}
-                        onValueChange={(value) => change(raw, { status: value })}
+                        onValueChange={(value) =>
+                          // `ds:<id>` = status personalizado (o pedido vai para a
+                          // etapa dele); o resto é a situação padrão.
+                          value.startsWith(CUSTOM_PREFIX)
+                            ? change(raw, { deliveryStatusId: value.slice(CUSTOM_PREFIX.length) })
+                            : change(raw, { status: value })
+                        }
                         ariaLabel={`Situação do pedido ${order.reference}`}
-                        className={style.className}
-                        options={ORDER_STATUSES.map((value) => ({
-                          value,
-                          label: statusStyle(value).label,
-                        }))}
+                        className={pill.className}
+                        display={pill.label}
+                        options={statusOptions(order, statuses)}
                       />
                     </td>
 
                     <td className="truncate py-[14px] pr-[10px] font-helvetica text-[16px] tracking-[0.16px] text-brand-placeholder">
-                      {orDash(order.gameName)}
+                      {orDash(games.map((game) => game.name).join(", "))}
                     </td>
 
                     <td className="py-[14px] text-center">
@@ -367,9 +383,15 @@ export function OrdersTable({
                       >
                         Informações de compra
                       </button>
+                      {/* Vários itens (2026-10-16): quem entrega sabe antes de abrir. */}
+                      {items.length > 1 ? (
+                        <span className="ml-[8px] rounded-full border border-white/15 bg-white/5 px-[8px] py-[2px] font-poppins text-[11px] font-bold whitespace-nowrap text-white/80">
+                          {items.length} itens
+                        </span>
+                      ) : null}
                       {/* Pedido com brinde do jogo (2026-10-12): o selo avisa
                           quem entrega antes de abrir o detalhe. */}
-                      {order.gift ? (
+                      {items.some((item) => item.gift) ? (
                         <span className="ml-[8px] rounded-full border border-[#22c55e]/40 bg-[#22c55e]/10 px-[8px] py-[2px] font-poppins text-[11px] font-bold whitespace-nowrap text-[#4ade80]">
                           + brinde
                         </span>
@@ -379,9 +401,9 @@ export function OrdersTable({
                     <td className="py-[14px]">
                       {/*
                         O emblema do jogo fechando a linha: 27×27, encostado na
-                        margem direita. É a arte CONGELADA no pedido
-                        (`Order.gameImageUrl`), não a do catálogo de hoje — ver
-                        o model.
+                        margem direita. É a arte CONGELADA no item
+                        (`OrderItem.gameImageUrl`, a do 1º jogo do pedido), não a
+                        do catálogo de hoje — ver o model.
 
                         Pedido sem arte (os que nasceram antes da coluna, ou de
                         jogo já removido) simplesmente não desenha nada: um
@@ -423,4 +445,26 @@ export function OrdersTable({
       ) : null}
     </>
   );
+}
+
+/**
+ * Opções do select de situação: as padrão e, num grupo, os personalizados
+ * (2026-10-16), com a bolinha da cor. Status ARQUIVADO que o pedido ainda usa
+ * entra também — sem a opção, o Radix mostraria a pílula vazia.
+ */
+function statusOptions(order: AdminOrder, statuses: AdminDeliveryStatus[]) {
+  const current = toDeliveryStatus(order.deliveryStatus);
+  const custom = [...statuses];
+  if (current && !custom.some((status) => status.id === current.id)) {
+    custom.push({ id: current.id, label: current.label, color: current.color, base: order.status });
+  }
+  return [
+    ...ORDER_STATUSES.map((value) => ({ value, label: statusStyle(value).label, group: "Situação" })),
+    ...custom.map((status) => ({
+      value: `${CUSTOM_PREFIX}${status.id}`,
+      label: `${status.label} · ${statusStyle(status.base).label}`,
+      group: "Personalizados",
+      swatch: DELIVERY_COLOR_STYLES[status.color].text,
+    })),
+  ];
 }

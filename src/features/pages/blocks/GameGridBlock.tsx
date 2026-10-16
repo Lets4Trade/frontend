@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cn } from "@/lib/cn";
 import type { BlockPropsMap, PageRefs } from "../types";
 import { assetUrl, BlockHeading } from "./shared";
+import { gameHref } from "@/features/game/href";
 
 /** Classe estática por número de colunas — o Tailwind não enxerga classe montada. */
 const COLUMNS = {
@@ -44,7 +45,7 @@ export function GameGridBlock({
           return (
             <li key={game.id}>
               <Link
-                href={`/games/${game.slug}`}
+                href={gameHref(game.slug)}
                 className="group flex aspect-[4/3] flex-col items-center justify-center gap-[12px] rounded-[24px] border border-brand-border bg-[image:var(--brand-surface-fill)] p-[18px] transition-colors hover:border-brand-orange"
               >
                 <span className="relative h-[60%] w-full">

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { parseServiceContent } from "./storefrontTabs";
 import { SectionContentView } from "./SectionContentView";
-import { bodyImagesAreOwn, parseSection } from "./sectionContent";
+import { bodyImagesAllowed, parseSection } from "./sectionContent";
 
 vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: ReactNode }) => <a href={href}>{children}</a>,
@@ -36,11 +36,26 @@ describe("parseSection — leitura saneada da API (2026-10-16)", () => {
     });
   });
 
-  it("bodyImagesAreOwn confere TODAS as imagens", () => {
-    expect(bodyImagesAreOwn(`a ![x](${IMG}) b ![y](${IMG})`)).toBe(true);
-    expect(bodyImagesAreOwn(`![x](${IMG})\n![y](/uploads/pages/../../.env)`)).toBe(false);
-    expect(bodyImagesAreOwn("![x](javascript:alert(1))")).toBe(false);
-    expect(bodyImagesAreOwn("sem imagem")).toBe(true);
+  it("bodyImagesAllowed confere TODAS as imagens", () => {
+    expect(bodyImagesAllowed(`a ![x](${IMG}) b ![y](${IMG})`)).toBe(true);
+    expect(bodyImagesAllowed(`![x](${IMG})\n![y](/uploads/pages/../../.env)`)).toBe(false);
+    expect(bodyImagesAllowed("![x](javascript:alert(1))")).toBe(false);
+    expect(bodyImagesAllowed("sem imagem")).toBe(true);
+  });
+
+  it("aceita link DIRETO do Imgur e nada parecido (2026-10-16)", () => {
+    expect(bodyImagesAllowed("![x](https://i.imgur.com/AbC1234.png)")).toBe(true);
+    expect(bodyImagesAllowed("![x](https://i.imgur.com/AbC1234.gif)")).toBe(true);
+    for (const bad of [
+      "http://i.imgur.com/AbC1234.png",
+      "https://imgur.com/AbC1234",
+      "https://i.imgur.com.evil.com/AbC1234.png",
+      "https://evil.com/i.imgur.com/AbC1234.png",
+      "https://i.imgur.com/AbC1234.svg",
+      "https://i.imgur.com/a/AbC1234.png",
+    ]) {
+      expect(bodyImagesAllowed(`![x](${bad})`), bad).toBe(false);
+    }
   });
 });
 

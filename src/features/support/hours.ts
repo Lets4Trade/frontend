@@ -47,11 +47,22 @@ export function toRangeValue(range: DayRange): string {
   return `${formatClock(range.open)}-${formatClock(range.close)}`;
 }
 
-/** "9h", "9h30", "24h". */
+/**
+ * "9h", "9h30". Meia-noite como fim do dia (24:00) sai "00h" — pedido do
+ * usuário (2026-10-16): "24h" lê como erro para o cliente.
+ */
 function short(minutes: number): string {
-  const h = Math.floor(minutes / 60);
+  const h = Math.floor(minutes / 60) % 24;
   const m = minutes % 60;
-  return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, "0")}`;
+  const hour = h === 0 ? "00" : String(h);
+  return m === 0 ? `${hour}h` : `${hour}h${String(m).padStart(2, "0")}`;
+}
+
+/** "09", "09:30", "00" — o formato da linha "TODOS OS DIAS DAS 09 ÀS 00H". */
+function twoDigits(minutes: number): string {
+  const h = String(Math.floor(minutes / 60) % 24).padStart(2, "0");
+  const m = minutes % 60;
+  return m === 0 ? h : `${h}:${String(m).padStart(2, "0")}`;
 }
 
 export type ScheduleLine = { days: string; hours: string };
@@ -60,9 +71,16 @@ export type ScheduleLine = { days: string; hours: string };
  * A grade em linhas curtas, juntando dias SEGUIDOS com o mesmo horário:
  * "Seg a Sex · 9h às 22h", "Sáb · 10h às 18h". Dia fechado não aparece.
  * Nenhum dia aberto = lista vazia (a loja não mostra horário nenhum).
+ *
+ * Os SETE dias com o mesmo horário viram uma linha só (pedido do usuário,
+ * 2026-10-16): "TODOS OS DIAS" · "DAS 09 ÀS 00H".
  */
 export function scheduleLines(read: (key: WeekdayKey) => string | undefined): ScheduleLine[] {
   const ranges = WEEKDAYS.map((day) => ({ day, range: parseRange(read(day.key)) }));
+  const first = ranges[0].range;
+  if (first && ranges.every(({ range }) => range?.open === first.open && range?.close === first.close)) {
+    return [{ days: "TODOS OS DIAS", hours: `DAS ${twoDigits(first.open)} ÀS ${twoDigits(first.close)}H` }];
+  }
   const lines: ScheduleLine[] = [];
   let index = 0;
   while (index < ranges.length) {

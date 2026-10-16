@@ -278,7 +278,7 @@ export function ContactBubble({
               <AttendantStack
                 attendants={presence.attendants}
                 total={presence.total}
-                size={withText ? 44 : 34}
+                size={withText ? 42 : 32}
                 max={withText ? 3 : 2}
               />
             ) : (
@@ -341,7 +341,7 @@ function ChatAvatar({ config, size }: { config: ChatConfig; size: number }) {
   if (config.iconUrl) {
     return (
       <span className="relative block shrink-0 overflow-hidden rounded-full" style={{ width: size, height: size }}>
-        <Image src={config.iconUrl} alt="" fill sizes={`${size}px`} aria-hidden className="object-cover" />
+        <Image src={config.iconUrl} alt="" fill sizes={`${size}px`} quality={90} aria-hidden className="object-cover" />
       </span>
     );
   }
@@ -374,7 +374,9 @@ export function AttendantStack({
   const overflow = total > max;
   const faces = attendants.slice(0, overflow ? max - 1 : max);
   const rest = total - faces.length;
-  const overlap = Math.round(size * 0.32);
+  // Sobreposição menor que antes (32% → 22%, 2026-10-16): cada rosto aparece
+  // quase inteiro; o aro separa um do outro.
+  const overlap = Math.round(size * 0.22);
 
   return (
     <span aria-hidden className="flex shrink-0 items-center">
@@ -384,11 +386,20 @@ export function AttendantStack({
           <span
             key={`${attendant.name}-${index}`}
             title={attendant.name}
-            className="relative block shrink-0 overflow-hidden rounded-full ring-2 ring-black"
-            style={{ width: size, height: size, marginLeft: index === 0 ? 0 : -overlap, zIndex: max - index }}
+            // Aro laranja + folga preta (2026-10-16, "a imagem tá meio ruim"):
+            // as fotos têm fundo escuro e sumiam no botão preto, sem separação
+            // entre um rosto e o outro.
+            className="relative block shrink-0 overflow-hidden rounded-full ring-2 ring-brand-orange ring-offset-2 ring-offset-black"
+            style={{
+              width: size,
+              height: size,
+              marginLeft: index === 0 ? 0 : -overlap + 4,
+              zIndex: max - index,
+            }}
           >
             {src ? (
-              <Image src={src} alt="" fill sizes={`${size}px`} className="object-cover" />
+              // Qualidade 90: a 75 o rosto de 40px fica borrado (ver `qualities`).
+              <Image src={src} alt="" fill sizes={`${size}px`} quality={90} className="object-cover" />
             ) : (
               <span
                 className="flex size-full items-center justify-center bg-[image:var(--brand-orange-gradient)] font-poppins font-bold text-white uppercase"
@@ -402,8 +413,8 @@ export function AttendantStack({
       })}
       {overflow ? (
         <span
-          className="relative flex shrink-0 items-center justify-center rounded-full bg-white/15 font-poppins font-bold text-white ring-2 ring-black backdrop-blur"
-          style={{ width: size, height: size, marginLeft: -overlap, fontSize: Math.round(size * 0.34) }}
+          className="relative flex shrink-0 items-center justify-center rounded-full bg-white/15 font-poppins font-bold text-white ring-2 ring-brand-orange/60 ring-offset-2 ring-offset-black backdrop-blur"
+          style={{ width: size, height: size, marginLeft: -overlap + 4, fontSize: Math.round(size * 0.34) }}
         >
           +{rest}
         </span>

@@ -35,6 +35,7 @@ import type {
   BuilderShared,
   Draft,
 } from "./types";
+import { gameHref } from "@/features/game/href";
 
 /**
  * "Builder de Páginas" (Figma 3883:2153) — a casca da tela.
@@ -176,7 +177,7 @@ export function BuilderShell({
 
         <div className="flex items-center gap-[15px]">
           <Link
-            href={`/games/${game.slug}`}
+            href={gameHref(game.slug)}
             target="_blank"
             className="inline-flex h-[50px] items-center rounded-full border border-brand-border bg-[image:var(--brand-surface-fill)] px-[25px] font-poppins text-[14px] font-bold text-white transition-opacity hover:opacity-90"
           >

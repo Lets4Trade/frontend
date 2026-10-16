@@ -116,6 +116,8 @@ export type CentralNavLink = {
 export function centralNavLinks(
   game: { id: string; slug: string },
   canManage: boolean,
+  /** Brinde é promoção (só ADMIN, 2026-10-16): o EDITOR vê o resto da Central. */
+  canGift = true,
 ): { sections: CentralNavLink[]; extras: CentralNavLink[] } {
   const store: CentralNavLink = {
     key: "loja",
@@ -134,7 +136,7 @@ export function centralNavLinks(
     };
   }
   return {
-    sections: CENTRAL_SECTIONS.map((section) => ({
+    sections: CENTRAL_SECTIONS.filter((section) => canGift || section.id !== "brinde").map((section) => ({
       key: section.id,
       href: centralHref(game.id, { section: section.id }),
       label: section.label,

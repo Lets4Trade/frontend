@@ -10,6 +10,7 @@ import { EditorHeader } from "@/features/pages/editor/EditorHeader";
 import { editorBack, editorTabs } from "@/features/pages/editor/editorNav";
 import { PageEditor, type EditorBlock } from "@/features/site/editing/PageEditor";
 import { sitePage } from "@/features/site/sections";
+import { requirePanelArea } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
   title: "Páginas | Lets4Trade",
@@ -37,6 +38,8 @@ const EDITABLE_PAGES = ["home"] as const;
  * dados); o editor só os reordena e marca o que mudou.
  */
 export default async function AdminPagesPage({ searchParams }: PageProps) {
+  // Conteúdo: ADMIN e EDITOR (o atendente entra no painel, mas não aqui).
+  await requirePanelArea("content");
   const params = await searchParams;
   const requested = typeof params.pagina === "string" ? params.pagina : "home";
   const pageKey = (EDITABLE_PAGES as readonly string[]).includes(requested) ? requested : "home";

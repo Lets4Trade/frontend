@@ -12,8 +12,20 @@ import { SiteHeader } from "@/components/layout/SiteHeader";
 import { parseCatalogQuery } from "@/features/game/catalog";
 import { getGamePage, withActiveTab } from "@/features/game/content";
 import { GamePageSections } from "@/features/game/GamePageSections";
+import { GAME_SLUG, gameHref, isReservedGameSlug } from "@/features/game/href";
 
 type RouteParams = { slug: string };
+
+/**
+ * A página do jogo mora na RAIZ desde 2026-10-16 (`/path-of-exile-2`; o antigo
+ * `/games/<slug>` redireciona com 308 em `next.config.ts`). As rotas fixas do
+ * site (`/blog`, `/login`…) vencem esta rota dinâmica no Next; o que sobra cai
+ * aqui. Endereço fora do formato de slug ou de página do site vira 404 SEM ir
+ * à API — a raiz recebe todo tipo de caminho (robôs, `/wp-admin`...).
+ */
+function isGameSlug(slug: string): boolean {
+  return GAME_SLUG.test(slug) && !isReservedGameSlug(slug);
+}
 type RouteSearch = Record<string, string | string[] | undefined>;
 
 type PageProps = {
@@ -27,17 +39,18 @@ export async function generateMetadata({
   params: Promise<RouteParams>;
 }): Promise<Metadata> {
   const { slug } = await params;
+  if (!isGameSlug(slug)) return {};
   const page = await getGamePage(slug);
   if (!page) return {};
 
   return {
     title: page.seo.title,
     description: page.seo.description,
-    alternates: { canonical: `/games/${page.slug}` },
+    alternates: { canonical: gameHref(page.slug) },
     openGraph: {
       title: page.seo.title,
       description: page.seo.description,
-      url: `/games/${page.slug}`,
+      url: gameHref(page.slug),
       type: "website",
       siteName: "Lets4Trade",
     },
@@ -85,6 +98,7 @@ export async function generateMetadata({
  */
 export default async function GamePage({ params, searchParams }: PageProps) {
   const { slug } = await params;
+  if (!isGameSlug(slug)) notFound();
   const base = await getGamePage(slug);
   if (!base) notFound();
 

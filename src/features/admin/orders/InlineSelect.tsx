@@ -3,7 +3,18 @@
 import * as Select from "@radix-ui/react-select";
 import { cn } from "@/lib/cn";
 
-type Option = { value: string; label: string };
+type Option = {
+  value: string;
+  label: string;
+  /**
+   * Título do grupo (2026-10-16: "Personalizados" no select de situação).
+   * Quando muda de uma opção para a seguinte, a lista ganha um separador e o
+   * título. Ausente = sem grupo.
+   */
+  group?: string;
+  /** Cor de uma bolinha antes do rótulo (o status personalizado). */
+  swatch?: string;
+};
 
 /**
  * Escolha DENTRO de uma célula da tabela — a pílula de situação e o entregador
@@ -130,32 +141,69 @@ export function InlineSelect({
           )}
         >
           <Select.Viewport className="scrollbar-orange max-h-[280px] overflow-y-auto">
-            {options.map((option) => (
-              <Select.Item
-                key={option.value}
-                value={option.value}
-                className={cn(
-                  "relative flex cursor-pointer items-center rounded-[12px]",
-                  "py-[8px] pr-[32px] pl-[12px]",
-                  "font-poppins text-[14px] whitespace-nowrap text-white",
-                  "outline-none transition-colors select-none",
-                  // `highlighted` cobre mouse E teclado: só `:hover` deixaria a
-                  // navegação por setas sem realce nenhum.
-                  "data-[highlighted]:bg-white/5",
-                  "data-[state=checked]:text-brand-orange",
-                )}
-              >
-                <Select.ItemText>{option.label}</Select.ItemText>
-
-                <Select.ItemIndicator className="absolute right-[12px] flex items-center">
-                  <Check />
-                </Select.ItemIndicator>
-              </Select.Item>
-            ))}
+            {groupOptions(options).map((block, index) =>
+              block.group ? (
+                // O Radix exige o título DENTRO de um `Select.Group`.
+                <Select.Group key={block.group}>
+                  {index > 0 ? <Select.Separator className="mx-[8px] my-[6px] h-px bg-white/10" /> : null}
+                  <Select.Label className="px-[12px] pt-[4px] pb-[6px] font-poppins text-[11px] font-bold tracking-[0.06em] text-brand-fg-subtle uppercase">
+                    {block.group}
+                  </Select.Label>
+                  {block.options.map((option) => (
+                    <SelectEntry key={option.value} option={option} />
+                  ))}
+                </Select.Group>
+              ) : (
+                block.options.map((option) => <SelectEntry key={option.value} option={option} />)
+              ),
+            )}
           </Select.Viewport>
         </Select.Content>
       </Select.Portal>
     </Select.Root>
+  );
+}
+
+/** Opções seguidas do mesmo grupo viram um bloco (sem grupo = bloco solto). */
+function groupOptions(options: readonly Option[]) {
+  const blocks: { group?: string; options: Option[] }[] = [];
+  for (const option of options) {
+    const last = blocks[blocks.length - 1];
+    if (last && last.group === option.group) last.options.push(option);
+    else blocks.push({ group: option.group, options: [option] });
+  }
+  return blocks;
+}
+
+/** Uma opção, com a bolinha de cor quando tiver. */
+function SelectEntry({ option }: { option: Option }) {
+  return (
+    <Select.Item
+      value={option.value}
+      className={cn(
+        "relative flex cursor-pointer items-center rounded-[12px]",
+        "py-[8px] pr-[32px] pl-[12px]",
+        "font-poppins text-[14px] whitespace-nowrap text-white",
+        "outline-none transition-colors select-none",
+        // `highlighted` cobre mouse E teclado: só `:hover` deixaria a
+        // navegação por setas sem realce nenhum.
+        "data-[highlighted]:bg-white/5",
+        "data-[state=checked]:text-brand-orange",
+      )}
+    >
+      {option.swatch ? (
+        <span
+          aria-hidden
+          className="mr-[8px] size-[8px] shrink-0 rounded-full"
+          style={{ backgroundColor: option.swatch }}
+        />
+      ) : null}
+      <Select.ItemText>{option.label}</Select.ItemText>
+
+      <Select.ItemIndicator className="absolute right-[12px] flex items-center">
+        <Check />
+      </Select.ItemIndicator>
+    </Select.Item>
   );
 }
 

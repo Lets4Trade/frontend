@@ -6,7 +6,8 @@ import { AdminToaster } from "@/components/ui/Toasts";
 import { AdminHeader } from "@/features/admin/AdminHeader";
 import { getLayoutContent } from "@/features/site/layoutContent";
 import { PageViewTracker } from "@/features/admin/PageViewTracker";
-import { canEditContent, getSessionRole, getSessionUser } from "@/features/auth/session";
+import { isPanelRole } from "@/features/admin/permissions";
+import { getSessionRole, getSessionUser } from "@/features/auth/session";
 
 export const metadata: Metadata = {
   title: "Painel | Lets4Trade",
@@ -43,9 +44,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   ]);
 
   if (role === null || user === null) redirect("/login?redirect=/admin");
-  // ADMIN e EDITOR entram; o EDITOR só enxerga conteúdo (menu filtrado e as
-  // telas só-ADMIN chamam `requireAdminPage`).
-  if (!canEditContent(role)) notFound();
+  // ADMIN, EDITOR e ATENDENTE entram (2026-10-16); cada um só enxerga a sua
+  // parte: menu filtrado e cada tela chama `requirePanelArea`.
+  if (!isPanelRole(role)) notFound();
 
   return (
     <div className="flex min-h-dvh flex-col bg-brand-bg">

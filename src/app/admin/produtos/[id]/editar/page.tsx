@@ -6,7 +6,7 @@ import { ProductForm } from "@/features/admin/products/ProductForm";
 import { RETURN_PARAM, safeReturnPath } from "@/features/admin/products/links";
 import { getAdminProduct } from "@/features/admin/products/list";
 import { getGameTabs } from "@/features/admin/games/tabs/list";
-import { requireAdminPage } from "@/features/admin/guard";
+import { requirePanelArea } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
   title: "Editar produto | Lets4Trade",
@@ -32,7 +32,7 @@ export default async function EditProductPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireAdminPage();
+  await requirePanelArea("catalog");
   const [{ id }, query] = await Promise.all([params, searchParams]);
   // `?volta=` (admin-games-ux.md, Etapa 2): a Central do jogo manda o próprio
   // endereço para o salvar voltar à aba. Só caminho do painel (`safeReturnPath`).

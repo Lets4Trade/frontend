@@ -7,10 +7,11 @@ import { DeleteGameButton } from "@/features/admin/builder/DeleteGameButton";
 import { GameMenuOrderButtons } from "@/features/admin/games/GameMenuOrderButtons";
 import { getBuilderGames } from "@/features/admin/builder/list";
 import { centralHref } from "@/features/admin/games/central";
-import { requireAdminPage } from "@/features/admin/guard";
+import { requirePanelArea } from "@/features/admin/guard";
 import { ADMIN_SHELL } from "@/features/admin/layout";
 import { cn } from "@/lib/cn";
 import { backendAsset } from "@/lib/publicApi";
+import { gameHref } from "@/features/game/href";
 
 export const metadata: Metadata = {
   title: "Jogos | Lets4Trade",
@@ -33,7 +34,7 @@ export default async function AdminGamesPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireAdminPage();
+  await requirePanelArea("catalog");
   const params = await searchParams;
   const rawSearch = typeof params.q === "string" ? params.q.trim().slice(0, 80) : "";
   const search = rawSearch.toLocaleLowerCase("pt-BR");
@@ -139,12 +140,12 @@ export default async function AdminGamesPage({
                         </td>
                         <td className="hidden truncate px-[12px] md:table-cell">
                           <a
-                            href={`/games/${game.slug}`}
+                            href={gameHref(game.slug)}
                             target="_blank"
                             rel="noopener"
                             className="font-helvetica text-[14px] text-white/70 transition-colors hover:text-white"
                           >
-                            /games/{game.slug} ↗
+                            /{game.slug} ↗
                           </a>
                         </td>
                         <td className="px-[12px] text-right">

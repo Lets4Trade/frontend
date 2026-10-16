@@ -1,130 +1,165 @@
 import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
+import { backendAsset } from "@/lib/publicApi";
+import { DELIVERY_COLOR_STYLES } from "./deliveryStatus";
 import { OrderStatusTracker } from "./OrderStatusTracker";
-import { ORDER_STATUS_STYLES, type Order, type Purchase } from "./types";
+import { ORDER_STATUS_STYLES, type OrderItem, type Purchase } from "./types";
 
 /**
- * Card de uma COMPRA em "Meus Pedidos" (2026-10-15; base visual: Figma
- * 2073:1612 — 1000px, raio 30, fundo preto a 10%, borda branca a 10%).
+ * Card de um PEDIDO em "Meus Pedidos".
  *
- * Antes era um card por PEDIDO, e o carrinho vira um pedido por item: quem
- * comprava três coisas via três cards soltos, sem nada dizendo que eram a
- * mesma compra, e a tela do pedido mostrava um item só. Agora o card é da
- * compra, e cada item tem a PRÓPRIA situação e trilha — o admin entrega um de
- * cada vez.
+ * ── Reformulado em 2026-10-16 (pedido do usuário) ──────────────────────────
+ * "Tem que vir o nome do jogo no lugar [do item] … se der pra fazer algo como
+ * o carrinho é hoje seria uma boa." O card segue a linguagem do carrinho
+ * (`cart/CartRow`):
  *
- * Layout em FLUXO (não mais absoluto): a altura varia com o número de itens.
- * As colunas mantêm as medidas do arquivo — texto de x=50 a 525, trilha em
- * x=572.
+ *   topo     logo e nome do JOGO (o título), código · data · itens embaixo;
+ *            à direita a pílula da situação e o botão do chat
+ *   itens    linhas compactas: miniatura, produto, servidor · quantidade e o
+ *            preço em degradê (o único texto em degradê, como no carrinho)
+ *   rodapé   a trilha da entrega e o total pago
+ *
+ * Um pedido tem uma situação e uma trilha (2026-10-16); os itens não repetem.
  */
 export function PurchaseCard({ purchase }: { purchase: Purchase }) {
-  const single = purchase.items.length === 1;
   const href = `/conta/pedidos/${encodeURIComponent(purchase.reference)}`;
-  const title = single ? purchase.items[0].productName : `Compra com ${purchase.items.length} itens`;
+  const games = purchaseGames(purchase);
+  const title = games.map((game) => game.name).join(" + ") || purchase.items[0]?.productName || "Pedido";
+  const logo = backendAsset(games[0]?.imageUrl);
+  const pill = statusPill(purchase);
+  const count = purchase.items.length;
 
   return (
-    <article className="w-[1000px] shrink-0 rounded-[30px] border border-white/10 bg-black/10 pt-[25px] pb-[22px]">
-      <header className="flex h-[29px] items-center px-[50px]">
-        <h3
-          className="min-w-0 flex-1 truncate font-poppins text-[18px] leading-[27px] font-bold tracking-[0.36px] text-white"
-          title={title}
-        >
-          {title}
-        </h3>
+    <article className="w-[1000px] shrink-0 overflow-hidden rounded-[24px] border border-white/10 bg-[#0b0b0b]">
+      <header className="flex items-center gap-[16px] border-b border-white/[0.07] px-[28px] py-[18px]">
+        <span className="relative size-[52px] shrink-0 overflow-hidden rounded-[14px] border border-white/10 bg-[#161616]">
+          {logo ? <Image src={logo} alt="" fill sizes="52px" className="object-contain p-[6px]" /> : null}
+        </span>
 
-        {/* Chat: a porta da tela da compra (2569:1682), com a conversa e as
-            trilhas de todos os itens. Uma conversa por compra. */}
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate font-poppins text-[20px] leading-[26px] font-semibold tracking-[-0.2px] text-white" title={title}>
+            {title}
+          </h3>
+          <p className="mt-[2px] font-helvetica text-[13px] text-brand-fg-subtle">
+            Pedido <span className="font-bold text-white/80">{purchase.reference}</span>
+            <span aria-hidden> · </span>
+            {purchase.date}
+            <span aria-hidden> · </span>
+            {count} {count === 1 ? "item" : "itens"}
+          </p>
+        </div>
+
+        <span
+          className={cn(
+            "flex h-[28px] max-w-[260px] shrink-0 items-center justify-center truncate rounded-full border border-white/5 px-[14px] font-helvetica text-[14px] tracking-[0.14px]",
+            pill.className,
+          )}
+        >
+          {pill.label}
+        </span>
+
+        {/* A porta da tela do pedido: conversa com a equipe e o detalhe. */}
         <Link
           href={href}
-          aria-label={`Abrir a compra ${purchase.reference}`}
-          className="ml-[20px] flex h-[24px] w-[74px] shrink-0 items-center justify-center gap-[6px] rounded-[66px] border border-brand-orange bg-gradient-to-b from-[#222] to-[#1d1d1d] transition-opacity hover:opacity-80"
+          aria-label={`Abrir o pedido ${purchase.reference}`}
+          className="flex h-[36px] shrink-0 items-center gap-[8px] rounded-full border border-brand-orange bg-[image:var(--brand-surface-fill)] px-[16px] font-poppins text-[13px] font-bold text-white transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none"
         >
           <Image src="/icons/order/chat.svg" alt="" width={16} height={16} aria-hidden />
-          <span className="font-helvetica text-[14px] leading-[15px] text-white">Chat</span>
+          Ver pedido
         </Link>
-
-        <div aria-hidden className="mx-[11px] ml-[30px] h-[29px] w-px bg-white/20" />
-
-        <time className="w-[66px] shrink-0 font-helvetica text-[16px] leading-[13px] tracking-[0.16px] text-brand-placeholder">
-          {purchase.date}
-        </time>
       </header>
 
-      {purchase.items.map((item, index) => (
-        <ItemRow key={item.id} item={item} showName={!single} divider={index > 0} />
-      ))}
+      {/* Dois itens por linha a partir de dois: o card não cresce tanto e cada
+          linha continua do tamanho da do carrinho. */}
+      <ul className={cn("grid px-[28px] py-[6px]", count > 1 && "grid-cols-2 gap-x-[32px]")}>
+        {purchase.items.map((item) => (
+          <ItemRow key={item.id} item={item} />
+        ))}
+      </ul>
 
-      {/* Compra com vários itens: o total vem DEPOIS dos itens, como no
-          comprovante. Um item só já mostra o preço na própria linha. */}
-      {single ? null : (
-        <footer className="mx-[50px] mt-[18px] flex items-baseline justify-end gap-[30px] border-t border-white/10 pt-[16px]">
+      <footer className="flex items-end justify-between gap-[24px] border-t border-white/[0.07] bg-white/[0.015] px-[28px] pt-[18px] pb-[16px]">
+        <OrderStatusTracker track={purchase.track} dates={purchase.stepDates} note={trackNote(purchase)} />
+
+        <dl className="flex shrink-0 flex-col items-end gap-[4px] pb-[6px]">
           {purchase.discount ? (
-            <span className="font-helvetica text-[14px] text-white/60">
-              Desconto <span className="font-poppins font-semibold text-white/80">− {purchase.discount}</span>
-            </span>
+            <div className="flex items-baseline gap-[10px]">
+              <dt className="font-helvetica text-[13px] text-white/60">Desconto</dt>
+              <dd className="font-poppins text-[13px] font-semibold text-[#22c55e]">− {purchase.discount}</dd>
+            </div>
           ) : null}
-          <span className="font-helvetica text-[16px] font-bold text-white/80">
-            Total pago{" "}
-            <span className="ml-[8px] font-poppins text-[18px] font-semibold text-white">{purchase.paid}</span>
-          </span>
-        </footer>
-      )}
+          <div className="flex items-baseline gap-[12px]">
+            <dt className="font-helvetica text-[15px] font-bold text-white/80">Total pago</dt>
+            <dd className="font-poppins text-[22px] leading-none font-semibold text-white">{purchase.paid}</dd>
+          </div>
+        </dl>
+      </footer>
     </article>
   );
 }
 
-function ItemRow({ item, showName, divider }: { item: Order; showName: boolean; divider: boolean }) {
-  const status = ORDER_STATUS_STYLES[item.status];
-  const rows = [
-    { label: "Pedido", value: item.reference },
-    { label: "Plataforma/Servidor", value: item.platform },
-    { label: "Quantidade", value: item.quantity },
-    { label: "Preço", value: item.price },
-  ];
+/** Uma linha do item, no desenho da linha do carrinho (miniatura de 56px). */
+function ItemRow({ item }: { item: OrderItem }) {
+  const art = backendAsset(item.productImageUrl) ?? backendAsset(item.gameImageUrl);
+  const detail = [item.platform, item.quantity].filter(Boolean).join(" · ");
 
   return (
-    <section
-      aria-label={`${item.productName} — ${status.label}`}
-      className={cn("mx-[50px] flex gap-[47px]", divider ? "mt-[18px] border-t border-white/10 pt-[18px]" : "mt-[16px]")}
-    >
-      <div className="w-[475px] shrink-0">
-        {showName ? (
-          <h4
-            className="mb-[6px] truncate font-poppins text-[16px] leading-[24px] font-bold text-white"
-            title={item.productName}
-          >
-            {item.productName}
-          </h4>
+    <li className="flex min-w-0 items-center gap-[14px] border-b border-white/[0.07] py-[12px] last:border-b-0 [&:nth-last-child(2):nth-child(odd)]:border-b-0">
+      <span className="relative size-[56px] shrink-0 overflow-hidden rounded-[12px] border border-white/10 bg-[#161616]">
+        {art ? (
+          <Image
+            src={art}
+            alt=""
+            fill
+            sizes="56px"
+            className={cn("object-contain", item.productImageUrl ? "p-[5px]" : "p-[9px] opacity-80")}
+          />
         ) : null}
-        {/* Rótulo à esquerda, valor alinhado à direita — resumo de serviço
-            longo ("Nível 10 → 20 · Prioridade") vira reticências. */}
-        {rows.map((row) => (
-          <div key={row.label} className="flex h-[35px] items-center justify-between gap-[20px]">
-            <span className="shrink-0 font-helvetica text-[14px] leading-[16px] font-bold tracking-[0.14px] text-white/80">
-              {row.label}
-            </span>
-            <span
-              className="min-w-0 truncate text-right font-poppins text-[14px] leading-[23px] font-semibold tracking-[0.07px] text-white"
-              title={row.value}
-            >
-              {row.value}
-            </span>
-          </div>
-        ))}
+      </span>
+
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-poppins text-[15px] leading-[20px] font-semibold text-white" title={item.productName}>
+          {item.productName}
+        </p>
+        <p className="mt-[2px] truncate font-helvetica text-[12px] text-brand-fg-subtle" title={detail}>
+          {detail}
+        </p>
+        {item.gift ? (
+          <p className="mt-[2px] truncate font-helvetica text-[12px] font-bold text-[#4ade80]">+ Brinde: {item.gift.text}</p>
+        ) : null}
       </div>
 
-      <div className="flex flex-col items-start gap-[16px] pt-[4px]">
-        <span
-          className={cn(
-            "flex h-[24px] min-w-[100px] items-center justify-center rounded-[66px] border border-white/5 px-[12px] font-helvetica text-[14px] tracking-[0.14px]",
-            status.className,
-          )}
-        >
-          {status.label}
-        </span>
-        <OrderStatusTracker track={item.track} dates={item.stepDates} />
-      </div>
-    </section>
+      {/* O preço é o único texto em degradê — como no carrinho. */}
+      <span
+        className="shrink-0 bg-clip-text font-poppins text-[15px] font-semibold text-transparent"
+        style={{ backgroundImage: "var(--brand-orange-gradient)" }}
+      >
+        {item.price}
+      </span>
+    </li>
   );
+}
+
+/** Os jogos do pedido, sem repetir, na ordem dos itens — o título do card. */
+export function purchaseGames(purchase: Pick<Purchase, "items">) {
+  const seen = new Map<string, { name: string; imageUrl: string | null }>();
+  for (const item of purchase.items) {
+    if (item.gameName && !seen.has(item.gameName)) seen.set(item.gameName, { name: item.gameName, imageUrl: item.gameImageUrl });
+  }
+  return [...seen.values()];
+}
+
+/** Pílula do pedido: o status personalizado (nome e cor) ou a situação padrão. */
+export function statusPill(purchase: Pick<Purchase, "status" | "delivery">) {
+  if (purchase.delivery) {
+    return { label: purchase.delivery.label, className: DELIVERY_COLOR_STYLES[purchase.delivery.color].className };
+  }
+  return ORDER_STATUS_STYLES[purchase.status];
+}
+
+/** O status personalizado como nota da trilha (no lugar do nome da etapa atual). */
+export function trackNote(purchase: Pick<Purchase, "delivery">) {
+  return purchase.delivery
+    ? { label: purchase.delivery.label, color: DELIVERY_COLOR_STYLES[purchase.delivery.color].text, date: purchase.delivery.date }
+    : null;
 }

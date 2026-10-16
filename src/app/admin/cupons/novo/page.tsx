@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CouponForm } from "@/features/admin/coupons/CouponForm";
 import { getCouponTargetGames } from "@/features/admin/coupons/data";
-import { requireAdminPage } from "@/features/admin/guard";
+import { requirePanelArea } from "@/features/admin/guard";
 import { ADMIN_SHELL } from "@/features/admin/layout";
 
 export const metadata: Metadata = {
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 /** Painel → Cupons → Novo cupom. Só ADMIN. */
 export default async function NewCouponPage() {
-  await requireAdminPage();
+  await requirePanelArea("promotions");
   const games = await getCouponTargetGames();
 
   return (

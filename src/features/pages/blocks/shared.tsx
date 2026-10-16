@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { backendAsset } from "@/lib/publicApi";
 import type { Cta, PageLink, PageRefs } from "../types";
+import { gameHref } from "@/features/game/href";
 
 /**
  * Peças comuns dos blocos da loja.
@@ -15,7 +16,7 @@ export function resolveHref(link: PageLink | undefined, refs: PageRefs): string 
   if (!link) return null;
   if (link.kind === "game") {
     const game = refs.games[link.gameId];
-    return game ? `/games/${game.slug}` : null;
+    return game ? gameHref(game.slug) : null;
   }
   if (link.kind === "path") return link.path;
   // `https://` só — o backend já recusa qualquer outro esquema; conferir de

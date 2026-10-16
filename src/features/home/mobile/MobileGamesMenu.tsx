@@ -6,6 +6,7 @@ import { useState } from "react";
 import { MenuGameThumb } from "@/features/game/MenuGameThumb";
 import type { MenuGame } from "@/features/game/menuGames";
 import { NavTileFace } from "./NavTileFace";
+import { gameHref } from "@/features/game/href";
 
 /**
  * Atalho GAMES da home no celular: abre a lista de todos os jogos da loja
@@ -74,7 +75,7 @@ export function MobileGamesMenu({
             games.map((game) => (
               <DropdownMenu.Item key={game.slug} asChild>
                 <Link
-                  href={`/games/${game.slug}`}
+                  href={gameHref(game.slug)}
                   className="flex items-center gap-[12px] rounded-[12px] px-[12px] py-[8px] font-poppins text-[14px] text-white outline-none transition-colors data-[highlighted]:bg-white/5"
                 >
                   <MenuGameThumb src={game.image} />
