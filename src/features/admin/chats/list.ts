@@ -1,5 +1,8 @@
+import { toPurchase, type ApiPurchase } from "@/features/orders/ordersService";
+import { statusPill, trackNote } from "@/features/orders/PurchaseCard";
 import { apiGet } from "@/lib/serverApi";
 import type {
+  ChatOrder,
   ChatsQuery,
   StaffConversationDetail,
   StaffConversationPage,
@@ -39,4 +42,34 @@ export async function getStaffConversation(id: string): Promise<StaffConversatio
     contact: result.data.contact ?? {},
     messages: Array.isArray(result.data.messages) ? result.data.messages : [],
   };
+}
+
+/**
+ * O pedido de uma conversa, para o quadro ao lado do chat (2026-10-20).
+ *
+ * Pela busca de `/admin/orders` (ADMIN e SUPPORT, o mesmo recorte da tabela de
+ * pedidos) com a referência EXATA: a busca casa por trecho, e um "V12" não
+ * pode mostrar o pedido "V1234". Falha ou ausência vira `null` — o chat abre
+ * do mesmo jeito, só sem o quadro.
+ */
+/** A linha de `/admin/orders`: o pedido do cliente + o código antigo de cada item. */
+type ChatOrderRow = Omit<ApiPurchase, "items"> & {
+  items: (ApiPurchase["items"][number] & { legacyReference?: string | null })[];
+};
+
+export async function getChatOrder(reference: string | null | undefined): Promise<ChatOrder | null> {
+  if (!reference) return null;
+  const params = new URLSearchParams({ search: reference, limit: "10" });
+  const result = await apiGet<{ items?: ChatOrderRow[] }>(`/admin/orders?${params}`);
+  if (!result.ok || !Array.isArray(result.data.items)) return null;
+
+  const wanted = reference.toUpperCase();
+  const match = result.data.items.find(
+    (order) =>
+      order.reference?.toUpperCase() === wanted ||
+      (Array.isArray(order.items) && order.items.some((item) => item.legacyReference?.toUpperCase() === wanted)),
+  );
+  const purchase = match ? toPurchase(match) : null;
+  if (!purchase) return null;
+  return { purchase, pill: statusPill(purchase), note: trackNote(purchase) };
 }

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Pagination } from "@/components/ui/Pagination";
 import { AdminSearchBox, FilterMenu } from "@/features/admin/AdminFilters";
 import { ChatsBoard } from "@/features/admin/chats/ChatsBoard";
-import { getStaffConversation, getStaffConversations } from "@/features/admin/chats/list";
+import { getChatOrder, getStaffConversation, getStaffConversations } from "@/features/admin/chats/list";
 import {
   CHAT_PARAM,
   QUEUES,
@@ -36,9 +36,13 @@ export default async function AdminChatsPage({ searchParams }: PageProps) {
   await requirePanelArea("support");
   const query = parseChatsQuery(await searchParams);
 
-  const [page, detail, attendants, staffId] = await Promise.all([
+  // O pedido depende da conversa (é ela que diz a referência): encadeado só
+  // nesse ramo, para as outras leituras seguirem em paralelo.
+  const [page, [detail, order], attendants, staffId] = await Promise.all([
     getStaffConversations(query),
-    getStaffConversation(query.conversation),
+    getStaffConversation(query.conversation).then(
+      async (found) => [found, await getChatOrder(found?.conversation.orderReference)] as const,
+    ),
     getAttendants(),
     getSessionUserId(),
   ]);
@@ -105,6 +109,7 @@ export default async function AdminChatsPage({ searchParams }: PageProps) {
         <ChatsBoard
           items={page.items}
           detail={detail}
+          order={order}
           attendants={attendants}
           hrefFor={hrefFor}
           currentStaffId={staffId}

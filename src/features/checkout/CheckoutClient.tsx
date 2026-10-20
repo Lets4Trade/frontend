@@ -82,6 +82,7 @@ export function CheckoutClient({
   loyalty,
   gifts = [],
   whatsappHref,
+  referencesHref,
 }: {
   loyalty: LoyaltySummary | null;
   /** Regras de brinde ligadas (2026-10-12) — ver `features/gifts`. */
@@ -92,6 +93,8 @@ export function CheckoutClient({
    * nada, justo no momento da compra.
    */
   whatsappHref?: string;
+  /** Vídeo de referências no YouTube (`getReferencesVideoHref`), ou nada. */
+  referencesHref?: string | null;
 }) {
   const router = useRouter();
 
@@ -587,7 +590,7 @@ export function CheckoutClient({
           compactas editáveis, cupom enxuto, cashback e brinde em cartão, e os
           totais no fim. */}
       <CheckoutSidePanel mobileFirst>
-        <PanelReferencesRow />
+        <PanelReferencesRow referencesHref={referencesHref} />
 
         <h2 className="mt-[34px] flex items-baseline gap-[10px] font-poppins text-[20px] font-semibold tracking-[-0.4px] text-white">
           Resumo do pedido

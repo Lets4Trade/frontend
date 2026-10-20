@@ -10,7 +10,8 @@ import { useSupportSocket } from "@/features/support/socket";
 import { listTime } from "@/features/support/types";
 import { cn } from "@/lib/cn";
 import { replyAsStaff, updateConversation } from "./api";
-import type { StaffConversation, StaffConversationDetail, StaffMessage } from "./types";
+import { ChatOrderSummary } from "./ChatOrderSummary";
+import type { ChatOrder, StaffConversation, StaffConversationDetail, StaffMessage } from "./types";
 
 const UNASSIGNED = "sem-atendente";
 
@@ -29,12 +30,15 @@ const UNASSIGNED = "sem-atendente";
 export function ChatsBoard({
   items: initialItems,
   detail,
+  order = null,
   attendants,
   hrefFor,
   currentStaffId,
 }: {
   items: StaffConversation[];
   detail: StaffConversationDetail | null;
+  /** O pedido da conversa aberta (2026-10-20), já montado no servidor. */
+  order?: ChatOrder | null;
   attendants: Attendant[];
   /** Endereços já montados no servidor, por conversa. */
   hrefFor: Record<string, string>;
@@ -155,6 +159,8 @@ export function ChatsBoard({
           key={conversation.id}
           conversation={conversation}
           contact={detail?.contact ?? {}}
+          // Só o pedido DESTA conversa: o estado local pode estar à frente da página.
+          order={order && order.purchase.reference === conversation.orderReference ? order : null}
           messages={messages}
           attendants={attendants}
           currentStaffId={currentStaffId}
@@ -176,6 +182,7 @@ export function ChatsBoard({
 function ConversationPane({
   conversation,
   contact,
+  order,
   messages,
   attendants,
   currentStaffId,
@@ -184,6 +191,7 @@ function ConversationPane({
 }: {
   conversation: StaffConversation;
   contact: StaffConversationDetail["contact"];
+  order: ChatOrder | null;
   messages: StaffMessage[];
   attendants: Attendant[];
   currentStaffId: string | null;
@@ -291,38 +299,77 @@ function ConversationPane({
         </div>
       </header>
 
-      <div ref={listRef} className="scrollbar-orange min-h-0 flex-1 overflow-y-auto px-[30px] py-[20px]" aria-live="polite">
-        {messages.map((message) => (
-          <StaffBubble key={message.id} message={message} />
-        ))}
-      </div>
+      {/* O pedido ao lado da conversa (2026-10-20): coluna própria em tela
+          larga; abaixo disso, um resumo que abre e fecha acima das mensagens
+          (a coluna de 400px espremeria o chat). */}
+      <div className="flex min-h-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col">
+          {order ? (
+            <details className="group shrink-0 border-b border-brand-hairline 2xl:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-[12px] px-[30px] py-[12px] font-poppins text-[14px] font-semibold text-white hover:bg-white/5">
+                <span className="truncate">
+                  Pedido {order.purchase.reference}
+                  <span className="font-normal text-white/55">
+                    {" "}
+                    · {order.purchase.items.length} {order.purchase.items.length === 1 ? "item" : "itens"} ·{" "}
+                    {order.pill.label}
+                  </span>
+                </span>
+                <span aria-hidden className="text-white/60 transition-transform group-open:rotate-180">
+                  ▾
+                </span>
+              </summary>
+              <ChatOrderSummary
+                order={order}
+                hideHeading
+                className="scrollbar-orange max-h-[34vh] overflow-y-auto px-[30px] pb-[18px]"
+              />
+            </details>
+          ) : null}
 
-      <form onSubmit={handleSend} className="flex items-end gap-[12px] border-t border-brand-hairline px-[30px] py-[18px]">
-        <textarea
-          value={draft}
-          onChange={(event) => setDraft(event.currentTarget.value)}
-          onKeyDown={(event) => {
-            // Enter envia; Shift+Enter quebra linha — o comportamento de todo chat.
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault();
-              event.currentTarget.form?.requestSubmit();
-            }
-          }}
-          maxLength={2000}
-          rows={2}
-          disabled={busy}
-          aria-label="Responder como suporte"
-          placeholder={closed ? "Responder reabre a conversa" : "Responder como suporte (Enter envia)"}
-          className="min-h-[50px] flex-1 resize-none rounded-[16px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[20px] py-[12px] font-poppins text-[15px] text-white outline-none placeholder:text-white/50 focus-visible:border-brand-orange disabled:opacity-60"
-        />
-        <button
-          type="submit"
-          disabled={busy || draft.trim() === ""}
-          className="h-[50px] shrink-0 rounded-full bg-brand-orange px-[26px] font-poppins text-[15px] font-bold text-black transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          ENVIAR
-        </button>
-      </form>
+          <div ref={listRef} className="scrollbar-orange min-h-0 flex-1 overflow-y-auto px-[30px] py-[20px]" aria-live="polite">
+            {messages.map((message) => (
+              <StaffBubble key={message.id} message={message} />
+            ))}
+          </div>
+
+          <form onSubmit={handleSend} className="flex items-end gap-[12px] border-t border-brand-hairline px-[30px] py-[18px]">
+            <textarea
+              value={draft}
+              onChange={(event) => setDraft(event.currentTarget.value)}
+              onKeyDown={(event) => {
+                // Enter envia; Shift+Enter quebra linha — o comportamento de todo chat.
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  event.currentTarget.form?.requestSubmit();
+                }
+              }}
+              maxLength={2000}
+              rows={2}
+              disabled={busy}
+              aria-label="Responder como suporte"
+              placeholder={closed ? "Responder reabre a conversa" : "Responder como suporte (Enter envia)"}
+              className="min-h-[50px] flex-1 resize-none rounded-[16px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[20px] py-[12px] font-poppins text-[15px] text-white outline-none placeholder:text-white/50 focus-visible:border-brand-orange disabled:opacity-60"
+            />
+            <button
+              type="submit"
+              disabled={busy || draft.trim() === ""}
+              className="h-[50px] shrink-0 rounded-full bg-brand-orange px-[26px] font-poppins text-[15px] font-bold text-black transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              ENVIAR
+            </button>
+          </form>
+        </div>
+
+        {order ? (
+          <aside
+            aria-label={`Pedido ${order.purchase.reference}`}
+            className="scrollbar-orange hidden w-[400px] shrink-0 overflow-y-auto border-l border-brand-hairline px-[22px] py-[20px] 2xl:block"
+          >
+            <ChatOrderSummary order={order} />
+          </aside>
+        ) : null}
+      </div>
     </section>
   );
 }

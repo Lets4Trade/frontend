@@ -125,3 +125,51 @@ describe("adicional percentual NEGATIVO (desconto, 2026-10-09)", () => {
     expect(result).toMatchObject({ ok: false, message: "Com esses adicionais o valor fica zerado. Escolha outra combinação." });
   });
 });
+
+describe("quote — sem teto de nível, horas e quantidade (2026-10-20)", () => {
+  it("intervalo de bilhões de níveis é contado por faixa, sem travar", () => {
+    const huge: Pricing = {
+      mode: "LEVEL_RANGE",
+      unitLabel: "Paragon",
+      min: 0,
+      max: 5_000_000_000,
+      bands: [{ from: 0, to: 5_000_000_000, pricePerLevelCents: 0, hoursPerLevel: 0.000001 }],
+    };
+    expect(pricingSchema.safeParse(huge).success).toBe(true);
+    const started = Date.now();
+    // Preço zero por nível: só o base — o que importa é não andar nível a nível.
+    const result = quote(100, huge, { levelFrom: 0, levelTo: 4_000_000_000 });
+    expect(Date.now() - started).toBeLessThan(50);
+    expect(result).toMatchObject({ ok: true, totalCents: 100, hours: 4000 });
+  });
+
+  it("faixas sobrepostas: vale a PRIMEIRA da lista, como na conta nível a nível", () => {
+    const overlap: Pricing = {
+      mode: "LEVEL_RANGE",
+      unitLabel: "Nível",
+      min: 0,
+      max: 100,
+      bands: [
+        { from: 50, to: 60, pricePerLevelCents: 1000, hoursPerLevel: 0 },
+        { from: 0, to: 100, pricePerLevelCents: 10, hoursPerLevel: 0 },
+      ],
+    };
+    // 40..49 → 10 cada (100); 50..59 → 1000 cada (10.000); 60..69 → 10 cada (100)
+    expect(quote(0, overlap, { levelFrom: 40, levelTo: 70 })).toMatchObject({ ok: true, totalCents: 10_200 });
+  });
+
+  it("buraco entre faixas: aponta o primeiro nível sem preço", () => {
+    const withGap = { ...LEVELS, bands: [LEVELS.bands[0], { ...LEVELS.bands[1], from: 61 }] };
+    expect(pricingSchema.safeParse(withGap).success).toBe(false);
+    expect(quote(0, withGap, { levelFrom: 58, levelTo: 62 })).toMatchObject({
+      ok: false,
+      message: "O nível 60 não tem preço configurado.",
+    });
+  });
+
+  it("horas e quantidade sem o teto antigo (10.000 h e 1.000.000)", () => {
+    const gold: Pricing = { mode: "QUANTITY", unitLabel: "Gold", min: 1, max: 50_000_000_000, step: 1, hoursPerUnit: 0, baseHours: 20_000 };
+    expect(pricingSchema.safeParse(gold).success).toBe(true);
+    expect(quote(1, gold, { quantity: 30_000_000 })).toMatchObject({ ok: true, totalCents: 30_000_000, hours: 20_000 });
+  });
+});

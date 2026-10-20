@@ -1,5 +1,10 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
+import { PackageDescriptionPopover } from "./PackageDescriptionPopover";
+import type { ServiceContent } from "./types";
+
+const ART_BOX =
+  "relative h-[150px] w-full overflow-hidden rounded-t-[22px] lg:absolute lg:top-px lg:left-px lg:h-[276px] lg:w-[263px] lg:rounded-t-[30px]";
 
 /**
  * A CASCA do card de produto (Figma 1374:1859) — 265×417.
@@ -31,6 +36,7 @@ export function ProductCardShell({
   image,
   actions,
   cta,
+  hoverDescription,
 }: {
   name: string;
   /** Nome em inglês, numa segunda linha abaixo do português (2026-10-08). */
@@ -41,7 +47,27 @@ export function ProductCardShell({
   image?: { src: string; alt?: string; width: number; height: number };
   actions: ReactNode;
   cta?: ReactNode;
+  /**
+   * Descrição do produto ao passar o mouse na ARTE (2026-10-20, pedido do
+   * usuário) — o mesmo painel do card de pacote, com textos e imagens escritos
+   * no painel. Ausente = o card não mostra nada (só aparece o que o admin
+   * configurou).
+   */
+  hoverDescription?: { title: string; content: ServiceContent };
 }) {
+  const art = image ? (
+    <Image
+      src={image.src}
+      alt={image.alt ?? ""}
+      width={image.width}
+      height={image.height}
+      // Inteira e com respiro (pedido do usuário, 2026-10-06): com
+      // `object-cover` a arte preenchia a área toda e ficava grande e
+      // cortada. A margem de baixo é maior porque o degradê come a base.
+      className="size-full object-contain px-[16px] pt-[14px] pb-[10px] lg:px-[28px] lg:pt-[24px] lg:pb-[40px]"
+    />
+  ) : null;
+
   return (
     <article
       className={`relative flex w-full flex-col overflow-hidden rounded-[22px] border border-white/10 bg-black/10 pb-[14px] lg:block lg:w-[265px] lg:rounded-[30px] lg:pb-0 ${cta ? "lg:h-[467px]" : "lg:h-[417px]"}`}
@@ -49,20 +75,15 @@ export function ProductCardShell({
       {/* A imagem é opcional de propósito. O arquivo desenha um retângulo
           #2f2f2f atrás dela; saiu em 2026-10-08 (pedido do usuário): a arte
           fica direto sobre o fundo do card, e sem arte a área fica vazia. */}
-      <div className="relative h-[150px] w-full overflow-hidden rounded-t-[22px] lg:absolute lg:top-px lg:left-px lg:h-[276px] lg:w-[263px] lg:rounded-t-[30px]">
-        {image ? (
-          <Image
-            src={image.src}
-            alt={image.alt ?? ""}
-            width={image.width}
-            height={image.height}
-            // Inteira e com respiro (pedido do usuário, 2026-10-06): com
-            // `object-cover` a arte preenchia a área toda e ficava grande e
-            // cortada. A margem de baixo é maior porque o degradê come a base.
-            className="size-full object-contain px-[16px] pt-[14px] pb-[10px] lg:px-[28px] lg:pt-[24px] lg:pb-[40px]"
-          />
-        ) : null}
-      </div>
+      {/* Sem imagem no pé do painel: a arte já está no card, e as fotos da
+          descrição vêm do próprio texto (editor do painel). */}
+      {hoverDescription ? (
+        <PackageDescriptionPopover title={hoverDescription.title} content={hoverDescription.content} className={ART_BOX}>
+          {art}
+        </PackageDescriptionPopover>
+      ) : (
+        <div className={ART_BOX}>{art}</div>
+      )}
 
       {/* Degradê que apaga a base da arte, e a faixa preta atrás do nome e do
           preço: os dois estão no arquivo e são o que garante leitura sobre

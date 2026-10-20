@@ -1,9 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { openConversation, sendMessageHttp } from "./api";
+import { closeConversation, openConversation, sendMessageHttp } from "./api";
 import { useSupportSocket, type SocketStatus } from "./socket";
-import { mergeMessage, toChatMessage, type ApiChatMessage, type ChatMessage } from "./types";
+import {
+  mergeMessage,
+  toChatMessage,
+  type ApiChatMessage,
+  type ChatMessage,
+  type ConversationStatus,
+  type ConversationSummary,
+} from "./types";
 
 /**
  * Uma conversa aberta: histórico por HTTP, novidades por socket, envio pelo
@@ -14,10 +21,15 @@ import { mergeMessage, toChatMessage, type ApiChatMessage, type ChatMessage } fr
  */
 export function useConversation(
   conversationId: string | null,
-  options: { initialMessages?: ChatMessage[]; loadHistory?: boolean } = {},
+  options: { initialMessages?: ChatMessage[]; loadHistory?: boolean; initialStatus?: ConversationStatus } = {},
 ) {
   const { socket, status } = useSupportSocket(Boolean(conversationId));
   const [messages, setMessages] = useState<ChatMessage[]>(options.initialMessages ?? []);
+  // Aberta/encerrada (2026-10-20): os dois lados podem encerrar, e quem está com
+  // a conversa na tela precisa ver quando o OUTRO lado encerrou ou reabriu.
+  const [conversationStatus, setConversationStatus] = useState<ConversationStatus>(
+    options.initialStatus ?? "ABERTA",
+  );
   const [loading, setLoading] = useState(Boolean(conversationId) && options.loadHistory !== false);
   const [error, setError] = useState<string | null>(null);
   const idRef = useRef(conversationId);
@@ -30,8 +42,9 @@ export function useConversation(
     setLoading(true);
     setError(null);
     openConversation(conversationId)
-      .then(({ messages: history }) => {
+      .then(({ conversation, messages: history }) => {
         if (cancelled) return;
+        setConversationStatus(conversation.status);
         // Junta com o que o socket já tenha entregue enquanto o histórico vinha.
         setMessages((current) => history.reduce(mergeMessage, current.filter((m) => m.conversationId === conversationId)).sort(byDate));
       })
@@ -59,12 +72,20 @@ export function useConversation(
       if (raw.author !== "CLIENTE") socket.emit("lida", { conversationId });
     };
 
+    // O resumo chega na sala da PESSOA a cada mudança — inclusive o "Encerrar"
+    // e o "Reabrir" do painel.
+    const onSummary = (summary: ConversationSummary) => {
+      if (summary.id === idRef.current) setConversationStatus(summary.status);
+    };
+
     if (socket.connected) join();
     socket.on("connect", join);
     socket.on("mensagem", onMessage);
+    socket.on("conversa", onSummary);
     return () => {
       socket.off("connect", join);
       socket.off("mensagem", onMessage);
+      socket.off("conversa", onSummary);
       if (socket.connected) socket.emit("sair", { conversationId });
     };
   }, [socket, conversationId]);
@@ -86,6 +107,8 @@ export function useConversation(
         });
         if (ack?.ok && ack.message) {
           setMessages((current) => mergeMessage(current, toChatMessage(ack.message!)));
+          // Escrever numa conversa encerrada a reabre (regra do back).
+          setConversationStatus("ABERTA");
           return true;
         }
         if (ack && !ack.ok) {
@@ -97,6 +120,7 @@ export function useConversation(
       try {
         const message = await sendMessageHttp(id, text);
         setMessages((current) => mergeMessage(current, message));
+        setConversationStatus("ABERTA");
         setError(null);
         return true;
       } catch {
@@ -111,7 +135,33 @@ export function useConversation(
     setMessages((current) => mergeMessage(current, message));
   }, []);
 
-  return { messages, loading, error, status: status as SocketStatus, send, append };
+  /** Encerra pelo lado do cliente. `false` se não deu (o erro fica em `error`). */
+  const close = useCallback(async (): Promise<boolean> => {
+    const id = idRef.current;
+    if (!id) return false;
+    try {
+      const result = await closeConversation(id);
+      setConversationStatus(result.conversation.status);
+      // A linha também chega pelo socket; `mergeMessage` não duplica.
+      if (result.message) setMessages((current) => mergeMessage(current, result.message!));
+      setError(null);
+      return true;
+    } catch {
+      setError("Não foi possível encerrar a conversa. Tente de novo.");
+      return false;
+    }
+  }, []);
+
+  return {
+    messages,
+    loading,
+    error,
+    status: status as SocketStatus,
+    send,
+    append,
+    close,
+    closed: conversationStatus === "FECHADA",
+  };
 }
 
 function byDate(a: ChatMessage, b: ChatMessage) {

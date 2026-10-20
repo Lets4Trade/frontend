@@ -325,7 +325,7 @@ export function MobileReviews({ section, items }: { section: SectionView; items:
 
 /**
  * Ordem dos cards no celular, em termos dos LUGARES do desktop (ver
- * `CARD_POSITIONS` em `TeamSection`): o 2º lugar (EDDMAX, à direita do texto)
+ * `CARD_POSITIONS` em `TeamSection`): o 2º lugar (EDDMAX, à esquerda do texto)
  * vem sozinho em destaque, e os demais em pares — 1º e 7º, 3º e 5º, 6º e 4º
  * (DANIEL/LUAN, ROGUE/YURI, GUS/ZEZÃO no desenho). Membros além do 7º seguem
  * na ordem da lista.

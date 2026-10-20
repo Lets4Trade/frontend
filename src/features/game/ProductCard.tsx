@@ -96,6 +96,12 @@ export function ProductCard({
         )
       }
       image={product.image}
+      // Só com descrição escrita no painel (2026-10-20); sem ela, nada no hover.
+      hoverDescription={
+        product.content && product.content.sections.length > 0
+          ? { title: product.name, content: product.content }
+          : undefined
+      }
       actions={
         // Celular: fileira centrada e mais justa (botões de 36px) para caber
         // no card de ~170px; desktop: começa a 32px da borda, como no arquivo.

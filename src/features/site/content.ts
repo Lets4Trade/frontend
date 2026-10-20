@@ -9,6 +9,7 @@ import {
   type SectionLayoutRow,
 } from "./pageLayout";
 import { gameHref } from "@/features/game/href";
+import { youtubeId, youtubeWatchUrl } from "@/features/home/youtube";
 
 /**
  * A leitura das SESSÕES para as páginas públicas do site.
@@ -82,6 +83,19 @@ export type SectionView = {
  * ⚠️ Falha de rede vira "tudo padrão", nunca exceção. A home não pode deixar de
  * carregar porque uma personalização de título não respondeu.
  */
+/**
+ * Link do vídeo de REFERÊNCIAS no YouTube (2026-10-20) — o mesmo do botão "Veja
+ * nossas referências" da home (`VideoSection`): o link próprio do botão
+ * (subtítulo da sessão Vídeo) ou, vazio, o do player. `null` sem nenhum dos
+ * dois. Só o ID do vídeo é aproveitado (ver `youtube.ts`): o texto do painel
+ * nunca vira `href` cru.
+ */
+export async function getReferencesVideoHref(): Promise<string | null> {
+  const video = (await getSectionsFor("home"))("video");
+  const id = youtubeId(video.subtitle) ?? youtubeId(video.footnote);
+  return id ? youtubeWatchUrl(id) : null;
+}
+
 export async function getSectionsFor(
   pageKey: string,
 ): Promise<(key: string) => SectionView> {

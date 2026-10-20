@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { createConversation } from "@/features/support/api";
 import type { SocketStatus } from "@/features/support/socket";
-import type { ChatMessage } from "@/features/support/types";
+import type { ChatMessage, ConversationStatus } from "@/features/support/types";
 import { useConversation } from "@/features/support/useConversation";
 
 /**
@@ -15,8 +15,9 @@ import { useConversation } from "@/features/support/useConversation";
  * vêm de `features/support`; este arquivo cuida só do desenho do arquivo.
  *
  * O histórico chega pronto do servidor; o socket (`/ws/support`) entrega o que
- * acontece dali em diante. Pedido sem conversa ainda: a PRIMEIRA mensagem abre
- * uma, com o assunto "Pedido <referência>".
+ * acontece dali em diante. Pedido pago já chega com a conversa aberta pelo back
+ * (2026-10-20); pedido sem conversa ainda (pendente, ou pago antes disso): a
+ * PRIMEIRA mensagem abre uma, com o assunto "Pedido <referência>".
  *
  * Os dois botões do rodapé são ASSETS INTEIROS (2571:1806 e 2571:1814): o SVG
  * exportado já traz o círculo, o preenchimento e o glifo.
@@ -26,31 +27,41 @@ export function OrderChat({
   subject,
   initialConversationId,
   initialMessages,
+  initialStatus,
   userAvatar,
   justPaid = false,
 }: {
   reference: string;
   /**
    * Chegou aqui logo depois de pagar (2026-10-16): aviso de pagamento aprovado
-   * no topo e uma primeira mensagem já escrita — a equipe só é avisada quando
-   * o cliente escreve, então o caminho mais curto é um "Enviar".
+   * no topo e uma primeira mensagem já escrita — o caminho mais curto até a
+   * equipe é um "Enviar". Desde 2026-10-20 a conversa já existe (o back a abre
+   * na venda confirmada, com uma linha do sistema), e a equipe pode escrever
+   * primeiro.
    */
   justPaid?: boolean;
   /** Assunto da conversa aberta aqui. Padrão: "Pedido <referência>". */
   subject?: string;
   initialConversationId: string | null;
   initialMessages: ChatMessage[];
+  /** Situação da conversa ao carregar a página — o cliente também encerra. */
+  initialStatus?: ConversationStatus;
   userAvatar?: string;
 }) {
   const [conversationId, setConversationId] = useState(initialConversationId);
-  const { messages, status, send, append, error } = useConversation(conversationId, {
+  const { messages, status, send, append, close, closed, error } = useConversation(conversationId, {
     initialMessages,
+    initialStatus,
     // O histórico já veio do servidor; e a conversa criada aqui nasce com a
     // mensagem que acabou de ser enviada.
     loadHistory: false,
   });
   const [draft, setDraft] = useState(() =>
-    justPaid && initialMessages.length === 0 ? `Olá! Acabei de pagar o pedido ${reference}.` : "",
+    // A linha do sistema da conversa aberta na venda não conta: o que importa
+    // é o cliente ainda não ter escrito.
+    justPaid && !initialMessages.some((message) => message.from === "cliente")
+      ? `Olá! Acabei de pagar o pedido ${reference}.`
+      : "",
   );
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -62,7 +73,16 @@ export function OrderChat({
     window.history.replaceState(window.history.state, "", window.location.pathname);
   }, [justPaid]);
   const [sending, setSending] = useState(false);
+  const [closing, setClosing] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+
+  // Encerrar não pede confirmação: escrever de novo reabre.
+  async function handleClose() {
+    if (closing) return;
+    setClosing(true);
+    await close();
+    setClosing(false);
+  }
 
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -102,7 +122,11 @@ export function OrderChat({
   }
 
   const disabled = sending;
-  const noteStatus: SocketStatus | "sem-conversa" = conversationId ? status : "sem-conversa";
+  const noteStatus: SocketStatus | "sem-conversa" | "encerrada" = !conversationId
+    ? "sem-conversa"
+    : closed
+      ? "encerrada"
+      : status;
   // O rótulo de data só aparece quando o dia MUDA — é como o arquivo mostra:
   // uma pílula acima do primeiro recado de cada dia.
   let lastDay = "";
@@ -121,6 +145,19 @@ export function OrderChat({
           <p className="mt-[4px] font-helvetica text-[14px] leading-[20px] text-white/85">
             Seu pedido {reference} já está com a equipe. Fale com o atendente por aqui para combinar a entrega.
           </p>
+        </div>
+      ) : null}
+
+      {conversationId && !closed ? (
+        <div className="mb-[12px] flex shrink-0 justify-end">
+          <button
+            type="button"
+            onClick={handleClose}
+            disabled={closing}
+            className="h-[34px] rounded-full border border-white/20 px-[16px] font-poppins text-[13px] font-semibold text-white/85 transition-colors hover:bg-white/5 hover:text-white focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none disabled:opacity-60"
+          >
+            Encerrar conversa
+          </button>
         </div>
       ) : null}
 
@@ -192,7 +229,7 @@ export function OrderChat({
  * é ruído. Sem socket o envio continua funcionando pelo HTTP — o aviso diz só
  * que as respostas não chegam sozinhas.
  */
-function ConnectionNote({ status }: { status: SocketStatus | "sem-conversa" }) {
+function ConnectionNote({ status }: { status: SocketStatus | "sem-conversa" | "encerrada" }) {
   if (status === "online") return null;
 
   return (
@@ -202,9 +239,11 @@ function ConnectionNote({ status }: { status: SocketStatus | "sem-conversa" }) {
     >
       {status === "sem-conversa"
         ? "Escreva para falar com a equipe sobre este pedido."
-        : status === "conectando"
-          ? "Conectando à conversa…"
-          : "Sem conexão em tempo real. Você ainda pode enviar; recarregue para ver respostas novas."}
+        : status === "encerrada"
+          ? "Conversa encerrada. Escreva para reabrir."
+          : status === "conectando"
+            ? "Conectando à conversa…"
+            : "Sem conexão em tempo real. Você ainda pode enviar; recarregue para ver respostas novas."}
     </p>
   );
 }

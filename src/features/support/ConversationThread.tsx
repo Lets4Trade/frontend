@@ -22,9 +22,12 @@ export function ConversationThread({
   /** Avisa o popup que houve mensagem nova (para a lista ficar em dia). */
   onActivity?: () => void;
 }) {
-  const { messages, loading, error, status, send } = useConversation(conversation.id);
+  const { messages, loading, error, status, send, close, closed } = useConversation(conversation.id, {
+    initialStatus: conversation.status,
+  });
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [closing, setClosing] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -51,7 +54,14 @@ export function ConversationThread({
     }
   }
 
-  const closed = conversation.status === "FECHADA";
+  // Encerrar não pede confirmação: é desfeito escrevendo de novo.
+  async function handleClose() {
+    if (closing) return;
+    setClosing(true);
+    if (await close()) onActivity?.();
+    setClosing(false);
+  }
+
   let lastDay = "";
 
   return (
@@ -72,6 +82,16 @@ export function ConversationThread({
             {closed ? "Encerrada. Escreva para reabrir" : "Equipe Lets4Trade"}
           </p>
         </div>
+        {!closed ? (
+          <button
+            type="button"
+            onClick={handleClose}
+            disabled={closing}
+            className="h-[30px] shrink-0 rounded-full border border-white/20 px-[12px] font-poppins text-[12px] font-semibold text-white/85 transition-colors hover:bg-white/5 hover:text-white focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none disabled:opacity-60"
+          >
+            Encerrar
+          </button>
+        ) : null}
       </div>
 
       <div

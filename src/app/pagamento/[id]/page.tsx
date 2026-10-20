@@ -9,6 +9,7 @@ import {
 import { OrderLineBlock, TotalsBlock } from "@/features/orders/OrderSummaryPieces";
 import { PaymentStatusClient } from "@/features/payment/PaymentStatusClient";
 import { getPayment } from "@/features/payment/data";
+import { getReferencesVideoHref } from "@/features/site/content";
 
 export const metadata: Metadata = {
   title: "Pagamento | Lets4Trade",
@@ -32,7 +33,7 @@ type PageProps = { params: Promise<{ id: string }> };
  */
 export default async function PaymentPage({ params }: PageProps) {
   const { id } = await params;
-  const result = await getPayment(id);
+  const [result, referencesHref] = await Promise.all([getPayment(id), getReferencesVideoHref()]);
 
   if (!result.ok) {
     if (result.reason === "unauthenticated") {
@@ -60,29 +61,31 @@ export default async function PaymentPage({ params }: PageProps) {
         </div>
 
         <CheckoutSidePanel>
-          <PanelReferencesRow />
+          <PanelReferencesRow referencesHref={referencesHref} />
 
           <h2 className="mt-[38px] font-poppins text-[22px] leading-[28px] font-semibold tracking-[-0.44px] text-white">
             Ordem
           </h2>
           <div aria-hidden className="mt-[15px] h-px w-full bg-white/25" />
 
-          {/* Uma linha por PRODUTO; vários produtos repetem o código do pedido (2026-10-16). */}
-          {payment.orders.map((order, index) => (
-            <OrderLineBlock
-              key={`${order.reference}-${index}`}
-              line={{
-                id: `${order.reference}-${index}`,
-                name: order.productName,
-                platform: order.platform,
-                quantity: order.quantity,
-                price: formatCents(Math.round(Number(order.totalPrice) * 100)),
-                date: order.reference,
-              }}
-            />
-          ))}
+          {/* Uma linha por PRODUTO, compacta (2026-10-20): "4x Produto / Servidor" e o preço. */}
+          <ul className="divide-y divide-white/[0.07]">
+            {payment.orders.map((order, index) => (
+              <li key={`${order.reference}-${index}`}>
+                <OrderLineBlock
+                  line={{
+                    id: `${order.reference}-${index}`,
+                    name: order.productName,
+                    platform: order.platform,
+                    quantity: order.quantity,
+                    price: formatCents(Math.round(Number(order.totalPrice) * 100)),
+                  }}
+                />
+              </li>
+            ))}
+          </ul>
 
-          <div aria-hidden className="mt-[26px] h-px w-full bg-white/25" />
+          <div aria-hidden className="mt-[14px] h-px w-full bg-white/25" />
 
           <TotalsBlock
             price={formatCents(subtotal)}

@@ -2436,3 +2436,123 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
     animation: sale-alert-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
 }
+
+/* --------------------------------------------------------------------------
+   SELO DE REFERÊNCIAS DO CABEÇALHO (2026-10-20, pedido do usuário: "pro user
+   pensar em clicar ali" — e depois "tem que ter alguma animação ali fixa,
+   não somente no ícone")
+
+   O "+1000 REFERÊNCIAS" virou link para o vídeo no YouTube. Três camadas,
+   todas SEMPRE em movimento (com o selo parado, ninguém via que era link):
+     1. halo laranja atrás do selo que "respira" (2,6 s);
+     2. faixa de luz que atravessa o número e o "REFERÊNCIAS" (3,2 s);
+     3. pulinho do ícone do YouTube a cada 4 s.
+   Ritmos diferentes de propósito: juntos, nunca batem no mesmo compasso.
+   Hover/foco: o selo cresce e o brilho para — o chamado cumpriu o papel.
+
+   Custo: halo e ícone são só `transform`/`opacity` (GPU). A faixa de luz anda
+   por `background-position` num texto de ~140×30 px — repinta só isso.
+   `prefers-reduced-motion`: nada se move; o selo fica estático e clicável.
+   -------------------------------------------------------------------------- */
+
+.ref-badge {
+  transition: transform var(--dur-base) var(--ease-snap);
+}
+
+.ref-badge:hover,
+.ref-badge:focus-visible {
+  transform: scale(1.07);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ref-badge::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: -10px -16px;
+    border-radius: 999px;
+    background: radial-gradient(closest-side, rgb(255 115 0 / 0.42), rgb(255 115 0 / 0.12) 60%, transparent);
+    pointer-events: none;
+    animation: ref-badge-breathe 2.6s ease-in-out infinite;
+  }
+
+  /* Número: o mesmo degradê laranja de cima para baixo, com uma faixa clara
+     correndo por cima (duas camadas de fundo, ambas recortadas no texto). */
+  .ref-badge .ref-badge-number {
+    background-image:
+      linear-gradient(100deg, transparent 35%, rgb(255 236 214 / 0.95) 50%, transparent 65%),
+      linear-gradient(to bottom, var(--color-brand-orange), var(--color-brand-orange-deep));
+    background-size: 250% 100%, 100% 100%;
+    background-repeat: no-repeat;
+    animation: ref-badge-sheen 3.2s linear infinite;
+  }
+
+  /* "REFERÊNCIAS": branco com a mesma faixa, em laranja claro. O texto
+     recortado só pinta dentro da caixa da linha (`leading-none`), e o acento
+     do Ê fica ACIMA dela — sumia. O `padding` aumenta a área pintada e o
+     `margin` negativo devolve o espaço, sem mexer no layout. */
+  .ref-badge .ref-badge-label {
+    padding-block: 0.3em;
+    margin-block: -0.3em;
+    color: transparent;
+    background-image: linear-gradient(100deg, #fff 35%, #ffb36b 50%, #fff 65%);
+    background-size: 250% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    animation: ref-badge-sheen 3.2s linear infinite;
+  }
+
+  .ref-badge .ref-badge-icon {
+    animation: ref-badge-nudge 4s var(--ease-snap) infinite;
+  }
+
+  .ref-badge:hover::before,
+  .ref-badge:hover .ref-badge-number,
+  .ref-badge:hover .ref-badge-label,
+  .ref-badge:hover .ref-badge-icon {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes ref-badge-breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.88);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+/* A faixa entra pela esquerda, cruza e sai pela direita; a 2ª camada (o
+   degradê do número) fica parada. */
+@keyframes ref-badge-sheen {
+  0% {
+    background-position: 130% 0, 0 0;
+  }
+  100% {
+    background-position: -30% 0, 0 0;
+  }
+}
+
+@keyframes ref-badge-nudge {
+  0%,
+  78%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  83% {
+    transform: scale(1.35) rotate(-10deg);
+  }
+  88% {
+    transform: scale(1.15) rotate(8deg);
+  }
+  93% {
+    transform: scale(1.25) rotate(-4deg);
+  }
+  97% {
+    transform: scale(1) rotate(0deg);
+  }
+}

@@ -33,7 +33,23 @@ export function Markdown({ source, images = false }: { source: string; images?: 
  * largura é a da coluna, a altura vem da arte) e GIF do Imgur continua animado.
  * `no-referrer`: o Imgur não fica sabendo qual página da loja o cliente abriu.
  */
-export function BodyImage({ src, alt, className }: { src: string; alt: string; className?: string }) {
+export function BodyImage({
+  src,
+  alt,
+  className,
+  eager = false,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  /**
+   * Baixar já (2026-10-20). No painel que segue o mouse (`PackageDescriptionPopover`)
+   * o texto fica dentro de uma caixa que corta o excesso: para o navegador a
+   * imagem "lazy" nunca entra na tela e nunca é baixada — o tooltip abria sem
+   * a foto. Lá ela é pedida só quando o painel abre, então não pesa na página.
+   */
+  eager?: boolean;
+}) {
   const url = IMGUR_IMAGE.test(src) ? src : CONTENT_IMAGE.test(src) ? backendAsset(src) : null;
   if (!url) return null;
   return (
@@ -41,7 +57,7 @@ export function BodyImage({ src, alt, className }: { src: string; alt: string; c
     <img
       src={url}
       alt={alt}
-      loading="lazy"
+      loading={eager ? "eager" : "lazy"}
       decoding="async"
       referrerPolicy="no-referrer"
       // `self-start`: dentro de coluna flex a `<img>` esticaria até a largura

@@ -363,14 +363,17 @@ export function ProductForm({
       : "";
 
   /**
-   * O hidden `content` (textos da página do pacote): na aba PACOTES, o JSON das
-   * seções, ou `"null"` sem nenhuma (volta aos textos da aba); fora dela, vazio
-   * = não mexer — trocar o produto de aba não apaga o que foi escrito.
+   * O hidden `content`: na aba PACOTES, os textos da página do pacote (e do
+   * painel do card); no CATÁLOGO, a descrição ao passar o mouse no card
+   * (2026-10-20). O JSON das seções, ou `"null"` sem nenhuma. Nas abas cotadas
+   * (Serviço/Quantidade) não há card nem editor: vazio = não mexer — trocar o
+   * produto de aba não apaga o que foi escrito.
    */
   const contentSections = fromSectionDrafts(packageSections).filter(
     (section) => section.title !== "" || section.items.length > 0 || Boolean(section.body),
   );
-  const contentField = isPackages
+  const hasHoverDescription = !isPackages && !isQuoted;
+  const contentField = isPackages || hasHoverDescription
     ? contentSections.length > 0
       ? JSON.stringify({ sections: contentSections })
       : isEditing
@@ -516,6 +519,7 @@ export function ProductForm({
     { id: "card", label: "Card" },
     { id: "preco", label: "Preço" },
     ...(isPackages ? [{ id: "pagina", label: "Página do pacote" }] : []),
+    ...(hasHoverDescription ? [{ id: "descricao", label: "Descrição" }] : []),
   ];
 
   const submitButtons = (
@@ -806,6 +810,23 @@ export function ProductForm({
                 sections={packageSections}
                 onChange={setPackageSections}
                 emptyText="Nenhum texto próprio: a página do pacote mostra os textos da aba."
+              />
+            </FormSection>
+          ) : null}
+
+          {/* Descrição do produto de CATÁLOGO ao passar o mouse no card
+              (2026-10-20): o mesmo editor e o mesmo painel do pacote. */}
+          {hasHoverDescription ? (
+            <FormSection
+              id="descricao"
+              number={4}
+              title="Descrição ao passar o mouse"
+              hint="Aparece num painel ao passar o mouse na arte do card (só no computador). Textos e imagens; vazio = nada aparece."
+            >
+              <ServiceSectionsEditor
+                sections={packageSections}
+                onChange={setPackageSections}
+                emptyText="Sem descrição: o card não mostra nada ao passar o mouse."
               />
             </FormSection>
           ) : null}

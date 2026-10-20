@@ -48,10 +48,16 @@ const COLUMN_LEFT = [41, 393, 745, 1097, 1449];
  * A fileira de baixo mantém o escalonamento do arquivo, mas ninguém invade o
  * vizinho nem os cards de cima. EDDMAX começava 66px ACIMA da seção, saindo
  * por cima do título e da moldura — agora alinha com o DANIEL.
+ *
+ * Os dois de cima TROCARAM de lado (2026-10-20, pedido do usuário: "o Eddmax
+ * tem que ficar em cima no lugar do Daniel"): o 2º da lista — o EDDMAX, o
+ * mesmo que o celular já põe em destaque sozinho — fica à ESQUERDA do texto,
+ * onde o olho começa, e o 1º vai para a direita. Trocar aqui, e não a ordem no
+ * banco, mantém o destaque do celular no mesmo membro.
  */
 const CARD_POSITIONS: React.CSSProperties[] = [
-  { left: COLUMN_LEFT[0], top: 0 }, // DANIEL — esquerda do texto
-  { left: COLUMN_LEFT[4], top: 0 }, // EDDMAX — direita do texto
+  { left: COLUMN_LEFT[4], top: 0 }, // DANIEL — direita do texto
+  { left: COLUMN_LEFT[0], top: 0 }, // EDDMAX — esquerda do texto (destaque)
   { left: COLUMN_LEFT[0], top: 479 }, // ROGUE
   { left: COLUMN_LEFT[1], top: 514 }, // ZEZÃO
   { left: COLUMN_LEFT[2], top: 469 }, // YURI

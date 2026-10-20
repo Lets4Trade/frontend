@@ -1,3 +1,4 @@
+import { youtubeId, youtubeWatchUrl } from "@/features/home/youtube";
 import { backendAsset, publicApiGet } from "@/lib/publicApi";
 import { sectionKey, sitePage, type SiteSectionDef } from "./sections";
 
@@ -83,6 +84,13 @@ export type LayoutContent = {
   text: (key: string) => LayoutText;
   /** Os itens de uma lista de `layout`, pela chave curta (`footer-redes`). */
   items: (key: string) => LayoutItem[];
+  /**
+   * Vídeo de REFERÊNCIAS no YouTube (2026-10-20) — o selo "+1000 REFERÊNCIAS"
+   * do cabeçalho leva até ele. Mesmo link do botão da home (ver
+   * `getReferencesVideoHref`), tirado desta MESMA leitura cacheada: o
+   * cabeçalho está em toda página e não pode pagar uma chamada a mais.
+   */
+  referencesHref: string | null;
 };
 
 /**
@@ -110,8 +118,14 @@ export async function getLayoutContent(): Promise<LayoutContent> {
   );
 
   const page = sitePage(PAGE_KEY);
+  // O botão "Veja nossas referências" da home: link próprio (subtítulo) ou,
+  // vazio, o do player (legenda). Só o ID do YouTube vira link.
+  const video = byKey.get(sectionKey("home", "video"));
+  const referencesId = youtubeId(video?.subtitle ?? undefined) ?? youtubeId(video?.footnote ?? undefined);
 
   return {
+    referencesHref: referencesId ? youtubeWatchUrl(referencesId) : null,
+
     text(key: string): LayoutText {
       const def: SiteSectionDef | undefined = page?.sections.find(
         (item) => item.key === key,

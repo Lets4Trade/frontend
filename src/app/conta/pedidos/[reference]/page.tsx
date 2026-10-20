@@ -8,14 +8,17 @@ import {
 } from "@/features/checkout/CheckoutPanel";
 import { OrderChat } from "@/features/orders/OrderChat";
 import { getAccountProfile } from "@/features/account/profile";
+import { getReferencesVideoHref } from "@/features/site/content";
 import { getOrderConversation, getPurchaseDetail } from "@/features/orders/orderDetail";
 import { OrdersLiveRefresh } from "@/features/orders/OrdersLiveRefresh";
 import { OrderStatusTracker } from "@/features/orders/OrderStatusTracker";
 import { statusPill, trackNote } from "@/features/orders/PurchaseCard";
 import type { OrderItem } from "@/features/orders/types";
 import {
+  OrderGiftList,
   OrderLineBlock,
   ServiceDetailsBlock,
+  purchaseGifts,
   SummaryRow,
   TotalsBlock,
 } from "@/features/orders/OrderSummaryPieces";
@@ -58,10 +61,11 @@ export default async function PedidoPage({ params, searchParams }: PageProps) {
   // `?pago=1`: veio direto do pagamento aprovado (2026-10-16) — aviso no chat.
   const justPaid = query.pago === "1";
 
-  const [result, chat, profile] = await Promise.all([
+  const [result, chat, profile, referencesHref] = await Promise.all([
     getPurchaseDetail(reference),
     getOrderConversation(reference),
     getAccountProfile(),
+    getReferencesVideoHref(),
   ]);
 
   if (!result.ok) {
@@ -77,6 +81,7 @@ export default async function PedidoPage({ params, searchParams }: PageProps) {
   const single = purchase?.items.length === 1;
   const pill = purchase ? statusPill(purchase) : null;
   const note = purchase ? trackNote(purchase) : null;
+  const gifts = purchaseGifts(purchase?.items ?? []);
 
   return (
     <CheckoutShell>
@@ -93,6 +98,7 @@ export default async function PedidoPage({ params, searchParams }: PageProps) {
             }
             initialConversationId={chat.conversation?.id ?? null}
             initialMessages={chat.messages}
+            initialStatus={chat.conversation?.status}
             userAvatar={profile.ok ? profile.profile.avatar : undefined}
             justPaid={justPaid}
           />
@@ -100,7 +106,7 @@ export default async function PedidoPage({ params, searchParams }: PageProps) {
 
         {/* No celular o andamento e o resumo vêm antes do chat. */}
         <CheckoutSidePanel mobileFirst>
-          <PanelReferencesRow />
+          <PanelReferencesRow referencesHref={referencesHref} />
 
           {purchase ? (
             <>
@@ -115,7 +121,11 @@ export default async function PedidoPage({ params, searchParams }: PageProps) {
                 <OrderStatusTracker track={purchase.track} dates={purchase.stepDates} note={note} size="compact" />
               </div>
 
-              <div className="mt-[50px] flex flex-wrap items-center justify-between gap-[12px]">
+              {/* Brinde logo abaixo da trilha (2026-10-20, pedido do usuário):
+                  é o que vai junto na entrega, e no meio dos itens se perdia. */}
+              <OrderGiftList gifts={gifts} className="mt-[32px] lg:mt-[40px]" />
+
+              <div className={cn("flex flex-wrap items-center justify-between gap-[12px]", gifts.length > 0 ? "mt-[32px]" : "mt-[40px]")}>
                 <h2 className="font-poppins text-[22px] leading-[28px] font-semibold tracking-[-0.44px] text-white">
                   {single ? "Ordem" : `Ordem · ${purchase.items.length} itens`}
                 </h2>
@@ -130,20 +140,22 @@ export default async function PedidoPage({ params, searchParams }: PageProps) {
                   </span>
                 ) : null}
               </div>
-              <SummaryRow label="Pedido" value={purchase.reference} />
-              <div aria-hidden className="mt-[15px] h-px w-full bg-white/25" />
+              <SummaryRow label="Pedido" value={`${purchase.reference} · ${purchase.date}`} className="mt-[14px]" />
+              <div aria-hidden className="mt-[12px] h-px w-full bg-white/25" />
 
-              {purchase.items.map((item, index) => (
-                <PurchaseItem key={item.id} item={item} date={purchase.date} divider={index > 0} />
-              ))}
+              <ul className="divide-y divide-white/[0.07]">
+                {purchase.items.map((item) => (
+                  <PurchaseItem key={item.id} item={item} />
+                ))}
+              </ul>
 
               {purchase.coupon ? (
-                <p className="mt-[22px] font-helvetica text-[14px] text-brand-fg-muted">
+                <p className="mt-[14px] font-helvetica text-[14px] text-brand-fg-muted">
                   Cupom <strong className="font-bold text-white">{purchase.coupon.code}</strong> · − {purchase.coupon.amount}
                 </p>
               ) : null}
 
-              <div aria-hidden className="mt-[26px] h-px w-full bg-white/25" />
+              <div aria-hidden className="mt-[14px] h-px w-full bg-white/25" />
 
               {/* Totais da COMPRA: soma dos itens, desconto (coins + cupom) de
                   todos eles e o que foi pago — o mesmo valor da cobrança. */}
@@ -194,13 +206,14 @@ export default async function PedidoPage({ params, searchParams }: PageProps) {
 }
 
 /**
- * Um item do pedido no painel "Ordem": produto, servidor, quantidade e preço;
- * a conta do serviço e o brinde quando houver. A situação e a trilha são do
- * pedido inteiro (topo), não do item (2026-10-16).
+ * Um item do pedido no painel "Ordem", em UMA linha: "4x Produto / Servidor" e
+ * o preço (2026-10-20); a conta do serviço em letra pequena logo abaixo. O
+ * brinde subiu para baixo da trilha, e a situação e a trilha são do pedido
+ * inteiro (topo), não do item (2026-10-16).
  */
-function PurchaseItem({ item, date, divider }: { item: OrderItem; date: string; divider: boolean }) {
+function PurchaseItem({ item }: { item: OrderItem }) {
   return (
-    <section aria-label={item.productName} className={cn(divider && "mt-[26px] border-t border-white/10")}>
+    <li aria-label={item.productName}>
       <OrderLineBlock
         line={{
           id: item.id,
@@ -208,19 +221,9 @@ function PurchaseItem({ item, date, divider }: { item: OrderItem; date: string; 
           platform: item.platform,
           quantity: item.quantity,
           price: item.price,
-          date,
         }}
       />
-
       {item.details ? <ServiceDetailsBlock lines={item.details.lines} hours={item.details.hours} /> : null}
-
-      {/* Brinde do jogo (2026-10-12): vai junto na entrega. */}
-      {item.gift ? (
-        <p className="mt-[22px] rounded-[15px] border border-[#22c55e]/35 bg-[#22c55e]/10 px-[18px] py-[12px] font-helvetica text-[15px] leading-[21px] text-white">
-          <strong className="font-bold text-[#4ade80]">Brinde: {item.gift.text}</strong>
-          {item.gift.server ? <span className="text-white/70"> · entregue em {item.gift.server}</span> : null}
-        </p>
-      ) : null}
-    </section>
+    </li>
   );
 }

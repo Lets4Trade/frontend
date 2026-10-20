@@ -4,6 +4,7 @@ import { CheckoutShell } from "@/features/checkout/CheckoutShell";
 import { getPublicGifts } from "@/features/gifts/publicGifts";
 import { getLoyalty } from "@/features/loyalty/data";
 import { getContacts } from "@/features/site/contacts";
+import { getReferencesVideoHref } from "@/features/site/content";
 
 export const metadata: Metadata = {
   title: "Checkout | Lets4Trade",
@@ -38,7 +39,13 @@ export default async function CheckoutPage() {
   // Em paralelo: o contato é leitura pública e cacheada, e não pode somar
   // latência à tela de pagamento.
   // Os brindes por jogo (2026-10-12) também: públicos e cacheados.
-  const [result, contacts, gifts] = await Promise.all([getLoyalty(), getContacts(), getPublicGifts()]);
+  // O vídeo de referências (2026-10-20) também: leitura pública das sessões.
+  const [result, contacts, gifts, referencesHref] = await Promise.all([
+    getLoyalty(),
+    getContacts(),
+    getPublicGifts(),
+    getReferencesVideoHref(),
+  ]);
 
   return (
     <CheckoutShell>
@@ -47,6 +54,7 @@ export default async function CheckoutPage() {
         gifts={gifts}
         // Só o LINK montado viaja para o cliente — ver `features/site/contacts.ts`.
         whatsappHref={contacts.whatsapp?.href}
+        referencesHref={referencesHref}
       />
     </CheckoutShell>
   );

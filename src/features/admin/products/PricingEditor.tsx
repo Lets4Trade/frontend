@@ -423,7 +423,8 @@ function TextInput({
   numeric,
   signed,
   placeholder,
-  maxLength = 12,
+  // 16 dígitos: cabe qualquer quantidade exata (2026-10-20, sem teto).
+  maxLength = 16,
   ariaLabel,
 }: {
   value: string;

@@ -42,10 +42,10 @@ export function CheckoutSidePanel({
 }
 
 /** Fileira do topo do painel: botão de referências + selo (o selo só no desktop). */
-export function PanelReferencesRow() {
+export function PanelReferencesRow({ referencesHref }: { referencesHref?: string | null }) {
   return (
     <div className="flex items-center justify-between gap-[25px]">
-      <ReferencesButton />
+      <ReferencesButton href={referencesHref} />
       <span className="hidden lg:flex">
         <ReferencesBadge />
       </span>
@@ -70,13 +70,20 @@ export function ReferencesBadge() {
   );
 }
 
-/** Botão "CONFERIRA NOSSAS REFERÊNCIAS AQUI" — 431×50 no topo do painel. */
-export function ReferencesButton() {
-  return (
-    <Link
-      href="/#reviews"
-      className="brand-ring flex h-[50px] w-full items-center justify-center gap-[10px] rounded-full bg-[image:var(--brand-surface-fill)] px-[12px] text-center font-poppins text-[13px] font-bold tracking-[0.16px] text-white transition-opacity hover:opacity-90 lg:w-[431px] lg:px-0 lg:text-[16px]"
-    >
+const REFERENCES_CLASS =
+  "brand-ring flex h-[50px] w-full items-center justify-center gap-[10px] rounded-full bg-[image:var(--brand-surface-fill)] px-[12px] text-center font-poppins text-[13px] font-bold tracking-[0.16px] text-white transition-opacity hover:opacity-90 lg:w-[431px] lg:px-0 lg:text-[16px]";
+
+/**
+ * Botão "CONFIRA NOSSAS REFERÊNCIAS AQUI" — 431×50 no topo do painel.
+ *
+ * Leva ao vídeo de referências no YouTube (2026-10-20, pedido do usuário), o
+ * mesmo do botão da home — `getReferencesVideoHref`, já montado no servidor.
+ * Abre em OUTRA aba: no meio do checkout, sair da página jogaria fora o que a
+ * pessoa preencheu. Sem link no painel, cai nas reviews da home.
+ */
+export function ReferencesButton({ href }: { href?: string | null }) {
+  const content = (
+    <>
       <Image
         src="/icons/checkout/crown.svg"
         alt=""
@@ -85,7 +92,20 @@ export function ReferencesButton() {
         aria-hidden
         className="size-[22px]"
       />
-      CONFERIRA NOSSAS REFERÊNCIAS AQUI
+      CONFIRA NOSSAS REFERÊNCIAS AQUI
+    </>
+  );
+
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={REFERENCES_CLASS}>
+        {content}
+      </a>
+    );
+  }
+  return (
+    <Link href="/#reviews" className={REFERENCES_CLASS}>
+      {content}
     </Link>
   );
 }

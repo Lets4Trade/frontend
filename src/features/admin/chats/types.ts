@@ -5,6 +5,19 @@
  * `serverApi` → `next/headers` (a separação que já quebrou o build duas vezes).
  */
 
+import type { Purchase } from "@/features/orders/types";
+
+/**
+ * O pedido da conversa, para o quadro ao lado do chat (2026-10-20): quem
+ * atende "bate o olho" na trilha, no brinde e nos itens sem sair da conversa.
+ * Montado no SERVIDOR (`getChatOrder`), com a pílula e a nota da trilha prontas.
+ */
+export type ChatOrder = {
+  purchase: Purchase;
+  pill: { label: string; className: string };
+  note: { label: string; color: string; date?: string | null } | null;
+};
+
 export type StaffConversation = {
   id: string;
   userId: string;

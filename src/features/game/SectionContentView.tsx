@@ -141,7 +141,7 @@ export function SectionContentView({
               index,
             );
           case "img":
-            return <BodyImage key={index} src={block.src} alt={block.alt} />;
+            return <BodyImage key={index} src={block.src} alt={block.alt} eager={variant === "popover"} />;
         }
       })
     : null;

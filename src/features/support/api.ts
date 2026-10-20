@@ -112,6 +112,21 @@ export async function sendMessageHttp(id: string, body: string): Promise<ChatMes
   return toChatMessage(data.message);
 }
 
+/**
+ * O cliente encerra a conversa (2026-10-20). Volta o resumo já FECHADO e a
+ * linha "Conversa encerrada pelo cliente." — nula quando já estava encerrada.
+ * Escrever de novo reabre.
+ */
+export async function closeConversation(
+  id: string,
+): Promise<{ conversation: ConversationSummary; message: ChatMessage | null }> {
+  const data = await call<{ conversation: ConversationSummary; message?: ApiChatMessage | null }>(
+    `/conversations/${encodeURIComponent(id)}/close`,
+    { method: "POST" },
+  );
+  return { conversation: data.conversation, message: data.message ? toChatMessage(data.message) : null };
+}
+
 export async function markRead(id: string): Promise<void> {
   await call<void>(`/conversations/${encodeURIComponent(id)}/read`, { method: "POST" });
 }

@@ -168,26 +168,30 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
             some na faixa md–xl, onde os botões do desktop ocupam o meio. */}
         <div
           data-admin-section="layout:header-selo"
-          className="pointer-events-none absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center leading-none md:hidden xl:static xl:flex xl:translate-x-0 xl:translate-y-0"
+          className="pointer-events-none absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 md:hidden xl:static xl:flex xl:translate-x-0 xl:translate-y-0"
         >
-          {/* Celular menor (2026-10-15, pedido do usuário): o selo disputava a
-              linha com a logo, o carrinho e o menu. */}
-          <div className="flex items-center gap-[5px] md:gap-2">
-            <span className="bg-gradient-to-b from-brand-orange to-brand-orange-deep bg-clip-text font-korataki text-[12px] font-bold tracking-[0.2px] text-transparent md:text-[20px]">
-              <CountUp value={badge.title} />
-            </span>
-            <Image
-              src="/icons/youtube-color.svg"
-              alt=""
-              width={19}
-              height={19}
-              aria-hidden
-              className="size-[14px] md:size-[19px]"
-            />
-          </div>
-          <span className="mt-[3px] font-korataki text-[8px] tracking-[0.13px] text-white md:mt-1 md:text-[13px]">
-            {badge.subtitle}
-          </span>
+          {/* LINK para o vídeo de referências no YouTube (2026-10-20, pedido do
+              usuário: "pro user pensar em clicar ali"). Sempre em movimento:
+              um brilho atravessa o texto e um halo laranja "respira" atrás;
+              a cada 4 s o ícone dá um pulinho; o selo cresce no hover
+              (`.ref-badge` em globals.css). Nova aba: o selo está em toda página, inclusive no
+              meio do checkout. Sem link no painel, fica só o selo, como antes. */}
+          {layout.referencesHref ? (
+            <a
+              href={layout.referencesHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`${badge.title} ${badge.subtitle} — ver no YouTube`}
+              title="Veja nossas referências no YouTube"
+              className="ref-badge pointer-events-auto relative isolate flex flex-col items-center rounded-[12px] leading-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none"
+            >
+              <ReferencesBadgeContent title={badge.title} subtitle={badge.subtitle} />
+            </a>
+          ) : (
+            <div className="flex flex-col items-center leading-none">
+              <ReferencesBadgeContent title={badge.title} subtitle={badge.subtitle} />
+            </div>
+          )}
         </div>
 
         {/* Lado direito: horário (ocupa o vão, some se não couber) + botões. */}
@@ -252,5 +256,33 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
       {/* Celular: horário numa faixa abaixo da barra, dentro do cabeçalho. */}
       <HeaderHoursStrip title={hours.title} schedule={schedule} />
     </header>
+  );
+}
+
+/** O número com o ícone do YouTube e o "REFERÊNCIAS" embaixo. */
+function ReferencesBadgeContent({ title, subtitle }: { title: string; subtitle: string }) {
+  return (
+    <>
+      {/* Celular menor (2026-10-15, pedido do usuário): o selo disputava a
+          linha com a logo, o carrinho e o menu. */}
+      <span className="flex items-center gap-[5px] md:gap-2">
+        {/* `ref-badge-number`: o degradê laranja do arquivo, com uma faixa de
+            luz que atravessa o número sem parar (globals.css). */}
+        <span className="ref-badge-number bg-gradient-to-b from-brand-orange to-brand-orange-deep bg-clip-text font-korataki text-[12px] font-bold tracking-[0.2px] text-transparent md:text-[20px]">
+          <CountUp value={title} />
+        </span>
+        <Image
+          src="/icons/youtube-color.svg"
+          alt=""
+          width={19}
+          height={19}
+          aria-hidden
+          className="ref-badge-icon size-[14px] md:size-[19px]"
+        />
+      </span>
+      <span className="ref-badge-label mt-[3px] font-korataki text-[8px] tracking-[0.13px] text-white md:mt-1 md:text-[13px]">
+        {subtitle}
+      </span>
+    </>
   );
 }

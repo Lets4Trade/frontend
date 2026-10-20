@@ -56,4 +56,25 @@ describe("ProductCard", () => {
     expect(useCart.getState().items).toHaveLength(1);
     expect(push).not.toHaveBeenCalled();
   });
+
+  it("descrição ao passar o mouse na arte, só quando o admin escreveu uma (2026-10-20)", () => {
+    vi.stubGlobal("matchMedia", () => ({ matches: true }));
+
+    const plain = render(<ProductCard product={product} context={context} />);
+    fireEvent.mouseEnter(plain.container.querySelector("article")!.firstElementChild!);
+    expect(document.querySelector("[data-package-tooltip]")).toBeNull();
+    plain.unmount();
+
+    const described = render(
+      <ProductCard
+        product={{ ...product, content: { sections: [{ title: "Como chega", items: ["Entrega em 5 minutos"] }] } }}
+        context={context}
+      />,
+    );
+    fireEvent.mouseEnter(described.container.querySelector("article")!.firstElementChild!);
+    const panel = document.querySelector("[data-package-tooltip]")!;
+    expect(panel.textContent).toContain("Como chega");
+    expect(panel.textContent).toContain("Entrega em 5 minutos");
+    vi.unstubAllGlobals();
+  });
 });

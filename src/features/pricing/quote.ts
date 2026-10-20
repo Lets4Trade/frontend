@@ -37,7 +37,11 @@ export const MAX_PRICE_CENTS = 2_000_000_000;
 export const MAX_SERVICE_TOTAL_CENTS = MAX_PRICE_CENTS;
 
 const cents = z.number().int().min(0).max(MAX_SERVICE_TOTAL_CENTS);
-const hours = z.number().min(0).max(10_000);
+/**
+ * Horas SEM teto (2026-10-20, pedido do usuário; era 10.000). Só número finito
+ * e não negativo — `Infinity`/`NaN` quebrariam a soma e o JSON.
+ */
+const hours = z.number().min(0).finite();
 const label = z.string().trim().min(1).max(40);
 
 /**
@@ -72,8 +76,17 @@ const common = {
 
 const fixedSchema = z.object({ mode: z.literal("FIXED"), ...common });
 
-/** Teto de quantidade (gold vende em milhares; 2026-09-30 subiu de 10.000). */
-export const MAX_QUANTITY = 1_000_000;
+/**
+ * Quantidade SEM teto (2026-10-20, pedido do usuário: "não tem que ter teto,
+ * tire o limite"). Era 1.000.000 (e 10.000 antes de 2026-09-30).
+ *
+ * O único limite é o de REPRESENTAÇÃO: o maior inteiro que o JavaScript guarda
+ * sem perder unidade (2⁵³ − 1, ~9 quatrilhões). Acima dele "1000000000000000001"
+ * vira outro número — não é regra de negócio, é o número deixar de ser exato.
+ * O valor da compra continua com o teto técnico de cobrança (`MAX_PRICE_CENTS`):
+ * um total acima dele é recusado pelo valor, nunca pela quantidade.
+ */
+export const MAX_QUANTITY = Number.MAX_SAFE_INTEGER;
 const quantityValue = z.number().int().min(1).max(MAX_QUANTITY);
 
 const quantitySchema = z.object({
@@ -101,18 +114,27 @@ const quantitySchema = z.object({
   ...common,
 });
 
+/**
+ * Nível SEM teto (2026-10-20, pedido do usuário; era 100.000, com no máximo
+ * 10.000 níveis entre o mínimo e o máximo). Como `MAX_QUANTITY`, o único limite
+ * é o inteiro exato do JS. Por isso o preço e a cobertura das faixas são
+ * contados POR FAIXA (`levelSegments`), nunca nível a nível: um intervalo de
+ * bilhões de níveis custa os mesmos ~100 passos que um de dez.
+ */
+const levelValue = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER);
+
 const levelRangeSchema = z.object({
   mode: z.literal("LEVEL_RANGE"),
   /** Como o nível aparece: "Nível", "Paragon", "Power Level". */
   unitLabel: label,
-  min: z.number().int().min(0).max(100_000),
-  max: z.number().int().min(1).max(100_000),
+  min: levelValue,
+  max: levelValue.min(1),
   /** Cada nível L (de `from` inclusive a `to` exclusive) custa o da faixa em que cai. */
   bands: z
     .array(
       z.object({
-        from: z.number().int().min(0).max(100_000),
-        to: z.number().int().min(1).max(100_000),
+        from: levelValue,
+        to: levelValue.min(1),
         pricePerLevelCents: cents,
         hoursPerLevel: hours,
       }),
@@ -137,9 +159,6 @@ export const pricingSchema = z
       }
     }
     if (value.mode === "LEVEL_RANGE") {
-      if (value.max - value.min > 10_000) {
-        ctx.addIssue({ code: "custom", message: "Faixa de níveis grande demais (máx. 10.000)." });
-      }
       for (const band of value.bands) {
         if (band.from >= band.to) {
           ctx.addIssue({ code: "custom", message: "Cada faixa precisa ter início menor que o fim." });
@@ -147,11 +166,9 @@ export const pricingSchema = z
       }
       // Todo nível que o cliente pode comprar precisa ter preço: sem isso, um
       // buraco entre faixas viraria nível de graça.
-      for (let level = value.min; level < value.max; level += 1) {
-        if (!value.bands.some((band) => level >= band.from && level < band.to)) {
-          ctx.addIssue({ code: "custom", message: `O nível ${level} não está em nenhuma faixa de preço.` });
-          break;
-        }
+      const gap = levelSegments(value.bands, value.min, value.max).gap;
+      if (gap !== null) {
+        ctx.addIssue({ code: "custom", message: `O nível ${gap} não está em nenhuma faixa de preço.` });
       }
     }
     const ids = (value.addons ?? []).map((addon) => addon.id);
@@ -166,8 +183,8 @@ export type PricingAddon = z.infer<typeof addonSchema>;
 /** O que o cliente escolheu. Só os campos do modo contam; o resto é ignorado. */
 export const selectionSchema = z.object({
   quantity: quantityValue.optional(),
-  levelFrom: z.number().int().min(0).max(100_000).optional(),
-  levelTo: z.number().int().min(0).max(100_000).optional(),
+  levelFrom: levelValue.optional(),
+  levelTo: levelValue.optional(),
   addonIds: z.array(z.string().max(40)).max(20).optional(),
 });
 
@@ -227,12 +244,12 @@ export function quote(basePriceCents: number, pricing: Pricing, rawSelection: Se
         message: `${pricing.unitLabel}: escolha um início menor que o fim, entre ${pricing.min} e ${pricing.max}.`,
       };
     }
+    const { segments, gap } = levelSegments(pricing.bands, from, to);
+    if (gap !== null) return { ok: false, message: `O nível ${gap} não tem preço configurado.` };
     let levels = basePriceCents;
-    for (let level = from; level < to; level += 1) {
-      const band = pricing.bands.find((candidate) => level >= candidate.from && level < candidate.to);
-      if (!band) return { ok: false, message: `O nível ${level} não tem preço configurado.` };
-      levels += band.pricePerLevelCents;
-      totalHours += band.hoursPerLevel;
+    for (const segment of segments) {
+      levels += segment.count * segment.band.pricePerLevelCents;
+      totalHours += segment.count * segment.band.hoursPerLevel;
     }
     subtotal = levels;
     selection.levelFrom = from;
@@ -277,6 +294,39 @@ export function quote(basePriceCents: number, pricing: Pricing, rawSelection: Se
     lines,
     selection,
   };
+}
+
+type LevelBand = { from: number; to: number; pricePerLevelCents: number; hoursPerLevel: number };
+
+/**
+ * Os níveis de `from` (inclusive) a `to` (exclusive) agrupados por faixa — a
+ * mesma regra de antes, quando a conta andava nível a nível: cada nível usa a
+ * PRIMEIRA faixa da lista que o contém. `gap` é o primeiro nível sem faixa.
+ *
+ * Cada trecho termina onde a faixa escolhida pode mudar: no fim dela, no fim
+ * do pedido ou no começo de uma faixa ANTERIOR na lista (que passa a valer dali
+ * em diante). Com até 50 faixas são no máximo ~100 trechos, qualquer que seja o
+ * tamanho do intervalo (2026-10-20, níveis sem teto).
+ */
+export function levelSegments(
+  bands: readonly LevelBand[],
+  from: number,
+  to: number,
+): { segments: { band: LevelBand; count: number }[]; gap: number | null } {
+  const segments: { band: LevelBand; count: number }[] = [];
+  let cursor = from;
+  while (cursor < to) {
+    const index = bands.findIndex((band) => cursor >= band.from && cursor < band.to);
+    if (index === -1) return { segments, gap: cursor };
+    let end = Math.min(bands[index].to, to);
+    for (let earlier = 0; earlier < index; earlier += 1) {
+      const start = bands[earlier].from;
+      if (start > cursor && start < end) end = start;
+    }
+    segments.push({ band: bands[index], count: end - cursor });
+    cursor = end;
+  }
+  return { segments, gap: null };
 }
 
 /**

@@ -61,10 +61,10 @@ export function isServiceItem(item: Pick<CartItem, "selection">): boolean {
 }
 
 /**
- * Teto TÉCNICO por linha (2026-10-12: era 99; o pedido é "sem limite"). O
- * mesmo número do `MAX_QUANTITY` do backend (`common/pricing/quote.ts`): não
- * é regra de negócio, só impede que um número absurdo vire overflow. O teto
- * de verdade é o VALOR do carrinho, conferido no backend.
+ * Quantidade por linha SEM teto (2026-10-12: era 99; 2026-10-20: sem o
+ * 1.000.000). `MAX_QUANTITY` é só o maior inteiro exato do JS, o mesmo do
+ * backend (`common/pricing/quote.ts`). O que limita é o VALOR do carrinho,
+ * conferido no backend.
  */
 export const MAX_CART_QUANTITY = MAX_QUANTITY;
 
