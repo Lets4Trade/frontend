@@ -34,6 +34,11 @@ export type PaymentView = {
     productImageUrl?: string;
     platform: string;
     quantity: string;
+    /** Caminho na loja (2026-10-23) — `itemPath`. Ausentes em pedido antigo. */
+    gameName?: string | null;
+    tabLabel?: string | null;
+    categoryLabel?: string | null;
+    subcategoryLabel?: string | null;
     totalPrice: string;
     status: string;
   }[];

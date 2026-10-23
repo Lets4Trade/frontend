@@ -63,6 +63,7 @@ export function ChatOrderSummary({
                 name: item.productName,
                 platform: item.platform,
                 quantity: item.quantity,
+                path: item.path,
                 price: item.price,
               }}
             />

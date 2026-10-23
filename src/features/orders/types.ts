@@ -45,6 +45,8 @@ export type OrderItem = {
   quantity: string;
   /** Jogo do produto, congelado na compra. */
   gameName: string | null;
+  /** "Jogo / Aba / Servidor / Categoria / Subcategoria" (2026-10-23, `itemPath`). */
+  path: string;
   /** Arte do produto e do jogo, congeladas (caminhos do backend). Nulas = sem arte. */
   productImageUrl: string | null;
   gameImageUrl: string | null;

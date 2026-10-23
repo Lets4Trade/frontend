@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { itemPath } from "@/features/orders/itemPath";
 import { notFound, redirect } from "next/navigation";
 import { formatBrl as formatCents } from "@/features/payment/types";
 import { CheckoutShell } from "@/features/checkout/CheckoutShell";
@@ -78,6 +79,7 @@ export default async function PaymentPage({ params }: PageProps) {
                     name: order.productName,
                     platform: order.platform,
                     quantity: order.quantity,
+                    path: itemPath(order),
                     price: formatCents(Math.round(Number(order.totalPrice) * 100)),
                   }}
                 />

@@ -201,6 +201,7 @@ function PurchaseItem({ item }: { item: OrderItem }) {
           name: item.productName,
           platform: item.platform,
           quantity: item.quantity,
+          path: item.path,
           price: item.price,
         }}
       />

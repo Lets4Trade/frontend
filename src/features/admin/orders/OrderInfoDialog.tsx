@@ -1,6 +1,7 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
+import { itemPath } from "@/features/orders/itemPath";
 import Image from "next/image";
 import { cn } from "@/lib/cn";
 import { formatPhone } from "@/lib/masks";
@@ -168,8 +169,9 @@ function ItemCard({ item, currency }: { item: AdminOrderItem; currency: string }
           </p>
           <span className="shrink-0 font-poppins text-[14px] text-white">{formatMoney(item.totalPrice, currency)}</span>
         </div>
+        {/* "Jogo / Aba / Servidor / Categoria / Subcategoria" (2026-10-23) e a quantidade. */}
         <p className="mt-[2px] font-poppins text-[13px] text-brand-fg-subtle">
-          {[item.gameName, item.platform, item.quantity].filter(Boolean).join(" · ")}
+          {[itemPath(item), item.quantity].filter(Boolean).join(" · ")}
           {item.legacyReference ? ` · código antigo ${item.legacyReference}` : ""}
         </p>
 

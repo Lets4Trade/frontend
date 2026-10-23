@@ -38,6 +38,10 @@ export type AdminOrderItem = {
   quantity: string;
   gameName?: string | null;
   gameImageUrl?: string | null;
+  /** Caminho na loja (2026-10-23) — ver `features/orders/itemPath.ts`. */
+  tabLabel?: string | null;
+  categoryLabel?: string | null;
+  subcategoryLabel?: string | null;
   /** STRING, não número: veio de um `Decimal` e não passa por float. */
   totalPrice: string;
   coinsSpent?: number;

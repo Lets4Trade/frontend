@@ -1,4 +1,5 @@
 import { toOrderGift } from "@/features/gifts/orderGift";
+import { itemPath } from "./itemPath";
 import { apiGet } from "@/lib/serverApi";
 import { toDeliveryStatus } from "./deliveryStatus";
 import { toOrderDetails } from "./details";
@@ -31,6 +32,10 @@ export type ApiOrderItem = {
   quantity: string;
   gameName?: string | null;
   gameImageUrl?: string | null;
+  /** Caminho na loja, congelado (2026-10-23). Ausentes em pedido antigo. */
+  tabLabel?: string | null;
+  categoryLabel?: string | null;
+  subcategoryLabel?: string | null;
   totalPrice: string;
   /** Descontos DESTE item. Ausentes quando zero — o backend apaga campos zerados. */
   coinsSpent?: number;
@@ -154,6 +159,7 @@ export function toItem(api: ApiOrderItem, currency = "BRL"): OrderItem {
     platform: api.platform,
     quantity: api.quantity,
     gameName: api.gameName || null,
+    path: itemPath(api),
     productImageUrl: api.productImageUrl || null,
     gameImageUrl: api.gameImageUrl || null,
     // O preço do PRODUTO; o abatimento vai numa linha própria, como no comprovante.

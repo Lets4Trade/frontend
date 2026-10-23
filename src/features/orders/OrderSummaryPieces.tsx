@@ -57,6 +57,11 @@ export type SummaryLine = {
   platform: string;
   /** Já formatada: "4x" no catálogo; no serviço, o resumo da escolha. */
   quantity: string;
+  /**
+   * "Jogo / Aba / Servidor / Categoria / Subcategoria" (2026-10-23) — a
+   * segunda linha. Ausente = a linha antiga ("4x Produto / Servidor").
+   */
+  path?: string;
   /** Já formatado em BRL. */
   price: string;
 };
@@ -76,8 +81,29 @@ const UNITS = /^\d[\d.,]*\s*x$/i;
  */
 export function OrderLineBlock({ line }: { line: SummaryLine }) {
   const units = UNITS.test(line.quantity.trim());
-  const where = units || !line.quantity ? line.platform : `${line.platform} · ${line.quantity}`;
 
+  // Com caminho (2026-10-23): "6x Fracturing Orb" em cima e "Path of Exile 2 /
+  // Moedas / Forbidden Rites" embaixo, em letra menor. No serviço, o resumo da
+  // escolha segue o nome ("Boost · Nível 1 → 50").
+  if (line.path) {
+    return (
+      <div className="flex items-baseline justify-between gap-[15px] py-[10px]">
+        <div className="min-w-0">
+          <p className="font-poppins text-[15px] leading-[21px] font-semibold text-white">
+            {units ? `${line.quantity.trim()} ` : ""}
+            {line.name}
+            {!units && line.quantity ? <span className="font-normal text-white/70"> · {line.quantity}</span> : null}
+          </p>
+          <p className="mt-[2px] font-helvetica text-[13px] leading-[18px] break-words text-white/55">{line.path}</p>
+        </div>
+        <span className="shrink-0 font-poppins text-[15px] leading-[21px] font-semibold text-white tabular-nums">
+          {line.price}
+        </span>
+      </div>
+    );
+  }
+
+  const where = units || !line.quantity ? line.platform : `${line.platform} · ${line.quantity}`;
   return (
     <div className="flex items-baseline justify-between gap-[15px] py-[10px]">
       <p className="min-w-0 font-poppins text-[15px] leading-[21px] text-white">
