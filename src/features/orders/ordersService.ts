@@ -67,6 +67,8 @@ export type ApiPurchase = {
   deliveryStatus?: unknown;
   deliveryStatusAt?: string | null;
   items: ApiOrderItem[];
+  /** Comprovantes de entrega (2026-10-23): só id e data; a imagem tem rota própria. */
+  deliveryProofs?: { id?: unknown; createdAt?: unknown }[];
 };
 
 type ApiPurchasePage = {
@@ -135,6 +137,11 @@ export function toPurchase(api: ApiPurchase): Purchase | null {
     discount: coinsCents + couponCents > 0 ? formatCents(coinsCents + couponCents, currency) : null,
     paid: formatCents(Math.max(0, priceCents - coinsCents - couponCents), currency),
     coupon: api.couponCode && couponCents > 0 ? { code: api.couponCode, amount: formatCents(couponCents, currency) } : null,
+    deliveryProofs: (Array.isArray(api.deliveryProofs) ? api.deliveryProofs : []).flatMap((proof) =>
+      typeof proof?.id === "string" && /^[A-Za-z0-9_-]{1,100}$/.test(proof.id)
+        ? [{ id: proof.id, date: typeof proof.createdAt === "string" ? (formatStepDate(proof.createdAt) ?? "") : "" }]
+        : [],
+    ),
   };
 }
 

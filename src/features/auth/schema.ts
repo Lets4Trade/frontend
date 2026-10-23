@@ -68,6 +68,9 @@ export const signupSchema = z.object({
       },
       { message: "Número inválido. Inclua DDD." },
     ),
+  // Gênero (2026-10-23): só escolhe o avatar padrão. Obrigatório escolher, mas
+  // "Prefiro não informar" é uma das opções.
+  gender: z.enum(["MALE", "FEMALE", "UNDISCLOSED"], { message: "Escolha uma opção." }),
 });
 
 export type SignupFormValues = z.infer<typeof signupSchema>;

@@ -12,7 +12,8 @@ import {
 } from "@/features/admin/chats/types";
 import { ADMIN_SHELL } from "@/features/admin/layout";
 import { getAttendants } from "@/features/admin/orders/list";
-import { getSessionUserId } from "@/features/auth/session";
+import { getSessionRole, getSessionUserId } from "@/features/auth/session";
+import { canAccess } from "@/features/admin/permissions";
 import { requirePanelArea } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
@@ -34,6 +35,8 @@ type PageProps = {
  */
 export default async function AdminChatsPage({ searchParams }: PageProps) {
   await requirePanelArea("support");
+  // Nome do cliente → ficha em Usuários: só quem vê Usuários (ADMIN).
+  const canOpenUsers = canAccess(await getSessionRole(), "users");
   const query = parseChatsQuery(await searchParams);
 
   // O pedido depende da conversa (é ela que diz a referência): encadeado só
@@ -113,6 +116,7 @@ export default async function AdminChatsPage({ searchParams }: PageProps) {
           attendants={attendants}
           hrefFor={hrefFor}
           currentStaffId={staffId}
+          canOpenUsers={canOpenUsers}
         />
       </div>
 

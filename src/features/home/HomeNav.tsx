@@ -81,7 +81,7 @@ export async function HomeNav({ stats = [] }: { stats?: SectionItemView[] }) {
         {NAV_ITEMS.map((item, index) => {
           const style = { left: item.left, ...revealDelay(index + 1) };
 
-          if (item.label === "GAMES") {
+          if ("key" in item && item.key === "games") {
             return (
               <HomeGamesMenu
                 key={item.label}

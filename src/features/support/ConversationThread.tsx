@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import type { ChatMessage, ConversationSummary } from "./types";
+import { StaffAvatar } from "./StaffAvatar";
+import { startsStaffRun, type ChatMessage, type ConversationSummary } from "./types";
 import { useConversation } from "./useConversation";
 
 /**
@@ -11,6 +12,10 @@ import { useConversation } from "./useConversation";
  * Mesma linguagem dos balões da tela do pedido (Figma 2569:1776) em escala de
  * popup: o do cliente à direita com contorno laranja, o da equipe à esquerda em
  * cinza chapado, e os avisos da loja centrados, sem balão.
+ *
+ * Resposta da equipe leva o rosto e o primeiro nome de quem respondeu
+ * (2026-10-23), também quando veio pelo Discord — só no começo de cada
+ * sequência do mesmo atendente.
  */
 export function ConversationThread({
   conversation,
@@ -103,7 +108,7 @@ export function ConversationThread({
         {loading && messages.length === 0 ? (
           <p className="pt-[40px] text-center font-helvetica text-[13px] text-brand-fg-subtle">Carregando…</p>
         ) : (
-          messages.map((message) => {
+          messages.map((message, index) => {
             const showDay = message.day !== lastDay;
             lastDay = message.day;
             return (
@@ -113,7 +118,7 @@ export function ConversationThread({
                     {message.day}
                   </p>
                 ) : null}
-                <ThreadBubble message={message} />
+                <ThreadBubble message={message} showAuthor={startsStaffRun(message, messages[index - 1])} />
               </div>
             );
           })
@@ -154,7 +159,7 @@ export function ConversationThread({
   );
 }
 
-function ThreadBubble({ message }: { message: ChatMessage }) {
+function ThreadBubble({ message, showAuthor }: { message: ChatMessage; showAuthor: boolean }) {
   if (message.from === "sistema") {
     return (
       <p className="my-[8px] text-center font-helvetica text-[12px] leading-[16px] text-brand-fg-subtle">
@@ -165,15 +170,28 @@ function ThreadBubble({ message }: { message: ChatMessage }) {
 
   const mine = message.from === "cliente";
   return (
-    <div className={`mb-[8px] flex ${mine ? "justify-end" : "justify-start"}`}>
+    <div className={`mb-[8px] flex items-start gap-[10px] ${mine ? "justify-end" : "justify-start"}`}>
+      {!mine ? (
+        // Sequência do mesmo atendente: o espaço do rosto fica, para os balões
+        // continuarem alinhados um embaixo do outro.
+        showAuthor ? (
+          <span className="mt-[2px]">
+            <StaffAvatar name={message.authorName} avatarUrl={message.authorAvatarUrl} size={28} />
+          </span>
+        ) : (
+          <span aria-hidden className="w-[28px] shrink-0" />
+        )
+      ) : null}
       <div
         title={message.at}
-        className={`max-w-[85%] rounded-[12px] px-[12px] py-[8px] ${
+        className={`max-w-[80%] rounded-[12px] px-[12px] py-[8px] ${
           mine ? "border border-brand-orange bg-[image:var(--brand-surface-fill)]" : "bg-[#1b1b1b]"
         }`}
       >
-        {!mine ? (
-          <p className="mb-[2px] font-poppins text-[11px] font-semibold text-brand-orange">Suporte</p>
+        {!mine && showAuthor ? (
+          <p className="mb-[2px] font-poppins text-[11px] font-semibold text-brand-orange">
+            {message.authorName || "Suporte"}
+          </p>
         ) : null}
         <p className="font-poppins text-[14px] leading-[20px] break-words whitespace-pre-wrap text-white">
           {message.body}

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { CheckoutShell } from "@/features/checkout/CheckoutShell";
 import {
@@ -7,6 +6,7 @@ import {
   PanelReferencesRow,
 } from "@/features/checkout/CheckoutPanel";
 import { OrderChat } from "@/features/orders/OrderChat";
+import { OrderProofs } from "@/features/orders/OrderProofs";
 import { getAccountProfile } from "@/features/account/profile";
 import { getReferencesVideoHref } from "@/features/site/content";
 import { getOrderConversation, getPurchaseDetail } from "@/features/orders/orderDetail";
@@ -140,7 +140,13 @@ export default async function PedidoPage({ params, searchParams }: PageProps) {
                   </span>
                 ) : null}
               </div>
-              <SummaryRow label="Pedido" value={`${purchase.reference} · ${purchase.date}`} className="mt-[14px]" />
+              <SummaryRow
+                label="Pedido"
+                value={`${purchase.reference} · ${purchase.date}`}
+                href="#chat"
+                linkText={purchase.reference}
+                className="mt-[14px]"
+              />
               <div aria-hidden className="mt-[12px] h-px w-full bg-white/25" />
 
               <ul className="divide-y divide-white/[0.07]">
@@ -165,33 +171,8 @@ export default async function PedidoPage({ params, searchParams }: PageProps) {
                 total={purchase.paid}
               />
 
-              {/* O comprovante ainda não existe. O botão fica desabilitado em
-                  vez de levar a uma página em branco. */}
-              <button
-                type="button"
-                disabled
-                className="brand-ring mt-[40px] flex h-[60px] w-full lg:mt-[60px] items-center gap-[25px] rounded-full bg-[image:var(--brand-surface-fill)] px-[25px] text-left transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Image
-                  src="/icons/order/bill.svg"
-                  alt=""
-                  width={22}
-                  height={22}
-                  aria-hidden
-                  className="size-[22px] shrink-0"
-                />
-                <span className="flex-1 font-poppins text-[16px] font-bold tracking-[0.16px] text-white">
-                  VER COMPROVANTE
-                </span>
-                <Image
-                  src="/icons/order/arrow.svg"
-                  alt=""
-                  width={18}
-                  height={18}
-                  aria-hidden
-                  className="size-[18px] shrink-0 -rotate-90"
-                />
-              </button>
+              {/* Comprovantes de pagamento e de entrega (2026-10-23). */}
+              <OrderProofs purchase={purchase} />
             </>
           ) : (
             <p className="mt-[60px] font-helvetica text-[16px] text-brand-fg-muted">

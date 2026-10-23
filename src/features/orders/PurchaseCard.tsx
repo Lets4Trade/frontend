@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { customerOrderChatHref } from "@/features/orders/orderChatHref";
 import { cn } from "@/lib/cn";
 import { backendAsset } from "@/lib/publicApi";
 import { DELIVERY_COLOR_STYLES } from "./deliveryStatus";
@@ -42,7 +43,15 @@ export function PurchaseCard({ purchase }: { purchase: Purchase }) {
             {title}
           </h3>
           <p className="mt-[2px] font-helvetica text-[13px] text-brand-fg-subtle">
-            Pedido <span className="font-bold text-white/80">{purchase.reference}</span>
+            Pedido{" "}
+            {/* O número leva direto ao chat do pedido (2026-10-23). */}
+            <Link
+              href={customerOrderChatHref(purchase.reference)}
+              title="Abrir o chat do pedido"
+              className="font-bold text-white/80 underline decoration-white/30 underline-offset-[3px] transition-colors hover:text-brand-orange hover:decoration-brand-orange"
+            >
+              {purchase.reference}
+            </Link>
             <span aria-hidden> · </span>
             {purchase.date}
             <span aria-hidden> · </span>

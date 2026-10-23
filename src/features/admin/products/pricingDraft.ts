@@ -51,6 +51,8 @@ export type PricingDraft = {
    * digitou — "100, 500, 1.000". Vazio = sem botões.
    */
   presets: string;
+  /** QUANTITY: quanto 1 unidade vale ("1.000.000" = 1Mi de ouro). Vazio = 1. */
+  unitSize: string;
   hoursPerUnit: string;
   tiers: TierDraft[];
   bands: BandDraft[];
@@ -87,6 +89,7 @@ export function emptyDraft(mode: PricingMode = "FIXED"): PricingDraft {
     max: mode === "LEVEL_RANGE" ? "100" : "10",
     step: "1",
     presets: "",
+    unitSize: "",
     hoursPerUnit: "",
     tiers: [],
     bands: mode === "LEVEL_RANGE" ? [{ key: newKey(), from: "1", to: "100", pricePerLevelCents: 0, hoursPerLevel: "0" }] : [],
@@ -115,6 +118,7 @@ export function pricingToDraft(pricing: Pricing | null | undefined): PricingDraf
     draft.max = String(pricing.max);
     draft.step = String(pricing.step);
     draft.presets = (pricing.presets ?? []).join(", ");
+    draft.unitSize = pricing.unitSize && pricing.unitSize > 1 ? pricing.unitSize.toLocaleString("pt-BR") : "";
     draft.hoursPerUnit = numText(pricing.hoursPerUnit);
     draft.tiers = (pricing.tiers ?? []).map((tier) => ({
       key: newKey(),
@@ -187,6 +191,8 @@ export function draftToPricing(
       max: toInt(draft.max),
       step: toInt(draft.step),
       ...(parsePresets(draft.presets).length > 0 ? { presets: parsePresets(draft.presets) } : {}),
+      // "1.000.000" (ponto é milhar, como nas quantidades prontas). 1 = sem tamanho.
+      ...(unitSizeOf(draft.unitSize) > 1 ? { unitSize: unitSizeOf(draft.unitSize) } : {}),
       ...(draft.hoursPerUnit.trim() === "" ? {} : { hoursPerUnit: toNumber(draft.hoursPerUnit) }),
       // `tiers` (desconto por quantidade) não é mais gravado — 2026-10-01.
       ...common,
@@ -225,6 +231,7 @@ const FIELD_NAMES: Record<string, string> = {
   max: "Máximo",
   step: "Passo",
   presets: "Quantidades prontas",
+  unitSize: "1 unidade vale",
   hoursPerUnit: "Horas por unidade",
   baseHours: "Horas base",
   tiers: "Faixas de quantidade",
@@ -293,4 +300,15 @@ function toInt(text: string): number {
 
 function numText(value: number | undefined): string {
   return value === undefined ? "" : String(value);
+}
+
+/**
+ * "1.000.000" → 1000000. Ponto e espaço são separador de milhar (como em
+ * `parsePresets`); vazio = 1. Texto que não é número vira NaN e o
+ * `pricingSchema` recusa com o nome do campo.
+ */
+export function unitSizeOf(raw: string): number {
+  const text = raw.replace(/[.\s]/g, "").trim();
+  if (text === "") return 1;
+  return /^\d+$/.test(text) ? Number(text) : Number.NaN;
 }

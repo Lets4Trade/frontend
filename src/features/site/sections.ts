@@ -665,7 +665,8 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         label: "Botões do topo",
         // Os três rótulos. Cada um tem nome próprio no formulário: "título",
         // "subtítulo" e "legenda" não diriam a ninguém qual botão é qual.
-        defaultTitle: "GAMES",
+        // "JOGOS" desde 2026-10-23 (era GAMES), pedido do usuário.
+        defaultTitle: "JOGOS",
         titleLabel: "Botão da esquerda",
         defaultSubtitle: "CRIAR CONTA",
         subtitleLabel: "Botão de cadastro",

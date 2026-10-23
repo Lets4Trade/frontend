@@ -28,18 +28,21 @@ export function parsePresence(raw: unknown): SupportPresence {
         if (!item || typeof item !== "object") return [];
         const { name, avatarUrl } = item as { name?: unknown; avatarUrl?: unknown };
         if (typeof name !== "string" || !name.trim()) return [];
-        // Só foto servida pelo nosso backend (`/uploads/...`): é o que a API grava.
-        // Mesmo padrão que o backend devolve (`avatarPath`); com `?v=` que troca a cada foto nova.
-        const avatar =
-          typeof avatarUrl === "string" && /^\/uploads\/avatars\/[A-Za-z0-9_-]+\.webp(\?v=\d{1,20})?$/.test(avatarUrl)
-            ? avatarUrl
-            : null;
-        return [{ name: name.trim().slice(0, 40), avatarUrl: avatar }];
+        return [{ name: name.trim().slice(0, 40), avatarUrl: safeAvatarPath(avatarUrl) }];
       })
     : [];
   const total =
     typeof data.total === "number" && Number.isFinite(data.total) ? Math.max(attendants.length, Math.floor(data.total)) : attendants.length;
   return { online: total > 0, total, attendants };
+}
+
+/**
+ * Só foto servida pelo nosso backend (`/uploads/avatars/...`): é o que a API
+ * grava. Mesmo padrão que o backend devolve (`avatarPath`), com `?v=` que troca
+ * a cada foto nova. Qualquer outra coisa vira "sem foto" (a inicial).
+ */
+export function safeAvatarPath(raw: unknown): string | null {
+  return typeof raw === "string" && /^\/uploads\/avatars\/[A-Za-z0-9_-]+\.webp(\?v=\d{1,20})?$/.test(raw) ? raw : null;
 }
 
 /** "Ana", "Ana e Bruno", "Ana, Bruno e mais 3". */

@@ -38,7 +38,8 @@ describe("busca do painel", () => {
     expect(search(editor, "whatsapp")[0]?.href).toBe("/admin/configuracoes#atendimento");
 
     const support = buildIndex("SUPPORT");
-    expect(support.map((entry) => entry.href).sort()).toEqual(["/admin/chats", "/admin/pedidos"]);
+    // "Propostas" (2026-10-23) é da área de pedidos: o atendente vê.
+    expect(support.map((entry) => entry.href).sort()).toEqual(["/admin/chats", "/admin/pedidos", "/admin/propostas"]);
   });
 
   it("busca vazia sugere o menu e as configurações", () => {

@@ -36,6 +36,7 @@ export default async function EditarInformacoesPage() {
             email: profile.email,
             discord: profile.discord,
             whatsapp: profile.whatsapp,
+            gender: profile.gender,
           }}
         />
       </div>

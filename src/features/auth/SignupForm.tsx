@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
+import { GenderField } from "@/features/account/GenderField";
 import { signup } from "./authService";
 import { signupSchema } from "./schema";
 import { SIGNUP_ERROR_MESSAGES, SignupError } from "./types";
@@ -12,7 +13,7 @@ import { SIGNUP_ERROR_MESSAGES, SignupError } from "./types";
 /** Para onde mandar o usuário depois de cadastrar. */
 const REDIRECT_AFTER_SIGNUP = "/";
 
-type Field = "email" | "name" | "password" | "whatsapp";
+type Field = "email" | "name" | "password" | "whatsapp" | "gender";
 type FieldErrors = Partial<Record<Field, string>>;
 
 /**
@@ -22,7 +23,7 @@ type FieldErrors = Partial<Record<Field, string>>;
  * está instalado). Reusa `TextField` e `Button` — as superfícies do card de
  * cadastro são idênticas às do login nos assets exportados.
  */
-export function SignupForm() {
+export function SignupForm({ social }: { social?: ReactNode } = {}) {
   const router = useRouter();
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -41,6 +42,7 @@ export function SignupForm() {
       name: String(formData.get("name") ?? ""),
       password: String(formData.get("password") ?? ""),
       whatsapp: String(formData.get("whatsapp") ?? ""),
+      gender: String(formData.get("gender") ?? ""),
     });
 
     if (!parsed.success) {
@@ -50,6 +52,7 @@ export function SignupForm() {
         name: zodFieldErrors.name?.[0],
         password: zodFieldErrors.password?.[0],
         whatsapp: zodFieldErrors.whatsapp?.[0],
+        gender: zodFieldErrors.gender?.[0],
       });
       setFormError(null);
       return;
@@ -98,6 +101,8 @@ export function SignupForm() {
 
       <hr className="mt-[25px] border-0 border-t border-brand-hairline" />
 
+      {social}
+
       {/* Duas colunas de 315px com 50px de vão, como no design. Abaixo de `md`
           empilha — o card tem 780px e não cabe em tela pequena. */}
       <div className="mt-[25px] grid grid-cols-1 gap-x-[50px] gap-y-[25px] md:grid-cols-2">
@@ -138,6 +143,11 @@ export function SignupForm() {
           placeholder="(11) 91234-5678"
           error={fieldErrors.whatsapp}
         />
+
+        {/* Linha inteira: três opções lado a lado não cabem em 315px. */}
+        <div className="md:col-span-2">
+          <GenderField error={fieldErrors.gender} />
+        </div>
       </div>
 
       <hr className="mt-[25px] border-0 border-t border-brand-hairline" />

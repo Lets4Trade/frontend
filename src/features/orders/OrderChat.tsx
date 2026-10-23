@@ -4,7 +4,8 @@ import Image from "next/image";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { createConversation } from "@/features/support/api";
 import type { SocketStatus } from "@/features/support/socket";
-import type { ChatMessage, ConversationStatus } from "@/features/support/types";
+import { StaffAvatar } from "@/features/support/StaffAvatar";
+import { startsStaffRun, type ChatMessage, type ConversationStatus } from "@/features/support/types";
 import { useConversation } from "@/features/support/useConversation";
 
 /**
@@ -133,8 +134,10 @@ export function OrderChat({
 
   return (
     <section
+      // `#chat`: o número do pedido (lista, resumo, pagamento) leva direto aqui.
+      id="chat"
       aria-label="Conversa sobre o pedido"
-      className="flex h-[560px] w-full max-w-[555px] flex-col rounded-[30px] border border-white/20 bg-[#070707] p-[16px] lg:h-[696px] lg:p-[25px]"
+      className="flex h-[560px] w-full max-w-[555px] scroll-mt-[110px] flex-col rounded-[30px] border border-white/20 bg-[#070707] p-[16px] lg:h-[696px] lg:p-[25px]"
     >
       {justPaid ? (
         <div
@@ -167,13 +170,17 @@ export function OrderChat({
             Ainda não há mensagens neste pedido.
           </p>
         ) : (
-          messages.map((message) => {
+          messages.map((message, index) => {
             const showDay = message.day !== lastDay;
             lastDay = message.day;
             return (
               <div key={message.id}>
                 {showDay ? <DayPill label={message.day} /> : null}
-                <Bubble message={message} userAvatar={userAvatar} />
+                <Bubble
+                  message={message}
+                  userAvatar={userAvatar}
+                  showAuthor={startsStaffRun(message, messages[index - 1])}
+                />
               </div>
             );
           })
@@ -265,13 +272,18 @@ function DayPill({ label }: { label: string }) {
  * O do CLIENTE vai à direita, com contorno laranja sobre o vidro e o avatar
  * DEPOIS do texto; o do suporte vai à esquerda, cinza chapado (#1b1b1b) e com o
  * avatar antes. É o que dispensa qualquer legenda de "quem falou".
+ *
+ * O avatar do suporte é o rosto de QUEM respondeu (2026-10-23), com o primeiro
+ * nome acima do texto no começo de cada sequência do mesmo atendente.
  */
 function Bubble({
   message,
   userAvatar,
+  showAuthor,
 }: {
   message: ChatMessage;
   userAvatar?: string;
+  showAuthor: boolean;
 }) {
   // Aviso da própria loja ("Conversa encerrada pela equipe"): linha centrada,
   // sem avatar — não é ninguém falando.
@@ -295,17 +307,28 @@ function Bubble({
             : "bg-[#1b1b1b]"
         }`}
       >
-        <Image
-          src={(mine ? userAvatar : undefined) || "/images/avatar-placeholder.png"}
-          alt=""
-          width={42}
-          height={42}
-          aria-hidden
-          className="size-[42px] shrink-0 rounded-full object-cover"
-        />
-        <p className="font-poppins text-[16px] leading-[24px] break-words text-white">
-          {message.body}
-        </p>
+        {mine ? (
+          <Image
+            src={userAvatar || "/images/avatar-placeholder.png"}
+            alt=""
+            width={42}
+            height={42}
+            aria-hidden
+            className="size-[42px] shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <StaffAvatar name={message.authorName} avatarUrl={message.authorAvatarUrl} size={42} />
+        )}
+        <div className="min-w-0">
+          {!mine && showAuthor ? (
+            <p className="font-poppins text-[12px] leading-[16px] font-semibold text-brand-orange">
+              {message.authorName || "Suporte"}
+            </p>
+          ) : null}
+          <p className="font-poppins text-[16px] leading-[24px] break-words text-white">
+            {message.body}
+          </p>
+        </div>
       </div>
     </div>
   );

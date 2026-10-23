@@ -71,6 +71,7 @@ export async function saveProfile(
     name: values.name,
     discord: values.discord,
     whatsapp: values.whatsapp,
+    ...(values.gender ? { gender: values.gender } : {}),
   }, signal);
 
   if (values.password !== "") {

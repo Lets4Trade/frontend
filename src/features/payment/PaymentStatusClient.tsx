@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { customerOrderChatHref } from "@/features/orders/orderChatHref";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { formatBrl as formatCents, paidOrderHref } from "@/features/payment/types";
@@ -187,7 +188,7 @@ function Paid({ payment }: { payment: PaymentView }) {
         {byReference(payment.orders).map((order) => (
           <li key={order.reference}>
             <Link
-              href={`/conta/pedidos/${encodeURIComponent(order.reference)}`}
+              href={customerOrderChatHref(order.reference)}
               className="brand-ring flex h-[50px] items-center justify-between rounded-full bg-[image:var(--brand-surface-fill)] px-[25px] font-poppins text-[15px] text-white transition-opacity hover:opacity-90"
             >
               <span className="truncate">{order.label}</span>

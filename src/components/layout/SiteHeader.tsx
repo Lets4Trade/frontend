@@ -108,7 +108,7 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
           direita é [horário de atendimento | botões] — o horário centraliza no
           vão entre o selo e os botões (pedido do usuário, 2026-10-16). Abaixo
           do `xl` o selo some (md–xl) e o horário ocupa o meio livre do flex. */}
-      <div className="relative mx-auto flex h-[83px] max-w-[1920px] items-center gap-[12px] px-[25px] md:gap-[25px] md:px-6 lg:px-[50px] xl:grid xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+      <div className="relative mx-auto flex h-[60px] max-w-[1920px] items-center gap-[12px] px-[25px] md:h-[83px] md:gap-[25px] md:px-6 lg:px-[50px] xl:grid xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
         {/* Lado esquerdo: `contents` no flex (cada peça é filho direto, como
             antes); bloco único na grade do `xl`. */}
         <div className="contents xl:flex xl:min-w-0 xl:items-center xl:gap-[25px]">
@@ -253,7 +253,9 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
         </div>
       </div>
 
-      {/* Celular: horário numa faixa abaixo da barra, dentro do cabeçalho. */}
+      {/* Celular: horário numa faixa abaixo da barra, dentro do cabeçalho. A
+          barra do celular tem 60px (2026-10-23, pedido do usuário: com os 83px
+          do desktop sobravam ~20px vazios entre os ícones e o horário). */}
       <HeaderHoursStrip title={hours.title} schedule={schedule} />
     </header>
   );

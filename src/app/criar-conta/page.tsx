@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SignupForm } from "@/features/auth/SignupForm";
+import { SocialLogin } from "@/features/auth/SocialLogin";
 
 export const metadata: Metadata = {
   title: "Criar conta | Lets4Trade",
@@ -19,7 +20,14 @@ export const metadata: Metadata = {
  *
  * Server component: só o `SignupForm` vai como JavaScript para o browser.
  */
-export default function SignupPage() {
+export default async function SignupPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const query = await searchParams;
+  const redirect = typeof query.redirect === "string" ? query.redirect : null;
+
   return (
     <div className="flex min-h-dvh flex-col bg-brand-bg">
       <SiteHeader />
@@ -29,7 +37,7 @@ export default function SignupPage() {
           aria-labelledby="signup-heading"
           className="w-full max-w-[780px] rounded-[30px] border border-brand-border bg-brand-surface/95 p-[30px] backdrop-blur-[75px] sm:p-[50px]"
         >
-          <SignupForm />
+          <SignupForm social={<SocialLogin redirect={redirect} verb="Cadastrar" />} />
         </section>
       </main>
 

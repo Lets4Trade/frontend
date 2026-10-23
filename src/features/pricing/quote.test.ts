@@ -173,3 +173,33 @@ describe("quote — sem teto de nível, horas e quantidade (2026-10-20)", () => 
     expect(quote(1, gold, { quantity: 30_000_000 })).toMatchObject({ ok: true, totalCents: 30_000_000, hours: 20_000 });
   });
 });
+
+describe("quote — tamanho da unidade (2026-10-23)", () => {
+  const GOLD: Pricing = { mode: "QUANTITY", unitLabel: "Gold", min: 1, max: 1000, step: 1, presets: [1, 10], unitSize: 1_000_000 };
+
+  it("10 unidades de 1Mi = 10.000.000 Gold, pelo preço de 10 unidades", () => {
+    const result = quote(150, GOLD, { quantity: 10 });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.totalCents).toBe(1500);
+    expect(result.summary).toBe("10.000.000 Gold");
+    expect(result.lines[0].label).toBe("10 × 1.000.000 Gold");
+    expect(result.selection).toEqual({ quantity: 10 });
+  });
+
+  it("sem tamanho (ou 1) continua como antes", () => {
+    const { unitSize: _unused, ...plain } = GOLD as Extract<Pricing, { mode: "QUANTITY" }>;
+    const result = quote(150, plain, { quantity: 10 });
+    expect(result.ok && result.summary).toBe("10 Gold");
+  });
+
+  it("total que não cabe no inteiro exato é recusado", () => {
+    const huge: Pricing = { ...GOLD, max: 9_000_000_000, unitSize: 9_000_000_000 } as Pricing;
+    expect(quote(1, huge, { quantity: 9_000_000_000 }).ok).toBe(false);
+  });
+
+  it("schema aceita o tamanho e recusa zero", () => {
+    expect(pricingSchema.safeParse(GOLD).success).toBe(true);
+    expect(pricingSchema.safeParse({ ...GOLD, unitSize: 0 }).success).toBe(false);
+  });
+});

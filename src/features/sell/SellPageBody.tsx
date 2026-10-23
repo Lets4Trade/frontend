@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { getMenuGames } from "@/features/game/menuGames";
 // Import ESTÁTICO do mascote (e não a string "/images/..."): a URL leva hash
 // do conteúdo, então trocar a arte invalida o cache sozinho. Ver o histórico
 // em `app/venda/page.tsx`.
@@ -24,10 +25,12 @@ const SECTION_HEADING =
  */
 export async function SellPageBody({ game }: { game?: { slug: string; name: string } } = {}) {
   // O título vem da tela "Edição de sessões"; vazio devolve o do arquivo.
-  const [section, items, contacts] = await Promise.all([
+  // Jogos do select: a mesma leitura cacheada do menu de jogos do cabeçalho.
+  const [section, items, contacts, games] = await Promise.all([
     getSectionsFor("venda"),
     getSectionItemsFor("venda"),
     getContacts(),
+    getMenuGames(),
   ]);
 
   /**
@@ -89,7 +92,7 @@ export async function SellPageBody({ game }: { game?: { slug: string; name: stri
           <h2 className={SECTION_HEADING}>{tituloFormulario}</h2>
 
           <div className="mt-[25px] flex-1 rounded-[30px] border border-white/10 bg-brand-surface p-[25px] sm:p-[50px]">
-            <SellForm game={game} />
+            <SellForm games={games} game={game} />
           </div>
         </section>
 

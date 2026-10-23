@@ -1,4 +1,5 @@
 import { apiGet } from "@/lib/serverApi";
+import { USER_ID_RE } from "./href";
 import type { AdminUser, AdminUserPage } from "./types";
 
 /**
@@ -20,12 +21,16 @@ export const PARAM = {
   role: "cargo",
   search: "busca",
   page: "pagina",
+  /** Só esta conta, com a ficha aberta (2026-10-23) — ver `href.ts`. */
+  user: "usuario",
 } as const;
 
 export type UsersQuery = {
   role: string;
   search: string;
   page: number;
+  /** Id de UMA conta (o nome clicado em pedidos/chats/propostas). */
+  user: string;
 };
 
 const ROLES = new Set(["ADMIN", "EDITOR", "SUPPORT", "USER"]);
@@ -49,6 +54,7 @@ export function parseUsersQuery(params: RawParams): UsersQuery {
     role: ROLES.has(rawRole) ? rawRole : "",
     search: (first(params[PARAM.search]) ?? "").slice(0, 80),
     page: Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1,
+    user: USER_ID_RE.test(first(params[PARAM.user]) ?? "") ? (first(params[PARAM.user]) as string) : "",
   };
 }
 
@@ -62,11 +68,14 @@ export function parseUsersQuery(params: RawParams): UsersQuery {
 export function buildHref(query: UsersQuery, patch: Partial<UsersQuery>): string {
   const next = { ...query, ...patch };
   if (patch.page === undefined) next.page = 1;
+  // Qualquer filtro novo sai do "só esta conta".
+  if (patch.user === undefined) next.user = "";
 
   const search = new URLSearchParams();
   if (next.role) search.set(PARAM.role, next.role);
   if (next.search) search.set(PARAM.search, next.search);
   if (next.page > 1) search.set(PARAM.page, String(next.page));
+  if (next.user) search.set(PARAM.user, next.user);
 
   const qs = search.toString();
   return qs === "" ? "/admin/usuarios" : `/admin/usuarios?${qs}`;
@@ -91,6 +100,7 @@ export async function getAdminUsers(query: UsersQuery): Promise<AdminUserPage> {
   const search = new URLSearchParams();
   if (query.role) search.set("role", query.role);
   if (query.search) search.set("search", query.search);
+  if (query.user) search.set("id", query.user);
   search.set("page", String(query.page));
 
   const response = await apiGet<AdminUserPage>(

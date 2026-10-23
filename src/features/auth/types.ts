@@ -53,6 +53,7 @@ export type SignupCredentials = {
   name: string;
   password: string;
   whatsapp: string;
+  gender: "MALE" | "FEMALE" | "UNDISCLOSED";
 };
 
 export type SignupResult = {

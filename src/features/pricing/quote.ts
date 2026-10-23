@@ -13,8 +13,9 @@
  * Modos (o admin escolhe por produto):
  *  - FIXED        preço fechado = `basePriceCents` (o preço do produto).
  *  - QUANTITY     quantidade × preço unitário (horas de mentoria, runs de carry,
- *                 gold), com faixas opcionais (a partir de N unidades, outro
- *                 unitário) e quantidades prontas (`presets`, os botões da aba Gold).
+ *                 gold), com quantidades prontas (`presets`, os botões da aba
+ *                 Gold) e o TAMANHO da unidade (`unitSize`: 1 unidade = 1Mi de
+ *                 ouro, então 10 unidades = 10Mi — 2026-10-23).
  *  - LEVEL_RANGE  nível inicial → desejado; soma o preço de cada nível pela faixa
  *                 em que ele cai (subir do 90 ao 100 pode custar mais que do 1 ao 10).
  * Em todos: adicionais opcionais (percentual sobre o subtotal ou valor fixo) e
@@ -98,6 +99,14 @@ const quantitySchema = z.object({
   step: quantityValue,
   /** Quantidades oferecidas em botão (aba Gold). Cada uma tem que ser escolhível. */
   presets: z.array(quantityValue).max(24).optional(),
+  /**
+   * Quanto UMA unidade vale (2026-10-23, pedido do usuário): 1.000.000 = cada
+   * unidade é 1Mi de ouro, e 10 unidades entregam 10Mi. O preço do produto é o
+   * da UNIDADE — sem isto, ouro por 1 de ouro exigiria fração de centavo.
+   * Mínimo, máximo, passo e quantidades prontas continuam em UNIDADES.
+   * Ausente = 1 (o comportamento de antes).
+   */
+  unitSize: quantityValue.optional(),
   /** Horas por unidade (mentoria: 1). */
   hoursPerUnit: hours.optional(),
   /**
@@ -233,8 +242,23 @@ export function quote(basePriceCents: number, pricing: Pricing, rawSelection: Se
     subtotal = basePriceCents * quantity;
     totalHours += (pricing.hoursPerUnit ?? 0) * quantity;
     selection.quantity = quantity;
-    summary = `${quantity} ${pricing.unitLabel}`;
-    lines.push({ label: `${quantity} × ${pricing.unitLabel}`, cents: subtotal });
+    const size = pricing.unitSize ?? 1;
+    if (size > 1) {
+      // Com tamanho de unidade, o resumo diz o TOTAL entregue, por extenso — é
+      // o que a equipe entrega e o que o cliente confere no pedido.
+      const amount = quantity * size;
+      if (!Number.isSafeInteger(amount)) {
+        return { ok: false, message: "Quantidade grande demais." };
+      }
+      summary = `${amount.toLocaleString("pt-BR")} ${pricing.unitLabel}`;
+      lines.push({
+        label: `${quantity} × ${size.toLocaleString("pt-BR")} ${pricing.unitLabel}`,
+        cents: subtotal,
+      });
+    } else {
+      summary = `${quantity} ${pricing.unitLabel}`;
+      lines.push({ label: `${quantity} × ${pricing.unitLabel}`, cents: subtotal });
+    }
   } else {
     const from = rawSelection.levelFrom ?? pricing.min;
     const to = rawSelection.levelTo ?? pricing.max;

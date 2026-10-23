@@ -24,20 +24,17 @@ export const SELL_ERROR_MESSAGES: Record<SellErrorCode, string> = {
 };
 
 /**
- * ⚠️ PONTO DE TROCA — envio da proposta de venda.
+ * Envio da proposta de venda — `POST /sell-requests` (existe desde 2026-10-23;
+ * antes o formulário não chegava a lugar nenhum). A equipe vê em
+ * `/admin/propostas`.
  *
- * Contrato esperado em `POST /sell-requests`:
- *   request  → { jogo, plataforma, servidor, tipoProduto, discord, whatsapp, descricao }
- *   201      → { id }
- *   429      → { code: "rate_limited" }
+ *   request  → { game, platform, server, productType, discord, whatsapp, description }
+ *   201      → { data: { id } }
+ *   400      → valor fora das listas / jogo inativo
+ *   429      → freio por IP (3/min, 10/h — o formulário é público)
  *
- * PENDÊNCIAS do lado do servidor:
- *  - o formulário é PÚBLICO (não exige login), então é alvo fácil de spam:
- *    rate limiting por IP e Turnstile são necessários, não opcionais;
- *  - revalidar os `value` dos selects contra o catálogo real — o cliente pode
- *    mandar qualquer string;
- *  - tratar `descricao` como texto não confiável ao exibir no painel interno
- *    (`isomorphic-dompurify` já está no projeto).
+ * Os nomes dos campos do FORMULÁRIO continuam em português (são os `name` dos
+ * inputs); a API usa os nomes em inglês, como o resto do código.
  */
 export async function submitSellRequest(
   values: SellFormValues,
@@ -54,7 +51,15 @@ export async function submitSellRequest(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify(values),
+      body: JSON.stringify({
+        game: values.jogo,
+        platform: values.plataforma,
+        server: values.servidor,
+        productType: values.tipoProduto,
+        discord: values.discord,
+        whatsapp: values.whatsapp,
+        description: values.descricao,
+      }),
       signal,
     });
   } catch (cause) {
@@ -69,7 +74,8 @@ export async function submitSellRequest(
     );
   }
 
-  return (await response.json()) as { id: string };
+  const body = (await response.json().catch(() => null)) as { data?: { id?: string } } | null;
+  return { id: body?.data?.id ?? "" };
 }
 
 function delay(ms: number, signal?: AbortSignal) {

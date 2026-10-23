@@ -157,3 +157,19 @@ describe("parseHighlights (campo Tópicos do card)", () => {
     });
   });
 });
+
+describe("tamanho da unidade no painel (2026-10-23)", () => {
+  it("1.000.000 vira unitSize; vazio ou 1 não grava", async () => {
+    const { draftToPricing, emptyDraft, pricingToDraft, unitSizeOf } = await import("./pricingDraft");
+    expect([unitSizeOf("1.000.000"), unitSizeOf(""), unitSizeOf("1 000")]).toEqual([1_000_000, 1, 1000]);
+    expect(Number.isNaN(unitSizeOf("1,5"))).toBe(true);
+
+    const draft = { ...emptyDraft("QUANTITY"), unitLabel: "Gold", unitSize: "1.000.000" };
+    const saved = draftToPricing(draft);
+    expect(saved.ok && saved.pricing).toMatchObject({ mode: "QUANTITY", unitSize: 1_000_000 });
+    expect(pricingToDraft(saved.ok ? saved.pricing : null).unitSize).toBe("1.000.000");
+
+    const plain = draftToPricing({ ...draft, unitSize: "1" });
+    expect(plain.ok && "unitSize" in plain.pricing).toBe(false);
+  });
+});

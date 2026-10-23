@@ -7,6 +7,7 @@ import { formatPhone } from "@/lib/masks";
 import { toOrderGift } from "@/features/gifts/orderGift";
 import { toOrderDetails } from "@/features/orders/details";
 import { backendAsset } from "@/lib/publicApi";
+import { DeliveryProofsSection } from "./DeliveryProofsSection";
 import {
   formatDateTime,
   formatMoney,
@@ -26,18 +27,22 @@ import {
  * servidor, quantidade, preço, a conta do serviço e o brinde — tudo o que
  * quem entrega precisa. No fim, os totais da compra.
  *
- * SÓ LEITURA. O que o cliente comprou é o histórico congelado no momento da
- * compra — editá-lo pelo painel seria reescrever o passado de alguém. O que se
- * altera (situação e entregador) fica na linha da tabela.
+ * O PEDIDO é só leitura: o que o cliente comprou é o histórico congelado no
+ * momento da compra — editá-lo pelo painel seria reescrever o passado de
+ * alguém. O que se altera (situação e entregador) fica na linha da tabela. A
+ * exceção (2026-10-23) são os COMPROVANTES DE ENTREGA, que a equipe envia aqui.
  *
  * Controlado por `open`/`onOpenChange` em vez de `Dialog.Trigger`: quem abre é
  * a célula da tabela, e um gatilho por linha montaria quinze diálogos.
  */
 export function OrderInfoDialog({
   order,
+  apiOrigin,
   onClose,
 }: {
   order: AdminOrder;
+  /** Origem do backend — as imagens dos comprovantes saem de lá, com login. */
+  apiOrigin: string;
   onClose: () => void;
 }) {
   const pill = orderPill(order);
@@ -127,6 +132,8 @@ export function OrderInfoDialog({
             <span className="font-poppins text-[14px] text-brand-fg-subtle">Valor pago</span>
             <strong className="font-helvetica text-[24px] font-bold text-white">{paid}</strong>
           </div>
+
+          <DeliveryProofsSection reference={order.reference} apiOrigin={apiOrigin} />
 
           <div className="mt-[30px] flex justify-end">
             <Dialog.Close className="h-[50px] rounded-full border border-brand-border bg-[image:var(--brand-surface-fill)] px-[35px] font-poppins text-[14px] font-bold text-white transition-opacity hover:opacity-90">

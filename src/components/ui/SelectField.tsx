@@ -6,7 +6,13 @@ import { useId } from "react";
 import { cn } from "@/lib/cn";
 import { Field, fieldSurface } from "./Field";
 
-type Option = { value: string; label: string };
+/**
+ * `image` (2026-10-23): logo do jogo à esquerda do rótulo, na moldura do menu
+ * de jogos do cabeçalho (`MenuGameThumb`, 76×40, `object-contain`). Basta UMA
+ * opção ter a chave para a lista inteira ganhar a coluna do logo — vazia nas
+ * que não têm arte ("Outros"), para os nomes ficarem alinhados.
+ */
+type Option = { value: string; label: string; image?: string | null };
 
 type SelectFieldProps = {
   label: string;
@@ -79,6 +85,7 @@ export function SelectField({
   const generatedId = useId();
   const selectId = id ?? generatedId;
   const errorId = `${selectId}-error`;
+  const withThumbs = options.some((option) => "image" in option);
 
   return (
     <Field label={label} htmlFor={selectId} error={error} errorId={errorId} hideLabel={hideLabel}>
@@ -150,14 +157,17 @@ export function SelectField({
                 de SETE opções por uns poucos pixels — e o painel ganhava uma
                 seta de rolagem para revelar quase nada. 320 acomoda sete
                 inteiros; de oito em diante rola de verdade. */}
-            <Select.Viewport className="scrollbar-orange max-h-[320px] overflow-y-auto">
+            {/* Com logo (2026-10-23) a linha tem ~46px: 380 acomoda sete. */}
+            <Select.Viewport
+              className={cn("scrollbar-orange overflow-y-auto", withThumbs ? "max-h-[380px]" : "max-h-[320px]")}
+            >
               {options.map((option) => (
                 <Select.Item
                   key={option.value}
                   value={option.value}
                   className={cn(
                     "relative flex cursor-pointer items-center rounded-[12px]",
-                    "py-[10px] pr-[36px] pl-[12px]",
+                    withThumbs ? "py-[6px] pr-[36px] pl-[8px]" : "py-[10px] pr-[36px] pl-[12px]",
                     "font-poppins text-[14px] text-white outline-none transition-colors select-none",
                     // `highlighted` cobre mouse E teclado — é o Radix que
                     // unifica os dois, e é por isso que setear `:hover` sozinho
@@ -167,7 +177,18 @@ export function SelectField({
                     "data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
                   )}
                 >
-                  <Select.ItemText>{option.label}</Select.ItemText>
+                  {/* O logo vai DENTRO do ItemText: é o que o Radix copia para o
+                      gatilho, então o jogo escolhido aparece com o logo no campo. */}
+                  <Select.ItemText>
+                    {withThumbs ? (
+                      <span className="flex min-w-0 items-center gap-[12px]">
+                        <OptionThumb src={option.image ?? null} />
+                        <span className="truncate">{option.label}</span>
+                      </span>
+                    ) : (
+                      option.label
+                    )}
+                  </Select.ItemText>
 
                   <Select.ItemIndicator className="absolute right-[12px] flex items-center">
                     <Check />
@@ -183,6 +204,20 @@ export function SelectField({
         </Select.Portal>
       </Select.Root>
     </Field>
+  );
+}
+
+/**
+ * Logo do jogo numa opção (2026-10-23) — mesma moldura do menu de jogos do
+ * cabeçalho (`features/game/MenuGameThumb`): HORIZONTAL, porque a arte
+ * cadastrada é o logo, quase sempre bem mais largo que alto. Repetida aqui (e
+ * não importada) para o componente de UI não depender de uma feature.
+ */
+function OptionThumb({ src }: { src: string | null }) {
+  return (
+    <span aria-hidden className="relative h-[34px] w-[64px] shrink-0">
+      {src ? <Image src={src} alt="" fill sizes="64px" className="object-contain" /> : null}
+    </span>
   );
 }
 

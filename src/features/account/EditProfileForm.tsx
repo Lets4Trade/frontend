@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
+import { GenderField } from "./GenderField";
+import type { Gender } from "./gender";
 import {
   ACCOUNT_ERROR_MESSAGES,
   AccountError,
@@ -19,6 +21,7 @@ export type ProfileDefaults = {
   email: string;
   discord: string;
   whatsapp: string;
+  gender: Gender | null;
 };
 
 /**
@@ -73,6 +76,7 @@ export function EditProfileForm({ defaults }: { defaults: ProfileDefaults }) {
       email: read("email"),
       discord: read("discord"),
       whatsapp: read("whatsapp"),
+      gender: read("gender"),
       password: read("password"),
       currentPassword: read("currentPassword"),
     });
@@ -297,6 +301,11 @@ export function EditProfileForm({ defaults }: { defaults: ProfileDefaults }) {
             error={fieldErrors.currentPassword}
           />
         ) : null}
+
+        {/* Linha inteira: as três opções não cabem numa coluna de 315px. */}
+        <div className="md:col-span-2">
+          <GenderField defaultValue={defaults.gender} error={fieldErrors.gender} />
+        </div>
       </div>
 
       {needsPassword ? (

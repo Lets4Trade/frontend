@@ -20,6 +20,8 @@ import {
   statusStyle,
 } from "@/features/admin/orders/types";
 import { requirePanelArea } from "@/features/admin/guard";
+import { canAccess } from "@/features/admin/permissions";
+import { getSessionRole } from "@/features/auth/session";
 
 export const metadata: Metadata = {
   title: "Vendas e pedidos | Lets4Trade",
@@ -46,6 +48,8 @@ type PageProps = {
  */
 export default async function AdminOrdersPage({ searchParams }: PageProps) {
   await requirePanelArea("orders");
+  // Nome do cliente → ficha em Usuários: só quem vê Usuários (ADMIN).
+  const canOpenUsers = canAccess(await getSessionRole(), "users");
   const query = parseOrdersQuery(await searchParams, ORDER_STATUSES);
 
   // As leituras em paralelo: atendentes e status de entrega não dependem do
@@ -170,6 +174,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
           attendants={attendants}
           statuses={statuses}
           apiOrigin={apiOrigin}
+          canOpenUsers={canOpenUsers}
         />
 
         <Pagination

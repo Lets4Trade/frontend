@@ -1,4 +1,5 @@
 import { apiGet } from "@/lib/serverApi";
+import { accountAvatar, parseGender, type Gender } from "./gender";
 import type { ProfileSummary } from "./ProfileCard";
 
 /**
@@ -17,8 +18,6 @@ import type { ProfileSummary } from "./ProfileCard";
  * perfil sem Discord não pode derrubar a página.
  */
 
-const AVATAR_FALLBACK = "/images/avatar-placeholder.png";
-
 export type AccountProfile = ProfileSummary & {
   id: string;
   email: string;
@@ -27,6 +26,7 @@ export type AccountProfile = ProfileSummary & {
   tier: string;
   totalSpent: string;
   totalSaved: string;
+  gender: Gender | null;
 };
 
 type ApiProfile = {
@@ -34,6 +34,7 @@ type ApiProfile = {
   email?: string;
   name?: string;
   avatarUrl?: string | null;
+  gender?: string | null;
   whatsapp?: string;
   discord?: string;
   tier?: string;
@@ -59,7 +60,8 @@ export async function getAccountProfile(): Promise<ProfileResult> {
       id: api.id ?? "",
       name: api.name?.trim() || api.email?.split("@")[0] || "Minha conta",
       email: api.email ?? "",
-      avatar: safeAvatar(api.avatarUrl),
+      avatar: accountAvatar(api.avatarUrl, api.gender),
+      gender: parseGender(api.gender),
       rank: numberOr(api.rank, 1),
       coins: numberOr(api.letsCoins, 0),
       points: numberOr(api.points, 0),
@@ -74,20 +76,4 @@ export async function getAccountProfile(): Promise<ProfileResult> {
 
 function numberOr(value: unknown, fallback: number) {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
-
-/**
- * Mesma regra do cabeçalho: `next/image` só carrega host declarado em
- * `remotePatterns`, e uma URL de host não autorizado derrubaria a renderização
- * inteira. Um retrato que não dá para exibir vira o avatar padrão.
- */
-function safeAvatar(avatarUrl: unknown): string {
-  if (typeof avatarUrl !== "string" || avatarUrl === "") return AVATAR_FALLBACK;
-  if (avatarUrl.startsWith("/")) return avatarUrl;
-  try {
-    const { protocol } = new URL(avatarUrl);
-    return protocol === "https:" || protocol === "http:" ? avatarUrl : AVATAR_FALLBACK;
-  } catch {
-    return AVATAR_FALLBACK;
-  }
 }

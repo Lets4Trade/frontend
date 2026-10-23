@@ -1,6 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import { USER_LINK_CLASS, adminUserHref } from "@/features/admin/users/href";
+import { adminOrderChatHref } from "@/features/orders/orderChatHref";
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toastError } from "@/components/ui/Toasts";
 import { cn } from "@/lib/cn";
@@ -107,8 +110,11 @@ export function OrdersTable({
   attendants,
   statuses,
   apiOrigin,
+  canOpenUsers = false,
 }: {
   orders: AdminOrder[];
+  /** Nome do cliente vira link para a ficha em Usuários (só ADMIN, 2026-10-23). */
+  canOpenUsers?: boolean;
   attendants: Attendant[];
   /** Status de entrega personalizados ativos (2026-10-16) — entram no select de situação. */
   statuses: AdminDeliveryStatus[];
@@ -219,7 +225,15 @@ export function OrdersTable({
                 return (
                   <tr key={order.id} className="border-t border-white/15">
                     <td className="py-[14px] pr-[10px] font-helvetica text-[16px] tracking-[0.16px] text-brand-placeholder">
-                      {order.reference}
+                      {/* O número leva ao chat do pedido, como atendente (2026-10-23). */}
+                      <Link
+                        href={adminOrderChatHref(order.reference)}
+                        prefetch={false}
+                        title="Abrir o chat do pedido"
+                        className="underline decoration-white/30 underline-offset-[3px] transition-colors hover:text-brand-orange hover:decoration-brand-orange"
+                      >
+                        {order.reference}
+                      </Link>
                     </td>
 
                     <td className="py-[14px] pr-[10px] font-helvetica text-[16px] tracking-[0.16px] text-brand-placeholder">
@@ -227,7 +241,18 @@ export function OrdersTable({
                     </td>
 
                     <td className="truncate py-[14px] pr-[10px] font-helvetica text-[16px] tracking-[0.16px] text-brand-placeholder">
-                      {order.customerName}
+                      {canOpenUsers && order.customerId ? (
+                        <Link
+                          href={adminUserHref(order.customerId)}
+                          prefetch={false}
+                          title="Abrir a ficha do cliente"
+                          className={USER_LINK_CLASS}
+                        >
+                          {order.customerName}
+                        </Link>
+                      ) : (
+                        order.customerName
+                      )}
                     </td>
 
                     <td className="py-[14px] text-center">
@@ -347,12 +372,13 @@ export function OrdersTable({
                         16px) — já estava em `public/`, vindo da tela de pedido do
                         cliente.
 
-                        Leva ao ATENDIMENTO filtrado pelo pedido (2026-09-15).
-                        Antes abria a tela do cliente, onde o admin escrevia como
-                        se fosse o dono do pedido.
+                        Leva ao ATENDIMENTO (2026-09-15) — desde 2026-10-23 direto
+                        na conversa do pedido, não mais na lista filtrada. Antes
+                        de 2026-09-15 abria a tela do cliente, onde o admin
+                        escrevia como se fosse o dono do pedido.
                       */}
                       <a
-                        href={`/admin/chats?situacao=&busca=${encodeURIComponent(order.reference)}`}
+                        href={adminOrderChatHref(order.reference)}
                         className="inline-flex h-[24px] w-[74px] items-center justify-center gap-[6px] rounded-full border border-brand-orange bg-[image:var(--brand-surface-fill)] font-helvetica text-[14px] tracking-[0.14px] text-white transition-opacity hover:opacity-80"
                       >
                         <Image
@@ -441,7 +467,7 @@ export function OrdersTable({
       </div>
 
       {detail ? (
-        <OrderInfoDialog order={detail} onClose={() => setDetail(null)} />
+        <OrderInfoDialog order={detail} apiOrigin={apiOrigin} onClose={() => setDetail(null)} />
       ) : null}
     </>
   );

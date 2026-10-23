@@ -40,6 +40,8 @@ export type StaffMessage = {
   conversationId: string;
   author: "CLIENTE" | "SUPORTE" | "SISTEMA" | string;
   authorName?: string | null;
+  /** Caminho `/uploads/avatars/...` (2026-10-23); sem foto, a inicial. */
+  authorAvatarUrl?: string | null;
   source: "SITE" | "DISCORD" | string;
   body: string;
   createdAt: string;

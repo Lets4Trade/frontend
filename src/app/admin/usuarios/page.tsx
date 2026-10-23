@@ -113,7 +113,15 @@ export default async function AdminUsersPage({
               <EmptyState query={query} />
             ) : (
               <>
-                <UsersTable users={page.items} tierOptions={tierOptions} />
+                {query.user ? (
+                  <p className="mb-[20px] font-poppins text-[14px] text-brand-fg-muted">
+                    Mostrando só esta conta.{" "}
+                    <Link href="/admin/usuarios" className="font-semibold text-brand-orange hover:underline">
+                      Ver todos os usuários
+                    </Link>
+                  </p>
+                ) : null}
+                <UsersTable users={page.items} tierOptions={tierOptions} autoOpenId={query.user || undefined} />
                 <Pagination
                   current={page.page}
                   pageCount={page.pageCount}

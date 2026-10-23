@@ -1,10 +1,9 @@
 import { z } from "zod";
 
 /**
- * Opções dos selects. O design mostra um valor por campo ("Path Of Exile 2",
- * "Steam", "Gold"), então estas listas são PLACEHOLDER até o catálogo real
- * existir — provavelmente vindo da API, já que jogos e servidores mudam sem
- * deploy. Ver .claude/context/open-questions.md.
+ * Opções dos selects. Plataforma, servidor e tipo ainda são PLACEHOLDER (o
+ * design mostra um valor por campo: "Steam", "Gold"); o JOGO vem da loja desde
+ * 2026-10-23 (`sellGameOptions`). Ver .claude/context/open-questions.md.
  */
 /**
  * "Outros" no FIM de todo select (pedido em 2026-10-01): o cliente que vende
@@ -13,13 +12,6 @@ import { z } from "zod";
  * ele é de fato vai na descrição, que é obrigatória.
  */
 export const OUTROS = { value: "outros", label: "Outros" } as const;
-
-export const JOGOS = [
-  { value: "poe2", label: "Path Of Exile 2" },
-  { value: "wow", label: "World of Warcraft" },
-  { value: "lol", label: "League of Legends" },
-  OUTROS,
-] as const;
 
 export const PLATAFORMAS = [
   { value: "steam", label: "Steam" },
@@ -45,31 +37,33 @@ export const TIPOS_PRODUTO = [
 const opcaoDe = (opcoes: readonly { value: string }[], mensagem: string) =>
   z.string().refine((v) => opcoes.some((o) => o.value === v), { message: mensagem });
 
-type Option = { value: string; label: string };
+type Option = { value: string; label: string; image?: string | null };
+
+/** Jogo da loja como o formulário recebe (o mesmo do menu de jogos). */
+export type SellGame = { slug: string; name: string; image: string | null };
 
 /**
- * As opções de "Jogo" quando o formulário está DENTRO da página de um jogo
- * (aba SELL, contrato game-tabs-v2) — e qual já vem escolhida.
+ * As opções de "Jogo": os jogos ATIVOS da loja (a mesma leitura cacheada do
+ * menu de jogos do cabeçalho, com o logo) e "Outros" no fim. Até 2026-10-23
+ * era uma lista fixa de placeholder (Path Of Exile 2, WoW, LoL) que não batia
+ * com a loja e não tinha arte.
  *
- * Se o jogo da página já está na lista (pelo `value` ou pelo nome, sem caixa),
- * vale a opção da lista: é o valor que o formulário de `/venda` também manda.
- * Se não está (a lista ainda é placeholder; jogo cadastrado pelo painel não
- * entra nela), o jogo da página entra no TOPO, com o slug como valor. Nunca
- * um valor livre: a opção existe na lista validada pelo schema abaixo.
+ * `pageGame`: o formulário DENTRO da página de um jogo (aba SELL) nasce com ele
+ * escolhido. Ele está na lista (é um jogo ativo); se por algum motivo não
+ * estiver (cache do menu ainda sem o jogo novo), entra no topo — nunca um valor
+ * livre: a opção existe na lista validada pelo schema abaixo.
  */
-export function sellGameOptions(game?: { slug: string; name: string }): {
-  options: readonly Option[];
-  defaultValue?: string;
-} {
-  if (!game) return { options: JOGOS };
-  const name = game.name.trim().toLocaleLowerCase("pt-BR");
-  const match = JOGOS.find(
-    (option) => option.value === game.slug || option.label.toLocaleLowerCase("pt-BR") === name,
-  );
-  if (match) return { options: JOGOS, defaultValue: match.value };
+export function sellGameOptions(
+  games: readonly SellGame[],
+  pageGame?: { slug: string; name: string },
+): { options: readonly Option[]; defaultValue?: string } {
+  const options: Option[] = games.map((game) => ({ value: game.slug, label: game.name, image: game.image }));
+  if (pageGame && !options.some((option) => option.value === pageGame.slug)) {
+    options.unshift({ value: pageGame.slug, label: pageGame.name, image: null });
+  }
   return {
-    options: [{ value: game.slug, label: game.name }, ...JOGOS],
-    defaultValue: game.slug,
+    options: [...options, { ...OUTROS, image: null }],
+    ...(pageGame ? { defaultValue: pageGame.slug } : {}),
   };
 }
 
@@ -78,10 +72,10 @@ export function sellGameOptions(game?: { slug: string; name: string }): {
  * revalida. Aqui isso importa mais que no login — os selects definem o que
  * será negociado, e um cliente adulterado pode mandar qualquer `value`.
  *
- * `games`: as opções de "Jogo" daquela tela (`sellGameOptions`). O padrão é a
- * lista de `/venda`.
+ * `games`: as opções de "Jogo" daquela tela (`sellGameOptions`). O padrão (só
+ * "Outros") existe para o tipo `SellFormValues`; as telas sempre passam a lista.
  */
-export function createSellSchema(games: readonly Option[] = JOGOS) {
+export function createSellSchema(games: readonly Option[] = [OUTROS]) {
   return z.object({
   jogo: opcaoDe(games, "Selecione o jogo."),
   plataforma: opcaoDe(PLATAFORMAS, "Selecione a plataforma."),

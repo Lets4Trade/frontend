@@ -27,7 +27,7 @@ export function NavTiles({
     <ul className="grid grid-cols-4">
       {NAV_ITEMS.map((item) => (
         <li key={item.label} className="flex justify-center">
-          {item.label === "GAMES" ? (
+          {"key" in item && item.key === "games" ? (
             <MobileGamesMenu
               label={item.label}
               icon={item.icon}

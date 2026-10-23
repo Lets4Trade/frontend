@@ -76,6 +76,8 @@ export type AdminOrder = {
   items: AdminOrderItem[];
   /** Os jogos do pedido, sem repetir: a coluna "Jogo" e o emblema da linha. */
   games?: { name: string; imageUrl?: string | null }[];
+  /** Abre a ficha em Usuários (2026-10-23). Ausente em resposta antiga. */
+  customerId?: string;
   customerName: string;
   customerPhone?: string | null;
   assigneeId?: string | null;

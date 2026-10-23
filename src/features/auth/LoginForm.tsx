@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { login } from "./authService";
@@ -32,10 +32,21 @@ type FieldErrors = Partial<Record<"email" | "password", string>>;
  * dele). Trocar para RHF depois é direto — a validação já está isolada no
  * `loginSchema`, então só a ligação com o input muda.
  */
-export function LoginForm() {
+export function LoginForm({
+  social,
+  notice,
+}: {
+  /** Botões "Entrar com Google/Discord" (server component, ver `SocialLogin`). */
+  social?: ReactNode;
+  /** Aviso vindo da volta do login social (`?erro=`). */
+  notice?: string | null;
+}) {
   const router = useRouter();
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
+  // Fica no TOPO, junto dos botões que o causaram — embaixo, no celular, a
+  // barra de navegação o esconderia. Some na primeira tentativa por e-mail.
+  const [socialNotice, setSocialNotice] = useState<string | null>(notice ?? null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Cancela a requisição em voo se o componente desmontar (usuário navegou
@@ -65,6 +76,7 @@ export function LoginForm() {
 
     setFieldErrors({});
     setFormError(null);
+    setSocialNotice(null);
     setIsSubmitting(true);
 
     abortRef.current?.abort();
@@ -100,6 +112,17 @@ export function LoginForm() {
       </h1>
 
       <hr className="mt-[25px] border-0 border-t border-brand-hairline" />
+
+      {socialNotice ? (
+        <p
+          role="alert"
+          className="mt-[25px] rounded-2xl border border-red-9/40 bg-red-9/10 px-4 py-3 text-center font-helvetica text-[14px] text-red-9"
+        >
+          {socialNotice}
+        </p>
+      ) : null}
+
+      {social}
 
       <div className="mt-[25px] flex flex-col gap-[25px]">
         <TextField

@@ -11,7 +11,9 @@ import {
   newKey,
   type PricingDraft,
   type PricingMode,
+  unitSizeOf,
 } from "./pricingDraft";
+import { formatQuantity } from "@/features/game/configurator";
 
 /**
  * Editor da REGRA DE PREÇO de um produto de aba SERVIÇO (contrato
@@ -110,6 +112,19 @@ export function PricingEditor({
               <Mini label="Passo">
                 <TextInput value={draft.step} numeric onChange={(step) => patch({ step })} />
               </Mini>
+              {/* Tamanho da unidade (2026-10-23): o preço do produto é o de UMA unidade. */}
+              <Mini label="1 unidade vale">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={draft.unitSize}
+                  maxLength={30}
+                  placeholder="1"
+                  onChange={(event) => patch({ unitSize: event.target.value.replace(/[^\d.\s]/g, "") })}
+                  className={MINI_INPUT}
+                />
+              </Mini>
               <Mini label="Horas por unidade">
                 <TextInput
                   value={draft.hoursPerUnit}
@@ -122,6 +137,8 @@ export function PricingEditor({
           ) : null}
         </div>
       )}
+
+      {draft.mode === "QUANTITY" ? <UnitSizeHint draft={draft} /> : null}
 
       {draft.mode === "QUANTITY" ? (
         <label className="flex max-w-[700px] flex-col gap-[6px]">
@@ -138,8 +155,8 @@ export function PricingEditor({
             className={MINI_INPUT}
           />
           <span className="font-poppins text-[12px] text-brand-fg-subtle">
-            Viram os botões de quantidade da aba (até {MAX_PRESETS}). Cada uma tem que respeitar mínimo, máximo e
-            passo. Separe por vírgula; ponto é milhar (1.000 = mil).
+            Viram os botões de quantidade da aba (até {MAX_PRESETS}), em UNIDADES. Cada uma tem que respeitar
+            mínimo, máximo e passo. Separe por vírgula; ponto é milhar (1.000 = mil).
           </span>
         </label>
       ) : null}
@@ -395,6 +412,32 @@ function PricePreview({ draft, basePriceCents }: { draft: PricingDraft; basePric
         ) : null}
       </div>
     </section>
+  );
+}
+
+/**
+ * O exemplo do tamanho da unidade, com os números do próprio rascunho:
+ * "1 unidade = 1Mi Gold · 10 unidades = 10Mi Gold · preço do produto = 1 unidade".
+ */
+function UnitSizeHint({ draft }: { draft: PricingDraft }) {
+  const size = unitSizeOf(draft.unitSize);
+  const label = draft.unitLabel.trim() || "unidades";
+  if (!Number.isFinite(size) || size <= 1) {
+    return (
+      <p className="-mt-[8px] max-w-[700px] font-poppins text-[12px] text-brand-fg-subtle">
+        &quot;1 unidade vale&quot;: para vender em lotes — ex.: 1.000.000 faz cada unidade ser 1Mi de {label}, e 10
+        unidades entregarem 10Mi. Vazio = 1.
+      </p>
+    );
+  }
+  return (
+    <p className="-mt-[8px] max-w-[700px] font-poppins text-[12px] text-white/80">
+      1 unidade = <strong>{formatQuantity(size)} {label}</strong> · 10 unidades ={" "}
+      <strong>
+        {formatQuantity(size * 10)} {label}
+      </strong>
+      . O preço do produto é o de UMA unidade.
+    </p>
   );
 }
 

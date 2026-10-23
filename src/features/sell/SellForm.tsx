@@ -12,6 +12,7 @@ import {
   createSellSchema,
   sellGameOptions,
   type SellFormValues,
+  type SellGame,
 } from "./schema";
 import { SELL_ERROR_MESSAGES, SellError, submitSellRequest } from "./sellService";
 
@@ -23,15 +24,16 @@ type FieldErrors = Partial<Record<keyof SellFormValues, string>>;
  * Duas colunas de 315px com 50px de vão — o mesmo grid do cadastro. A área de
  * descrição ocupa só a coluna da esquerda na quarta linha, como no design.
  *
+ * `games`: os jogos da loja, com o logo (vêm do servidor, `SellPageBody`).
  * `game`: o formulário DENTRO da página de um jogo (aba SELL) nasce com esse
  * jogo escolhido. Mesmo envio, mesma validação e o mesmo anti-spam de `/venda`.
  */
-export function SellForm({ game }: { game?: { slug: string; name: string } } = {}) {
+export function SellForm({ games, game }: { games: readonly SellGame[]; game?: { slug: string; name: string } }) {
   const gameSlug = game?.slug;
   const gameName = game?.name;
   const gameOptions = useMemo(
-    () => sellGameOptions(gameSlug && gameName ? { slug: gameSlug, name: gameName } : undefined),
-    [gameSlug, gameName],
+    () => sellGameOptions(games, gameSlug && gameName ? { slug: gameSlug, name: gameName } : undefined),
+    [games, gameSlug, gameName],
   );
   const schema = useMemo(() => createSellSchema(gameOptions.options), [gameOptions]);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -95,13 +97,33 @@ export function SellForm({ game }: { game?: { slug: string; name: string } } = {
     }
   }
 
+  // Enviada (2026-10-23): a confirmação TOMA o lugar do formulário. Antes a
+  // mensagem aparecia embaixo, perto do botão — fora da tela — com tudo ainda
+  // preenchido, e a pessoa achava que não tinha ido e mandava de novo.
+  if (sent) {
+    return (
+      <div role="status" className="flex w-full flex-col items-center gap-[14px] py-[30px] text-center">
+        <span aria-hidden className="flex size-[56px] items-center justify-center rounded-full bg-[#22c55e]/15 text-[28px] text-[#4ade80]">
+          ✓
+        </span>
+        <p className="font-poppins text-[22px] font-bold text-white">Proposta enviada!</p>
+        <p className="max-w-[420px] font-helvetica text-[15px] leading-[22px] text-brand-fg-muted">
+          Recebemos suas informações. A equipe vai falar com você pelo Discord ou pelo WhatsApp que você informou.
+        </p>
+        <Button variant="outline" className="mt-[10px] px-[30px]" onClick={() => setSent(false)}>
+          ENVIAR OUTRA PROPOSTA
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <form noValidate onSubmit={handleSubmit} className="flex w-full flex-col">
       <div className="grid grid-cols-1 gap-x-[50px] gap-y-[25px] md:grid-cols-2">
         <SelectField
           name="jogo"
           label="Jogo:"
-          placeholder="Path Of Exile 2"
+          placeholder="Escolha o jogo"
           options={gameOptions.options}
           defaultValue={gameOptions.defaultValue}
           error={fieldErrors.jogo}
@@ -164,15 +186,6 @@ export function SellForm({ game }: { game?: { slug: string; name: string } } = {
           className="mt-[25px] rounded-2xl border border-red-9/40 bg-red-9/10 px-4 py-3 text-center font-helvetica text-[14px] text-red-9"
         >
           {formError}
-        </p>
-      ) : null}
-
-      {sent ? (
-        <p
-          role="status"
-          className="mt-[25px] rounded-2xl border border-brand-orange/40 bg-brand-orange/10 px-4 py-3 text-center font-helvetica text-[14px] text-brand-orange"
-        >
-          Recebemos suas informações. Entraremos em contato em breve.
         </p>
       ) : null}
 

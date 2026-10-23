@@ -50,7 +50,16 @@ const COLUMNS = [
  * sobra. As colunas somam 1138, então a tabela cabe bem antes de qualquer
  * viewport realista — e a página nunca ganha barra horizontal.
  */
-export function UsersTable({ users, tierOptions }: { users: AdminUser[]; tierOptions: TierOption[] }) {
+export function UsersTable({
+  users,
+  tierOptions,
+  autoOpenId,
+}: {
+  users: AdminUser[];
+  tierOptions: TierOption[];
+  /** Conta cuja ficha já abre (o nome clicado em outra tela, 2026-10-23). */
+  autoOpenId?: string;
+}) {
   return (
     /* Abaixo de ~1240px as seis colunas não cabem mais, e aí quem rola é a
        TABELA dentro do card — nunca a página. Barra horizontal na página é o
@@ -115,7 +124,7 @@ export function UsersTable({ users, tierOptions }: { users: AdminUser[]; tierOpt
 
               <Cell>
                 <div className="flex justify-end pr-[10px]">
-                  <UserEditDialog user={user} tierOptions={tierOptions} />
+                  <UserEditDialog user={user} tierOptions={tierOptions} autoOpen={user.id === autoOpenId} />
                 </div>
               </Cell>
             </tr>

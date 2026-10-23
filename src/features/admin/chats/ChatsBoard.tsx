@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { USER_LINK_CLASS, adminUserHref } from "@/features/admin/users/href";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { toastError, toastOk } from "@/components/ui/Toasts";
 import { InlineSelect } from "@/features/admin/orders/InlineSelect";
 import { attendantName, type Attendant } from "@/features/admin/orders/types";
+import { safeAvatarPath } from "@/features/support/presenceTypes";
 import { useSupportSocket } from "@/features/support/socket";
+import { StaffAvatar } from "@/features/support/StaffAvatar";
 import { listTime } from "@/features/support/types";
 import { cn } from "@/lib/cn";
 import { replyAsStaff, updateConversation } from "./api";
@@ -34,7 +37,10 @@ export function ChatsBoard({
   attendants,
   hrefFor,
   currentStaffId,
+  canOpenUsers = false,
 }: {
+  /** Nome do cliente vira link para a ficha em Usuários (só ADMIN, 2026-10-23). */
+  canOpenUsers?: boolean;
   items: StaffConversation[];
   detail: StaffConversationDetail | null;
   /** O pedido da conversa aberta (2026-10-20), já montado no servidor. */
@@ -164,6 +170,7 @@ export function ChatsBoard({
           messages={messages}
           attendants={attendants}
           currentStaffId={currentStaffId}
+          canOpenUsers={canOpenUsers}
           onSent={(summary, message) => {
             setConversation(summary);
             setMessages((current) => (current.some((m) => m.id === message.id) ? current : [...current, message]));
@@ -186,9 +193,11 @@ function ConversationPane({
   messages,
   attendants,
   currentStaffId,
+  canOpenUsers,
   onSent,
   onUpdated,
 }: {
+  canOpenUsers: boolean;
   conversation: StaffConversation;
   contact: StaffConversationDetail["contact"];
   order: ChatOrder | null;
@@ -249,7 +258,18 @@ function ConversationPane({
         <div className="min-w-0">
           <h2 className="truncate font-helvetica text-[20px] font-bold text-white">{conversation.subject}</h2>
           <p className="mt-[4px] font-poppins text-[13px] text-brand-fg-muted">
-            {conversation.customer.name}
+            {canOpenUsers && conversation.customer.id ? (
+              <Link
+                href={adminUserHref(conversation.customer.id)}
+                prefetch={false}
+                title="Abrir a ficha do cliente"
+                className={cn("text-white", USER_LINK_CLASS)}
+              >
+                {conversation.customer.name}
+              </Link>
+            ) : (
+              conversation.customer.name
+            )}
             {conversation.customer.username ? ` (@${conversation.customer.username})` : ""}
             {contact.whatsapp ? ` · WhatsApp ${contact.whatsapp}` : ""}
             {contact.discordId ? ` · Discord ${contact.discordId}` : ""}
@@ -381,10 +401,16 @@ function StaffBubble({ message }: { message: StaffMessage }) {
     return <p className="my-[10px] text-center font-helvetica text-[13px] text-brand-fg-subtle">{message.body} · {time}</p>;
   }
 
-  // No painel, a EQUIPE é "nós": fica à direita.
+  // No painel, a EQUIPE é "nós": fica à direita, com o rosto de quem respondeu
+  // (2026-10-23) — o mesmo que o cliente vê.
   const staff = message.author === "SUPORTE";
   return (
-    <div className={cn("mb-[10px] flex", staff ? "justify-end" : "justify-start")}>
+    <div className={cn("mb-[10px] flex items-start gap-[10px]", staff ? "flex-row-reverse" : "justify-start")}>
+      {staff ? (
+        <span className="mt-[2px]">
+          <StaffAvatar name={message.authorName} avatarUrl={safeAvatarPath(message.authorAvatarUrl)} size={32} />
+        </span>
+      ) : null}
       <div
         className={cn(
           "max-w-[75%] rounded-[12px] px-[14px] py-[10px]",

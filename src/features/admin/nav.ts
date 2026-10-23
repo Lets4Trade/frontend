@@ -39,6 +39,9 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
     match: ["/admin/produtos"],
     area: "catalog",
   },
+  // NÃO está no Figma (2026-10-23): o que chega pelo formulário "Venda pra
+  // nós". ADMIN e ATENDENTE (área de pedidos) — é contato com cliente.
+  { label: "Propostas", href: "/admin/propostas", match: ["/admin/propostas"], area: "orders" },
   // NÃO está no Figma (2026-10-12): cupons de desconto. Só ADMIN — cupom é
   // dinheiro que a loja deixa de receber.
   { label: "Cupons", href: "/admin/cupons", match: ["/admin/cupons"], area: "promotions" },

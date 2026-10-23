@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { playChime, useAudioUnlock } from "@/lib/chime";
+import { USER_LINK_CLASS, adminUserHref } from "@/features/admin/users/href";
+import { adminOrderChatHref } from "@/features/orders/orderChatHref";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import { toastError, toastOk } from "@/components/ui/Toasts";
@@ -39,35 +42,19 @@ import {
 
 const AUTO_DISMISS_MS = 20_000;
 
-export function SaleAlerts() {
+export function SaleAlerts({ canOpenUsers = false }: { canOpenUsers?: boolean } = {}) {
   const router = useRouter();
   const pathname = usePathname() ?? "";
   const onOrders = pathname.startsWith("/admin/pedidos");
   const { socket } = useSupportSocket(true);
   const cards = useSyncExternalStore(subscribeSales, getCards, getServerCards);
-  const audio = useRef<AudioContext | null>(null);
+  const audio = useAudioUnlock();
   const onOrdersRef = useRef(onOrders);
 
   useEffect(() => {
     onOrdersRef.current = onOrders;
     if (onOrders) clearUnseen();
   }, [onOrders]);
-
-  // O navegador só deixa tocar som depois de um gesto na página: o contexto de
-  // áudio nasce no primeiro clique/tecla e fica pronto para as próximas vendas.
-  useEffect(() => {
-    const unlock = () => {
-      if (audio.current) return;
-      const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (Ctx) audio.current = new Ctx();
-    };
-    window.addEventListener("pointerdown", unlock, { once: true });
-    window.addEventListener("keydown", unlock, { once: true });
-    return () => {
-      window.removeEventListener("pointerdown", unlock);
-      window.removeEventListener("keydown", unlock);
-    };
-  }, []);
 
   useEffect(() => {
     if (!socket) return;
@@ -84,7 +71,7 @@ export function SaleAlerts() {
     return () => {
       socket.off("equipe:venda", onSale);
     };
-  }, [socket, router]);
+  }, [socket, router, audio]);
 
   return (
     <>
@@ -96,7 +83,7 @@ export function SaleAlerts() {
           className="fixed top-[96px] right-[16px] z-[60] flex w-[360px] max-w-[calc(100vw-32px)] flex-col gap-[10px]"
         >
           {cards.map((sale) => (
-            <SaleCard key={sale.paymentId} sale={sale} />
+            <SaleCard key={sale.paymentId} sale={sale} canOpenUsers={canOpenUsers} />
           ))}
         </div>
       ) : null}
@@ -104,7 +91,7 @@ export function SaleAlerts() {
   );
 }
 
-function SaleCard({ sale }: { sale: SaleAlert }) {
+function SaleCard({ sale, canOpenUsers }: { sale: SaleAlert; canOpenUsers: boolean }) {
   const first = sale.items[0];
   const more = sale.items.length - 1;
   return (
@@ -122,7 +109,19 @@ function SaleCard({ sale }: { sale: SaleAlert }) {
       </div>
       <p className="mt-[4px] font-poppins text-[24px] leading-[30px] font-bold text-white">{brl(sale.amountCents)}</p>
       <p className="mt-[2px] font-helvetica text-[13px] text-brand-fg-muted">
-        {sale.customer} · {sale.method ? METHOD_LABEL[sale.method] : "—"}
+        {canOpenUsers && sale.customerId ? (
+          <Link
+            href={adminUserHref(sale.customerId)}
+            prefetch={false}
+            title="Abrir a ficha do cliente"
+            className={USER_LINK_CLASS}
+          >
+            {sale.customer}
+          </Link>
+        ) : (
+          sale.customer
+        )}{" "}
+        · {sale.method ? METHOD_LABEL[sale.method] : "—"}
       </p>
       {first ? (
         <p className="mt-[8px] truncate font-helvetica text-[13px] text-white">
@@ -132,7 +131,15 @@ function SaleCard({ sale }: { sale: SaleAlert }) {
         </p>
       ) : null}
       <div className="mt-[12px] flex items-center justify-between gap-[10px]">
-        <span className="font-mono text-[12px] text-brand-fg-subtle">{sale.reference}</span>
+        <Link
+          href={adminOrderChatHref(sale.reference)}
+          prefetch={false}
+          onClick={() => dismissSale(sale.paymentId)}
+          title="Abrir o chat do pedido"
+          className="font-mono text-[12px] text-brand-fg-subtle underline decoration-white/30 underline-offset-[3px] transition-colors hover:text-brand-orange hover:decoration-brand-orange"
+        >
+          {sale.reference}
+        </Link>
         <Link
           href={saleHref(sale)}
           onClick={() => dismissSale(sale.paymentId)}
@@ -272,30 +279,6 @@ function NotifyToggle() {
       </svg>
     </button>
   );
-}
-
-/** Duas notas curtas (sol → dó), volume baixo. Sem contexto liberado, fica mudo. */
-function playChime(ctx: AudioContext | null) {
-  if (!ctx) return;
-  try {
-    void ctx.resume();
-    const now = ctx.currentTime;
-    [784, 1047].forEach((freq, index) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = freq;
-      const start = now + index * 0.16;
-      gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(0.18, start + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.35);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start(start);
-      osc.stop(start + 0.4);
-    });
-  } catch {
-    // Áudio indisponível: o card e o contador continuam.
-  }
 }
 
 function notifyBrowser(sale: SaleAlert) {

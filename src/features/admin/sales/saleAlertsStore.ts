@@ -13,6 +13,8 @@ export type SaleAlert = {
   reference: string;
   references: string[];
   customer: string;
+  /** Abre a ficha em Usuários (2026-10-23). */
+  customerId: string | null;
   amountCents: number;
   method: "PIX" | "CREDIT_CARD" | "DEBIT_CARD" | "FREE" | null;
   items: { name: string; quantity: string; game: string | null }[];
@@ -88,6 +90,7 @@ export function parseSale(raw: unknown): SaleAlert | null {
     reference: s.reference,
     references: Array.isArray(s.references) ? s.references.filter((r): r is string => typeof r === "string") : [s.reference],
     customer: typeof s.customer === "string" ? s.customer : "Cliente",
+    customerId: typeof s.customerId === "string" && /^[A-Za-z0-9_-]{1,100}$/.test(s.customerId) ? s.customerId : null,
     amountCents: typeof s.amountCents === "number" ? s.amountCents : 0,
     method: methods.find((m) => m === s.method) ?? null,
     items: Array.isArray(s.items)

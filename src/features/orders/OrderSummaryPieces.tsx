@@ -17,11 +17,17 @@ export function SummaryRow({
   label,
   value,
   className,
+  href,
+  linkText,
 }: {
   label: string;
   value: string;
   className?: string;
+  /** Torna `linkText` (o começo de `value`) um link — o número do pedido → chat. */
+  href?: string;
+  linkText?: string;
 }) {
+  const linked = href && linkText && value.startsWith(linkText);
   return (
     <div
       className={`flex items-baseline justify-between gap-[15px] ${className ?? "mt-[22px]"}`}
@@ -30,7 +36,16 @@ export function SummaryRow({
         {label}
       </span>
       <span className="truncate font-poppins text-[16px] leading-[23px] font-semibold tracking-[0.08px] text-white">
-        {value}
+        {linked ? (
+          <>
+            <a href={href} title="Ir para o chat do pedido" className="underline decoration-white/30 underline-offset-[3px] transition-colors hover:text-brand-orange hover:decoration-brand-orange">
+              {linkText}
+            </a>
+            {value.slice(linkText.length)}
+          </>
+        ) : (
+          value
+        )}
       </span>
     </div>
   );

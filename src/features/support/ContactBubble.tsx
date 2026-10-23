@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { ReplyAlertCard, ReplyNotifyToggle, useReplyAlerts } from "./ReplyAlerts";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -108,6 +109,16 @@ export function ContactBubble({
 
   const openChat = useCallback(() => setOpen(true), []);
 
+  // Aviso de resposta da equipe (2026-10-23) — ver `ReplyAlerts.tsx`. "Olhando"
+  // = a conversa aberta no popup, ou a tela do pedido dela.
+  const { alert, dismiss: dismissAlert } = useReplyAlerts({
+    enabled: signedIn && !hidden,
+    onReply: refreshUnread,
+    isViewing: (summary) =>
+      (open && view.name === "thread" && view.conversation.id === summary.id) ||
+      (!!summary.orderReference && pathname === `/conta/pedidos/${encodeURIComponent(summary.orderReference)}`),
+  });
+
   const close = useCallback(() => {
     setOpen(false);
     setView({ name: "list" });
@@ -204,6 +215,12 @@ export function ContactBubble({
             />
           )}
 
+          {signedIn ? (
+            <div className="border-t border-brand-hairline px-[16px] pt-[10px] pb-[2px] text-center">
+              <ReplyNotifyToggle />
+            </div>
+          ) : null}
+
           {whatsappHref ? (
             <footer className="border-t border-brand-hairline px-[16px] py-[12px]">
               <a
@@ -218,6 +235,18 @@ export function ContactBubble({
             </footer>
           ) : null}
         </div>
+      ) : null}
+
+      {alert && !open ? (
+        <ReplyAlertCard
+          alert={alert}
+          onDismiss={dismissAlert}
+          onOpen={() => {
+            setView({ name: "thread", conversation: alert });
+            setOpen(true);
+            dismissAlert();
+          }}
+        />
       ) : null}
 
       {/* Botão do atendimento — SEMPRE no canto direito da tela (2026-10-12,
@@ -311,7 +340,8 @@ export function ContactBubble({
             className={cn(
               "min-w-0 flex-1",
               config.mobileTextAlign === "center" ? "text-center lg:text-left" : "text-left",
-              iconRight ? "mr-[10px] ml-[18px]" : "mr-[18px] ml-[10px]",
+              // Sem ponto (offline), a folga dele também sai.
+              iconRight ? cn("mr-[10px]", online && "ml-[18px]") : cn(online && "mr-[18px]", "ml-[10px]"),
             )}
           >
             <span className="block truncate font-poppins text-[14px] leading-[18px] font-bold text-white">
@@ -423,15 +453,20 @@ export function AttendantStack({
   );
 }
 
-/** Verde = atendimento online (pulsa, sem movimento para quem pediu); vermelho = offline. */
+/**
+ * Verde = atendimento online (pulsa, sem movimento para quem pediu). Offline
+ * NÃO tem ponto (2026-10-23, pedido do usuário: o vermelho tirava o convite do
+ * botão) — o texto "Offline no momento" no popup já diz.
+ */
 function StatusDot({ online, ring = false }: { online: boolean; ring?: boolean }) {
+  if (!online) return null;
   return (
     <span
       aria-hidden
       className={cn(
         "relative inline-block shrink-0 rounded-full",
         ring ? "size-[14px] ring-2 ring-brand-bg" : "size-[8px]",
-        online ? "chat-dot-online bg-[#22c55e]" : "bg-[#ef4444]",
+        "chat-dot-online bg-[#22c55e]",
       )}
     />
   );

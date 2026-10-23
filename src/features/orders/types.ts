@@ -101,6 +101,8 @@ export type Purchase = {
   paid: string;
   /** Cupom do pedido: código e quanto abateu no total. */
   coupon: { code: string; amount: string } | null;
+  /** Comprovantes de entrega enviados pela equipe (2026-10-23). `date` formatada. */
+  deliveryProofs: { id: string; date: string }[];
 };
 
 /**

@@ -96,6 +96,10 @@ function QuantityPanel({
 
   const presets = quantityPricing ? validPresets(quantityPricing) : [];
   const unitLabel = quantityPricing?.unitLabel ?? "";
+  // Tamanho da unidade (2026-10-23): com 1 unidade = 1Mi, a tela fala em OURO
+  // (o que a pessoa recebe) e a quantidade de unidades vira detalhe.
+  const size = quantityPricing?.unitSize ?? 1;
+  const amount = (units: number) => formatQuantity(units * size);
   function set(next: number) {
     if (quantityPricing) setQuantity(snapQuantity(quantityPricing, next));
   }
@@ -130,6 +134,11 @@ function QuantityPanel({
           <>
             <p id={`${id}-label`} className={`${LABEL} mt-[16px]`}>
               Selecione Sua Quantidade:
+              {size > 1 ? (
+                <span className="ml-[8px] text-[14px] text-white/60">
+                  (1 unidade = {formatQuantity(size)} {unitLabel})
+                </span>
+              ) : null}
             </p>
 
             {presets.length > 0 ? (
@@ -146,7 +155,7 @@ function QuantityPanel({
                       type="button"
                       aria-pressed={active}
                       // O número inteiro ao passar o mouse ("1Mi" = 1.000.000).
-                      title={preset.toLocaleString("pt-BR")}
+                      title={(preset * size).toLocaleString("pt-BR")}
                       onClick={() => set(preset)}
                       className={`h-[40px] min-w-0 truncate rounded-[8px] border border-white/10 px-[10px] font-poppins text-[13px] font-bold tracking-[0.13px] backdrop-blur-[100px] transition-opacity outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-brand-orange ${
                         active
@@ -154,7 +163,7 @@ function QuantityPanel({
                           : "bg-[image:var(--brand-surface-fill)] text-white/80"
                       }`}
                     >
-                      {formatQuantity(preset)}
+                      {amount(preset)}
                     </button>
                   );
                 })}
@@ -191,9 +200,19 @@ function QuantityPanel({
                 +
               </button>
             </div>
+            {size > 1 ? (
+              // As unidades digitadas viram o total entregue, na hora.
+              <p aria-live="polite" className="mt-[12px] font-poppins text-[15px] font-bold text-white">
+                {quantity.toLocaleString("pt-BR")} {quantity === 1 ? "unidade" : "unidades"} ={" "}
+                <span className="text-brand-orange">
+                  {amount(quantity)} {unitLabel}
+                </span>
+              </p>
+            ) : null}
             <p className={`${LABEL} mt-[12px] text-[14px]`}>
-              De {formatQuantity(quantityPricing.min)} a {formatQuantity(quantityPricing.max)}
-              {quantityPricing.step > 1 ? `, de ${formatQuantity(quantityPricing.step)} em ${formatQuantity(quantityPricing.step)}` : ""}.
+              De {amount(quantityPricing.min)} a {amount(quantityPricing.max)}
+              {size > 1 ? ` ${unitLabel}` : ""}
+              {quantityPricing.step > 1 ? `, de ${amount(quantityPricing.step)} em ${amount(quantityPricing.step)}` : ""}.
             </p>
           </>
         ) : null}
@@ -223,7 +242,14 @@ function QuantityPanel({
         <dl className="mt-[20px] flex flex-col gap-[15px]">
           <Row label="Plataforma/Servidor" value={product.serverLabel ?? context.platform} />
           {quantityPricing ? (
-            <Row label="Quantidade" value={`${formatQuantity(quantity)} ${unitLabel}`} />
+            <Row
+              label="Quantidade"
+              value={
+                size > 1
+                  ? `${amount(quantity)} ${unitLabel} (${quantity.toLocaleString("pt-BR")} un.)`
+                  : `${formatQuantity(quantity)} ${unitLabel}`
+              }
+            />
           ) : null}
         </dl>
 

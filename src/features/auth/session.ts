@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { cache } from "react";
 import type { SessionRole } from "@/features/admin/permissions";
 import { internalHeaders } from "@/lib/internalKey";
+import { accountAvatar } from "@/features/account/gender";
 
 /**
  * Leitura da sessão no SERVIDOR. É a única fonte de verdade sobre "está
@@ -42,26 +43,6 @@ export type SessionUser = {
   avatar: string;
   online?: boolean;
 };
-
-/** Avatar padrão quando o usuário não subiu foto. */
-const AVATAR_FALLBACK = "/images/avatar-placeholder.png";
-
-/**
- * `next/image` só carrega host declarado em `remotePatterns` (next.config.ts).
- * Uma URL de host não autorizado derrubaria a renderização inteira do header,
- * então uma foto que não dá para exibir vira o avatar padrão — degradação
- * silenciosa é melhor que página quebrada por causa de um retrato.
- */
-function safeAvatar(avatarUrl: unknown): string {
-  if (typeof avatarUrl !== "string" || avatarUrl === "") return AVATAR_FALLBACK;
-  if (avatarUrl.startsWith("/")) return avatarUrl;
-  try {
-    const { protocol } = new URL(avatarUrl);
-    return protocol === "https:" || protocol === "http:" ? avatarUrl : AVATAR_FALLBACK;
-  } catch {
-    return AVATAR_FALLBACK;
-  }
-}
 
 /** Nome de exibição. Cai no trecho antes do @ quando o cadastro não tem nome. */
 function displayName(profile: Record<string, unknown>): string {
@@ -151,7 +132,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
 
   return {
     name: displayName(profile),
-    avatar: safeAvatar(profile.avatarUrl),
+    avatar: accountAvatar(profile.avatarUrl, profile.gender),
     online: true,
   };
 });

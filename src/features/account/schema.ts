@@ -39,6 +39,9 @@ export const editProfileSchema = z.object({
   // se cobrava só o comprimento: "12345678" passava na tela e voltava 400 do
   // servidor, que é o pior dos dois mundos.
   password: optionalNewPasswordSchema,
+  // Gênero (2026-10-23): troca o avatar padrão. Vazio = não mexer (contas
+  // antigas e do Google/Discord chegam sem nenhum marcado).
+  gender: z.union([z.enum(["MALE", "FEMALE", "UNDISCLOSED"]), z.literal("")]),
   /**
    * Senha ATUAL. Só é exigida quando o usuário mexe numa credencial — trocar o
    * e-mail ou definir uma senha nova. O backend não aceita nenhuma das duas sem

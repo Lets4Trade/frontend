@@ -3,7 +3,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState, useTransition, type FormEvent } from "react";
+import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { SelectField } from "@/components/ui/SelectField";
 import { TextField } from "@/components/ui/TextField";
@@ -56,9 +56,18 @@ const STATUS_OPTIONS = [
  * Fidelidade e datas são só leitura — são derivadas de pedidos, e editá-las à
  * mão criaria saldo sem compra correspondente.
  */
-export function UserEditDialog({ user, tierOptions }: { user: AdminUser; tierOptions: TierOption[] }) {
+export function UserEditDialog({
+  user,
+  tierOptions,
+  autoOpen = false,
+}: {
+  user: AdminUser;
+  tierOptions: TierOption[];
+  /** Já nasce aberto (o nome do cliente clicado em outra tela, 2026-10-23). */
+  autoOpen?: boolean;
+}) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(autoOpen);
   const [detail, setDetail] = useState<AdminUserDetail | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -77,6 +86,10 @@ export function UserEditDialog({ user, tierOptions }: { user: AdminUser; tierOpt
       return;
     }
 
+    loadDetail();
+  }
+
+  function loadDetail() {
     startTransition(async () => {
       const result = await runAction(() => getUserDetailAction(user.id), {
         ok: false,
@@ -89,6 +102,16 @@ export function UserEditDialog({ user, tierOptions }: { user: AdminUser; tierOpt
       setDetail(result.user);
     });
   }
+
+  // Aberto de fábrica: busca a ficha uma vez, ao montar. O estado só muda
+  // depois do `await`, dentro da transição.
+  const autoLoaded = useRef(false);
+  useEffect(() => {
+    if (!autoOpen || autoLoaded.current) return;
+    autoLoaded.current = true;
+    loadDetail();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- só ao montar
+  }, []);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

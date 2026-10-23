@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { JOGOS, OUTROS, PLATAFORMAS, SERVIDORES, TIPOS_PRODUTO, createSellSchema, sellGameOptions } from "./schema";
+import { OUTROS, PLATAFORMAS, SERVIDORES, TIPOS_PRODUTO, createSellSchema, sellGameOptions } from "./schema";
 
 const valid = {
   plataforma: "steam",
@@ -10,44 +10,51 @@ const valid = {
   descricao: "Tenho 10k de gold para vender",
 };
 
-describe("sellGameOptions", () => {
-  it("sem jogo: a lista de /venda, nada escolhido", () => {
-    expect(sellGameOptions()).toEqual({ options: JOGOS });
-  });
+/** Os jogos da loja, como o menu de jogos entrega (2026-10-23). */
+const GAMES = [
+  { slug: "path-of-exile-2", name: "Path of Exile 2", image: "https://api.lets4trade.com.br/uploads/games/poe2.webp" },
+  { slug: "diablo-4", name: "Diablo IV", image: null },
+];
 
-  it("jogo que já está na lista (pelo nome) escolhe a opção da lista", () => {
-    expect(sellGameOptions({ slug: "path-of-exile-2", name: "Path of Exile 2" })).toEqual({
-      options: JOGOS,
-      defaultValue: "poe2",
+describe("sellGameOptions", () => {
+  it("em /venda: os jogos da loja com o logo, Outros no fim, nada escolhido", () => {
+    expect(sellGameOptions(GAMES)).toEqual({
+      options: [
+        { value: "path-of-exile-2", label: "Path of Exile 2", image: GAMES[0].image },
+        { value: "diablo-4", label: "Diablo IV", image: null },
+        { ...OUTROS, image: null },
+      ],
     });
   });
 
-  it("jogo fora da lista entra no topo, com o slug como valor", () => {
-    const result = sellGameOptions({ slug: "diablo-4", name: "Diablo IV" });
-    expect(result.defaultValue).toBe("diablo-4");
-    expect(result.options[0]).toEqual({ value: "diablo-4", label: "Diablo IV" });
+  it("na página do jogo: ele vem escolhido", () => {
+    expect(sellGameOptions(GAMES, { slug: "diablo-4", name: "Diablo IV" }).defaultValue).toBe("diablo-4");
+  });
+
+  it("jogo da página fora da lista (cache atrasado) entra no topo, com o slug como valor", () => {
+    const result = sellGameOptions(GAMES, { slug: "arc-raiders", name: "ARC Raiders" });
+    expect(result.defaultValue).toBe("arc-raiders");
+    expect(result.options[0]).toEqual({ value: "arc-raiders", label: "ARC Raiders", image: null });
   });
 });
 
 describe("createSellSchema", () => {
-  it("aceita o jogo da página e continua recusando valor livre", () => {
-    const { options } = sellGameOptions({ slug: "diablo-4", name: "Diablo IV" });
-    const schema = createSellSchema(options);
+  it("aceita jogo da lista e continua recusando valor livre", () => {
+    const schema = createSellSchema(sellGameOptions(GAMES).options);
     expect(schema.safeParse({ ...valid, jogo: "diablo-4" }).success).toBe(true);
     expect(schema.safeParse({ ...valid, jogo: "inventado" }).success).toBe(false);
-    // Sem o jogo da página, a lista padrão não o aceita.
-    expect(createSellSchema().safeParse({ ...valid, jogo: "diablo-4" }).success).toBe(false);
   });
 });
 
 describe("opção Outros", () => {
   it("todo select termina com Outros", () => {
-    for (const list of [JOGOS, PLATAFORMAS, SERVIDORES, TIPOS_PRODUTO]) expect(list.at(-1)).toEqual(OUTROS);
+    for (const list of [PLATAFORMAS, SERVIDORES, TIPOS_PRODUTO]) expect(list.at(-1)).toEqual(OUTROS);
+    expect(sellGameOptions(GAMES).options.at(-1)?.value).toBe("outros");
   });
 
   it("continua no fim quando o jogo da página entra no topo", () => {
-    const { options } = sellGameOptions({ slug: "diablo-4", name: "Diablo IV" });
-    expect(options.at(-1)).toEqual(OUTROS);
+    const { options } = sellGameOptions(GAMES, { slug: "arc-raiders", name: "ARC Raiders" });
+    expect(options.at(-1)?.value).toBe("outros");
   });
 
   it("é aceito em todos os campos", () => {
