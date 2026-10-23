@@ -642,6 +642,53 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         })),
       },
       {
+        // Aviso de cupom para quem vai SAIR do site sem conta (2026-10-23,
+        // pedido do usuário). Configurações da loja → Cupom de saída. Quem
+        // confere se o cupom vale é o BACKEND (`GET /coupons/exit-offer`), que
+        // lê `ativo` e `cupom` daqui — ver `features/promo/exitOffer.ts`.
+        key: "cupom-saida",
+        label: "Cupom de saída",
+        titleLabel: "Título do aviso",
+        defaultTitle: "Espera! Tem um presente pra você",
+        subtitleLabel: "Texto do aviso",
+        defaultSubtitle: "Crie sua conta e use este cupom na sua primeira compra.",
+        hasImage: true,
+        imageHint: "Imagem opcional no topo do aviso: 880×400 (aparece com 440px de largura). Vazio = só o texto.",
+        extraFields: [
+          {
+            name: "ativo",
+            label: "Aviso",
+            defaultValue: "desligado",
+            maxLength: 10,
+            options: [
+              { value: "desligado", label: "Desligado" },
+              { value: "ligado", label: "Ligado" },
+            ],
+          },
+          {
+            name: "cupom",
+            label: "Código do cupom",
+            defaultValue: "",
+            maxLength: 40,
+            hint: "Um cupom criado em Cupons. Se ele estiver desativado, vencido ou esgotado, o aviso não aparece.",
+          },
+          {
+            name: "botao",
+            label: "Texto do botão",
+            defaultValue: "CRIAR CONTA E USAR",
+            maxLength: 40,
+            hint: "Leva para a tela de criar conta.",
+          },
+          {
+            name: "dias",
+            label: "Mostrar de novo depois de (dias)",
+            defaultValue: "7",
+            maxLength: 3,
+            hint: "Para a mesma pessoa não ver o aviso toda hora. 0 = a cada visita.",
+          },
+        ],
+      },
+      {
         key: "header-selo",
         label: "Selo “+1000 referências”",
         // O "+1000 REFERÊNCIAS" centrado. O número usa o degradê laranja

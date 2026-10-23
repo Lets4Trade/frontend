@@ -37,6 +37,14 @@ export const SETTINGS_GROUPS: readonly SettingsGroup[] = [
     keywords: ["whatsapp", "zap", "discord", "contato", "chat", "suporte", "telefone", "online", "offline", "balao", "horario", "atendimento", "expediente"],
   },
   {
+    // Aviso de cupom para quem vai sair do site sem conta (2026-10-23).
+    id: "cupom-saida",
+    title: "Cupom de saída",
+    description: "Aviso com um cupom para o visitante sem conta que vai sair do site.",
+    sections: ["cupom-saida"],
+    keywords: ["cupom", "saida", "sair", "exit", "popup", "aviso", "desconto", "visitante", "promocao", "oferta"],
+  },
+  {
     id: "marca",
     title: "Marca",
     description: "Logo do site e ícone da aba do navegador.",
@@ -73,6 +81,11 @@ export const SECTION_INFO: Readonly<Record<string, { title: string; description:
     title: "Botão do chat",
     description:
       "O botão flutuante de atendimento em toda a loja. Com atendentes online, ele mostra as fotos deles no lugar desta imagem.",
+  },
+  "cupom-saida": {
+    title: "Aviso de cupom ao sair",
+    description:
+      "Quem chega ao site sem conta e vai sair (mouse indo para fechar a aba, ou rolando rápido para cima no celular) vê este aviso com o cupom. Uma vez a cada N dias por pessoa.",
   },
   horario: {
     title: "Horário de atendimento",

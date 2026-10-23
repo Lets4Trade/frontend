@@ -10,6 +10,8 @@ import { getSupportPresence } from "@/features/support/presence";
 import { getMenuGames } from "@/features/game/menuGames";
 import { GlobalMobileNav } from "@/features/home/mobile/GlobalMobileNav";
 import { chatConfig } from "@/features/support/chatConfig";
+import { ExitIntentCoupon } from "@/features/promo/ExitIntentCoupon";
+import { exitOfferConfig, getExitOffer } from "@/features/promo/exitOffer";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -166,6 +168,9 @@ export default async function RootLayout({
   ]);
   // Botão do chat (foto, texto, lado) — Configurações da loja.
   const chat = chatConfig(layout.text("chat"));
+  // Aviso de cupom ao sair (2026-10-23): só consulta o cupom com o aviso ligado.
+  const exitConfig = exitOfferConfig(layout.text("cupom-saida"));
+  const exitOffer = exitConfig ? await getExitOffer() : null;
 
   return (
     <html
@@ -182,6 +187,8 @@ export default async function RootLayout({
         {/* Contato flutuante em toda a loja; ele mesmo some no checkout e no
             painel. Ver `features/support/ContactBubble.tsx`. */}
         <ContactBubble whatsappHref={contacts.whatsapp?.href} config={chat} presence={presence} />
+        {/* Cupom para o visitante sem conta que vai sair (2026-10-23). */}
+        {exitConfig && exitOffer ? <ExitIntentCoupon offer={exitOffer} config={exitConfig} /> : null}
         {/* Atalhos flutuantes do celular em toda a loja (2026-10-15). */}
         <GlobalMobileNav games={games} />
       </body>
