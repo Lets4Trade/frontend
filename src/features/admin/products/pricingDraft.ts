@@ -51,6 +51,12 @@ export type PricingDraft = {
    * digitou — "100, 500, 1.000". Vazio = sem botões.
    */
   presets: string;
+  /**
+   * QUANTITY: desconto (%) por quantidade pronta, como digitado, pela
+   * quantidade em texto ("500" → "5"). Vazio = sem desconto naquele botão.
+   * Vale daquela quantidade para cima (`quote.ts`, 2026-10-27).
+   */
+  discounts: Record<string, string>;
   /** QUANTITY: quanto 1 unidade vale ("1.000.000" = 1Mi de ouro). Vazio = 1. */
   unitSize: string;
   hoursPerUnit: string;
@@ -89,6 +95,7 @@ export function emptyDraft(mode: PricingMode = "FIXED"): PricingDraft {
     max: mode === "LEVEL_RANGE" ? "100" : "10",
     step: "1",
     presets: "",
+    discounts: {},
     unitSize: "",
     hoursPerUnit: "",
     tiers: [],
@@ -118,6 +125,9 @@ export function pricingToDraft(pricing: Pricing | null | undefined): PricingDraf
     draft.max = String(pricing.max);
     draft.step = String(pricing.step);
     draft.presets = (pricing.presets ?? []).join(", ");
+    draft.discounts = Object.fromEntries(
+      (pricing.discounts ?? []).map((discount) => [String(discount.from), String(discount.percent)]),
+    );
     draft.unitSize = pricing.unitSize && pricing.unitSize > 1 ? pricing.unitSize.toLocaleString("pt-BR") : "";
     draft.hoursPerUnit = numText(pricing.hoursPerUnit);
     draft.tiers = (pricing.tiers ?? []).map((tier) => ({
@@ -191,6 +201,7 @@ export function draftToPricing(
       max: toInt(draft.max),
       step: toInt(draft.step),
       ...(parsePresets(draft.presets).length > 0 ? { presets: parsePresets(draft.presets) } : {}),
+      ...(presetDiscounts(draft).length > 0 ? { discounts: presetDiscounts(draft) } : {}),
       // "1.000.000" (ponto é milhar, como nas quantidades prontas). 1 = sem tamanho.
       ...(unitSizeOf(draft.unitSize) > 1 ? { unitSize: unitSizeOf(draft.unitSize) } : {}),
       ...(draft.hoursPerUnit.trim() === "" ? {} : { hoursPerUnit: toNumber(draft.hoursPerUnit) }),
@@ -231,6 +242,7 @@ const FIELD_NAMES: Record<string, string> = {
   max: "Máximo",
   step: "Passo",
   presets: "Quantidades prontas",
+  discounts: "Desconto por quantidade",
   unitSize: "1 unidade vale",
   hoursPerUnit: "Horas por unidade",
   baseHours: "Horas base",
@@ -285,6 +297,17 @@ export function parsePresets(text: string): number[] {
     .split(/[\s,;]+/)
     .filter((part) => part !== "")
     .map((part) => (/^\d[\d.]*$/.test(part) ? Number(part.replace(/\./g, "")) : Number.NaN));
+}
+
+/**
+ * Os descontos dos botões, na ordem da quantidade. Só os das quantidades que
+ * ainda estão na lista: apagar o botão apaga o desconto dele.
+ */
+export function presetDiscounts(draft: PricingDraft): { from: number; percent: number }[] {
+  const presets = [...new Set(parsePresets(draft.presets).filter(Number.isFinite))].sort((a, b) => a - b);
+  return presets
+    .filter((preset) => (draft.discounts[String(preset)] ?? "").trim() !== "")
+    .map((preset) => ({ from: preset, percent: toInt(draft.discounts[String(preset)]) }));
 }
 
 /** "1,5" e "1.5" valem; vazio vira NaN para o zod recusar com a mensagem dele. */

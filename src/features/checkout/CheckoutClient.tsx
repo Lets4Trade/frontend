@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { SelectField } from "@/components/ui/SelectField";
 import { TextField } from "@/components/ui/TextField";
 import {
@@ -32,8 +32,7 @@ import {
   readPendingPayment,
   savePendingPayment,
 } from "@/features/payment/pendingPayment";
-import { ThreeDsError, authenticateDebit } from "@/features/payment/threeDs";
-import { maxInstallmentsFor } from "@/features/payment/types";
+import { CREDIT_CARD_FEE_BPS, cardFeeCents, maxInstallmentsFor } from "@/features/payment/types";
 import { runAction } from "@/lib/safeAction";
 import { hashString, selectionKey } from "@/features/cart/lineId";
 import {
@@ -55,7 +54,11 @@ import { cardSchema, pixSchema } from "./schema";
  */
 const FALLBACK_COIN_CENTS = 1;
 
-type Method = "credit" | "debit" | "pix";
+/**
+ * PIX primeiro e já marcado; crédito com taxa (2026-10-27, pedido do usuário).
+ * O débito saiu — o backend também o recusa, senão seria o cartão sem taxa.
+ */
+type Method = "pix" | "credit";
 type FieldErrors = Record<string, string>;
 
 /**
@@ -102,8 +105,11 @@ export function CheckoutClient({
   const clear = useCart((state) => state.clear);
   const hydrated = useCartHydrated();
 
-  const [method, setMethod] = useState<Method>("credit");
-  const [coins, setCoins] = useState(0);
+  const [method, setMethod] = useState<Method>("pix");
+  // Lets Coins é SIM ou NÃO (2026-10-27, pedido do usuário): sim usa o máximo
+  // possível, e já vem marcado. Quanto é "o máximo" sai de `maxCoins`, que
+  // acompanha carrinho e cupom sozinho.
+  const [useCoins, setUseCoins] = useState(true);
   const [installments, setInstallments] = useState(1);
   // Cupom (2026-10-12): o que o backend validou na prévia; a conta é refeita
   // aqui com a mesma `couponDiscount` quando quantidades ou coins mudam.
@@ -149,7 +155,8 @@ export function CheckoutClient({
   const maxCoins = loyalty && !couponBlocksCoins
     ? Math.min(loyalty.coins, Math.floor((subtotal - couponTotal) / coinCents))
     : 0;
-  const discount = Math.min(coins, maxCoins) * coinCents;
+  const coins = useCoins ? maxCoins : 0;
+  const discount = coins * coinCents;
   const total = Math.max(subtotal - couponTotal - discount, 0);
 
   /**
@@ -160,7 +167,7 @@ export function CheckoutClient({
    */
   const lineShares = allocateCoins(
     lineCents.map((cents, index) => cents - couponLines[index]),
-    Math.min(coins, maxCoins),
+    coins,
     coinCents,
   );
   // O que cada linha abate da base das RECOMPENSAS (brinde e cashback): coins
@@ -170,9 +177,15 @@ export function CheckoutClient({
     cents: share.cents + (rewardsCut ? couponLines[index] : 0),
   }));
   const giftList = cartGifts(items, gifts, rewardShares.map((share) => share.cents));
+  // Taxa do crédito POR CIMA do total (2026-10-27). Prévia: o backend cobra o
+  // mesmo `cardFeeCents` sobre o valor que ELE calculou. Fora do cashback e do
+  // brinde — não é preço de produto.
+  const fee = method === "credit" ? cardFeeCents(total) : 0;
+  const charge = total + fee;
   // O total muda com as coins; a parcela escolhida antes pode ter ficado
-  // abaixo do mínimo. Mesma regra do backend (`maxInstallmentsFor`).
-  const effectiveInstallments = Math.min(installments, maxInstallmentsFor(total));
+  // abaixo do mínimo. Mesma regra do backend (`maxInstallmentsFor`, sobre o
+  // valor com a taxa).
+  const effectiveInstallments = Math.min(installments, maxInstallmentsFor(charge));
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -188,7 +201,7 @@ export function CheckoutClient({
       expiry: read("expiry"),
       cvv: read("cvv"),
       installments: read("installments") || "1",
-      coins: read("coins") || "0",
+      coins: String(coins),
       notes: read("notes"),
     });
 
@@ -227,7 +240,7 @@ export function CheckoutClient({
      * nenhuma coin era debitada — a pessoa via R$ 20 a menos e pagava R$ 20 a
      * mais. Não dava prejuízo só porque nenhum saldo era creditado ainda.
      */
-    const coinsToUse = Math.min(coins, maxCoins);
+    const coinsToUse = coins;
     // Onde entregar cada brinde que depende de escolha (jogo em 2+ servidores).
     const giftProductIds = giftList
       .filter((gift) => gift.result.amount > 0 && gift.servers.length > 1)
@@ -282,31 +295,17 @@ export function CheckoutClient({
 
     let result: PaymentCallResult;
     try {
-      if (method === "pix") {
-        result = await payPayment(pending.id, { method: "PIX" });
-      } else if (method === "credit") {
-        result = await payPayment(pending.id, {
-          method: "CREDIT_CARD",
-          card: card!,
-          installments: effectiveInstallments,
-        });
-      } else {
-        // O valor autenticado no banco tem que ser o MESMO cobrado — o do
-        // servidor, nunca o recalculado aqui.
-        const threeDs = await authenticateDebit({
-          paymentId: pending.id,
-          amountCents: pending.amountCents,
-          card: card!,
-        });
-        result = await payPayment(pending.id, { method: "DEBIT_CARD", card: card!, threeDs });
-      }
-    } catch (error) {
+      result =
+        method === "pix"
+          ? await payPayment(pending.id, { method: "PIX" })
+          : await payPayment(pending.id, {
+              method: "CREDIT_CARD",
+              card: card!,
+              installments: effectiveInstallments,
+            });
+    } catch {
       setIsSubmitting(false);
-      setFormError(
-        error instanceof ThreeDsError
-          ? error.message
-          : "Não conseguimos processar o pagamento. Tente de novo em instantes.",
-      );
+      setFormError("Não conseguimos processar o pagamento. Tente de novo em instantes.");
       return;
     }
 
@@ -323,14 +322,6 @@ export function CheckoutClient({
     }
 
     const payment = result.payment;
-    if (payment.redirectUrl) {
-      // Débito fora do 3DS do navegador: autentica na página do banco, que
-      // volta para `/pagamento/[id]` pelo backend.
-      clear();
-      clearPendingPayment();
-      window.location.assign(payment.redirectUrl);
-      return;
-    }
     if (payment.status === "PAID" || payment.pix || payment.processing) {
       goToPayment(payment.id);
       return;
@@ -364,8 +355,7 @@ export function CheckoutClient({
     }
     setCoupon(result.coupon);
     setCouponInput("");
-    // Cupom que não aceita coins: a escolha anterior sai junto.
-    if (!result.coupon.allowCoins) setCoins(0);
+    // Cupom que não aceita coins zera `maxCoins`; tirar o cupom devolve.
   }
 
   function removeCoupon() {
@@ -393,12 +383,12 @@ export function CheckoutClient({
       return;
     }
     if (reason === "coins") {
-      // O saldo mudou entre a escolha e o envio (outra aba, outro aparelho). É
-      // o único erro deste fluxo que a pessoa resolve sozinha, então a tela
-      // desfaz a escolha em vez de só reclamar.
-      setCoins(0);
+      // O saldo mudou entre a tela e o envio (outra aba, outro aparelho). Com
+      // "usar tudo", basta reler o saldo: o `refresh` traz o `loyalty` novo
+      // do servidor e o desconto se ajusta sem a pessoa escolher de novo.
+      router.refresh();
       setFormError(
-        "Seu saldo de Lets Coins mudou. Escolha o desconto de novo e reenvie.",
+        "Seu saldo de Lets Coins mudou. Atualizamos o desconto, confira o total e reenvie.",
       );
       return;
     }
@@ -423,28 +413,23 @@ export function CheckoutClient({
           </h1>
           <div aria-hidden className="mt-[15px] h-px w-full bg-white/25" />
 
-          {/* O arquivo desenha CRÉDITO e PIX; DÉBITO entrou com a Cielo e
-              divide a mesma fileira — o vão encolhe de 40 para 28 para caber
-              nos 476px. */}
+          {/* PIX primeiro (2026-10-27), cada forma com o selo do custo: "sem
+              taxa" em verde no PIX e o percentual discreto no crédito. */}
           <fieldset className="mt-[23px] flex flex-wrap gap-x-[28px] gap-y-[14px]">
             <legend className="sr-only">Forma de pagamento</legend>
-            <MethodRadio
-              label="CARTÃO DE CRÉDITO"
-              value="credit"
-              current={method}
-              onSelect={setMethod}
-            />
-            <MethodRadio
-              label="DÉBITO"
-              value="debit"
-              current={method}
-              onSelect={setMethod}
-            />
             <MethodRadio
               label="PIX"
               value="pix"
               current={method}
               onSelect={setMethod}
+              tag={<FeeTag tone="free">SEM TAXA</FeeTag>}
+            />
+            <MethodRadio
+              label="CARTÃO DE CRÉDITO"
+              value="credit"
+              current={method}
+              onSelect={setMethod}
+              tag={<FeeTag tone="fee">+{CREDIT_CARD_FEE_BPS / 100}%</FeeTag>}
             />
           </fieldset>
 
@@ -490,21 +475,17 @@ export function CheckoutClient({
                   error={fieldErrors.cvv}
                 />
               </div>
-              {method === "credit" ? (
-                <SelectField
-                  name="installments"
-                  label="Número de parcelas"
-                  placeholder="Escolha as parcelas"
-                  value={String(effectiveInstallments)}
-                  onValueChange={(value) => setInstallments(Number(value))}
-                  options={installmentOptions(total)}
-                />
-              ) : (
-                <p className="font-helvetica text-[14px] leading-[20px] text-brand-placeholder">
-                  No débito o seu banco pode pedir uma confirmação (SMS ou app)
-                  antes de aprovar.
-                </p>
-              )}
+              <SelectField
+                name="installments"
+                label="Número de parcelas"
+                placeholder="Escolha as parcelas"
+                value={String(effectiveInstallments)}
+                onValueChange={(value) => setInstallments(Number(value))}
+                options={installmentOptions(charge)}
+              />
+              <p className="-mt-[12px] font-helvetica text-[13px] leading-[18px] text-brand-placeholder">
+                Taxa de {CREDIT_CARD_FEE_BPS / 100}% no cartão de crédito ({formatCents(fee)}). No PIX não há taxa.
+              </p>
             </div>
           ) : (
             <p className="mt-[28px] rounded-[15px] border border-white/10 bg-[image:var(--brand-surface-fill)] px-[25px] py-[20px] font-helvetica text-[16px] leading-[24px] text-brand-fg-muted">
@@ -515,12 +496,16 @@ export function CheckoutClient({
 
           <div className="mt-[25px] flex flex-col gap-[25px]">
             <SelectField
-              name="coins"
+              // Sem `name` de propósito: o valor vem do estado (`coins`), e o
+              // `<select>` escondido que o Radix cria com `name` disparava uma
+              // troca falsa quando o carrinho hidratava, desmarcando o "Sim".
               label="Usar lets coins"
-              placeholder="Não usar Lets Coins"
-              value={String(coins)}
+              placeholder="Não"
+              value={useCoins && maxCoins > 0 ? "sim" : "nao"}
               disabled={maxCoins === 0}
-              onValueChange={(value) => setCoins(Number(value))}
+              onValueChange={(value) => {
+                if (value === "sim" || value === "nao") setUseCoins(value === "sim");
+              }}
               options={coinOptions(maxCoins, coinCents)}
             />
 
@@ -550,7 +535,7 @@ export function CheckoutClient({
             disabled={isSubmitting || !hydrated || items.length === 0}
             className="mt-[26px] flex h-[50px] w-full items-center justify-center rounded-full border border-[var(--brand-stroke-soft)] bg-[image:var(--brand-orange-gradient)] font-poppins text-[16px] font-bold tracking-[0.16px] text-black transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isSubmitting ? "PROCESSANDO..." : `PAGAR ${formatCents(total)}`}
+            {isSubmitting ? "PROCESSANDO..." : `PAGAR ${formatCents(charge)}`}
           </button>
 
           {whatsappHref ? (
@@ -696,7 +681,7 @@ export function CheckoutClient({
         {/* Subtotal e desconto só quando HÁ desconto (Lets Coins), como na
             gaveta: sem ele o subtotal repete o total. */}
         <dl className="mt-[18px] flex flex-col gap-[8px] border-t border-white/10 pt-[16px]">
-          {discount > 0 || couponTotal > 0 ? (
+          {discount > 0 || couponTotal > 0 || fee > 0 ? (
             <div className="flex items-baseline justify-between">
               <dt className="font-helvetica text-[14px] text-white/70">Subtotal</dt>
               <dd className="font-poppins text-[14px] font-semibold text-white">{formatCents(subtotal)}</dd>
@@ -714,9 +699,15 @@ export function CheckoutClient({
               <dd className="font-poppins text-[14px] font-semibold text-[#22c55e]">− {formatCents(discount)}</dd>
             </div>
           ) : null}
+          {fee > 0 ? (
+            <div className="flex items-baseline justify-between">
+              <dt className="font-helvetica text-[14px] text-white/70">Taxa do cartão ({CREDIT_CARD_FEE_BPS / 100}%)</dt>
+              <dd className="font-poppins text-[14px] font-semibold text-white">+ {formatCents(fee)}</dd>
+            </div>
+          ) : null}
           <div className="flex items-baseline justify-between">
             <dt className="font-helvetica text-[18px] font-bold text-white">Total</dt>
-            <dd className="font-poppins text-[22px] leading-none font-semibold text-white">{formatCents(total)}</dd>
+            <dd className="font-poppins text-[22px] leading-none font-semibold text-white">{formatCents(charge)}</dd>
           </div>
         </dl>
       </CheckoutSidePanel>
@@ -734,11 +725,14 @@ function MethodRadio({
   value,
   current,
   onSelect,
+  tag,
 }: {
   label: string;
   value: Method;
   current: Method;
   onSelect: (value: Method) => void;
+  /** Selo do custo ao lado do nome ("SEM TAXA", "+5%"). */
+  tag?: ReactNode;
 }) {
   const checked = current === value;
   return (
@@ -764,7 +758,25 @@ function MethodRadio({
       <span className="font-poppins text-[15px] leading-[19px] font-bold tracking-[0.15px] text-white">
         {label}
       </span>
+      {tag}
     </label>
+  );
+}
+
+/**
+ * Selo mínimo do custo de cada forma (2026-10-27): pílula fina, sem ícone. O
+ * verde só no "sem taxa" — é a vantagem que se quer mostrar; a taxa do crédito
+ * fica neutra, informada sem alarde.
+ */
+function FeeTag({ tone, children }: { tone: "free" | "fee"; children: ReactNode }) {
+  return (
+    <span
+      className={`rounded-full border px-[8px] py-[2px] font-poppins text-[11px] leading-[14px] font-semibold tracking-[0.3px] ${
+        tone === "free" ? "border-[#22c55e]/40 bg-[#22c55e]/10 text-[#4ade80]" : "border-white/15 text-white/60"
+      }`}
+    >
+      {children}
+    </span>
   );
 }
 
@@ -831,23 +843,17 @@ function installmentOptions(totalCents: number) {
 }
 
 /**
- * Opções de Lets Coins. Em vez de listar moeda a moeda (o saldo pode ser
- * milhares), oferece frações do máximo utilizável — que é o menor entre o saldo
- * e o valor do carrinho.
+ * Opções de Lets Coins: só SIM ou NÃO (2026-10-27, pedido do usuário; antes
+ * eram frações de 25/50/75/100%). Sim usa o máximo utilizável, o menor entre o
+ * saldo e o valor do carrinho, e o rótulo diz quanto é.
  */
 function coinOptions(maxCoins: number, coinCents: number) {
-  if (maxCoins === 0)
-    return [{ value: "0", label: "Nenhuma Lets Coin disponível" }];
-
-  const steps = [0.25, 0.5, 0.75, 1]
-    .map((fraction) => Math.floor(maxCoins * fraction))
-    .filter((coins, index, all) => coins > 0 && all.indexOf(coins) === index);
-
+  if (maxCoins === 0) return [{ value: "nao", label: "Nenhuma Lets Coin disponível" }];
   return [
-    { value: "0", label: "Não usar Lets Coins" },
-    ...steps.map((coins) => ({
-      value: String(coins),
-      label: `${coins.toLocaleString("pt-BR")} Lets Coins (${formatCents(coins * coinCents)})`,
-    })),
+    {
+      value: "sim",
+      label: `Sim (${maxCoins.toLocaleString("pt-BR")} Lets Coins · ${formatCents(maxCoins * coinCents)})`,
+    },
+    { value: "nao", label: "Não" },
   ];
 }

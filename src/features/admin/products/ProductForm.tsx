@@ -30,6 +30,8 @@ import { productImage, type AdminProduct } from "./catalog";
 import { formatPrice } from "@/features/game/content";
 import { PackageCard } from "@/features/game/PackageCard";
 import { ProductCardShell } from "@/features/game/ProductCardShell";
+import { DiscountBadge } from "@/features/game/DiscountBadge";
+import { MAX_DISCOUNT_PERCENT, discountedCents } from "@/features/game/discount";
 import type { ProductPrefill } from "./links";
 import { categorySelectOptions } from "./categoryOptions";
 import { gameHref } from "@/features/game/href";
@@ -39,6 +41,7 @@ type ErrorField =
   | "name"
   | "nameEn"
   | "priceCents"
+  | "discountPercent"
   | "tabId"
   | "serverId"
   | "categoryId"
@@ -203,6 +206,10 @@ export function ProductForm({
   // o `MoneyField` tem este callback nas dependências de um efeito (uma função
   // nova a cada render rodaria o efeito de novo e reescreveria o preço).
   const onPriceChange = setPriceCents;
+  // Desconto do pacote (2026-10-27), só em aba de catálogo: acompanha a prévia.
+  const [discountPercent, setDiscountPercent] = useState(product?.discountPercent ?? 0);
+  const previewDiscount =
+    !isQuoted && discountPercent > 0 && discountPercent <= MAX_DISCOUNT_PERCENT ? discountPercent : 0;
   // A regra que VALE hoje para o produto (`effectivePricing`): a salva, ou o
   // padrão do layout da aba (Quantidade sem regra = 1..1000).
   const [pricingDraft, setPricingDraft] = useState<PricingDraft>(() => {
@@ -238,6 +245,10 @@ export function ProductForm({
     const target = event.target as HTMLInputElement;
     if (target.name === "name") setPreviewName(target.value);
     if (target.name === "nameEn") setPreviewNameEn(target.value);
+    if (target.name === "discountPercent") {
+      const value = Number(target.value);
+      setDiscountPercent(Number.isInteger(value) && value > 0 ? value : 0);
+    }
     if (target.name === "image") {
       const file = target.files?.[0];
       setImagePreview(file && file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
@@ -395,6 +406,7 @@ export function ProductForm({
       name: data.get("name"),
       nameEn: data.get("nameEn") ?? "",
       priceCents: data.get("priceCents"),
+      discountPercent: data.get("discountPercent") || 0,
       tabId: data.get("tabId") ?? "",
       serverId: data.get("serverId") ?? "",
       categoryId: data.get("categoryId") ?? "",
@@ -481,6 +493,7 @@ export function ProductForm({
       if (again) {
         setEntryKey((key) => key + 1);
         setPriceCents(0);
+        setDiscountPercent(0);
         setHighlightsText("");
         setPreviewName("");
         setImagePreview(null);
@@ -758,6 +771,32 @@ export function ProductForm({
               />
             </div>
 
+            {/* Desconto do pacote (2026-10-27): só em aba de CATÁLOGO, onde o
+                preço é preço × unidades. Nas cotadas o desconto é adicional
+                negativo da regra. A loja mostra só o selo "-5%" no card. */}
+            {isQuoted ? null : (
+              <div className="mt-[22px] max-w-[340px]">
+                <TextField
+                  key={`discount-${entryKey}`}
+                  label="Desconto do pacote (%)"
+                  name="discountPercent"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={MAX_DISCOUNT_PERCENT}
+                  step={1}
+                  placeholder="0"
+                  defaultValue={product?.discountPercent ? String(product.discountPercent) : ""}
+                  error={fieldErrors.discountPercent}
+                />
+                <p className="mt-[6px] pl-[25px] font-helvetica text-[12px] text-brand-fg-subtle">
+                  {previewDiscount > 0
+                    ? `O cliente paga ${formatPrice(discountedCents(priceCents, previewDiscount))} (de ${formatPrice(priceCents)}) e vê o selo -${previewDiscount}% no card.`
+                    : "Vazio ou 0 = sem desconto. Com desconto, o card mostra o selo no canto."}
+                </p>
+              </div>
+            )}
+
             {isPackages ? (
               <div className="mt-[26px]">
                 <PackageLayoutPicker draft={pricingDraft} onChange={onPricingChange} />
@@ -856,9 +895,10 @@ export function ProductForm({
                   <ProductCardShell
                     name={previewName || "Nome do produto"}
                     nameEn={previewNameEn.trim() || undefined}
-                    price={formatPrice(priceCents)}
+                    price={formatPrice(discountedCents(priceCents, previewDiscount))}
                     image={previewImage}
                     actions={null}
+                    badge={previewDiscount > 0 ? <DiscountBadge percent={previewDiscount} /> : undefined}
                   />
                 </div>
               )}

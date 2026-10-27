@@ -16,58 +16,49 @@ import type { LoyaltySummary, LoyaltyTierKey } from "./data";
  * o cliente mandava junto do pedido: quem decide quanto vale um benefício não
  * pode ser o navegador de quem recebe o benefício.
  *
- * `iconSize/iconLeft/iconTop` guardam a geometria de cada emblema porque o
- * design NÃO os padroniza: variam de 62 a 77px e cada um tem sua própria
- * posição. Igualar tudo achataria a diferença de peso visual entre os níveis.
+ * `iconSize` guarda o tamanho de cada emblema porque o design NÃO os
+ * padroniza: variam de 62 a 77px. Igualar tudo achataria a diferença de peso
+ * visual entre os níveis. (A posição absoluta de cada um saiu em 2026-10-27:
+ * o emblema agora ocupa lugar no layout e não cobre o texto.)
  *
  * `glow`: Ouro, Diamante e Adamantium têm uma cópia borrada atrás do emblema
  * (blur 13.5px) que os níveis de baixo não têm.
  */
 export const TIER_ART: Record<
   LoyaltyTierKey,
-  { icon: string; iconSize: number; iconLeft: number; iconTop: number; glow: boolean }
+  { icon: string; iconSize: number; glow: boolean }
 > = {
   BRONZE: {
     icon: "/images/tiers/bronze.png",
     iconSize: 62,
-    iconLeft: 215,
-    iconTop: 41,
     glow: false,
   },
   PRATA: {
     icon: "/images/tiers/prata.png",
     iconSize: 75,
-    iconLeft: 203,
-    iconTop: 38,
     glow: false,
   },
   OURO: {
     icon: "/images/tiers/ouro.png",
     iconSize: 70,
-    iconLeft: 207,
-    iconTop: 40,
     glow: true,
   },
   DIAMANTE: {
     icon: "/images/tiers/diamante.png",
     iconSize: 68,
-    iconLeft: 214,
-    iconTop: 35,
     glow: true,
   },
   ADAMANTIUM: {
     icon: "/images/tiers/adamantium.png",
     iconSize: 77,
-    iconLeft: 207,
-    iconTop: 33.5,
     glow: true,
   },
 };
 
 /**
  * A arte de um nível, com o Bronze como rede de segurança. `iconUrl` é o ícone
- * enviado no painel (2026-10-06): substitui só a IMAGEM — tamanho, posição e
- * brilho continuam os do desenho para aquele nível.
+ * enviado no painel (2026-10-06): substitui só a IMAGEM — tamanho e brilho
+ * continuam os do desenho para aquele nível.
  */
 export function tierArt(tier: string, iconUrl?: string) {
   const art = TIER_ART[tier as LoyaltyTierKey] ?? TIER_ART.BRONZE;

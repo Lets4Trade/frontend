@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pricingSchema, quote, type Pricing } from "./quote";
+import { pricingSchema, quantityDiscountPercent, quote, type Pricing } from "./quote";
 
 const LEVELS: Pricing = {
   mode: "LEVEL_RANGE",
@@ -201,5 +201,47 @@ describe("quote — tamanho da unidade (2026-10-23)", () => {
   it("schema aceita o tamanho e recusa zero", () => {
     expect(pricingSchema.safeParse(GOLD).success).toBe(true);
     expect(pricingSchema.safeParse({ ...GOLD, unitSize: 0 }).success).toBe(false);
+  });
+});
+
+describe("quote — desconto por quantidade (2026-10-27)", () => {
+  const GOLD: Pricing = {
+    mode: "QUANTITY",
+    unitLabel: "Gold",
+    min: 1,
+    max: 1000,
+    step: 1,
+    presets: [1, 100, 500],
+    unitSize: 1_000_000,
+    discounts: [
+      { from: 100, percent: 3 },
+      { from: 500, percent: 5 },
+    ],
+  };
+
+  it("vale da quantidade para cima, a maior faixa alcançada", () => {
+    expect(quantityDiscountPercent(GOLD, 99)).toBe(0);
+    expect(quantityDiscountPercent(GOLD, 100)).toBe(3);
+    expect(quantityDiscountPercent(GOLD, 499)).toBe(3);
+    expect(quantityDiscountPercent(GOLD, 600)).toBe(5);
+  });
+
+  it("o total ganha a linha de desconto; sem faixa, nada muda", () => {
+    const off = quote(5, GOLD, { quantity: 500 });
+    expect(off.ok && off.totalCents).toBe(2375);
+    expect(off.ok && off.lines[off.lines.length - 1]).toEqual({ label: "Desconto por quantidade (5%)", cents: -125 });
+
+    const plain = quote(5, GOLD, { quantity: 10 });
+    expect(plain.ok && plain.totalCents).toBe(50);
+    expect(plain.ok && plain.lines).toHaveLength(1);
+  });
+
+  it("recusa percentual fora de 1 a 90, faixa repetida e faixa fora do mínimo/máximo", () => {
+    const withDiscounts = (discounts: unknown) => pricingSchema.safeParse({ ...GOLD, discounts }).success;
+    expect(withDiscounts([{ from: 100, percent: 91 }])).toBe(false);
+    expect(withDiscounts([{ from: 100, percent: 0 }])).toBe(false);
+    expect(withDiscounts([{ from: 100, percent: 3 }, { from: 100, percent: 5 }])).toBe(false);
+    expect(withDiscounts([{ from: 2000, percent: 5 }])).toBe(false);
+    expect(withDiscounts([{ from: 100, percent: 3 }])).toBe(true);
   });
 });

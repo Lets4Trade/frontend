@@ -77,7 +77,10 @@ export function CartDrawer({ tiers, gifts }: { tiers: LoyaltyTierRule[]; gifts: 
               aria-label="Fechar o carrinho"
               className="flex size-[36px] shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none"
             >
-              <Image src="/icons/cart/close-arrow.svg" alt="" width={22} height={22} aria-hidden className="size-[22px]" />
+              {/* A arte do Figma aponta para a esquerda, mas a gaveta sai pela
+                  DIREITA (2026-10-27, pedido do usuário): espelhada, a seta
+                  mostra para onde o painel vai. */}
+              <Image src="/icons/cart/close-arrow.svg" alt="" width={22} height={22} aria-hidden className="size-[22px] -scale-x-100" />
             </Drawer.Close>
           </header>
 

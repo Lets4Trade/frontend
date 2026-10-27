@@ -49,6 +49,19 @@ describe("ProductCard", () => {
     expect(document.querySelector('[lang="en"]')?.textContent).toBe("Divine Orb");
   });
 
+  it("desconto do pacote: só o selo no canto, e o carrinho leva o preço com desconto (2026-10-27)", () => {
+    const { rerender } = render(<ProductCard product={product} context={context} />);
+    expect(screen.queryByText("-5%")).toBeNull();
+
+    rerender(
+      <ProductCard product={{ ...product, priceCents: 1425, listPriceCents: 1500, discountPercent: 5 }} context={context} />,
+    );
+    expect(screen.getByText("-5%")).toBeTruthy();
+    expect(screen.getByText("5% de desconto")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /ao carrinho/ }));
+    expect(useCart.getState().items[0]).toMatchObject({ unitPriceCents: 1425 });
+  });
+
   it("o carrinho continua só adicionando, sem sair da página", () => {
     render(<ProductCard product={product} context={context} />);
     fireEvent.click(screen.getByRole("button", { name: /ao carrinho/ }));

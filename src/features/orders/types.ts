@@ -100,6 +100,8 @@ export type Purchase = {
   /** Totais do pedido, já formatados. */
   price: string;
   discount: string | null;
+  /** Taxa do cartão de crédito (2026-10-27), já formatada. `null` = não houve (PIX). */
+  fee: string | null;
   paid: string;
   /** Cupom do pedido: código e quanto abateu no total. */
   coupon: { code: string; amount: string } | null;

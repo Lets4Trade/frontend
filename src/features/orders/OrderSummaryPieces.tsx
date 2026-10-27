@@ -181,16 +181,20 @@ export function purchaseGifts(items: { gift?: OrderGift | null }[]): OrderGift[]
 export function TotalsBlock({
   price,
   discount,
+  fee,
   total,
 }: {
   price: string;
   discount: string;
+  /** Taxa do cartão de crédito (2026-10-27). Ausente/nula = linha some. */
+  fee?: string | null;
   total: string;
 }) {
   return (
     <>
       <SummaryRow label="Preço" value={price} className="mt-[26px]" />
       <SummaryRow label="Desconto" value={discount} />
+      {fee ? <SummaryRow label="Taxa do cartão" value={`+ ${fee}`} /> : null}
 
       <div aria-hidden className="mt-[26px] h-px w-full bg-white/25" />
 

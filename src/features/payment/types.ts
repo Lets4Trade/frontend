@@ -13,6 +13,8 @@ export type PaymentView = {
   status: PaymentStatus;
   method?: PaymentMethod;
   amountCents: number;
+  /** Taxa do crédito da tentativa que valeu (2026-10-27). O pago é a soma. */
+  feeCents?: number;
   expiresAt: string;
   paidAt?: string;
   maxInstallments: number;
@@ -62,6 +64,17 @@ export function paidOrderHref(payment: Pick<PaymentView, "orders">): string | nu
 /** Espelha `MIN_INSTALLMENT_CENTS`/`MAX_INSTALLMENTS` do backend. */
 export const MIN_INSTALLMENT_CENTS = 500;
 export const MAX_INSTALLMENTS = 12;
+
+/**
+ * Taxa do cartão de crédito (2026-10-27): espelho de `CREDIT_CARD_FEE_BPS` /
+ * `cardFeeCents` do backend (`payments/payment.rules.ts`). Só PRÉVIA — quem
+ * decide o valor cobrado é o backend.
+ */
+export const CREDIT_CARD_FEE_BPS = 500;
+
+export function cardFeeCents(amountCents: number) {
+  return Math.round((amountCents * CREDIT_CARD_FEE_BPS) / 10_000);
+}
 
 export function maxInstallmentsFor(amountCents: number) {
   return Math.max(1, Math.min(MAX_INSTALLMENTS, Math.floor(amountCents / MIN_INSTALLMENT_CENTS)));

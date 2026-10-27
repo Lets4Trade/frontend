@@ -112,6 +112,15 @@ describe("toPurchase — pedido com vários itens (2026-10-16)", () => {
     expect(purchase?.items[1].discount).toMatch(/0,03/);
   });
 
+  it("pago no crédito: a taxa do cartão aparece e soma ao pago (2026-10-27)", () => {
+    const purchase = toPurchase(
+      apiPurchase({ totalPrice: "100.00", cardFeeCents: 500, items: [apiItem({ id: "a", totalPrice: "100.00" })] }),
+    );
+    expect(purchase?.fee).toMatch(/5,00/);
+    expect(purchase?.paid).toMatch(/105,00/);
+    expect(toPurchase(apiPurchase({ totalPrice: "100.00", items: [apiItem({ totalPrice: "100.00" })] }))?.fee).toBeNull();
+  });
+
   it("UMA situação e UMA trilha para o pedido; datas no fuso de São Paulo, com hora", () => {
     const purchase = toPurchase(apiPurchase({ approvedAt: "2026-10-15T13:05:00.000Z" }));
     expect(purchase?.status).toBe("aprovado");

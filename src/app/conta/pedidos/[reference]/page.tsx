@@ -168,6 +168,7 @@ export default async function PedidoPage({ params, searchParams }: PageProps) {
               <TotalsBlock
                 price={purchase.price}
                 discount={purchase.discount ?? "R$ 0,00"}
+                fee={purchase.fee}
                 total={purchase.paid}
               />
 

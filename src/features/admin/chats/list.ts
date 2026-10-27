@@ -40,6 +40,7 @@ export async function getStaffConversation(id: string): Promise<StaffConversatio
   return {
     conversation: result.data.conversation,
     contact: result.data.contact ?? {},
+    notes: result.data.notes ?? {},
     messages: Array.isArray(result.data.messages) ? result.data.messages : [],
   };
 }

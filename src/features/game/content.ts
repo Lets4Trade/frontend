@@ -19,6 +19,7 @@ import {
 import { toGameDescription } from "./description";
 import { FAQ_DESCRIPTION_GROUP, MOBILE_BANNER } from "./types";
 import type { GameNewsItem, GamePage, GameProduct } from "./types";
+import { readDiscountPercent } from "./discount";
 
 /**
  * Os jogos em que o grupo "Dúvidas sobre Orbs" aparece, ACIMA do geral.
@@ -97,6 +98,9 @@ type StorefrontProductPage = {
     name: string;
     nameEn?: string | null;
     priceCents: number;
+    /** Desconto do pacote (2026-10-27); ausentes sem desconto. */
+    discountPercent?: number | null;
+    listPriceCents?: number | null;
     tabSlug?: string | null;
     /** Regra efetiva em aba cotada (`effectivePricing`); nulo/ausente fora dela. */
     pricing?: unknown;
@@ -448,6 +452,14 @@ export async function getCatalog(
   };
 }
 
+/** Selo do card: só com percentual válido E preço cheio maior que o cobrado. */
+function readDiscount(item: { priceCents: number; discountPercent?: number | null; listPriceCents?: number | null }) {
+  const percent = readDiscountPercent(item.discountPercent);
+  const list = item.listPriceCents;
+  if (!percent || typeof list !== "number" || list <= item.priceCents) return {};
+  return { discountPercent: percent, listPriceCents: list };
+}
+
 function toProduct(item: StorefrontProductPage["items"][number]): GameProduct {
   const image = backendAsset(item.imageUrl);
   const banner = backendAsset(item.bannerUrl);
@@ -457,6 +469,7 @@ function toProduct(item: StorefrontProductPage["items"][number]): GameProduct {
     name: item.name,
     nameEn: item.nameEn?.trim() || undefined,
     priceCents: item.priceCents,
+    ...readDiscount(item),
     // As medidas são só a proporção que o `next/image` usa para reservar o
     // espaço — o card recorta com `object-cover`, e a arte vem do admin sem
     // dimensão conhecida.

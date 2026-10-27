@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { MAX_PRICE_CENTS } from "@/features/pricing/quote";
+import { MAX_DISCOUNT_PERCENT } from "@/features/game/discount";
 
 /**
  * Validação do cadastro de produto (Figma 3806:6735).
@@ -36,6 +37,17 @@ export const createProductSchema = z.object({
     .int()
     .min(1, "Informe o preço do produto.")
     .max(MAX_PRICE_CENTS, "O preço passa do teto de R$ 20.000.000,00."),
+
+  /**
+   * Desconto do pacote em % inteiro (2026-10-27). Vazio/ausente = 0 (o campo
+   * só aparece em aba de catálogo). Mesmo teto do backend: 90%.
+   */
+  discountPercent: z.coerce
+    .number()
+    .int("O desconto é um número inteiro (ex.: 5).")
+    .min(0, "O desconto não pode ser negativo.")
+    .max(MAX_DISCOUNT_PERCENT, `O desconto vai até ${MAX_DISCOUNT_PERCENT}%.`)
+    .default(0),
 
 
   /**

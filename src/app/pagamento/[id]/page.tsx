@@ -92,7 +92,8 @@ export default async function PaymentPage({ params }: PageProps) {
           <TotalsBlock
             price={formatCents(subtotal)}
             discount={formatCents(discount)}
-            total={formatCents(payment.amountCents)}
+            fee={payment.feeCents ? formatCents(payment.feeCents) : null}
+            total={formatCents(payment.amountCents + (payment.feeCents ?? 0))}
           />
         </CheckoutSidePanel>
       </div>

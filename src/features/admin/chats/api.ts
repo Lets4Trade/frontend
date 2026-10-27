@@ -1,5 +1,5 @@
 import { fetchWithSession } from "@/lib/browserSession";
-import type { StaffConversation, StaffMessage } from "./types";
+import type { CustomerNotes, StaffConversation, StaffMessage } from "./types";
 
 /**
  * Escritas do painel de atendimento, pelo NAVEGADOR direto ao backend.
@@ -46,5 +46,13 @@ export function updateConversation(
   return call<StaffConversation>(`/conversations/${encodeURIComponent(conversationId)}`, {
     method: "PATCH",
     body: JSON.stringify(patch),
+  });
+}
+
+/** Observações do cliente da conversa (2026-10-27). Vazio apaga. */
+export function saveCustomerNotes(conversationId: string, notes: string) {
+  return call<CustomerNotes>(`/conversations/${encodeURIComponent(conversationId)}/customer-notes`, {
+    method: "PUT",
+    body: JSON.stringify({ notes }),
   });
 }

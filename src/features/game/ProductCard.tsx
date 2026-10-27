@@ -7,6 +7,7 @@ import { buttonVariants } from "@/components/ui/Button";
 import { MAX_CART_QUANTITY, useCart } from "@/features/cart/store";
 import { cn } from "@/lib/cn";
 import { formatPrice } from "./content";
+import { DiscountBadge } from "./DiscountBadge";
 import { ProductCardShell } from "./ProductCardShell";
 import type { GameProduct } from "./types";
 
@@ -96,6 +97,19 @@ export function ProductCard({
         )
       }
       image={product.image}
+      // Desconto do pacote (2026-10-27): só o selo; o preço acima já vem com ele.
+      badge={
+        product.discountPercent ? (
+          <DiscountBadge
+            percent={product.discountPercent}
+            title={
+              product.listPriceCents
+                ? `De ${formatPrice(product.listPriceCents)} por ${formatPrice(product.priceCents)}`
+                : undefined
+            }
+          />
+        ) : undefined
+      }
       // Só com descrição escrita no painel (2026-10-20); sem ela, nada no hover.
       hoverDescription={
         product.content && product.content.sections.length > 0

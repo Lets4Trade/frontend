@@ -14,6 +14,7 @@ import { listTime } from "@/features/support/types";
 import { cn } from "@/lib/cn";
 import { replyAsStaff, updateConversation } from "./api";
 import { ChatOrderSummary } from "./ChatOrderSummary";
+import { CustomerNotesPanel } from "./CustomerNotesPanel";
 import type { ChatOrder, StaffConversation, StaffConversationDetail, StaffMessage } from "./types";
 
 const UNASSIGNED = "sem-atendente";
@@ -165,6 +166,7 @@ export function ChatsBoard({
           key={conversation.id}
           conversation={conversation}
           contact={detail?.contact ?? {}}
+          notes={detail?.conversation.id === conversation.id ? detail?.notes : undefined}
           // Só o pedido DESTA conversa: o estado local pode estar à frente da página.
           order={order && order.purchase.reference === conversation.orderReference ? order : null}
           messages={messages}
@@ -189,6 +191,7 @@ export function ChatsBoard({
 function ConversationPane({
   conversation,
   contact,
+  notes,
   order,
   messages,
   attendants,
@@ -200,6 +203,7 @@ function ConversationPane({
   canOpenUsers: boolean;
   conversation: StaffConversation;
   contact: StaffConversationDetail["contact"];
+  notes?: StaffConversationDetail["notes"];
   order: ChatOrder | null;
   messages: StaffMessage[];
   attendants: Attendant[];
@@ -324,6 +328,9 @@ function ConversationPane({
           (a coluna de 400px espremeria o chat). */}
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col">
+          {/* Observações do cliente (2026-10-27): à vista ao abrir o chat. */}
+          <CustomerNotesPanel conversationId={conversation.id} initial={notes} />
+
           {order ? (
             <details className="group shrink-0 border-b border-brand-hairline 2xl:hidden">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-[12px] px-[30px] py-[12px] font-poppins text-[14px] font-semibold text-white hover:bg-white/5">

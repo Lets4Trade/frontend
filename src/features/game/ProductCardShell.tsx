@@ -37,6 +37,7 @@ export function ProductCardShell({
   actions,
   cta,
   hoverDescription,
+  badge,
 }: {
   name: string;
   /** Nome em inglês, numa segunda linha abaixo do português (2026-10-08). */
@@ -54,6 +55,8 @@ export function ProductCardShell({
    * configurou).
    */
   hoverDescription?: { title: string; content: ServiceContent };
+  /** Selo do canto superior direito (desconto do pacote, 2026-10-27). */
+  badge?: ReactNode;
 }) {
   const art = image ? (
     <Image
@@ -123,6 +126,7 @@ export function ProductCardShell({
           vitrine a fileira começa a 32px da borda, no painel ela é centrada. */}
       <div className="mt-[10px] w-full lg:absolute lg:top-[342px] lg:left-0 lg:mt-0">{actions}</div>
       {cta ? <div className="mt-[10px] w-full px-[10px] lg:absolute lg:top-[402px] lg:left-0 lg:mt-0 lg:px-0">{cta}</div> : null}
+      {badge}
     </article>
   );
 }

@@ -9,6 +9,7 @@ import {
   draftToPricing,
   emptyDraft,
   newKey,
+  parsePresets,
   type PricingDraft,
   type PricingMode,
   unitSizeOf,
@@ -160,6 +161,8 @@ export function PricingEditor({
           </span>
         </label>
       ) : null}
+
+      {draft.mode === "QUANTITY" ? <PresetDiscounts draft={draft} onChange={(discounts) => patch({ discounts })} /> : null}
 
       {/* "Faixas de preço" por quantidade saíram em 2026-10-01: o cliente paga
           sempre quantidade × preço; o benefício é o cashback em Lets Coins. */}
@@ -438,6 +441,62 @@ function UnitSizeHint({ draft }: { draft: PricingDraft }) {
       </strong>
       . O preço do produto é o de UMA unidade.
     </p>
+  );
+}
+
+/**
+ * Desconto por quantidade pronta (2026-10-27, pedido do usuário para a aba
+ * Gold): um % ao lado de cada botão. Vale daquela quantidade para cima (quem
+ * digita 600 paga com o desconto de 500), e a loja mostra o selo "-5%" no
+ * botão. A conta é do `quote` — a prévia ao lado já sai com o desconto.
+ */
+function PresetDiscounts({
+  draft,
+  onChange,
+}: {
+  draft: PricingDraft;
+  onChange: (discounts: Record<string, string>) => void;
+}) {
+  const presets = [...new Set(parsePresets(draft.presets).filter(Number.isFinite))].sort((a, b) => a - b);
+  if (presets.length === 0) return null;
+  const size = unitSizeOf(draft.unitSize);
+  const unit = Number.isFinite(size) && size > 0 ? size : 1;
+  const label = draft.unitLabel.trim();
+  return (
+    <div className="flex max-w-[700px] flex-col gap-[8px]">
+      <span className="font-poppins text-[12px] font-bold text-white/70">Desconto por quantidade (opcional)</span>
+      <div className="flex flex-wrap gap-[10px]">
+        {presets.map((preset) => (
+          <label
+            key={preset}
+            className="flex items-center gap-[8px] rounded-[10px] border border-white/10 bg-black/30 py-[6px] pr-[10px] pl-[12px]"
+          >
+            <span className="min-w-[56px] font-poppins text-[13px] font-bold text-white">
+              {formatQuantity(preset * unit)}
+              {label ? ` ${label}` : ""}
+            </span>
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              aria-label={`Desconto a partir de ${formatQuantity(preset * unit)} ${label}`.trim()}
+              value={draft.discounts[String(preset)] ?? ""}
+              maxLength={2}
+              placeholder="0"
+              onChange={(event) =>
+                onChange({ ...draft.discounts, [String(preset)]: event.target.value.replace(/\D/g, "") })
+              }
+              className="h-[34px] w-[52px] rounded-[8px] border border-white/10 bg-black/40 px-[8px] text-center font-poppins text-[13px] text-white placeholder:text-white/30 focus:border-brand-orange/60 focus:outline-none"
+            />
+            <span className="font-poppins text-[13px] text-white/60">%</span>
+          </label>
+        ))}
+      </div>
+      <span className="font-poppins text-[12px] text-brand-fg-subtle">
+        Vale a partir daquela quantidade, inclusive para quem digitar mais. Na loja, o botão ganha o selo “-5%”. Vazio
+        = sem desconto.
+      </span>
+    </div>
   );
 }
 

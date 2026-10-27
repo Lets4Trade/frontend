@@ -1,5 +1,7 @@
 import Image from "next/image";
+import type { CSSProperties } from "react";
 import { StatBox, StatValue } from "@/components/ui/StatBox";
+import { cn } from "@/lib/cn";
 import type { LoyaltyTierRule } from "./data";
 import {
   TIER_ACCENT_GRADIENT,
@@ -9,24 +11,23 @@ import {
 } from "./tiers";
 
 /**
- * Card de nível (Figma 2312:1085 e irmãos) — 302×450, raio 30.
+ * Card de nível (Figma 2312:1085 e irmãos).
  *
- * Medidas: barra de destaque de 202×2 centrada no topo (com uma cópia borrada
- * atrás), título em (25,50), subtítulo em (25,79), emblema com posição e
- * tamanho próprios de cada nível, caixa de cashback em (25,230) 252×96 e a
- * etiqueta "Seu nível atual" em (25,351) 252×49.
+ * ── Reorganizado em 2026-10-27 (pedido do usuário) ─────────────────────────
+ * O arquivo desenha 302×450 com tudo em posição ABSOLUTA. Dois defeitos:
+ * o emblema não ocupava lugar, então "A partir de R$ 20.000,00" corria por
+ * baixo da arte do Adamantium; e a altura fixa deixava ~130px de vazio entre
+ * o título e o cashback — no celular, cinco cards de 450px empilhados.
  *
- * A etiqueta só aparece no nível atual. No arquivo do Figma ela está nos CINCO
- * cards — provável descuido de duplicação: dizer "Seu nível atual" em todos
- * torna a informação inútil. Ver .claude/context/open-questions.md.
+ * Agora é fluxo normal: título e emblema lado a lado (o texto encolhe, a arte
+ * não), e a altura é a do conteúdo. No celular o card vira uma LINHA — emblema,
+ * nome e o percentual à direita —, sem a caixa de cashback, que ali só repetia
+ * o número com mais moldura.
+ *
+ * A etiqueta "Seu nível atual" só aparece no nível atual. No arquivo do Figma
+ * ela está nos CINCO cards — provável descuido de duplicação: dizer "Seu nível
+ * atual" em todos torna a informação inútil. Ver .claude/context/open-questions.md.
  */
-/**
- * Largura do card no arquivo. A geometria dos emblemas (`tiers.ts`) foi medida
- * nela, pela esquerda; convertida para distância da borda DIREITA, o emblema
- * fica no mesmo lugar em 1920 e acompanha o card quando ele encolhe.
- */
-const ART_CARD_WIDTH = 302;
-
 export function TierCard({
   tier,
   isCurrent,
@@ -37,81 +38,73 @@ export function TierCard({
   // A faixa e o cashback vêm do backend; a arte é a única coisa que a tela
   // decide sozinha. Ver `tiers.ts`.
   const art = tierArt(tier.tier, tier.iconUrl);
+  const cashback = formatBps(tier.cashbackBps);
 
   return (
-    // Largura FLUIDA (2026-09-25): o card ocupa a coluna da grade da página —
-    // 302px em 1920, como no arquivo — em vez de 302 fixos, que em 1895
-    // mandavam o quinto card sozinho para a linha de baixo. Por isso o que
-    // era medido pela esquerda até a borda direita agora é ancorado à direita.
-    <article className="relative h-[450px] w-full overflow-hidden rounded-[30px] border border-white/10 bg-brand-surface">
+    <article
+      className={cn(
+        "relative flex h-full flex-col overflow-hidden rounded-[20px] border bg-brand-surface px-[16px] py-[14px] sm:rounded-[30px] sm:px-[25px] sm:pt-[30px] sm:pb-[25px]",
+        // No celular a etiqueta fica pequena; a borda laranja diz o resto.
+        isCurrent ? "border-brand-orange/60 sm:border-white/10" : "border-white/10",
+      )}
+    >
       {/* Barra de destaque: a de baixo é nítida (2px), a de cima é a mesma com
           blur de 9px fazendo o halo. */}
       <div
         aria-hidden
-        className="absolute top-px left-1/2 h-[4px] w-[202px] -translate-x-1/2 rounded-[99px] blur-[9.05px]"
+        className="absolute top-px left-1/2 h-[4px] w-[min(202px,60%)] -translate-x-1/2 rounded-[99px] blur-[9.05px]"
         style={{ backgroundImage: TIER_ACCENT_GRADIENT }}
       />
       <div
         aria-hidden
-        className="absolute top-px left-1/2 h-[2px] w-[202px] -translate-x-1/2 rounded-[99px]"
+        className="absolute top-px left-1/2 h-[2px] w-[min(202px,60%)] -translate-x-1/2 rounded-[99px]"
         style={{ backgroundImage: TIER_ACCENT_GRADIENT }}
       />
 
-      <h3 className="absolute top-[50px] left-[25px] font-helvetica text-[22px] leading-[24px] font-bold tracking-[0.22px] text-white">
-        {tier.name}
-      </h3>
-
-      <p className="absolute top-[79px] left-[25px] font-helvetica text-[16px] leading-[16px] tracking-[0.16px] text-brand-placeholder">
-        A partir de {formatCents(tier.minSpentCents)}
-      </p>
-
-      {/* Emblema — cada nível tem tamanho e posição próprios (ver `tiers.ts`).
-          Os níveis altos ganham uma cópia borrada atrás, como no design. */}
-      {art.glow ? (
-        <Image
-          src={art.icon}
-          alt=""
-          width={art.iconSize}
-          height={art.iconSize}
+      {/* Altura mínima = o maior emblema (77px, menos o recuo de 6): assim a
+          caixa de cashback começa na mesma altura nos cinco cards. */}
+      <div className="flex items-center gap-[14px] sm:min-h-[72px] sm:items-start sm:justify-between">
+        {/* Emblema — o tamanho de cada nível vem de `tiers.ts` (o peso visual
+            cresce com o nível); no celular, todos um pouco menores. Os níveis
+            altos ganham uma cópia borrada atrás, como no design. */}
+        <span
           aria-hidden
-          className="absolute object-contain blur-[13.5px]"
-          style={{
-            right: ART_CARD_WIDTH - art.iconLeft - art.iconSize,
-            top: art.iconTop,
-            width: art.iconSize,
-            height: art.iconSize,
-          }}
-        />
-      ) : null}
+          className="relative order-first size-[52px] shrink-0 sm:order-last sm:-mt-[6px] sm:-mr-[4px] sm:size-[var(--tier-icon)]"
+          style={{ "--tier-icon": `${art.iconSize}px` } as CSSProperties}
+        >
+          {art.glow ? (
+            <Image src={art.icon} alt="" fill sizes="77px" className="object-contain blur-[13.5px]" />
+          ) : null}
+          <Image src={art.icon} alt="" fill sizes="77px" className="object-contain" />
+        </span>
 
-      <Image
-        src={art.icon}
-        alt=""
-        width={art.iconSize}
-        height={art.iconSize}
-        aria-hidden
-        className="absolute object-contain"
-        style={{
-          right: ART_CARD_WIDTH - art.iconLeft - art.iconSize,
-          top: art.iconTop,
-          width: art.iconSize,
-          height: art.iconSize,
-        }}
-      />
+        <div className="min-w-0 flex-1">
+          <h3 className="font-helvetica text-[18px] leading-[22px] font-bold tracking-[0.2px] text-white sm:text-[22px] sm:leading-[24px]">
+            {tier.name}
+          </h3>
+          <p className="mt-[4px] font-helvetica text-[14px] leading-[18px] tracking-[0.16px] text-brand-placeholder sm:mt-[6px] sm:text-[16px] sm:leading-[20px]">
+            A partir de {formatCents(tier.minSpentCents)}
+          </p>
+        </div>
+
+        {/* Celular: o percentual na própria linha. */}
+        <div className="shrink-0 text-right sm:hidden">
+          <p className="font-helvetica text-[12px] leading-[14px] font-bold text-white/70">Cashback</p>
+          <StatValue className="mt-[2px] text-[20px] leading-[24px]">{cashback}</StatValue>
+        </div>
+      </div>
 
       <StatBox
         label="Cashback"
-        className="absolute top-[230px] right-[25px] left-[25px] h-[96px]"
-        contentClassName="px-[25px]"
+        className="mt-[12px] hidden h-[84px] sm:block"
+        contentClassName="px-[22px]"
       >
         {/* 22px aqui, contra 24px no painel-resumo. */}
-        <StatValue className="text-[22px] tracking-[0.22px]">
-          {formatBps(tier.cashbackBps)}
-        </StatValue>
+        <StatValue className="text-[22px] tracking-[0.22px]">{cashback}</StatValue>
       </StatBox>
 
       {isCurrent ? (
-        <p className="absolute top-[351px] right-[25px] left-[25px] flex h-[49px] items-center justify-center rounded-[15px] border border-brand-orange bg-brand-orange/[0.06] font-helvetica text-[14px] font-bold tracking-[0.14px] text-white">
+        <p className="mt-[12px] flex h-[34px] items-center justify-center rounded-[12px] border border-brand-orange bg-brand-orange/[0.06] font-helvetica text-[13px] font-bold tracking-[0.14px] text-white sm:mt-[14px] sm:h-[44px] sm:rounded-[15px] sm:text-[14px]">
           Seu nível atual
         </p>
       ) : null}

@@ -20,6 +20,8 @@ export type AdminProduct = {
   nameEn?: string | null;
   /** Sempre CENTAVOS inteiros — o backend converte o `Decimal` na saída. */
   priceCents: number;
+  /** Desconto do pacote em % inteiro (2026-10-27). Ausente = 0. Só vale em aba de catálogo. */
+  discountPercent?: number;
   platform: string;
   /** Aba do jogo (contrato `game-tabs.md`). */
   tabId?: string | null;

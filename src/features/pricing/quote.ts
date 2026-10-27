@@ -15,7 +15,8 @@
  *  - QUANTITY     quantidade × preço unitário (horas de mentoria, runs de carry,
  *                 gold), com quantidades prontas (`presets`, os botões da aba
  *                 Gold) e o TAMANHO da unidade (`unitSize`: 1 unidade = 1Mi de
- *                 ouro, então 10 unidades = 10Mi — 2026-10-23).
+ *                 ouro, então 10 unidades = 10Mi — 2026-10-23) e DESCONTO por
+ *                 quantidade (`discounts`, 2026-10-27: "a partir de 500Mi, 5%").
  *  - LEVEL_RANGE  nível inicial → desejado; soma o preço de cada nível pela faixa
  *                 em que ele cai (subir do 90 ao 100 pode custar mais que do 1 ao 10).
  * Em todos: adicionais opcionais (percentual sobre o subtotal ou valor fixo) e
@@ -110,6 +111,20 @@ const quantitySchema = z.object({
   /** Horas por unidade (mentoria: 1). */
   hoursPerUnit: hours.optional(),
   /**
+   * Desconto por QUANTIDADE (2026-10-27, pedido do usuário para a aba Gold):
+   * "a partir de 500 unidades, 5%". Vale DALI PARA CIMA, não só no botão: quem
+   * digita 600 não pode pagar mais que quem escolhe 500. Com várias, vale a de
+   * maior `from` que a quantidade alcança. A loja mostra o selo "-5%" no botão
+   * da quantidade pronta. Percentual inteiro, de 1 a 90 (`MAX_QUANTITY_DISCOUNT`).
+   *
+   * Não é o `tiers` abaixo (preço unitário por faixa, desligado em 2026-10-01):
+   * aqui o preço da unidade não muda, o total ganha uma linha de desconto.
+   */
+  discounts: z
+    .array(z.object({ from: quantityValue, percent: z.number().int().min(1).max(90) }))
+    .max(24)
+    .optional(),
+  /**
    * DESATIVADO em 2026-10-01 (pedido do usuário: "coloquei 10 itens e eu
    * deveria pagar 100"): não há mais desconto por quantidade — o benefício é
    * só o cashback em Lets Coins. Ainda ACEITO no schema para uma regra antiga
@@ -163,6 +178,16 @@ export const pricingSchema = z
       for (const preset of value.presets ?? []) {
         if (preset < value.min || preset > value.max || (preset - value.min) % value.step !== 0) {
           ctx.addIssue({ code: "custom", message: `A quantidade pronta ${preset} está fora de mínimo/máximo/passo.` });
+          break;
+        }
+      }
+      const froms = (value.discounts ?? []).map((discount) => discount.from);
+      if (new Set(froms).size !== froms.length) {
+        ctx.addIssue({ code: "custom", message: "Há dois descontos para a mesma quantidade." });
+      }
+      for (const from of froms) {
+        if (from < value.min || from > value.max) {
+          ctx.addIssue({ code: "custom", message: `O desconto a partir de ${from} está fora de mínimo/máximo.` });
           break;
         }
       }
@@ -238,7 +263,8 @@ export function quote(basePriceCents: number, pricing: Pricing, rawSelection: Se
     if (quantity < pricing.min || quantity > pricing.max || (quantity - pricing.min) % pricing.step !== 0) {
       return { ok: false, message: `Escolha de ${pricing.min} a ${pricing.max} ${pricing.unitLabel.toLowerCase()}.` };
     }
-    // Sempre quantidade × preço do produto — sem faixa de desconto (2026-10-01).
+    // Quantidade × preço do produto (o preço da unidade não muda por faixa,
+    // 2026-10-01); o desconto por quantidade entra como linha à parte, abaixo.
     subtotal = basePriceCents * quantity;
     totalHours += (pricing.hoursPerUnit ?? 0) * quantity;
     selection.quantity = quantity;
@@ -258,6 +284,14 @@ export function quote(basePriceCents: number, pricing: Pricing, rawSelection: Se
     } else {
       summary = `${quantity} ${pricing.unitLabel}`;
       lines.push({ label: `${quantity} × ${pricing.unitLabel}`, cents: subtotal });
+    }
+    // Desconto por quantidade (2026-10-27): antes dos adicionais, que incidem
+    // sobre o que o cliente de fato paga pelo serviço.
+    const percent = quantityDiscountPercent(pricing, quantity);
+    if (percent > 0) {
+      const off = Math.round((subtotal * percent) / 100);
+      subtotal -= off;
+      lines.push({ label: `Desconto por quantidade (${percent}%)`, cents: -off });
     }
   } else {
     const from = rawSelection.levelFrom ?? pricing.min;
@@ -318,6 +352,22 @@ export function quote(basePriceCents: number, pricing: Pricing, rawSelection: Se
     lines,
     selection,
   };
+}
+
+/**
+ * O desconto (%) que vale para `quantity` no modo QUANTITY: o da maior faixa
+ * `from` que a quantidade alcança. 0 = sem desconto. A loja usa a mesma função
+ * para o selo dos botões, então o selo nunca promete o que a conta não dá.
+ */
+export function quantityDiscountPercent(
+  pricing: { discounts?: readonly { from: number; percent: number }[] },
+  quantity: number,
+): number {
+  let best: { from: number; percent: number } | null = null;
+  for (const discount of pricing.discounts ?? []) {
+    if (discount.from <= quantity && (!best || discount.from > best.from)) best = discount;
+  }
+  return best ? best.percent : 0;
 }
 
 type LevelBand = { from: number; to: number; pricePerLevelCents: number; hoursPerLevel: number };

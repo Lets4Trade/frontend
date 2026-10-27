@@ -47,6 +47,7 @@ export async function createProductAction(
     name: form.get("name"),
     nameEn: form.get("nameEn") ?? "",
     priceCents: form.get("priceCents"),
+    discountPercent: form.get("discountPercent") || 0,
     tabId: form.get("tabId"),
     serverId: form.get("serverId") ?? "",
     categoryId: form.get("categoryId") ?? "",
@@ -74,6 +75,8 @@ export async function createProductAction(
   // Inteiro de centavos até o fim. O `Decimal` só nasce na borda do banco, no
   // `ProductsService` — em nenhum ponto do caminho o preço passa por float.
   payload.set("priceCents", String(parsed.data.priceCents));
+  // Desconto do pacote: no cadastro, só quando há.
+  if (parsed.data.discountPercent > 0) payload.set("discountPercent", String(parsed.data.discountPercent));
   // Sem plataforma (2026-10-08): o backend usa a primeira do jogo.
   // A aba do jogo — "tipo de produto" não existe mais (FASE 5).
   payload.set("tabId", parsed.data.tabId);
@@ -233,6 +236,7 @@ export async function updateProductAction(
       name: form.get("name"),
       nameEn: form.get("nameEn") ?? "",
       priceCents: form.get("priceCents"),
+      discountPercent: form.get("discountPercent") || 0,
       tabId: form.get("tabId"),
       serverId: form.get("serverId") ?? "",
       categoryId: form.get("categoryId") ?? "",
@@ -254,6 +258,8 @@ export async function updateProductAction(
   // Sempre vai na edição: vazio APAGA o nome em inglês (o backend grava null).
   payload.set("nameEn", parsed.data.nameEn);
   payload.set("priceCents", String(parsed.data.priceCents));
+  // Na edição vai SEMPRE: 0 tira o desconto (inclusive de quem saiu do catálogo).
+  payload.set("discountPercent", String(parsed.data.discountPercent));
   // Plataforma não viaja na edição: o backend mantém a que o produto tem.
   payload.set("tabId", parsed.data.tabId);
   // Na edição `null` LIMPA a regra (produto que passou de uma aba SERVIÇO para

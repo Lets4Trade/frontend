@@ -62,6 +62,8 @@ export type ApiPurchase = {
   discountCents?: number;
   couponCode?: string | null;
   couponCents?: number;
+  /** Taxa do cartão de crédito da cobrança (2026-10-27). Ausente = zero. */
+  cardFeeCents?: number;
   status: string;
   /** Quando entrou em cada etapa (ISO). Ausentes = sem data conhecida. */
   approvedAt?: string | null;
@@ -126,6 +128,7 @@ export function toPurchase(api: ApiPurchase): Purchase | null {
   const priceCents = toCents(api.totalPrice);
   const coinsCents = api.discountCents || 0;
   const couponCents = api.couponCents || 0;
+  const feeCents = api.cardFeeCents || 0;
   const delivery = toDeliveryStatus(api.deliveryStatus);
 
   return {
@@ -140,7 +143,9 @@ export function toPurchase(api: ApiPurchase): Purchase | null {
     price: formatCents(priceCents, currency),
     // "Desconto" = coins + cupom (2026-10-12); o cupom também sai em `coupon`.
     discount: coinsCents + couponCents > 0 ? formatCents(coinsCents + couponCents, currency) : null,
-    paid: formatCents(Math.max(0, priceCents - coinsCents - couponCents), currency),
+    // A taxa do crédito SOMA ao que foi pago (2026-10-27): o mesmo valor da cobrança.
+    fee: feeCents > 0 ? formatCents(feeCents, currency) : null,
+    paid: formatCents(Math.max(0, priceCents - coinsCents - couponCents) + feeCents, currency),
     coupon: api.couponCode && couponCents > 0 ? { code: api.couponCode, amount: formatCents(couponCents, currency) } : null,
     deliveryProofs: (Array.isArray(api.deliveryProofs) ? api.deliveryProofs : []).flatMap((proof) =>
       typeof proof?.id === "string" && /^[A-Za-z0-9_-]{1,100}$/.test(proof.id)

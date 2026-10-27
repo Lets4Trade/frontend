@@ -3,9 +3,10 @@
 import Image from "next/image";
 import { useId, useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { quote, type Pricing } from "@/features/pricing/quote";
+import { quantityDiscountPercent, quote, type Pricing } from "@/features/pricing/quote";
 import { formatQuantity, initialQuantity, snapQuantity, validPresets } from "./configurator";
 import { formatPrice } from "./content";
+import { DiscountBadge } from "./DiscountBadge";
 import type { ProductContext } from "./ProductCard";
 import { NumberBox, ProductSelect } from "./ServiceConfigurator";
 import type { GameProduct } from "./types";
@@ -149,22 +150,32 @@ function QuantityPanel({
               >
                 {presets.map((preset) => {
                   const active = preset === quantity;
+                  // Desconto por quantidade (2026-10-27): só o selo no canto do
+                  // botão. Fica FORA do botão (o `truncate` dele cortaria).
+                  const off = quantityDiscountPercent(quantityPricing, preset);
                   return (
-                    <button
-                      key={preset}
-                      type="button"
-                      aria-pressed={active}
-                      // O número inteiro ao passar o mouse ("1Mi" = 1.000.000).
-                      title={(preset * size).toLocaleString("pt-BR")}
-                      onClick={() => set(preset)}
-                      className={`h-[40px] min-w-0 truncate rounded-[8px] border border-white/10 px-[10px] font-poppins text-[13px] font-bold tracking-[0.13px] backdrop-blur-[100px] transition-opacity outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-brand-orange ${
-                        active
-                          ? "bg-[image:var(--brand-orange-gradient)] text-white"
-                          : "bg-[image:var(--brand-surface-fill)] text-white/80"
-                      }`}
-                    >
-                      {amount(preset)}
-                    </button>
+                    <div key={preset} className="relative min-w-0">
+                      <button
+                        type="button"
+                        aria-pressed={active}
+                        // O número inteiro ao passar o mouse ("1Mi" = 1.000.000).
+                        title={(preset * size).toLocaleString("pt-BR")}
+                        onClick={() => set(preset)}
+                        className={`h-[40px] w-full min-w-0 truncate rounded-[8px] border border-white/10 px-[10px] font-poppins text-[13px] font-bold tracking-[0.13px] backdrop-blur-[100px] transition-opacity outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-brand-orange ${
+                          active
+                            ? "bg-[image:var(--brand-orange-gradient)] text-white"
+                            : "bg-[image:var(--brand-surface-fill)] text-white/80"
+                        }`}
+                      >
+                        {amount(preset)}
+                      </button>
+                      {off > 0 ? (
+                        <DiscountBadge
+                          percent={off}
+                          className="-top-[9px] -right-[6px] lg:-top-[10px] lg:-right-[8px]"
+                        />
+                      ) : null}
+                    </div>
                   );
                 })}
               </div>

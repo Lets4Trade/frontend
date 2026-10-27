@@ -32,8 +32,9 @@ export function loyaltyNodes(
           </h2>
           {/* Grade que ENCOLHE antes de quebrar: em 1920 são cinco colunas de
               302px (as do arquivo); abaixo de ~250px por card ela passa para
-              quatro, três… — nunca um card sozinho sobrando numa linha. */}
-          <div className="mt-[25px] grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-[25px]">
+              quatro, três… No celular, linhas compactas com vão de 10px
+              (2026-10-27). */}
+          <div className="mt-[16px] grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-[10px] sm:mt-[25px] sm:gap-[25px]">
             {summary.tiers.map((tier) => (
               <TierCard key={tier.tier} tier={tier} isCurrent={tier.tier === summary.tier} />
             ))}

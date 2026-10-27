@@ -50,8 +50,15 @@ export type StaffMessage = {
 export type StaffConversationDetail = {
   conversation: StaffConversation;
   contact: { whatsapp?: string | null; discordId?: string | null };
+  /**
+   * Observações da equipe sobre o CLIENTE (2026-10-27) — acompanham a pessoa
+   * em todas as conversas. Opcionais: o backend apaga campos vazios da resposta.
+   */
+  notes?: CustomerNotes;
   messages: StaffMessage[];
 };
+
+export type CustomerNotes = { text?: string; updatedAt?: string | null };
 
 export type StaffConversationPage = {
   items: StaffConversation[];

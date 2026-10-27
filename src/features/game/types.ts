@@ -122,8 +122,14 @@ export type GameProduct = {
   name: string;
   /** Nome em inglês (2026-10-08): segunda linha do card. Ausente = só o `name`. */
   nameEn?: string;
-  /** Em centavos: dinheiro não passa por `float`. */
+  /** Em centavos: dinheiro não passa por `float`. Já COM o desconto do pacote. */
   priceCents: number;
+  /**
+   * Desconto do pacote (2026-10-27, aba de catálogo): o percentual e o preço
+   * cheio. Ausentes = sem desconto. Quem calcula é o backend.
+   */
+  discountPercent?: number;
+  listPriceCents?: number;
   image?: ImageRef;
   /** Ausente quando o produto não tem servidor cadastrado. */
   serverSlug?: string;
