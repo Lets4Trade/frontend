@@ -16,6 +16,11 @@ export type ChatOrder = {
   purchase: Purchase;
   pill: { label: string; className: string };
   note: { label: string; color: string; date?: string | null } | null;
+  /**
+   * O que a equipe ALTERA dali (2026-10-28): id para o `PATCH`, situação e o
+   * status personalizado atuais — os mesmos campos da linha de "Vendas e pedidos".
+   */
+  admin: { id: string; status: string; deliveryStatus: unknown };
 };
 
 export type StaffConversation = {

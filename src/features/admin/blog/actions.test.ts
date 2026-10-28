@@ -9,7 +9,7 @@ import { createBlogPostAction, deleteBlogPostAction, updateBlogPostAction } from
 
 vi.mock("@/features/auth/session", async () => {
   const actual = await vi.importActual<typeof import("@/features/auth/session")>("@/features/auth/session");
-  return { canEditContent: actual.canEditContent, getSessionRole: vi.fn() };
+  return { ...actual, getSessionRole: vi.fn() };
 });
 vi.mock("@/lib/serverApi", () => ({
   apiPostFormData: vi.fn(),
@@ -62,6 +62,16 @@ describe("createBlogPostAction", () => {
 
     role.mockResolvedValue("ADMIN");
     expect(await createBlogPostAction(validForm())).toMatchObject({ ok: true });
+  });
+
+  it("REDATOR (2026-10-28) escreve no blog; ATENDENTE não", async () => {
+    role.mockResolvedValue("WRITER");
+    expect(await createBlogPostAction(validForm())).toMatchObject({ ok: true });
+
+    post.mockClear();
+    role.mockResolvedValue("SUPPORT");
+    expect(await createBlogPostAction(validForm())).toMatchObject({ ok: false, reason: "forbidden" });
+    expect(post).not.toHaveBeenCalled();
   });
 
   it.each([

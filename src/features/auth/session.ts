@@ -178,5 +178,6 @@ export const getSessionRole = cache(async (): Promise<SessionRole | null> => {
   if (profile.role === "ADMIN") return "ADMIN";
   if (profile.role === "EDITOR") return "EDITOR";
   if (profile.role === "SUPPORT") return "SUPPORT";
+  if (profile.role === "WRITER") return "WRITER";
   return "USER";
 });

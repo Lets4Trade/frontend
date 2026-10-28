@@ -117,6 +117,34 @@ export function statusValue(order: Pick<AdminOrder, "status" | "deliveryStatus">
   return custom ? `${CUSTOM_PREFIX}${custom.id}` : order.status;
 }
 
+/**
+ * Opções do select de situação: as padrão e, num grupo, os personalizados
+ * (2026-10-16), com a bolinha da cor. Status ARQUIVADO que o pedido ainda usa
+ * entra também — sem a opção, o Radix mostraria a pílula vazia.
+ *
+ * Aqui (e não na tabela) desde 2026-10-28: o quadro do pedido no `/admin/chats`
+ * usa o mesmo select.
+ */
+export function statusOptions(
+  order: Pick<AdminOrder, "status" | "deliveryStatus">,
+  statuses: AdminDeliveryStatus[],
+) {
+  const current = toDeliveryStatus(order.deliveryStatus);
+  const custom = [...statuses];
+  if (current && !custom.some((status) => status.id === current.id)) {
+    custom.push({ id: current.id, label: current.label, color: current.color, base: order.status });
+  }
+  return [
+    ...ORDER_STATUSES.map((value) => ({ value, label: statusStyle(value).label, group: "Situação" })),
+    ...custom.map((status) => ({
+      value: `${CUSTOM_PREFIX}${status.id}`,
+      label: `${status.label} · ${statusStyle(status.base).label}`,
+      group: "Personalizados",
+      swatch: DELIVERY_COLOR_STYLES[status.color].text,
+    })),
+  ];
+}
+
 /** Rótulo e cor da pílula da linha: o personalizado, ou a situação padrão. */
 export function orderPill(order: Pick<AdminOrder, "status" | "deliveryStatus">): { label: string; className: string } {
   const custom: DeliveryStatusView | null = toDeliveryStatus(order.deliveryStatus);

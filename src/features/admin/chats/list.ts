@@ -70,7 +70,13 @@ export async function getChatOrder(reference: string | null | undefined): Promis
       order.reference?.toUpperCase() === wanted ||
       (Array.isArray(order.items) && order.items.some((item) => item.legacyReference?.toUpperCase() === wanted)),
   );
-  const purchase = match ? toPurchase(match) : null;
+  if (!match) return null;
+  const purchase = toPurchase(match);
   if (!purchase) return null;
-  return { purchase, pill: statusPill(purchase), note: trackNote(purchase) };
+  return {
+    purchase,
+    pill: statusPill(purchase),
+    note: trackNote(purchase),
+    admin: { id: match.id, status: match.status, deliveryStatus: match.deliveryStatus ?? null },
+  };
 }

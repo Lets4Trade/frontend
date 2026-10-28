@@ -45,6 +45,14 @@ export const SETTINGS_GROUPS: readonly SettingsGroup[] = [
     keywords: ["cupom", "saida", "sair", "exit", "popup", "aviso", "desconto", "visitante", "promocao", "oferta"],
   },
   {
+    // Parcelas do cartão de crédito (2026-10-28).
+    id: "pagamento",
+    title: "Pagamento",
+    description: "Em quantas vezes o cliente pode parcelar no cartão de crédito.",
+    sections: ["pagamento"],
+    keywords: ["pagamento", "parcela", "parcelas", "parcelamento", "cartao", "credito", "checkout", "vezes", "juros"],
+  },
+  {
     id: "marca",
     title: "Marca",
     description: "Logo do site e ícone da aba do navegador.",
@@ -86,6 +94,10 @@ export const SECTION_INFO: Readonly<Record<string, { title: string; description:
     title: "Aviso de cupom ao sair",
     description:
       "Quem chega ao site sem conta e vai sair (mouse indo para fechar a aba, ou rolando rápido para cima no celular) vê este aviso com o cupom. Uma vez a cada N dias por pessoa.",
+  },
+  pagamento: {
+    title: "Parcelamento no cartão",
+    description: "Vale para o próximo pagamento, sem precisar publicar nada. O PIX não muda.",
   },
   horario: {
     title: "Horário de atendimento",

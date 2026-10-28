@@ -20,7 +20,7 @@ export type TabTemplate = {
   slug: string;
   label: string;
   icon: string;
-  layout: "CATALOG" | "SERVICE" | "QUANTITY";
+  layout: "CATALOG" | "SERVICE" | "QUANTITY" | "PACKAGES";
 };
 
 /** Modelos de aba de PRODUTO. A ordem é a do arquivo do Figma. */
@@ -32,9 +32,11 @@ export const TAB_TEMPLATES: readonly TabTemplate[] = [
   // Desde 2026-09-30 (contrato game-tabs-v2) o modelo GOLD nasce QUANTITY.
   { key: "GOLD", slug: "gold", label: "GOLD", icon: "/icons/game/tab-gold.svg", layout: "QUANTITY" },
   { key: "BUILDS", slug: "builds", label: "BUILDS", icon: "/icons/game/tab-builds.svg", layout: "CATALOG" },
-  { key: "BOOSTING", slug: "boosting", label: "BOOSTING", icon: "/icons/game/tab-boosting.svg", layout: "SERVICE" },
+  // BOOSTING (2026-10-01) e MENTORIA (2026-10-28) nascem PACKAGES — espelho de
+  // `backend/src/app/games/tabs/default-tabs.ts`.
+  { key: "BOOSTING", slug: "boosting", label: "BOOSTING", icon: "/icons/game/tab-boosting.svg", layout: "PACKAGES" },
   { key: "CARRY", slug: "carry", label: "CARRY", icon: "/icons/game/tab-carry.svg", layout: "SERVICE" },
-  { key: "MENTORIA", slug: "mentoria", label: "MENTORIA", icon: "/icons/game/tab-mentoria.svg", layout: "SERVICE" },
+  { key: "MENTORIA", slug: "mentoria", label: "MENTORIA", icon: "/icons/game/tab-mentoria.svg", layout: "PACKAGES" },
 ];
 
 /**

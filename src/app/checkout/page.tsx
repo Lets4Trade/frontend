@@ -3,8 +3,10 @@ import { CheckoutClient } from "@/features/checkout/CheckoutClient";
 import { CheckoutShell } from "@/features/checkout/CheckoutShell";
 import { getPublicGifts } from "@/features/gifts/publicGifts";
 import { getLoyalty } from "@/features/loyalty/data";
+import { installmentLimitFrom } from "@/features/payment/types";
 import { getContacts } from "@/features/site/contacts";
 import { getReferencesVideoHref } from "@/features/site/content";
+import { getLayoutContent } from "@/features/site/layoutContent";
 
 export const metadata: Metadata = {
   title: "Checkout | Lets4Trade",
@@ -40,11 +42,14 @@ export default async function CheckoutPage() {
   // latência à tela de pagamento.
   // Os brindes por jogo (2026-10-12) também: públicos e cacheados.
   // O vídeo de referências (2026-10-20) também: leitura pública das sessões.
-  const [result, contacts, gifts, referencesHref] = await Promise.all([
+  // O limite de parcelas (2026-10-28) também: sessão `layout:pagamento`, da
+  // mesma leitura cacheada do layout.
+  const [result, contacts, gifts, referencesHref, layout] = await Promise.all([
     getLoyalty(),
     getContacts(),
     getPublicGifts(),
     getReferencesVideoHref(),
+    getLayoutContent(),
   ]);
 
   return (
@@ -55,6 +60,7 @@ export default async function CheckoutPage() {
         // Só o LINK montado viaja para o cliente — ver `features/site/contacts.ts`.
         whatsappHref={contacts.whatsapp?.href}
         referencesHref={referencesHref}
+        installmentLimit={installmentLimitFrom(layout.text("pagamento").extra("parcelas", ""))}
       />
     </CheckoutShell>
   );

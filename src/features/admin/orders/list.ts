@@ -112,6 +112,15 @@ export async function getAdminOrders(query: OrdersQuery): Promise<AdminOrderPage
 }
 
 /**
+ * Origem do backend, para os links e imagens que saem DIRETO de lá (recibo,
+ * comprovantes de entrega, com o cookie de sessão). Num lugar só para "Vendas e
+ * pedidos" e o quadro do pedido no chat (2026-10-28) montarem a URL igual.
+ */
+export function backendOrigin(): string {
+  return (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/api\/v\d+\/?$/, "");
+}
+
+/**
  * Status de entrega personalizados (2026-10-16), ativos, na ordem do select.
  * Lista vazia em qualquer imprevisto — o select fica só com as situações.
  */

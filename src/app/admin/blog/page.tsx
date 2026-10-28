@@ -9,6 +9,8 @@ import { ADMIN_BLOG_STATUS, adminBlogHref, parseAdminBlogQuery } from "@/feature
 import { getAdminGames } from "@/features/admin/catalog";
 import { ADMIN_SHELL } from "@/features/admin/layout";
 import { requirePanelArea } from "@/features/admin/guard";
+import { canAccess } from "@/features/admin/permissions";
+import { getSessionRole } from "@/features/auth/session";
 
 export const metadata: Metadata = {
   title: "Blog | Lets4Trade",
@@ -28,8 +30,10 @@ export default async function AdminBlogPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  // Conteúdo: ADMIN e EDITOR (o atendente entra no painel, mas não aqui).
-  await requirePanelArea("content");
+  // Área "blog": ADMIN, EDITOR e REDATOR (o atendente entra no painel, mas não aqui).
+  await requirePanelArea("blog");
+  // O atalho "Textos da página" leva a Páginas — o REDATOR não tem essa área.
+  const canEditPages = canAccess(await getSessionRole(), "content");
   const params = await searchParams;
   // Os jogos primeiro: validam o `?jogo=` (id inventado vira "sem filtro").
   const games = await getAdminGames();
@@ -51,11 +55,16 @@ export default async function AdminBlogPage({
           <p className="mt-[12px] font-poppins text-[15px] text-brand-fg-muted">
             {page ? `${page.total} post${page.total === 1 ? "" : "s"}${filtering ? (page.total === 1 ? " encontrado" : " encontrados") : ""}` : "-"}
             {/* Os textos FIXOS da página (título, lista, busca) moram em Páginas
-                — atalho para não precisar procurar (2026-10-16). */}
-            <span aria-hidden className="mx-[8px] text-white/30">·</span>
-            <Link href="/admin/paginas?pagina=blog" className="text-brand-orange hover:underline">
-              Textos da página →
-            </Link>
+                — atalho para não precisar procurar (2026-10-16). Só para quem
+                edita Páginas (2026-10-28: o REDATOR não). */}
+            {canEditPages ? (
+              <>
+                <span aria-hidden className="mx-[8px] text-white/30">·</span>
+                <Link href="/admin/paginas?pagina=blog" className="text-brand-orange hover:underline">
+                  Textos da página →
+                </Link>
+              </>
+            ) : null}
           </p>
         </div>
 

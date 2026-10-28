@@ -167,6 +167,10 @@ const GAMES_SHARED: ContentPageDef = {
   label: "Textos comuns dos jogos",
   href: "/",
   catalogPage: "games",
+  // SEM "Dúvidas sobre Orbs" (2026-10-28, pedido do usuário): só os jogos de
+  // Path of Exile mostram esse grupo, então ele não é texto COMUM. Continua
+  // editável no bloco de dúvidas da página de cada PoE (`gameSectionTarget`).
+  sectionKeys: ["referencias", "noticias", "duvidas"],
   previewPath: null,
 };
 

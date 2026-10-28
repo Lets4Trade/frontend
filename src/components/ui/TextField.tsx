@@ -10,7 +10,7 @@ type TextFieldProps = InputHTMLAttributes<HTMLInputElement> & {
   /** Mensagem de erro já traduzida. Quando presente, o campo entra em estado inválido. */
   error?: string;
   /**
-   * Máscara aplicada a cada tecla (`phone` ou `cnpj`, ver `lib/masks.ts`).
+   * Máscara aplicada a cada tecla (`phone`, `cnpj` ou `cardExpiry`, ver `lib/masks.ts`).
    *
    * Funciona com campo controlado (`value` + `onChange`) e não controlado
    * (`defaultValue` + `FormData`): a máscara reescreve o próprio `<input>`
@@ -26,6 +26,9 @@ const MASK_ATTRS: Record<MaskKind, InputHTMLAttributes<HTMLInputElement>> = {
   phone: { inputMode: "tel", maxLength: 20 },
   // CNPJ alfanumérico pede teclado de texto; "00.000.000/0000-00" tem 18.
   cnpj: { inputMode: "text", maxLength: 18, autoCapitalize: "characters" },
+  // "MM/AA" tem 5, mas o campo aceita 7 para um "12/2025" colado chegar
+  // inteiro à máscara, que o reduz a "12/25".
+  cardExpiry: { inputMode: "numeric", maxLength: 7 },
 };
 
 /**
@@ -55,7 +58,10 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
       format && typeof defaultValue === "string" ? format(defaultValue) : defaultValue;
 
     function handleChange(event: ChangeEvent<HTMLInputElement>) {
-      if (mask) applyMask(event.currentTarget, mask);
+      if (mask) {
+        const inputType = (event.nativeEvent as InputEvent).inputType ?? "";
+        applyMask(event.currentTarget, mask, inputType.startsWith("delete"));
+      }
       onChange?.(event);
     }
 

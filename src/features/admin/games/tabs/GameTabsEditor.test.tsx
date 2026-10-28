@@ -102,6 +102,27 @@ describe("NewTabForm", () => {
     expect(createTabAction).toHaveBeenCalledWith("g1", { label: "Moedas", layout: "CATALOG" });
   });
 
+  it("nome de modelo sugere o layout dele: 'Mentoria' nasce Pacotes, como o Boosting (2026-10-28)", async () => {
+    createTabAction.mockResolvedValue({ ok: true, data: tab("t9", "Mentoria", "PACKAGES") });
+    render(<NewTabForm gameId="g1" onCreated={vi.fn()} />);
+
+    fireEvent.change(screen.getByPlaceholderText("Boosting"), { target: { value: "Mentoria" } });
+    expect(screen.getByLabelText(/^Pacotes/)).toBeChecked();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "+ CRIAR ABA" }));
+    });
+    await waitFor(() => expect(createTabAction).toHaveBeenCalledTimes(1));
+    expect(createTabAction).toHaveBeenCalledWith("g1", { label: "Mentoria", layout: "PACKAGES" });
+  });
+
+  it("layout escolhido à mão vence a sugestão do nome", () => {
+    render(<NewTabForm gameId="g1" onCreated={vi.fn()} />);
+    fireEvent.click(screen.getByLabelText(/^Serviço/));
+    fireEvent.change(screen.getByPlaceholderText("Boosting"), { target: { value: "Mentoria" } });
+    expect(screen.getByLabelText(/^Serviço/)).toBeChecked();
+  });
+
   it("na Central, a aba criada já abre à direita", async () => {
     createTabAction.mockResolvedValue({ ok: true, data: tab("t9", "Moedas", "CATALOG") });
     render(<NewTabPanel gameId="g1" />);

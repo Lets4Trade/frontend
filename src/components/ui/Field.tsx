@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
@@ -15,6 +16,7 @@ export function Field({
   error,
   errorId,
   hideLabel = false,
+  labelIcon,
   children,
 }: {
   label: string;
@@ -27,6 +29,11 @@ export function Field({
    * só empilha texto.
    */
   hideLabel?: boolean;
+  /**
+   * Arte decorativa antes do rótulo (2026-10-28: a moeda em "Usar lets coins"
+   * do checkout). Só enfeite — o nome do campo continua sendo o texto.
+   */
+  labelIcon?: string;
   children: ReactNode;
 }) {
   return (
@@ -39,9 +46,13 @@ export function Field({
         // linhas e empurrar o campo para baixo.
         className={cn(
           "font-helvetica text-[18px] leading-[21px] font-bold tracking-[0.18px] whitespace-nowrap text-white",
+          labelIcon && "flex items-center gap-[8px]",
           hideLabel && "sr-only",
         )}
       >
+        {labelIcon ? (
+          <Image src={labelIcon} alt="" width={26} height={26} aria-hidden className="size-[26px] shrink-0 object-contain" />
+        ) : null}
         {label}
       </label>
 

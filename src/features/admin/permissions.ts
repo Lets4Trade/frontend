@@ -7,6 +7,8 @@
  *            catálogo inteiro (jogos, abas, produtos e preços).
  *   SUPPORT  atendente: chat e pedidos (ver, mudar situação, assumir) e o
  *            aviso de venda.
+ *   WRITER   redator (2026-10-28, pedido do usuário): só o BLOG. Na loja é um
+ *            cliente normal (compra, chat, fidelidade — nada muda lá).
  *
  * Cupons, brindes, cashback (dinheiro que a loja deixa de receber ou devolve),
  * usuários e logs: só ADMIN.
@@ -17,13 +19,16 @@
  */
 
 /** Espelha o enum `UserRole` do backend (prisma/schema.prisma). */
-export type SessionRole = "ADMIN" | "EDITOR" | "SUPPORT" | "USER";
+export type SessionRole = "ADMIN" | "EDITOR" | "SUPPORT" | "WRITER" | "USER";
 export type PanelRole = Exclude<SessionRole, "USER">;
 
-export type PanelArea = "content" | "catalog" | "orders" | "support" | "promotions" | "users" | "logs";
+export type PanelArea = "content" | "blog" | "catalog" | "orders" | "support" | "promotions" | "users" | "logs";
 
 export const AREA_ROLES: Record<PanelArea, readonly PanelRole[]> = {
   content: ["ADMIN", "EDITOR"],
+  // Área própria desde 2026-10-28: o blog era parte de "content", e o REDATOR
+  // não pode levar junto páginas, configurações da loja e builder.
+  blog: ["ADMIN", "EDITOR", "WRITER"],
   catalog: ["ADMIN", "EDITOR"],
   orders: ["ADMIN", "SUPPORT"],
   support: ["ADMIN", "SUPPORT"],
@@ -33,7 +38,7 @@ export const AREA_ROLES: Record<PanelArea, readonly PanelRole[]> = {
 };
 
 export function isPanelRole(role: SessionRole | null | undefined): role is PanelRole {
-  return role === "ADMIN" || role === "EDITOR" || role === "SUPPORT";
+  return role === "ADMIN" || role === "EDITOR" || role === "SUPPORT" || role === "WRITER";
 }
 
 /** Papel desconhecido ou ausente nunca passa (lista fechada por área). */
@@ -45,6 +50,7 @@ export const ROLE_LABEL: Record<SessionRole, string> = {
   ADMIN: "Admin",
   EDITOR: "Editor",
   SUPPORT: "Atendente",
+  WRITER: "Redator",
   USER: "Cliente",
 };
 
@@ -52,5 +58,6 @@ export const ROLE_LABEL: Record<SessionRole, string> = {
 export function panelHome(role: PanelRole): string {
   if (role === "EDITOR") return "/admin/paginas";
   if (role === "SUPPORT") return "/admin/chats";
+  if (role === "WRITER") return "/admin/blog";
   return "/admin/pedidos";
 }

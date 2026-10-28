@@ -62,3 +62,37 @@ describe("opção Outros", () => {
     expect(createSellSchema().safeParse(outros).success).toBe(true);
   });
 });
+
+describe("campos livres e contato (2026-10-28)", () => {
+  const schema = createSellSchema();
+  const base = { ...valid, jogo: "outros" };
+  const errors = (values: object) => {
+    const result = schema.safeParse(values);
+    return result.success ? {} : result.error.flatten().fieldErrors;
+  };
+
+  it("plataforma, servidor e tipo aceitam texto livre", () => {
+    expect(schema.safeParse({ ...base, plataforma: "PS5", servidor: "Hardcore Ásia", tipoProduto: "Skin rara" }).success).toBe(true);
+  });
+
+  it("vazios ou longos demais são recusados", () => {
+    const result = errors({ ...base, plataforma: "  ", servidor: "x".repeat(61), tipoProduto: "" });
+    expect(Object.keys(result).sort()).toEqual(["plataforma", "servidor", "tipoProduto"]);
+  });
+
+  it("basta o Discord OU o WhatsApp", () => {
+    expect(schema.safeParse({ ...base, discord: "" }).success).toBe(true);
+    expect(schema.safeParse({ ...base, whatsapp: "" }).success).toBe(true);
+  });
+
+  it("sem nenhum dos dois: o aviso aparece nos dois campos", () => {
+    const result = errors({ ...base, discord: "", whatsapp: "  " });
+    expect(result.discord?.[0]).toBe("Informe o Discord ou o WhatsApp.");
+    expect(result.whatsapp?.[0]).toBe("Informe o Discord ou o WhatsApp.");
+  });
+
+  it("o que vier preenchido continua validado", () => {
+    expect(Object.keys(errors({ ...base, whatsapp: "123" }))).toEqual(["whatsapp"]);
+    expect(Object.keys(errors({ ...base, discord: "a" }))).toEqual(["discord"]);
+  });
+});

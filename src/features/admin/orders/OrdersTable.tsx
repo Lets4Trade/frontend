@@ -13,16 +13,14 @@ import { ACTION_FAILED_MESSAGE, runAction } from "@/lib/safeAction";
 import { updateOrderAction } from "./actions";
 import { InlineSelect } from "./InlineSelect";
 import { OrderInfoDialog } from "./OrderInfoDialog";
-import { DELIVERY_COLOR_STYLES, toDeliveryStatus } from "@/features/orders/deliveryStatus";
 import {
   CUSTOM_PREFIX,
-  ORDER_STATUSES,
   UNASSIGNED,
   attendantName,
   formatDateTime,
   orDash,
   orderPill,
-  statusStyle,
+  statusOptions,
   statusValue,
   type AdminDeliveryStatus,
   type AdminOrder,
@@ -38,13 +36,13 @@ import {
  *
  * A ordem VISUAL não é a ordem em que os cabeçalhos aparecem no arquivo: lá
  * "Descrição" está declarado antes de "Ações" mas desenhado depois (x=1517
- * contra 1411). Quem manda é a coordenada.
+ * contra 1411). Quem manda é a coordenada. ("Ações" saiu em 2026-10-28.)
  */
 /**
  * ── Alinhamento ────────────────────────────────────────────────────────────
  * No arquivo, as colunas de TEXTO (ID, Telefone, Cliente, Jogo, Descrição) e o
  * seu cabeçalho partem do MESMO x — alinhadas à esquerda. Já as de CONTROLE
- * (Status, Entregador, Comprovante, Ações) ocupam a mesma faixa horizontal do
+ * (Status, Entregador, Comprovante) ocupam a mesma faixa horizontal do
  * cabeçalho e ficam centradas nela: a pílula "Status" mede 100px contra 58 do
  * rótulo e sobra igualmente dos dois lados; o ícone de comprovante cai no meio
  * exato dos 119px de "Comprovante".
@@ -77,7 +75,8 @@ const COLUMNS = [
   { key: "assignee", label: "Entregador", width: 134, align: "center" },
   { key: "receipt", label: "Comprovante", width: 160, align: "center" },
   { key: "createdAt", label: "Data/Hora", width: 151, align: "center" },
-  { key: "actions", label: "Ações", width: 106, align: "center" },
+  // "Ações" saiu em 2026-10-28 (pedido do usuário): só tinha o botão Chat, e o
+  // número do pedido (coluna ID) já abre a conversa desde 2026-10-23.
   { key: "info", label: "Descrição", width: 276 },
   // SEM rótulo, e o arquivo também não tem um: o emblema do jogo fecha a linha
   // encostado na margem direita do card (x=1743 de 1820, com os mesmos 50px de
@@ -86,7 +85,7 @@ const COLUMNS = [
 ] as const;
 
 /** Soma das colunas com largura fixa. Abaixo disso, quem rola é a tabela. */
-const MIN_WIDTH = 1417;
+const MIN_WIDTH = 1311;
 
 /**
  * Tabela de "Vendas e pedidos" (Figma 2546:1136).
@@ -360,40 +359,6 @@ export function OrdersTable({
                       {formatDateTime(order.createdAt)}
                     </td>
 
-                    <td className="py-[14px] text-center">
-                      {/*
-                        PÍLULA de 74×24 com BORDA LARANJA e o mesmo fundo do
-                        entregador — as medidas do arquivo. O ícone vem ANTES do
-                        texto, também como no arquivo; aqui vinha depois, e era um
-                        emoji.
-
-                        `order/chat.svg` é exatamente o nó que o arquivo usa
-                        (`Outline / Messages, Conversation / Chat Round Dots`,
-                        16px) — já estava em `public/`, vindo da tela de pedido do
-                        cliente.
-
-                        Leva ao ATENDIMENTO (2026-09-15) — desde 2026-10-23 direto
-                        na conversa do pedido, não mais na lista filtrada. Antes
-                        de 2026-09-15 abria a tela do cliente, onde o admin
-                        escrevia como se fosse o dono do pedido.
-                      */}
-                      <a
-                        href={adminOrderChatHref(order.reference)}
-                        className="inline-flex h-[24px] w-[74px] items-center justify-center gap-[6px] rounded-full border border-brand-orange bg-[image:var(--brand-surface-fill)] font-helvetica text-[14px] tracking-[0.14px] text-white transition-opacity hover:opacity-80"
-                      >
-                        <Image
-                          src="/icons/order/chat.svg"
-                          alt=""
-                          width={16}
-                          height={16}
-                          aria-hidden
-                          className="size-[16px]"
-                        />
-                        Chat
-                        <span className="sr-only">do pedido {order.reference}</span>
-                      </a>
-                    </td>
-
                     <td className="py-[14px] pr-[10px]">
                       {/*
                         No arquivo este texto é CINZA (#d8d8d8), 16px, regular —
@@ -473,24 +438,3 @@ export function OrdersTable({
   );
 }
 
-/**
- * Opções do select de situação: as padrão e, num grupo, os personalizados
- * (2026-10-16), com a bolinha da cor. Status ARQUIVADO que o pedido ainda usa
- * entra também — sem a opção, o Radix mostraria a pílula vazia.
- */
-function statusOptions(order: AdminOrder, statuses: AdminDeliveryStatus[]) {
-  const current = toDeliveryStatus(order.deliveryStatus);
-  const custom = [...statuses];
-  if (current && !custom.some((status) => status.id === current.id)) {
-    custom.push({ id: current.id, label: current.label, color: current.color, base: order.status });
-  }
-  return [
-    ...ORDER_STATUSES.map((value) => ({ value, label: statusStyle(value).label, group: "Situação" })),
-    ...custom.map((status) => ({
-      value: `${CUSTOM_PREFIX}${status.id}`,
-      label: `${status.label} · ${statusStyle(status.base).label}`,
-      group: "Personalizados",
-      swatch: DELIVERY_COLOR_STYLES[status.color].text,
-    })),
-  ];
-}

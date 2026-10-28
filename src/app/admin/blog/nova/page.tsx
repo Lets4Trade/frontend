@@ -16,7 +16,7 @@ export const metadata: Metadata = {
  */
 export default async function NewBlogPostPage() {
   // Conteúdo: ADMIN e EDITOR (o atendente entra no painel, mas não aqui).
-  await requirePanelArea("content");
+  await requirePanelArea("blog");
   const games = await getAdminGames();
   return (
     <AdminFormCard title="NOVO POST" headingId="nova-noticia-heading">

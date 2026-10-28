@@ -13,7 +13,8 @@ import { StaffAvatar } from "@/features/support/StaffAvatar";
 import { listTime } from "@/features/support/types";
 import { cn } from "@/lib/cn";
 import { replyAsStaff, updateConversation } from "./api";
-import { ChatOrderSummary } from "./ChatOrderSummary";
+import { ChatOrderSummary, type ChatOrderControls } from "./ChatOrderSummary";
+import { refreshChatUnread } from "./chatUnread";
 import { CustomerNotesPanel } from "./CustomerNotesPanel";
 import type { ChatOrder, StaffConversation, StaffConversationDetail, StaffMessage } from "./types";
 
@@ -39,7 +40,10 @@ export function ChatsBoard({
   hrefFor,
   currentStaffId,
   canOpenUsers = false,
+  orderControls,
 }: {
+  /** Situação + comprovantes de entrega no quadro do pedido (2026-10-28). */
+  orderControls: ChatOrderControls;
   /** Nome do cliente vira link para a ficha em Usuários (só ADMIN, 2026-10-23). */
   canOpenUsers?: boolean;
   items: StaffConversation[];
@@ -66,6 +70,9 @@ export function ChatsBoard({
   useEffect(() => {
     setConversation(detail?.conversation ?? null);
     setMessages(detail?.messages ?? []);
+    // Abrir a conversa (a leitura do servidor) a marcou como lida: o ponto de
+    // "Chats" no menu relê.
+    if (detail) refreshChatUnread();
   }, [detail]);
 
   const openId = conversation?.id ?? null;
@@ -92,7 +99,8 @@ export function ChatsBoard({
       upsert(isOpen ? { ...summary, unread: false } : summary);
       if (isOpen) {
         setMessages((current) => (current.some((m) => m.id === message.id) ? current : [...current, message]));
-        if (message.author === "CLIENTE") socket.emit("lida", { conversationId: summary.id });
+        // Com a confirmação do backend, o ponto de "Chats" no menu relê.
+        if (message.author === "CLIENTE") socket.emit("lida", { conversationId: summary.id }, () => refreshChatUnread());
       }
     };
 
@@ -173,6 +181,7 @@ export function ChatsBoard({
           attendants={attendants}
           currentStaffId={currentStaffId}
           canOpenUsers={canOpenUsers}
+          orderControls={orderControls}
           onSent={(summary, message) => {
             setConversation(summary);
             setMessages((current) => (current.some((m) => m.id === message.id) ? current : [...current, message]));
@@ -197,10 +206,12 @@ function ConversationPane({
   attendants,
   currentStaffId,
   canOpenUsers,
+  orderControls,
   onSent,
   onUpdated,
 }: {
   canOpenUsers: boolean;
+  orderControls: ChatOrderControls;
   conversation: StaffConversation;
   contact: StaffConversationDetail["contact"];
   notes?: StaffConversationDetail["notes"];
@@ -348,6 +359,7 @@ function ConversationPane({
               </summary>
               <ChatOrderSummary
                 order={order}
+                controls={orderControls}
                 hideHeading
                 className="scrollbar-orange max-h-[34vh] overflow-y-auto px-[30px] pb-[18px]"
               />
@@ -393,7 +405,7 @@ function ConversationPane({
             aria-label={`Pedido ${order.purchase.reference}`}
             className="scrollbar-orange hidden w-[400px] shrink-0 overflow-y-auto border-l border-brand-hairline px-[22px] py-[20px] 2xl:block"
           >
-            <ChatOrderSummary order={order} />
+            <ChatOrderSummary order={order} controls={orderControls} />
           </aside>
         ) : null}
       </div>

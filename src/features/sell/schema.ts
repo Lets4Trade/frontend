@@ -1,18 +1,18 @@
 import { z } from "zod";
 
 /**
- * Opções dos selects. Plataforma, servidor e tipo ainda são PLACEHOLDER (o
- * design mostra um valor por campo: "Steam", "Gold"); o JOGO vem da loja desde
- * 2026-10-23 (`sellGameOptions`). Ver .claude/context/open-questions.md.
- */
-/**
- * "Outros" no FIM de todo select (pedido em 2026-10-01): o cliente que vende
- * algo fora da lista não pode ficar travado no formulário. É um valor FIXO
- * (`outros`), não texto livre — o schema continua recusando o resto; o que
- * ele é de fato vai na descrição, que é obrigatória.
+ * "Outros" no FIM do select de jogo (pedido em 2026-10-01): o cliente que
+ * vende algo fora da lista não pode ficar travado no formulário. O que ele é
+ * de fato vai na descrição, que é obrigatória.
  */
 export const OUTROS = { value: "outros", label: "Outros" } as const;
 
+/**
+ * Plataforma, servidor e tipo de produto viraram TEXTO LIVRE em 2026-10-28
+ * (pedido do usuário). As listas abaixo ficam só como RÓTULOS das propostas
+ * antigas, gravadas com o código (`steam` → "Steam") — ver
+ * `admin/sellRequests/types.ts`.
+ */
 export const PLATAFORMAS = [
   { value: "steam", label: "Steam" },
   { value: "epic", label: "Epic Games" },
@@ -75,34 +75,51 @@ export function sellGameOptions(
  * `games`: as opções de "Jogo" daquela tela (`sellGameOptions`). O padrão (só
  * "Outros") existe para o tipo `SellFormValues`; as telas sempre passam a lista.
  */
+/** Teto de plataforma, servidor e tipo — o mesmo do backend (`SELL_TEXT_MAX`). */
+export const SELL_TEXT_MAX = 60;
+
+const textoLivre = (vazio: string) =>
+  z.string().trim().min(1, vazio).max(SELL_TEXT_MAX, `Máximo de ${SELL_TEXT_MAX} caracteres.`);
+
+const CONTATO_FALTANDO = "Informe o Discord ou o WhatsApp.";
+
 export function createSellSchema(games: readonly Option[] = [OUTROS]) {
-  return z.object({
-  jogo: opcaoDe(games, "Selecione o jogo."),
-  plataforma: opcaoDe(PLATAFORMAS, "Selecione a plataforma."),
-  servidor: opcaoDe(SERVIDORES, "Selecione o servidor."),
-  tipoProduto: opcaoDe(TIPOS_PRODUTO, "Selecione o tipo de produto."),
-  discord: z
-    .string()
-    .trim()
-    .min(2, "Informe seu Discord.")
-    .max(64, "Discord muito longo."),
-  whatsapp: z
-    .string()
-    .trim()
-    .min(1, "Informe seu WhatsApp.")
-    .refine(
-      (value) => {
-        const digits = value.replace(/\D/g, "");
-        return digits.length >= 10 && digits.length <= 15;
-      },
-      { message: "Número inválido. Inclua DDD." },
-    ),
-  descricao: z
-    .string()
-    .trim()
-    .min(10, "Descreva o produto com ao menos 10 caracteres.")
-    .max(1000, "Máximo de 1000 caracteres."),
-  });
+  return z
+    .object({
+      jogo: opcaoDe(games, "Selecione o jogo."),
+      plataforma: textoLivre("Informe a plataforma."),
+      servidor: textoLivre("Informe o servidor."),
+      tipoProduto: textoLivre("Informe o tipo de produto."),
+      // Discord OU WhatsApp (2026-10-28): cada um é opcional, mas o que vier
+      // tem que ser válido; "pelo menos um" é o `superRefine` abaixo.
+      discord: z
+        .string()
+        .trim()
+        .refine((value) => value === "" || value.length >= 2, { message: "Discord muito curto." })
+        .refine((value) => value.length <= 64, { message: "Discord muito longo." }),
+      whatsapp: z
+        .string()
+        .trim()
+        .refine(
+          (value) => {
+            if (value === "") return true;
+            const digits = value.replace(/\D/g, "");
+            return digits.length >= 10 && digits.length <= 15;
+          },
+          { message: "Número inválido. Inclua DDD." },
+        ),
+      descricao: z
+        .string()
+        .trim()
+        .min(10, "Descreva o produto com ao menos 10 caracteres.")
+        .max(1000, "Máximo de 1000 caracteres."),
+    })
+    .superRefine((values, ctx) => {
+      if (values.discord !== "" || values.whatsapp !== "") return;
+      // O aviso nos DOIS campos: qualquer um deles resolve.
+      ctx.addIssue({ code: "custom", path: ["discord"], message: CONTATO_FALTANDO });
+      ctx.addIssue({ code: "custom", path: ["whatsapp"], message: CONTATO_FALTANDO });
+    });
 }
 
 export const sellSchema = createSellSchema();

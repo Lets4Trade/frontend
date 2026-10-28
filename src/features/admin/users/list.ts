@@ -33,7 +33,7 @@ export type UsersQuery = {
   user: string;
 };
 
-const ROLES = new Set(["ADMIN", "EDITOR", "SUPPORT", "USER"]);
+const ROLES = new Set(["ADMIN", "EDITOR", "SUPPORT", "WRITER", "USER"]);
 
 type RawParams = Record<string, string | string[] | undefined>;
 

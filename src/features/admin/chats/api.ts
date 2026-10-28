@@ -56,3 +56,12 @@ export function saveCustomerNotes(conversationId: string, notes: string) {
     body: JSON.stringify({ notes }),
   });
 }
+
+/**
+ * Quantas conversas esperam a equipe (2026-10-28) — o ponto de "Chats" no menu.
+ * Ver `chatUnread.ts`.
+ */
+export async function getStaffUnreadCount(): Promise<number> {
+  const data = await call<{ count?: unknown }>("/conversations/unread", { method: "GET" });
+  return typeof data?.count === "number" && data.count > 0 ? data.count : 0;
+}

@@ -5,8 +5,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { GlowBar } from "@/components/layout/GlowBar";
 import { UserMenu } from "@/components/layout/UserMenu";
+import { ChatsUnreadDot } from "@/features/admin/chats/ChatsUnreadDot";
 import { PresenceToggle } from "@/features/admin/chats/PresenceToggle";
 import { SaleAlerts, SalesBadge } from "@/features/admin/sales/SaleAlerts";
+import { ProposalsNewDot } from "@/features/admin/sellRequests/ProposalsNewDot";
 import type { SessionUser } from "@/features/auth/session";
 import { cn } from "@/lib/cn";
 import { ADMIN_NAV } from "./nav";
@@ -85,6 +87,10 @@ export function AdminHeader({
         {item.label}
         {/* Vendas novas desde a última visita à lista (2026-10-16). */}
         {item.href === "/admin/pedidos" && canAccess(role, "orders") ? <SalesBadge /> : null}
+        {/* Mensagem de cliente que a equipe não abriu (2026-10-28). */}
+        {item.href === "/admin/chats" && canAccess(role, "support") ? <ChatsUnreadDot /> : null}
+        {/* Proposta de "Venda pra nós" ainda NOVA (2026-10-28). */}
+        {item.href === "/admin/propostas" && canAccess(role, "orders") ? <ProposalsNewDot /> : null}
       </Link>
     );
   });

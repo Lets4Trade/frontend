@@ -11,7 +11,7 @@ import {
   parseChatsQuery,
 } from "@/features/admin/chats/types";
 import { ADMIN_SHELL } from "@/features/admin/layout";
-import { getAttendants } from "@/features/admin/orders/list";
+import { backendOrigin, getAttendants, getDeliveryStatuses } from "@/features/admin/orders/list";
 import { getSessionRole, getSessionUserId } from "@/features/auth/session";
 import { canAccess } from "@/features/admin/permissions";
 import { requirePanelArea } from "@/features/admin/guard";
@@ -41,13 +41,16 @@ export default async function AdminChatsPage({ searchParams }: PageProps) {
 
   // O pedido depende da conversa (é ela que diz a referência): encadeado só
   // nesse ramo, para as outras leituras seguirem em paralelo.
-  const [page, [detail, order], attendants, staffId] = await Promise.all([
+  const [page, [detail, order], attendants, staffId, statuses] = await Promise.all([
     getStaffConversations(query),
     getStaffConversation(query.conversation).then(
       async (found) => [found, await getChatOrder(found?.conversation.orderReference)] as const,
     ),
     getAttendants(),
     getSessionUserId(),
+    // Para o select de situação do quadro do pedido (2026-10-28). Em paralelo:
+    // esperar o pedido para decidir somaria a latência da cadeia conversa → pedido.
+    getDeliveryStatuses(),
   ]);
 
   const pageCount = Math.max(1, Math.ceil(page.total / page.limit));
@@ -117,6 +120,7 @@ export default async function AdminChatsPage({ searchParams }: PageProps) {
           hrefFor={hrefFor}
           currentStaffId={staffId}
           canOpenUsers={canOpenUsers}
+          orderControls={{ statuses, apiOrigin: backendOrigin() }}
         />
       </div>
 

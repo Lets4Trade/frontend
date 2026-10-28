@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath, updateTag } from "next/cache";
-import { canEditContent, getSessionRole } from "@/features/auth/session";
+import { canAccess } from "@/features/admin/permissions";
+import { getSessionRole } from "@/features/auth/session";
 import { BLOG_TAG } from "@/features/blog/format";
 import { apiDelete, apiPatchFormData, apiPostFormData, type ApiResult } from "@/lib/serverApi";
 import { blogPostSchema, coverProblem, ID_RE, readBlogForm, type BlogPostField } from "./schema";
@@ -11,7 +12,7 @@ import { gameHref } from "@/features/game/href";
  * Escritas do painel de notícias (`/admin/blog`) — contrato blog.md.
  *
  * Mesmo desenho das actions de jogo/produto:
- *   - PAPEL conferido aqui também (ADMIN ou EDITOR — notícia é conteúdo):
+ *   - PAPEL conferido aqui também (área "blog": ADMIN, EDITOR e REDATOR):
  *     server action é um ENDEREÇO PÚBLICO e não passa pelo layout do painel.
  *     A autorização de verdade é o `RolesGuard` do backend.
  *   - O `FormData` NÃO é reencaminhado como veio: um novo é montado só com os
@@ -48,7 +49,8 @@ type Failure = Extract<BlogActionResult, { ok: false }>;
 async function guard(): Promise<Failure | null> {
   const role = await getSessionRole();
   if (role === null) return { ok: false, reason: "unauthenticated", message: MESSAGES.unauthenticated };
-  if (!canEditContent(role)) return { ok: false, reason: "forbidden", message: MESSAGES.forbidden };
+  // Área "blog" (2026-10-28): ADMIN, EDITOR e REDATOR.
+  if (!canAccess(role, "blog")) return { ok: false, reason: "forbidden", message: MESSAGES.forbidden };
   return null;
 }
 

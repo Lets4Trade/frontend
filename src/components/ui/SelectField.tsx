@@ -38,6 +38,8 @@ type SelectFieldProps = {
   id?: string;
   /** Rótulo só para leitor de tela — ver `Field`. */
   hideLabel?: boolean;
+  /** Arte antes do rótulo — ver `Field`. */
+  labelIcon?: string;
 };
 
 /**
@@ -80,6 +82,7 @@ export function SelectField({
   className,
   id,
   hideLabel,
+  labelIcon,
   ...props
 }: SelectFieldProps) {
   const generatedId = useId();
@@ -88,7 +91,7 @@ export function SelectField({
   const withThumbs = options.some((option) => "image" in option);
 
   return (
-    <Field label={label} htmlFor={selectId} error={error} errorId={errorId} hideLabel={hideLabel}>
+    <Field label={label} htmlFor={selectId} error={error} errorId={errorId} hideLabel={hideLabel} labelIcon={labelIcon}>
       <Select.Root {...props}>
         <Select.Trigger
           id={selectId}

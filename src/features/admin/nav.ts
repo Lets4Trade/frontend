@@ -65,12 +65,13 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
     area: "content",
   },
   // NÃO está no arquivo do Figma: o blog (contrato blog.md, 2026-09-28). É
-  // conteúdo, então o EDITOR também vê — ao lado de "Páginas".
+  // conteúdo, então o EDITOR também vê — ao lado de "Páginas". Área própria
+  // desde 2026-10-28, por causa do REDATOR (só blog).
   {
     label: "Blog",
     href: "/admin/blog",
     match: ["/admin/blog"],
-    area: "content",
+    area: "blog",
   },
   // NÃO está no Figma (2026-10-01): WhatsApp, logo, CNPJ e redes estavam
   // escondidos como "sessões" de Páginas → Cabeçalho e rodapé. Mesmos cargos de

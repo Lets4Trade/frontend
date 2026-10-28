@@ -55,7 +55,10 @@ export async function CheckoutShell({ children }: { children: ReactNode }) {
               é o único elemento POSICIONADO da camada e pintaria por cima do
               painel, que é um bloco comum. O painel declara `z-10` do outro
               lado (ver `CheckoutSidePanel`). */}
-          <header className="relative z-0 flex h-[70px] w-full items-center bg-black/50 px-[16px] backdrop-blur-[9px] lg:absolute lg:top-0 lg:left-0 lg:h-[83px] lg:w-[1077px] lg:px-[50px]">
+          {/* Celular (2026-10-28, pedido do usuário): logo CENTRALIZADO — sem
+              busca, menu ou carrinho, ele é o único item da barra. No `lg` volta
+              para a esquerda, como no arquivo. */}
+          <header className="relative z-0 flex h-[70px] w-full items-center justify-center bg-black/50 lg:justify-start px-[16px] backdrop-blur-[9px] lg:absolute lg:top-0 lg:left-0 lg:h-[83px] lg:w-[1077px] lg:px-[50px]">
             <Link href="/" aria-label="Lets4Trade, início">
               <Image
                 src={brand.imageUrl ?? "/images/lets4trade-logo.png"}

@@ -51,7 +51,10 @@ export function statusMeta(status: SellRequestStatus) {
   return SELL_REQUEST_STATUSES.find((item) => item.value === status) ?? SELL_REQUEST_STATUSES[0];
 }
 
-/** `steam` → "Steam". Valor que não está mais na lista aparece como veio. */
+/**
+ * `steam` → "Steam" para as propostas ANTIGAS (gravadas com o código da lista).
+ * Desde 2026-10-28 os campos são texto livre e aparecem como vieram.
+ */
 function labelOf(list: readonly { value: string; label: string }[], value: string): string {
   return list.find((option) => option.value === value)?.label ?? value;
 }
@@ -74,9 +77,10 @@ export function toSellRequest(raw: unknown): SellRequest | null {
   return {
     id: row.id,
     gameName: str(row.gameName, 120) || "—",
-    platform: str(row.platform, 20),
-    server: str(row.server, 20),
-    productType: str(row.productType, 20),
+    // 60: texto livre desde 2026-10-28 (antes, códigos de até 20).
+    platform: str(row.platform, 60),
+    server: str(row.server, 60),
+    productType: str(row.productType, 60),
     discord: str(row.discord, 64),
     whatsapp: str(row.whatsapp, 25),
     description: str(row.description, 1000),

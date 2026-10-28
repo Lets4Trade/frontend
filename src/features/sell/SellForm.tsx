@@ -6,9 +6,7 @@ import { SelectField } from "@/components/ui/SelectField";
 import { TextAreaField } from "@/components/ui/TextAreaField";
 import { TextField } from "@/components/ui/TextField";
 import {
-  PLATAFORMAS,
-  SERVIDORES,
-  TIPOS_PRODUTO,
+  SELL_TEXT_MAX,
   createSellSchema,
   sellGameOptions,
   type SellFormValues,
@@ -128,33 +126,45 @@ export function SellForm({ games, game }: { games: readonly SellGame[]; game?: {
           defaultValue={gameOptions.defaultValue}
           error={fieldErrors.jogo}
         />
-        <SelectField
+        {/* Plataforma, servidor e tipo: TEXTO LIVRE (2026-10-28, pedido do
+            usuário) — eram selects com poucas opções e "Outros". */}
+        <TextField
           name="plataforma"
           label="Plataforma:"
-          placeholder="Steam"
-          options={PLATAFORMAS}
+          type="text"
+          maxLength={SELL_TEXT_MAX}
+          placeholder="Ex.: Steam, PS5, Battle.net"
           error={fieldErrors.plataforma}
         />
 
-        <SelectField
+        <TextField
           name="servidor"
           label="Servidor:"
-          placeholder="Servidor"
-          options={SERVIDORES}
+          type="text"
+          maxLength={SELL_TEXT_MAX}
+          placeholder="Ex.: América do Sul, Hardcore"
           error={fieldErrors.servidor}
         />
-        <SelectField
+        <TextField
           name="tipoProduto"
           label="Tipo de Produto:"
-          placeholder="Gold"
-          options={TIPOS_PRODUTO}
+          type="text"
+          maxLength={SELL_TEXT_MAX}
+          placeholder="Ex.: Gold, conta, item"
           error={fieldErrors.tipoProduto}
         />
 
+        {/* Discord OU WhatsApp (2026-10-28): um dos dois basta. O aviso fica numa
+            linha própria — no placeholder ele não cabia na coluna de 315px. */}
+        <p className="-mb-[10px] font-helvetica text-[14px] leading-[18px] text-brand-fg-muted md:col-span-2">
+          Contato: informe o <strong className="text-white">Discord</strong> ou o{" "}
+          <strong className="text-white">WhatsApp</strong> — um dos dois basta.
+        </p>
         <TextField
           name="discord"
           label="Discord:"
           type="text"
+          maxLength={64}
           placeholder="Discord ID"
           error={fieldErrors.discord}
         />

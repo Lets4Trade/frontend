@@ -10,7 +10,7 @@ import { formatPhone } from "@/lib/masks";
  */
 
 /** Espelha o enum `UserRole` do backend. */
-export type AdminUserRole = "ADMIN" | "EDITOR" | "SUPPORT" | "USER";
+export type AdminUserRole = "ADMIN" | "EDITOR" | "SUPPORT" | "WRITER" | "USER";
 
 /**
  * Derivado no backend de `isActive`/`deletedAt`. NÃO existe banimento no model:
@@ -97,6 +97,8 @@ export const ROLE_OPTIONS = [
   { value: "EDITOR", label: "Editor" },
   // Chat e pedidos (2026-10-16). Ver `features/admin/permissions.ts`.
   { value: "SUPPORT", label: "Atendente" },
+  // Só o blog no painel; na loja, cliente normal (2026-10-28).
+  { value: "WRITER", label: "Redator" },
   { value: "USER", label: "Cliente" },
 ] as const;
 

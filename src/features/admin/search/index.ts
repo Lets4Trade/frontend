@@ -38,7 +38,7 @@ const ACTIONS: readonly Gated[] = [
   { id: "acao:fidelidade-niveis", title: "Níveis de fidelidade", where: "Ação", href: "/admin/fidelidade", keywords: ["cashback", "nível", "rank", "bronze", "prata", "ouro", "diamante", "adamantium", "ícone", "lets coin"], area: "promotions" },
   { id: "acao:ordem", title: "Ordem dos produtos", where: "Ação", href: "/admin/produtos/ordem", keywords: ["ordenar", "posição", "vitrine"], area: "catalog" },
   { id: "acao:novo-jogo", title: "Cadastrar jogo", where: "Ação", href: "/admin/jogos/novo", keywords: ["novo", "criar", "game"], area: "catalog" },
-  { id: "acao:nova-noticia", title: "Novo post", where: "Ação", href: "/admin/blog/nova", keywords: ["blog", "post", "matéria"], area: "content" },
+  { id: "acao:nova-noticia", title: "Novo post", where: "Ação", href: "/admin/blog/nova", keywords: ["blog", "post", "matéria"], area: "blog" },
 ];
 
 /**

@@ -36,6 +36,7 @@ import {
   type TabLayout,
 } from "./types";
 import { cn } from "@/lib/cn";
+import { TAB_TEMPLATES } from "@/features/game/tabs";
 
 /**
  * Peças do editor das ABAS de um jogo (contrato `game-tabs.md`, 2026-09-28),
@@ -479,9 +480,32 @@ export function TabEditPanel({
   );
 }
 
+/**
+ * O layout do MODELO cujo nome a pessoa digitou ("Mentoria" → Pacotes, "Gold" →
+ * Quantidade), comparando sem caixa e sem acento. Só uma SUGESTÃO (2026-10-28):
+ * vale enquanto o layout não foi escolhido à mão.
+ */
+function modelLayoutFor(label: string): TabLayout | null {
+  const key = slugify(label.trim());
+  return (TAB_TEMPLATES.find((tab) => tab.slug === key)?.layout as TabLayout | undefined) ?? null;
+}
+
 export function NewTabForm({ gameId, onCreated }: { gameId: string; onCreated: (tab: GameTab) => void }) {
   const [label, setLabel] = useState("");
   const [layout, setLayout] = useState<TabLayout>("CATALOG");
+  // Escolheu o layout nos cartões? Então o nome não mexe mais nele.
+  const [layoutPicked, setLayoutPicked] = useState(false);
+
+  function changeLabel(next: string) {
+    setLabel(next);
+    if (layoutPicked) return;
+    setLayout(modelLayoutFor(next) ?? "CATALOG");
+  }
+
+  function pickLayout(next: TabLayout) {
+    setLayoutPicked(true);
+    setLayout(next);
+  }
   const [linkHref, setLinkHref] = useState("");
   // Textos já no cadastro (Etapa 1): antes era criar e depois "Editar".
   const [sections, setSections] = useState<SectionDraft[]>([]);
@@ -516,6 +540,7 @@ export function NewTabForm({ gameId, onCreated }: { gameId: string; onCreated: (
       setLinkHref("");
       setSections([]);
       setLayout("CATALOG");
+      setLayoutPicked(false);
       toastOk("Aba criada.");
     });
   }
@@ -534,7 +559,7 @@ export function NewTabForm({ gameId, onCreated }: { gameId: string; onCreated: (
           value={label}
           maxLength={60}
           placeholder="Boosting"
-          onChange={(e) => setLabel(e.target.value)}
+          onChange={(e) => changeLabel(e.target.value)}
         />
         {layout === "LINK" ? (
           <TextField
@@ -555,7 +580,7 @@ export function NewTabForm({ gameId, onCreated }: { gameId: string; onCreated: (
         </button>
       </div>
       <div className="mt-[25px] max-w-[1100px]">
-        <LayoutPicker value={layout} onChange={setLayout} disabled={pending} />
+        <LayoutPicker value={layout} onChange={pickLayout} disabled={pending} />
       </div>
       {hasTabContent(layout) ? (
         <div className="mt-[25px] max-w-[900px]">

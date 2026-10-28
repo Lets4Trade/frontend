@@ -1,5 +1,5 @@
 /**
- * Máscaras de entrada — telefone e CNPJ.
+ * Máscaras de entrada — telefone, CNPJ e validade do cartão.
  *
  * Funções PURAS (texto → texto formatado), usadas pelo `TextField` a cada
  * tecla e também na exibição de valores antigos. Formatar é UX: quem valida é
@@ -8,7 +8,7 @@
  * meio da digitação.
  */
 
-export type MaskKind = "phone" | "cnpj";
+export type MaskKind = "phone" | "cnpj" | "cardExpiry";
 
 const MAX_PHONE_DIGITS = 15; // E.164
 
@@ -82,9 +82,31 @@ export function formatCnpj(raw: string): string {
   return out;
 }
 
+/**
+ * Validade do cartão, `MM/AA`, com a barra colocada sozinha (2026-10-28,
+ * pedido do usuário: ninguém precisa digitar a "/").
+ *
+ * - Dois dígitos do mês → a barra já aparece (`12` → `12/`).
+ * - Mês começando por 2–9 só pode ser 02–09: `3` vira `03/` na hora.
+ * - Colado com ano de 4 dígitos (`12/2025`, comum no autopreenchimento) fica
+ *   `12/25`.
+ *
+ * Backspace funciona: apagar a barra devolve "12", a máscara a recoloca e o
+ * cursor fica ANTES dela (ver `applyMask`), então a tecla seguinte apaga o 2.
+ */
+export function formatCardExpiry(raw: string): string {
+  const longYear = raw.match(/^\s*(\d{1,2})\s*\/\s*(\d{4})\s*$/);
+  let digits = longYear ? `${longYear[1].padStart(2, "0")}${longYear[2].slice(2)}` : raw.replace(/\D/g, "");
+  if (/^[2-9]/.test(digits)) digits = `0${digits}`;
+  digits = digits.slice(0, 4);
+  if (digits.length < 2) return digits;
+  return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+}
+
 export const MASKS: Record<MaskKind, (raw: string) => string> = {
   phone: formatPhone,
   cnpj: formatCnpj,
+  cardExpiry: formatCardExpiry,
 };
 
 /** Caractere que a máscara CONSERVA (o resto é pontuação que ela recoloca). */
@@ -100,9 +122,13 @@ function isSignificant(kind: MaskKind, ch: string): boolean {
  * fim a cada tecla. Apagar uma pontuação com Backspace só pula o cursor por
  * cima dela (a máscara a recoloca); a tecla seguinte apaga o dígito.
  */
-export function applyMask(input: HTMLInputElement, kind: MaskKind): void {
+export function applyMask(input: HTMLInputElement, kind: MaskKind, deleting = false): void {
   const raw = input.value;
   const caret = input.selectionStart ?? raw.length;
+  // Digitando no FIM: o cursor acompanha a pontuação que a máscara acrescentou
+  // ("12" → "12/|", 2026-10-28). Apagando, não — senão a barra voltaria e o
+  // cursor ficaria depois dela, e o Backspace nunca passaria da "/".
+  const typingAtEnd = !deleting && caret === raw.length;
 
   let significantBefore = 0;
   for (let i = 0; i < caret; i += 1) {
@@ -119,6 +145,7 @@ export function applyMask(input: HTMLInputElement, kind: MaskKind): void {
     if (isSignificant(kind, formatted[position])) seen += 1;
     position += 1;
   }
+  if (typingAtEnd) position = formatted.length;
   // Só mexe no cursor se o campo está focado — `setSelectionRange` num campo
   // sem foco rouba o foco em alguns navegadores.
   if (document.activeElement === input) input.setSelectionRange(position, position);

@@ -1,4 +1,5 @@
 import type { MaskKind } from "@/lib/masks";
+import { MAX_INSTALLMENTS } from "@/features/payment/types";
 import { WEEKDAYS } from "@/features/support/hours";
 import { blogCardExtraFields, type SectionExtraField } from "./blogCardFields";
 import { mobileAlignField } from "./mobileAlign";
@@ -685,6 +686,29 @@ export const SITE_PAGES: readonly SitePageDef[] = [
             defaultValue: "7",
             maxLength: 3,
             hint: "Para a mesma pessoa não ver o aviso toda hora. 0 = a cada visita.",
+          },
+        ],
+      },
+      {
+        // Parcelas do cartão de crédito (2026-10-28, pedido do usuário):
+        // Configurações da loja → Pagamento. Quem obedece é o BACKEND, que lê
+        // `parcelas` daqui a cada cobrança (`payments/payment.rules.ts`,
+        // `installmentLimitFrom`); o checkout só mostra a lista já cortada.
+        key: "pagamento",
+        label: "Pagamento",
+        hasTitle: false,
+        hasImage: false,
+        extraFields: [
+          {
+            name: "parcelas",
+            label: "Parcelas no cartão de crédito",
+            defaultValue: String(MAX_INSTALLMENTS),
+            maxLength: 2,
+            hint: "Máximo de vezes que o cliente pode parcelar, sem juros. Compras pequenas parcelam menos: nenhuma parcela fica abaixo de R$ 5,00.",
+            options: Array.from({ length: MAX_INSTALLMENTS }, (_, index) => ({
+              value: String(index + 1),
+              label: index === 0 ? "1x (sem parcelamento)" : `Até ${index + 1}x`,
+            })),
           },
         ],
       },

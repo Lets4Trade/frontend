@@ -32,7 +32,7 @@ import {
   readPendingPayment,
   savePendingPayment,
 } from "@/features/payment/pendingPayment";
-import { CREDIT_CARD_FEE_BPS, cardFeeCents, maxInstallmentsFor } from "@/features/payment/types";
+import { CREDIT_CARD_FEE_BPS, MAX_INSTALLMENTS, cardFeeCents, maxInstallmentsFor } from "@/features/payment/types";
 import { runAction } from "@/lib/safeAction";
 import { hashString, selectionKey } from "@/features/cart/lineId";
 import {
@@ -53,6 +53,9 @@ import { cardSchema, pixSchema } from "./schema";
  * espalhado por quatro contas.
  */
 const FALLBACK_COIN_CENTS = 1;
+
+/** A moeda dourada com o "4" — a arte da Lets Coin que a home já usa. */
+const LETS_COIN_ICON = "/images/home/emblema-4.png";
 
 /**
  * PIX primeiro e já marcado; crédito com taxa (2026-10-27, pedido do usuário).
@@ -86,6 +89,7 @@ export function CheckoutClient({
   gifts = [],
   whatsappHref,
   referencesHref,
+  installmentLimit = MAX_INSTALLMENTS,
 }: {
   loyalty: LoyaltySummary | null;
   /** Regras de brinde ligadas (2026-10-12) — ver `features/gifts`. */
@@ -98,6 +102,11 @@ export function CheckoutClient({
   whatsappHref?: string;
   /** Vídeo de referências no YouTube (`getReferencesVideoHref`), ou nada. */
   referencesHref?: string | null;
+  /**
+   * Máximo de parcelas da loja (Configurações → Pagamento, 2026-10-28). Só
+   * corta a lista; o backend recusa acima do limite de qualquer jeito.
+   */
+  installmentLimit?: number;
 }) {
   const router = useRouter();
 
@@ -185,7 +194,7 @@ export function CheckoutClient({
   // O total muda com as coins; a parcela escolhida antes pode ter ficado
   // abaixo do mínimo. Mesma regra do backend (`maxInstallmentsFor`, sobre o
   // valor com a taxa).
-  const effectiveInstallments = Math.min(installments, maxInstallmentsFor(charge));
+  const effectiveInstallments = Math.min(installments, maxInstallmentsFor(charge, installmentLimit));
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -458,9 +467,9 @@ export function CheckoutClient({
                   name="expiry"
                   label="Validade (MM/AA) *"
                   type="text"
-                  inputMode="numeric"
+                  // A "/" entra sozinha (2026-10-28); teclado e tamanho vêm da máscara.
+                  mask="cardExpiry"
                   autoComplete="cc-exp"
-                  maxLength={5}
                   placeholder="MM/AA"
                   error={fieldErrors.expiry}
                 />
@@ -481,7 +490,7 @@ export function CheckoutClient({
                 placeholder="Escolha as parcelas"
                 value={String(effectiveInstallments)}
                 onValueChange={(value) => setInstallments(Number(value))}
-                options={installmentOptions(charge)}
+                options={installmentOptions(charge, installmentLimit)}
               />
               <p className="-mt-[12px] font-helvetica text-[13px] leading-[18px] text-brand-placeholder">
                 Taxa de {CREDIT_CARD_FEE_BPS / 100}% no cartão de crédito ({formatCents(fee)}). No PIX não há taxa.
@@ -500,6 +509,8 @@ export function CheckoutClient({
               // `<select>` escondido que o Radix cria com `name` disparava uma
               // troca falsa quando o carrinho hidratava, desmarcando o "Sim".
               label="Usar lets coins"
+              // A moeda da marca (a mesma da home), pedida em 2026-10-28.
+              labelIcon={LETS_COIN_ICON}
               placeholder="Não"
               value={useCoins && maxCoins > 0 ? "sim" : "nao"}
               disabled={maxCoins === 0}
@@ -832,8 +843,8 @@ function chosenServer(gift: CartGift, choice: Record<string, string>) {
   return gift.servers.find((server) => server.productId === choice[gift.gameSlug]) ?? gift.servers[0];
 }
 
-function installmentOptions(totalCents: number) {
-  return Array.from({ length: maxInstallmentsFor(totalCents) }, (_, index) => {
+function installmentOptions(totalCents: number, limit: number) {
+  return Array.from({ length: maxInstallmentsFor(totalCents, limit) }, (_, index) => {
     const times = index + 1;
     return {
       value: String(times),

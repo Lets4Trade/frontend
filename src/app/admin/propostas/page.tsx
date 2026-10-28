@@ -162,24 +162,29 @@ export default async function AdminSellRequestsPage({
                   </p>
 
                   <div className="mt-[14px] flex flex-wrap items-center gap-x-[24px] gap-y-[8px] border-t border-white/[0.07] pt-[12px] font-helvetica text-[13px]">
-                    <span className="text-brand-fg-muted">
-                      Discord: <span className="font-bold text-white select-all">{item.discord}</span>
-                    </span>
-                    <span className="text-brand-fg-muted">
-                      WhatsApp:{" "}
-                      {wa ? (
-                        <a
-                          href={wa}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-bold text-white underline decoration-white/30 underline-offset-[3px] hover:text-brand-orange"
-                        >
-                          {formatPhone(item.whatsapp)}
-                        </a>
-                      ) : (
-                        <span className="font-bold text-white">{item.whatsapp}</span>
-                      )}
-                    </span>
+                    {/* Discord OU WhatsApp (2026-10-28): só o que veio. */}
+                    {item.discord ? (
+                      <span className="text-brand-fg-muted">
+                        Discord: <span className="font-bold text-white select-all">{item.discord}</span>
+                      </span>
+                    ) : null}
+                    {item.whatsapp ? (
+                      <span className="text-brand-fg-muted">
+                        WhatsApp:{" "}
+                        {wa ? (
+                          <a
+                            href={wa}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-bold text-white underline decoration-white/30 underline-offset-[3px] hover:text-brand-orange"
+                          >
+                            {formatPhone(item.whatsapp)}
+                          </a>
+                        ) : (
+                          <span className="font-bold text-white">{item.whatsapp}</span>
+                        )}
+                      </span>
+                    ) : null}
                     <span className="text-brand-fg-subtle">
                       {item.user ? (
                         <>

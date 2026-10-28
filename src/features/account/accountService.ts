@@ -1,6 +1,6 @@
 import { PASSWORD_RULE_TEXT } from "@/features/auth/password";
 import { fetchWithSession } from "@/lib/browserSession";
-import type { EditProfileValues } from "./schema";
+import type { CompleteProfileValues, EditProfileValues } from "./schema";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 
@@ -99,6 +99,16 @@ export async function saveProfile(
 }
 
 /** Confirma a troca de e-mail com o código de 6 dígitos enviado ao e-mail atual. */
+/**
+ * "Complete seu cadastro" (2026-10-28): só WhatsApp e gênero, pelo mesmo
+ * `PATCH /me` de "Minhas informações" — campo ausente o backend não toca, então
+ * nome e Discord ficam como estão.
+ */
+export async function completeProfile(values: CompleteProfileValues, signal?: AbortSignal) {
+  requireApi();
+  await request("/me", "PATCH", { whatsapp: values.whatsapp, gender: values.gender }, signal);
+}
+
 export async function confirmEmailChange(code: string, signal?: AbortSignal) {
   requireApi();
   await request("/auth/verify-email-change", "POST", { code }, signal);

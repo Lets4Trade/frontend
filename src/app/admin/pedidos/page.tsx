@@ -8,6 +8,7 @@ import {
   buildHref,
   getAdminOrders,
   getAttendants,
+  backendOrigin,
   getDeliveryStatuses,
   parseOrdersQuery,
 } from "@/features/admin/orders/list";
@@ -67,10 +68,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
    * outro serviço, e deixar isso explícito num lugar só evita que cada
    * componente monte a URL do seu jeito.
    */
-  const apiOrigin = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(
-    /\/api\/v\d+\/?$/,
-    "",
-  );
+  const apiOrigin = backendOrigin();
 
   /**
    * As opções dos três menus, no formato de LINKS que o `FilterMenu` usa —

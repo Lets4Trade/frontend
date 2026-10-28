@@ -125,7 +125,10 @@ export function LoyaltySummary({
                 ? `Progresso para o ${data.nextTierName}`
                 : "Você está no nível máximo"}
             </p>
-            <p className="text-brand-gradient font-helvetica text-[16px] leading-[13px] font-bold tracking-[0.16px]">
+            {/* `leading` ≥ fonte: o degradê é recortado pela caixa da linha
+                (`bg-clip-text`); com 13px numa fonte de 16 o "0%" saía cortado.
+                O alinhamento é pela base, então a altura da linha não o mexe. */}
+            <p className="text-brand-gradient font-helvetica text-[16px] leading-[20px] font-bold tracking-[0.16px]">
               {data.progress}%
             </p>
           </div>

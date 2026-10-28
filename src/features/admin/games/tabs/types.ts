@@ -44,9 +44,9 @@ export type GameTab = {
 /** Os 6 layouts, com o nome em português e uma linha do que a aba mostra na loja. */
 export const TAB_LAYOUTS: readonly { value: TabLayout; label: string; hint: string }[] = [
   { value: "CATALOG", label: "Catálogo", hint: "Grade de produtos (moedas, itens, builds...)." },
-  { value: "SERVICE", label: "Serviço", hint: "Textos à esquerda + card configurador de preço (boosting, carry, mentoria)." },
+  { value: "SERVICE", label: "Serviço", hint: "Textos à esquerda + card configurador de preço (carry)." },
   { value: "QUANTITY", label: "Quantidade (Gold)", hint: "Botões de quantidade pronta + quantidade livre + card de preço." },
-  { value: "PACKAGES", label: "Pacotes", hint: "Cards com tópicos e botão CONTINUAR, que abre o configurador." },
+  { value: "PACKAGES", label: "Pacotes", hint: "Cards com tópicos e botão CONTINUAR, que abre o configurador (boosting, mentoria)." },
   { value: "SELL", label: "Venda pra nós", hint: "Formulário de venda dentro da página do jogo. Sem produtos." },
   { value: "LINK", label: "Link", hint: "Leva para outra página (fidelidade, /venda...). Sem produtos." },
 ];

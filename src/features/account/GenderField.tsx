@@ -10,7 +10,20 @@ import { GENDER_OPTIONS, type Gender } from "./gender";
  * leitor de tela de graça. Não precisa de estado: o formulário lê o valor pelo
  * `FormData` (`name="gender"`).
  */
-export function GenderField({ error, defaultValue }: { error?: string; defaultValue?: Gender | null }) {
+export function GenderField({
+  error,
+  defaultValue,
+  compact = false,
+}: {
+  error?: string;
+  defaultValue?: Gender | null;
+  /**
+   * Caixa estreita (o cartão de "Complete seu cadastro", 2026-10-28): em 3
+   * colunas de ~110px "Prefiro não informar" quebrava em três linhas e vazava
+   * da pílula. Compacto = Masculino | Feminino e o terceiro na linha de baixo.
+   */
+  compact?: boolean;
+}) {
   const errorId = "gender-error";
   return (
     <fieldset
@@ -21,9 +34,12 @@ export function GenderField({ error, defaultValue }: { error?: string; defaultVa
       <legend className="mb-3 font-helvetica text-[18px] leading-[21px] font-bold tracking-[0.18px] text-white">
         Gênero
       </legend>
-      <div className="grid grid-cols-1 gap-[12px] sm:grid-cols-3">
-        {GENDER_OPTIONS.map((option) => (
-          <label key={option.value} className="relative cursor-pointer">
+      <div className={cn("grid gap-[12px]", compact ? "grid-cols-2" : "grid-cols-1 sm:grid-cols-3")}>
+        {GENDER_OPTIONS.map((option, index) => (
+          <label
+            key={option.value}
+            className={cn("relative cursor-pointer", compact && index === GENDER_OPTIONS.length - 1 && "col-span-2")}
+          >
             <input
               type="radio"
               name="gender"

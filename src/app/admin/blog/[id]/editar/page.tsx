@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 /** Painel → Notícias → lápis. Post inexistente ou leitura que falhou: 404. */
 export default async function EditBlogPostPage({ params }: { params: Promise<{ id: string }> }) {
   // Conteúdo: ADMIN e EDITOR (o atendente entra no painel, mas não aqui).
-  await requirePanelArea("content");
+  await requirePanelArea("blog");
   const { id } = await params;
   const [post, games] = await Promise.all([getAdminBlogPost(id), getAdminGames()]);
   if (post === null) notFound();

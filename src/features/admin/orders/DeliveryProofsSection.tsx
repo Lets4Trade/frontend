@@ -23,7 +23,16 @@ const MAX_PROOFS = 5;
  * cookie de sessão viaja junto por ser same-site). `next/image` não serve — o
  * otimizador busca do servidor do Next, sem o cookie de quem está vendo.
  */
-export function DeliveryProofsSection({ reference, apiOrigin }: { reference: string; apiOrigin: string }) {
+export function DeliveryProofsSection({
+  reference,
+  apiOrigin,
+  className = "mt-[28px]",
+}: {
+  reference: string;
+  apiOrigin: string;
+  /** Margem de cima: o diálogo de "Vendas e pedidos" e o quadro do chat (2026-10-28) diferem. */
+  className?: string;
+}) {
   const [proofs, setProofs] = useState<DeliveryProof[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
@@ -107,8 +116,9 @@ export function DeliveryProofsSection({ reference, apiOrigin }: { reference: str
     `${apiOrigin}/api/v1/admin/orders/${encodeURIComponent(reference)}/delivery-proofs/${encodeURIComponent(id)}/file`;
 
   return (
-    <section className="mt-[28px]" aria-labelledby={`proofs-${reference}`}>
-      <div className="flex items-center justify-between gap-[12px]">
+    <section className={className} aria-labelledby={`proofs-${reference}`}>
+      {/* Quebra de linha: no quadro do chat (400px) título e botão não cabem lado a lado. */}
+      <div className="flex flex-wrap items-center justify-between gap-[12px]">
         <h3
           id={`proofs-${reference}`}
           className="font-poppins text-[13px] font-bold tracking-[0.06em] text-brand-fg-subtle uppercase"

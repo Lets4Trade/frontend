@@ -55,3 +55,25 @@ export const editProfileSchema = z.object({
 });
 
 export type EditProfileValues = z.infer<typeof editProfileSchema>;
+
+/**
+ * "Complete seu cadastro" (2026-10-28): quem entrou pelo Google/Discord chega
+ * sem telefone e sem gênero. Os dois são pedidos juntos, e a tela deixa PULAR —
+ * aqui, então, é só a validação de quando a pessoa decide salvar.
+ */
+export const completeProfileSchema = z.object({
+  whatsapp: z
+    .string()
+    .trim()
+    .min(1, "Informe seu WhatsApp.")
+    .refine(
+      (value) => {
+        const digits = value.replace(/\D/g, "");
+        return digits.length >= 10 && digits.length <= 15;
+      },
+      { message: "Número inválido. Inclua DDD." },
+    ),
+  gender: z.enum(["MALE", "FEMALE", "UNDISCLOSED"], { message: "Escolha uma opção." }),
+});
+
+export type CompleteProfileValues = z.infer<typeof completeProfileSchema>;

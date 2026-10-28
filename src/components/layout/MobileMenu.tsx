@@ -10,6 +10,7 @@ import { cn } from "@/lib/cn";
 import { HeaderSearch } from "./HeaderSearch";
 import { SupportStatusCard } from "./SupportStatusCard";
 import { gameHref } from "@/features/game/href";
+import { MenuGameThumb } from "@/features/game/MenuGameThumb";
 
 /**
  * Menu do cabeçalho no CELULAR (Figma 2667:1864) — o botão de três linhas ao
@@ -83,7 +84,7 @@ export function MobileMenu({
           {games.length > 0 ? (
             <section aria-label="Jogos" className="mt-[24px]">
               <h2 className="font-poppins text-[12px] font-medium tracking-[0.12px] text-brand-fg-subtle uppercase">
-                Games
+                Jogos
               </h2>
               <ul className="mt-[8px] flex flex-col gap-[2px]">
                 {games.map((game) => (
@@ -93,18 +94,9 @@ export function MobileMenu({
                       onClick={close}
                       className="flex items-center gap-[12px] rounded-[12px] px-[8px] py-[8px] font-poppins text-[15px] text-white transition-colors hover:bg-white/5"
                     >
-                      {game.image ? (
-                        <Image
-                          src={game.image}
-                          alt=""
-                          width={36}
-                          height={36}
-                          aria-hidden
-                          className="size-[36px] shrink-0 rounded-[8px] object-cover"
-                        />
-                      ) : (
-                        <span aria-hidden className="size-[36px] shrink-0 rounded-[8px] bg-white/5" />
-                      )}
+                      {/* A mesma moldura do menu GAMES do desktop: o quadrado de
+                          36px com `object-cover` cortava os logos largos. */}
+                      <MenuGameThumb src={game.image} />
                       <span className="truncate">{game.name}</span>
                     </Link>
                   </li>

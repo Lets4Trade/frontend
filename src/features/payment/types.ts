@@ -76,8 +76,22 @@ export function cardFeeCents(amountCents: number) {
   return Math.round((amountCents * CREDIT_CARD_FEE_BPS) / 10_000);
 }
 
-export function maxInstallmentsFor(amountCents: number) {
-  return Math.max(1, Math.min(MAX_INSTALLMENTS, Math.floor(amountCents / MIN_INSTALLMENT_CENTS)));
+/**
+ * Limite de parcelas da loja (Configurações → Pagamento, 2026-10-28), a partir
+ * do texto salvo. Espelho de `installmentLimitFrom` do backend: vazio ou
+ * inválido = `MAX_INSTALLMENTS`, fora da faixa preso a 1..MAX. Só PRÉVIA —
+ * quem recusa parcela acima do limite é o backend.
+ */
+export function installmentLimitFrom(raw: string | null | undefined): number {
+  const text = (raw ?? "").trim();
+  if (!/^\d{1,2}$/.test(text)) return MAX_INSTALLMENTS;
+  return Math.min(MAX_INSTALLMENTS, Math.max(1, Number(text)));
+}
+
+/** Parcelas possíveis: o limite da loja e a parcela mínima, o que for menor. */
+export function maxInstallmentsFor(amountCents: number, limit: number = MAX_INSTALLMENTS) {
+  const cap = Math.min(MAX_INSTALLMENTS, Math.max(1, Math.floor(limit)));
+  return Math.max(1, Math.min(cap, Math.floor(amountCents / MIN_INSTALLMENT_CENTS)));
 }
 
 /**
