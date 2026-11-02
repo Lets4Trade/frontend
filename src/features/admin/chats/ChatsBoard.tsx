@@ -38,10 +38,13 @@ export function ChatsBoard({
   order = null,
   attendants,
   hrefFor,
+  listHref = "/admin/chats",
   currentStaffId,
   canOpenUsers = false,
   orderControls,
 }: {
+  /** A lista com os mesmos filtros e SEM conversa aberta — o "← Conversas" do celular. */
+  listHref?: string;
   /** Situação + comprovantes de entrega no quadro do pedido (2026-10-28). */
   orderControls: ChatOrderControls;
   /** Nome do cliente vira link para a ficha em Usuários (só ADMIN, 2026-10-23). */
@@ -113,8 +116,23 @@ export function ChatsBoard({
   }, [socket]);
 
   return (
-    <div className="grid min-h-[640px] grid-cols-1 overflow-hidden rounded-[30px] border border-brand-border bg-[image:var(--brand-surface-fill)] lg:h-[calc(100dvh-260px)] lg:grid-cols-[minmax(300px,420px)_1fr]">
-      <aside className="flex min-h-0 flex-col border-b border-brand-hairline lg:border-r lg:border-b-0" aria-label="Conversas">
+    // CELULAR (2026-11-02): como app de mensagens — abaixo de `lg` aparece a
+    // LISTA ou a CONVERSA, nunca as duas empilhadas (a conversa ficava lá
+    // embaixo, depois de toda a lista). Com conversa aberta, a moldura ocupa a
+    // altura da tela e a conversa tem "← Conversas" para voltar.
+    <div
+      className={cn(
+        "grid grid-cols-1 overflow-hidden rounded-[20px] border border-brand-border bg-[image:var(--brand-surface-fill)] lg:h-[calc(100dvh-260px)] lg:min-h-[640px] lg:grid-cols-[minmax(300px,420px)_1fr] lg:rounded-[30px]",
+        conversation ? "h-[calc(100dvh-90px)] min-h-[480px]" : "min-h-[320px]",
+      )}
+    >
+      <aside
+        className={cn(
+          "min-h-0 flex-col border-b border-brand-hairline lg:flex lg:border-r lg:border-b-0",
+          conversation ? "hidden" : "flex",
+        )}
+        aria-label="Conversas"
+      >
         <div className="scrollbar-orange min-h-0 flex-1 overflow-y-auto">
           {items.length === 0 ? (
             <p className="px-[30px] pt-[40px] font-poppins text-[15px] text-brand-fg-muted">
@@ -129,7 +147,7 @@ export function ChatsBoard({
                     scroll={false}
                     aria-current={item.id === openId ? "true" : undefined}
                     className={cn(
-                      "flex gap-[12px] border-b border-brand-hairline px-[25px] py-[16px] transition-colors hover:bg-white/5",
+                      "flex gap-[12px] border-b border-brand-hairline px-[16px] py-[14px] transition-colors hover:bg-white/5 lg:px-[25px] lg:py-[16px]",
                       item.id === openId && "bg-white/[0.07]",
                     )}
                   >
@@ -182,6 +200,7 @@ export function ChatsBoard({
           currentStaffId={currentStaffId}
           canOpenUsers={canOpenUsers}
           orderControls={orderControls}
+          backHref={listHref}
           onSent={(summary, message) => {
             setConversation(summary);
             setMessages((current) => (current.some((m) => m.id === message.id) ? current : [...current, message]));
@@ -189,7 +208,7 @@ export function ChatsBoard({
           onUpdated={setConversation}
         />
       ) : (
-        <div className="flex items-center justify-center p-[40px]">
+        <div className="hidden items-center justify-center p-[40px] lg:flex">
           <p className="font-poppins text-[16px] text-brand-fg-muted">Escolha uma conversa na lista.</p>
         </div>
       )}
@@ -207,9 +226,11 @@ function ConversationPane({
   currentStaffId,
   canOpenUsers,
   orderControls,
+  backHref,
   onSent,
   onUpdated,
 }: {
+  backHref: string;
   canOpenUsers: boolean;
   orderControls: ChatOrderControls;
   conversation: StaffConversation;
@@ -269,8 +290,16 @@ function ConversationPane({
 
   return (
     <section className="flex min-h-0 flex-col" aria-label={`Conversa: ${conversation.subject}`}>
-      <header className="flex flex-wrap items-center justify-between gap-[16px] border-b border-brand-hairline px-[30px] py-[18px]">
+      <header className="flex flex-wrap items-center justify-between gap-[12px] border-b border-brand-hairline px-[16px] py-[14px] lg:gap-[16px] lg:px-[30px] lg:py-[18px]">
         <div className="min-w-0">
+          {/* Só no celular: lá a lista some quando a conversa abre. */}
+          <Link
+            href={backHref}
+            scroll={false}
+            className="mb-[8px] inline-flex items-center gap-[6px] font-poppins text-[13px] font-semibold text-brand-orange lg:hidden"
+          >
+            <span aria-hidden>←</span> Conversas
+          </Link>
           <h2 className="truncate font-helvetica text-[20px] font-bold text-white">{conversation.subject}</h2>
           <p className="mt-[4px] font-poppins text-[13px] text-brand-fg-muted">
             {canOpenUsers && conversation.customer.id ? (
@@ -344,7 +373,7 @@ function ConversationPane({
 
           {order ? (
             <details className="group shrink-0 border-b border-brand-hairline 2xl:hidden">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-[12px] px-[30px] py-[12px] font-poppins text-[14px] font-semibold text-white hover:bg-white/5">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-[12px] px-[16px] py-[12px] font-poppins lg:px-[30px] text-[14px] font-semibold text-white hover:bg-white/5">
                 <span className="truncate">
                   Pedido {order.purchase.reference}
                   <span className="font-normal text-white/55">
@@ -361,18 +390,18 @@ function ConversationPane({
                 order={order}
                 controls={orderControls}
                 hideHeading
-                className="scrollbar-orange max-h-[34vh] overflow-y-auto px-[30px] pb-[18px]"
+                className="scrollbar-orange max-h-[34vh] overflow-y-auto px-[16px] pb-[18px] lg:px-[30px]"
               />
             </details>
           ) : null}
 
-          <div ref={listRef} className="scrollbar-orange min-h-0 flex-1 overflow-y-auto px-[30px] py-[20px]" aria-live="polite">
+          <div ref={listRef} className="scrollbar-orange min-h-0 flex-1 overflow-y-auto px-[16px] py-[16px] lg:px-[30px] lg:py-[20px]" aria-live="polite">
             {messages.map((message) => (
               <StaffBubble key={message.id} message={message} />
             ))}
           </div>
 
-          <form onSubmit={handleSend} className="flex items-end gap-[12px] border-t border-brand-hairline px-[30px] py-[18px]">
+          <form onSubmit={handleSend} className="flex items-end gap-[10px] border-t border-brand-hairline px-[12px] py-[12px] lg:gap-[12px] lg:px-[30px] lg:py-[18px]">
             <textarea
               value={draft}
               onChange={(event) => setDraft(event.currentTarget.value)}
@@ -388,12 +417,12 @@ function ConversationPane({
               disabled={busy}
               aria-label="Responder como suporte"
               placeholder={closed ? "Responder reabre a conversa" : "Responder como suporte (Enter envia)"}
-              className="min-h-[50px] flex-1 resize-none rounded-[16px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[20px] py-[12px] font-poppins text-[15px] text-white outline-none placeholder:text-white/50 focus-visible:border-brand-orange disabled:opacity-60"
+              className="min-h-[50px] min-w-0 flex-1 resize-none rounded-[16px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[14px] py-[12px] font-poppins text-[15px] lg:px-[20px] text-white outline-none placeholder:text-white/50 focus-visible:border-brand-orange disabled:opacity-60"
             />
             <button
               type="submit"
               disabled={busy || draft.trim() === ""}
-              className="h-[50px] shrink-0 rounded-full bg-brand-orange px-[26px] font-poppins text-[15px] font-bold text-black transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="h-[50px] shrink-0 rounded-full bg-brand-orange px-[18px] font-poppins text-[15px] font-bold lg:px-[26px] text-black transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               ENVIAR
             </button>

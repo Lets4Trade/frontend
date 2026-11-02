@@ -622,7 +622,7 @@ function Table({
       <p className="font-poppins text-[14px] font-bold text-white">{title}</p>
       <p className="-mt-[6px] font-poppins text-[12px] text-brand-fg-subtle">{hint}</p>
       {rows.length > 0 ? (
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto">
           <table className="w-full min-w-[520px] border-separate border-spacing-x-[8px] border-spacing-y-[6px]">
             <thead>
               <tr>

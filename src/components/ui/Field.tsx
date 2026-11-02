@@ -43,9 +43,10 @@ export function Field({
         // `whitespace-nowrap` como no design: a label mais longa ("Descrição
         // Sobre o Produto Vendido:") é mais larga que a coluna de 315px e
         // transborda sobre o espaço vazio ao lado, em vez de quebrar em duas
-        // linhas e empurrar o campo para baixo.
+        // linhas e empurrar o campo para baixo. No CELULAR (2026-11-02) quebra:
+        // sem espaço ao lado, a label sem quebra alargava a página inteira.
         className={cn(
-          "font-helvetica text-[18px] leading-[21px] font-bold tracking-[0.18px] whitespace-nowrap text-white",
+          "font-helvetica text-[18px] leading-[21px] font-bold tracking-[0.18px] text-white sm:whitespace-nowrap",
           labelIcon && "flex items-center gap-[8px]",
           hideLabel && "sr-only",
         )}

@@ -29,7 +29,9 @@ export default async function EditarInformacoesPage() {
 
   return (
     <AccountShell profile={profile} activeTab="editar" title="Minhas Informações">
-      <div className="absolute top-[124px] right-[50px] bottom-[50px] left-[50px]">
+      {/* Abaixo do título (y=124 no arquivo) até o rodapé do painel no
+          desktop; em fluxo no celular. */}
+      <div className="mt-[20px] xl:mt-[43px] xl:min-h-0 xl:flex-1">
         <EditProfileForm
           defaults={{
             name: profile.name,

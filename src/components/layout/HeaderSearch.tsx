@@ -527,7 +527,7 @@ export function HeaderSearch({
   return (
     <div
       ref={rootRef}
-      className={variant === "menu" ? "relative w-full" : "relative hidden w-[219px] shrink-0 lg:block"}
+      className={variant === "menu" ? "relative w-full" : "relative hidden w-[219px] min-w-[140px] shrink lg:block"}
     >
       <Image
         src="/icons/search.svg"

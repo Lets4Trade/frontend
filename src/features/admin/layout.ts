@@ -23,6 +23,10 @@
  * Fidelidade ao Figma é o padrão deste projeto; esta é uma exceção declarada, e
  * o motivo é que a fidelidade tela-a-tela produziu uma inconsistência que só se
  * enxerga navegando — coisa que o arquivo, olhado nó a nó, não mostra.
+ *
+ * ── Celular (2026-11-02) ───────────────────────────────────────────────────
+ * Os 50px laterais comiam 100 dos 390px do celular. Abaixo de `lg` a margem é
+ * a da loja (16 → 24px) e o topo, 24px; do `lg` em diante, os 50 de sempre.
  */
 export const ADMIN_SHELL =
-  "mx-auto w-full max-w-[1920px] px-[50px] pt-[50px]" as const;
+  "mx-auto w-full max-w-[1920px] px-[16px] pt-[24px] sm:px-[24px] lg:px-[50px] lg:pt-[50px]" as const;

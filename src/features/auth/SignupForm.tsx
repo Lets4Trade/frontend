@@ -9,6 +9,7 @@ import { GenderField } from "@/features/account/GenderField";
 import { signup } from "./authService";
 import { signupSchema } from "./schema";
 import { SIGNUP_ERROR_MESSAGES, SignupError } from "./types";
+import { safeRedirectPath } from "@/lib/safeRedirect";
 
 /** Para onde mandar o usuário depois de cadastrar. */
 const REDIRECT_AFTER_SIGNUP = "/";
@@ -23,7 +24,14 @@ type FieldErrors = Partial<Record<Field, string>>;
  * está instalado). Reusa `TextField` e `Button` — as superfícies do card de
  * cadastro são idênticas às do login nos assets exportados.
  */
-export function SignupForm({ social }: { social?: ReactNode } = {}) {
+export function SignupForm({
+  social,
+  redirect,
+}: {
+  social?: ReactNode;
+  /** Destino depois do cadastro (o `?redirect=` da página). */
+  redirect?: string | null;
+} = {}) {
   const router = useRouter();
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -68,7 +76,7 @@ export function SignupForm({ social }: { social?: ReactNode } = {}) {
 
     try {
       await signup(parsed.data, controller.signal);
-      router.replace(REDIRECT_AFTER_SIGNUP);
+      router.replace(safeRedirectPath(redirect, REDIRECT_AFTER_SIGNUP));
       router.refresh();
     } catch (cause) {
       if (cause instanceof DOMException && cause.name === "AbortError") return;

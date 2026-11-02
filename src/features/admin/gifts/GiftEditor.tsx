@@ -98,7 +98,7 @@ export function GiftEditor({ gameId, gameName, initial }: { gameId: string; game
           Brinde ligado na loja
         </label>
 
-        <div className="grid gap-[20px] sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-[20px] sm:grid-cols-2">
           <TextField
             label="Quantidade do brinde"
             inputMode="numeric"

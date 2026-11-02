@@ -49,7 +49,7 @@ export function FilterMenu({
   options: FilterOption[];
 }) {
   return (
-    <details className="group relative shrink-0" style={{ width }}>
+    <details className="group relative max-w-full shrink-0" style={{ width }}>
       <summary
         className={cn(
           "flex h-[50px] cursor-pointer list-none items-center justify-between gap-[10px] rounded-full",
@@ -118,7 +118,7 @@ export function AdminSearchBox({
       action={action}
       method="get"
       role="search"
-      className="relative h-[50px] w-[219px] shrink-0"
+      className="relative h-[50px] w-full shrink-0 sm:w-[219px]"
     >
       {Object.entries(hidden)
         .filter(([, value]) => value !== "")

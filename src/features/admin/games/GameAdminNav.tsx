@@ -48,7 +48,7 @@ export function GameAdminNav({
     >
       <ul
         className={cn(
-          "flex gap-[10px] overflow-x-auto pb-[4px]",
+          "relative flex gap-[10px] overflow-x-auto pb-[4px]",
           sidebar && "lg:flex-col lg:overflow-visible lg:pb-0",
         )}
       >

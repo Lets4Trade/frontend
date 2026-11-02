@@ -23,7 +23,9 @@ export function MenuGameThumb({ src }: { src: string | null }) {
   return (
     <span
       aria-hidden
-      className="relative h-[40px] w-[76px] shrink-0"
+      // `block`: fora de um flex (célula de tabela, 2026-11-02) um span ficava
+      // com tamanho zero e o `fill` sumia.
+      className="relative block h-[40px] w-[76px] shrink-0"
     >
       {src ? (
         <Image src={src} alt="" fill sizes="76px" className="object-contain" />

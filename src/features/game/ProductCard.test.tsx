@@ -62,6 +62,30 @@ describe("ProductCard", () => {
     expect(useCart.getState().items[0]).toMatchObject({ unitPriceCents: 1425 });
   });
 
+  it("desconto: preço cheio riscado ao lado do novo, também no total de várias unidades (2026-11-02)", () => {
+    const { container, rerender } = render(<ProductCard product={product} context={context} />);
+    expect(container.querySelector("s")).toBeNull();
+
+    rerender(
+      <ProductCard product={{ ...product, priceCents: 2850, listPriceCents: 3000, discountPercent: 5 }} context={context} />,
+    );
+    const norm = (text: string | null | undefined) => (text ?? "").replace(/\s/g, " ");
+    expect(norm(container.querySelector("s")?.textContent)).toBe("De R$ 30,00");
+    expect(norm(container.querySelector("s")?.nextElementSibling?.textContent)).toBe("por R$ 28,50");
+
+    fireEvent.click(screen.getByRole("button", { name: "Aumentar a quantidade de Divine Orb" }));
+    expect(norm(container.querySelector("s")?.textContent)).toBe("De R$ 60,00");
+    expect(norm(container.querySelector("s")?.nextElementSibling?.textContent)).toBe("por R$ 57,00");
+  });
+
+  it("sem preço cheio maior (dado antigo), só o selo — nada riscado", () => {
+    const { container } = render(
+      <ProductCard product={{ ...product, priceCents: 1425, discountPercent: 5 }} context={context} />,
+    );
+    expect(container.querySelector("s")).toBeNull();
+    expect(screen.getByText("-5%")).toBeTruthy();
+  });
+
   it("o carrinho continua só adicionando, sem sair da página", () => {
     render(<ProductCard product={product} context={context} />);
     fireEvent.click(screen.getByRole("button", { name: /ao carrinho/ }));

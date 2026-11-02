@@ -1,14 +1,37 @@
 @import "tailwindcss";
 
+/*
+ * BANDEIRAS no Windows (2026-11-02).
+ *
+ * O Windows não desenha emoji de bandeira: "🇧🇷" aparece como as letras "BR"
+ * (no celular e no Mac a bandeira aparece). Esta fonte traz SÓ as bandeiras
+ * (Twemoji, via `country-flag-emoji-polyfill` — arte CC-BY 4.0 do Twemoji,
+ * código MIT da TalkJS) e entra como PRIMEIRA família em todas as pilhas.
+ *
+ * Custo: o `unicode-range` limita a fonte aos indicadores regionais e às tags
+ * de bandeira — o navegador só baixa o arquivo (78 KB, uma vez, em cache)
+ * quando a página TEM uma bandeira, e todo o resto do texto continua na fonte
+ * de sempre. Servida daqui (sem CDN de terceiro). Trade-off aceito: no celular
+ * a bandeira passa a ser a do Twemoji em vez da do sistema — o desenho é quase
+ * igual, e o site fica igual em todo aparelho.
+ */
+@font-face {
+  font-family: "Twemoji Country Flags";
+  unicode-range: U+1F1E6-1F1FF, U+1F3F4, U+E0062-E0063, U+E0065, U+E0067,
+    U+E006C, U+E006E, U+E0073-E0074, U+E0077, U+E007F;
+  src: url("/fonts/twemoji-country-flags.woff2") format("woff2");
+  font-display: swap;
+}
+
 @layer base {
   * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
   }
-  
+
   body {
-    font-family: var(--font-manrope), "Manrope", sans-serif;
+    font-family: "Twemoji Country Flags", var(--font-manrope), "Manrope", sans-serif;
   }
 
   button {
@@ -997,11 +1020,12 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
  * `<html>`, onde o next/font o define.
  */
 @theme inline {
-  --font-manrope: var(--font-manrope);
-  --font-dm-sans: var(--font-dm-sans);
-  --font-poppins: var(--font-poppins);
-  --font-helvetica: var(--font-helvetica);
-  --font-korataki: var(--font-korataki);
+  /* "Twemoji Country Flags" na frente: só cobre bandeiras (ver o @font-face no topo). */
+  --font-manrope: "Twemoji Country Flags", var(--font-manrope);
+  --font-dm-sans: "Twemoji Country Flags", var(--font-dm-sans);
+  --font-poppins: "Twemoji Country Flags", var(--font-poppins);
+  --font-helvetica: "Twemoji Country Flags", var(--font-helvetica);
+  --font-korataki: "Twemoji Country Flags", var(--font-korataki);
 }
 
 /*

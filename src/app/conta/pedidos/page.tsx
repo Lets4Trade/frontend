@@ -44,17 +44,18 @@ export default async function MeusPedidosPage({
   return (
     <AccountShell profile={profileResult.profile} activeTab="pedidos" title="Meus Pedidos">
       <OrdersLiveRefresh />
-      {/* A caixa de 724px do arquivo agora empilha a lista e a paginação. A
-          lista fica com `flex-1`, então enquanto houver UMA página só ela ocupa
-          os 724px inteiros e a tela é idêntica ao desenho — a paginação não
-          renderiza nada nesse caso. */}
-      <div className="absolute top-[124px] left-[50px] flex h-[724px] w-[1039px] flex-col">
-        {/* Lista rolável: os cartões (altura varia com os itens da compra) não cabem na
-            altura disponível, então a barra do design aparece de verdade — não
-            é decoração. `min-h-0` é o que permite um filho de flex encolher
-            abaixo do conteúdo; sem ele a lista empurraria a paginação para fora
-            da caixa em vez de rolar. */}
-        <div className="scrollbar-orange flex min-h-0 flex-1 flex-col gap-[25px] overflow-y-auto">
+      {/* Desktop (`xl`): a caixa de 724px do arquivo (y=124 até o rodapé do
+          painel) empilha a lista e a paginação. A lista fica com `flex-1`,
+          então enquanto houver UMA página só ela ocupa os 724px inteiros e a
+          tela é idêntica ao desenho — a paginação não renderiza nada nesse
+          caso. Abaixo de `xl` (celular): lista em fluxo, a página é que rola. */}
+      <div className="mt-[20px] flex min-h-0 flex-col xl:mt-[43px] xl:flex-1">
+        {/* Lista rolável no desktop: os cartões (altura varia com os itens da
+            compra) não cabem na altura disponível, então a barra do design
+            aparece de verdade — não é decoração. `min-h-0` é o que permite um
+            filho de flex encolher abaixo do conteúdo; sem ele a lista
+            empurraria a paginação para fora da caixa em vez de rolar. */}
+        <div className="scrollbar-orange flex flex-col gap-[16px] xl:min-h-0 xl:flex-1 xl:gap-[25px] xl:overflow-y-auto xl:pr-[14px]">
           {ordersResult.ok && ordersResult.purchases.length > 0 ? (
             ordersResult.purchases.map((purchase) => (
               <PurchaseCard key={purchase.id} purchase={purchase} />

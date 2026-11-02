@@ -197,7 +197,7 @@ export function EditProfileForm({ defaults }: { defaults: ProfileDefaults }) {
           o seu e-mail atual. Confirme para concluir a troca.
         </p>
 
-        <div className="mt-[25px] w-[315px]">
+        <div className="mt-[25px] w-full md:w-[315px]">
           <TextField
             name="code"
             label="Código de confirmação:"
@@ -211,14 +211,14 @@ export function EditProfileForm({ defaults }: { defaults: ProfileDefaults }) {
 
         {formError ? <FormAlert message={formError} /> : null}
 
-        <div className="mt-auto flex gap-[25px]">
-          <Button type="submit" variant="primary" disabled={isSubmitting} className="w-[315px] px-0">
+        <div className="mt-[25px] flex flex-col gap-[12px] sm:flex-row sm:gap-[25px] xl:mt-auto">
+          <Button type="submit" variant="primary" disabled={isSubmitting} className="w-full px-0 sm:w-[315px]">
             {isSubmitting ? "CONFIRMANDO..." : "CONFIRMAR NOVO E-MAIL"}
           </Button>
           <Button
             type="button"
             variant="outline"
-            className="w-[200px] px-0"
+            className="w-full px-0 sm:w-[200px]"
             onClick={() => {
               setAwaitingCode(false);
               setFormError(null);
@@ -331,7 +331,7 @@ export function EditProfileForm({ defaults }: { defaults: ProfileDefaults }) {
         type="submit"
         variant="primary"
         disabled={isSubmitting}
-        className="mt-auto w-full px-0 md:w-[315px]"
+        className="mt-[25px] w-full px-0 md:w-[315px] xl:mt-auto"
       >
         {isSubmitting ? "SALVANDO..." : "ATUALIZAR INFORMAÇÕES"}
       </Button>

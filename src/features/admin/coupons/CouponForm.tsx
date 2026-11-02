@@ -117,7 +117,7 @@ export function CouponForm({ coupon, games }: { coupon: AdminCoupon | null; game
     <div className="grid gap-[24px] lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
       <div className="flex flex-col gap-[20px]">
         <Card title="Código">
-          <div className="grid gap-[20px] sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-[20px] sm:grid-cols-2">
             <TextField
               label="Código do cupom"
               placeholder="BLACKFRIDAY10"
@@ -189,7 +189,7 @@ export function CouponForm({ coupon, games }: { coupon: AdminCoupon | null; game
         </Card>
 
         <Card title="Validade e limites">
-          <div className="grid gap-[20px] sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-[20px] sm:grid-cols-2">
             <DateField label="Começa em (opcional)" value={startsAt} onChange={setStartsAt} />
             <DateField label="Termina em (opcional)" value={endsAt} onChange={setEndsAt} />
             <TextField

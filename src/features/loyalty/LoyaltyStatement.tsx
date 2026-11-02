@@ -40,9 +40,35 @@ export function LoyaltyStatement({
         Últimos movimentos
       </h2>
 
-      {/* Tabela larga no celular rola DENTRO do card, nunca a página. */}
-      <div className="mt-[25px] overflow-x-auto">
-      <table className="w-full min-w-[560px] border-collapse text-left">
+      {/* Celular (2026-11-02): LISTA, não tabela — a tabela de 560px pedia
+          arrasto lateral e cortava a descrição. Cada movimento vira uma linha
+          com data e descrição à esquerda e coins + valor à direita. */}
+      <ul className="mt-[20px] flex flex-col md:hidden">
+        {entries.map((entry) => (
+          <li
+            key={entry.id}
+            className="flex items-start justify-between gap-[16px] border-t border-white/10 py-[14px] first:border-t-0"
+          >
+            <div className="min-w-0">
+              <p className="font-poppins text-[14px] leading-[20px] text-white">{entry.description}</p>
+              <p className="mt-[2px] font-helvetica text-[12px] text-brand-fg-subtle">{formatDate(entry.createdAt)}</p>
+            </div>
+            <div className="shrink-0 text-right">
+              <p className={`font-poppins text-[15px] font-bold ${entry.coins > 0 ? "text-[#00cb45]" : "text-white"}`}>
+                {entry.coins > 0 ? "+" : ""}
+                {entry.coins.toLocaleString("pt-BR")}
+              </p>
+              <p className="mt-[2px] font-helvetica text-[12px] text-brand-fg-muted">
+                {formatCents(Math.abs(entry.coins) * coinCents)}
+              </p>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      {/* A partir de `md`: a tabela de sempre. */}
+      <div className="mt-[25px] hidden md:block">
+      <table className="w-full border-collapse text-left">
         <thead>
           <tr className="font-helvetica text-[14px] leading-[13px] font-bold tracking-[0.14px] text-white/80">
             <th className="pb-[16px] font-normal">Data</th>

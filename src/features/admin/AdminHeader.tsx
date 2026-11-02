@@ -99,7 +99,7 @@ export function AdminHeader({
     <header className="relative z-20 w-full bg-black/50 backdrop-blur-[9px]">
       <GlowBar className="-top-[2px]" />
 
-      <div className="relative mx-auto flex h-[83px] max-w-[1920px] items-center px-4 sm:px-6 lg:px-[50px]">
+      <div className="relative mx-auto flex h-[64px] max-w-[1920px] items-center gap-[10px] px-4 sm:px-6 md:h-[83px] lg:px-[50px]">
         <Link href="/" aria-label="Lets4Trade, ir para a loja" className="shrink-0">
           <Image
             src={logoUrl ?? "/images/lets4trade-logo.png"}
@@ -107,7 +107,7 @@ export function AdminHeader({
             width={138}
             height={65}
             priority
-            className={`h-[65px] w-[138px] ${logoUrl ? "object-contain" : "object-cover"}`}
+            className={`h-[41px] w-[88px] md:h-[65px] md:w-[138px] ${logoUrl ? "object-contain" : "object-cover"}`}
           />
         </Link>
 
@@ -122,7 +122,7 @@ export function AdminHeader({
         </nav>
 
         {/* Busca (Ctrl+K). Abaixo de xl o menu não cabe e ela vira a navegação. */}
-        <div className="ml-auto flex shrink-0 items-center gap-[16px]">
+        <div className="ml-auto flex min-w-0 shrink-0 items-center gap-[8px] sm:gap-[16px]">
           {/* Online/Offline do atendente no chat da loja (2026-10-16). ADMIN
               e ATENDENTE atendem — o EDITOR não vê chats. */}
           {canAccess(role, "support") ? <PresenceToggle /> : null}
@@ -135,7 +135,7 @@ export function AdminHeader({
       </div>
 
       {/* Abaixo de 1830px: o mesmo menu numa faixa própria (ver o topo). */}
-      <nav aria-label="Seções do painel" className="scrollbar-orange overflow-x-auto border-t border-white/10 min-[1830px]:hidden">
+      <nav aria-label="Seções do painel" className="scrollbar-orange relative overflow-x-auto border-t border-white/10 min-[1830px]:hidden">
         <div className="mx-auto flex w-max items-center gap-[22px] px-4 py-[12px] sm:px-6 lg:px-[50px]">{links}</div>
       </nav>
     </header>

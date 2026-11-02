@@ -61,14 +61,21 @@ const ICON_HINT = "64×64";
  * Conteúdo → rascunho. Seção do formato antigo (`items`) abre como lista no
  * texto — com o mesmo desenho na loja —, então salvar de novo a converte sem
  * perder nada.
+ *
+ * TÍTULO, ITENS E TEXTO PODEM NÃO VIR (2026-11-02): o `ResponseCompressionInterceptor`
+ * do backend apaga de TODA resposta o campo que é texto vazio — uma seção só
+ * com texto (`title: ""`, a descrição do card do catálogo) chega SEM `title`.
+ * Sem o `?? ""` o editor do produto quebrava inteiro ("Cannot read properties
+ * of undefined (reading 'trim')" no `fromSectionDrafts`). Aqui só se completa
+ * o que falta; nada é descartado, para salvar não apagar texto do admin.
  */
 export function toSectionDrafts(sections: readonly TabSection[] | undefined | null): SectionDraft[] {
   return (sections ?? []).map((section) => {
-    const legacy = section.items.map((item) => `- ${item}`).join("\n");
+    const legacy = (section.items ?? []).map((item) => `- ${item}`).join("\n");
     const body = [legacy, section.body ?? ""].filter(Boolean).join("\n\n");
     return {
       key: crypto.randomUUID(),
-      title: section.title,
+      title: section.title ?? "",
       body,
       marker: section.marker ?? "dot",
       markerColor: section.markerColor,

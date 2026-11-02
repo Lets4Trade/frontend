@@ -156,13 +156,14 @@ export function PresenceToggle() {
             ? "Você aparece no chat da loja. Clique para ficar offline."
             : "Clique para aparecer no chat da loja como atendente online."
         }
-        className="flex h-full items-center gap-[8px] rounded-full pr-[14px] pl-[10px] font-poppins text-[13px] font-bold text-white focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none disabled:opacity-60"
+        className="flex h-full items-center gap-[8px] rounded-full pr-[12px] pl-[9px] font-poppins sm:pr-[14px] sm:pl-[10px] text-[13px] font-bold text-white focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none disabled:opacity-60"
       >
         <span
           aria-hidden
           className={cn("relative inline-block size-[9px] rounded-full", online ? "chat-dot-online bg-[#22c55e]" : "bg-[#ef4444]")}
         />
-        {online ? "Online" : "Offline"}
+        {/* No celular fica só a bolinha; o texto segue para o leitor de tela. */}
+        <span className="sr-only sm:not-sr-only">{online ? "Online" : "Offline"}</span>
       </button>
     </div>
   );

@@ -297,7 +297,7 @@ export function ProductPriceTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-[20px] border border-brand-border bg-[image:var(--brand-surface-fill)]">
+      <div className="relative overflow-x-auto rounded-[20px] border border-brand-border bg-[image:var(--brand-surface-fill)]">
         <table className="w-full border-collapse font-poppins text-[13px] sm:min-w-[640px]">
           <thead>
             <tr className="border-b border-white/10 text-left text-[12px] text-brand-fg-subtle">

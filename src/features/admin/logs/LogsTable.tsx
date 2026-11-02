@@ -39,7 +39,7 @@ const COLUMNS = [
  */
 export function LogsTable({ entries }: { entries: AuditEntry[] }) {
   return (
-    <div className="scrollbar-orange -mx-[10px] overflow-x-auto px-[10px]">
+    <div className="scrollbar-orange relative -mx-[10px] overflow-x-auto px-[10px]">
       <table className="w-full min-w-[1270px] table-fixed border-collapse">
         <caption className="sr-only">
           Eventos de auditoria: quando, quem, categoria, ação, alvo, rota e IP

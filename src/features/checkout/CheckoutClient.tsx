@@ -42,6 +42,7 @@ import {
   type CheckoutLine,
   type CheckoutResult,
 } from "./actions";
+import { CHECKOUT_LOGIN_HREF } from "./loginHref";
 import { cardSchema, pixSchema } from "./schema";
 
 /**
@@ -321,7 +322,7 @@ export function CheckoutClient({
     if (!result.ok) {
       setIsSubmitting(false);
       if (result.status === 401) {
-        router.push("/login?redirect=/checkout");
+        router.push(CHECKOUT_LOGIN_HREF);
         return;
       }
       // Prazo acabou ou os pedidos mudaram: a próxima tentativa cria outro.
@@ -380,7 +381,7 @@ export function CheckoutClient({
 
   function handleCheckoutError(reason: Extract<CheckoutResult, { ok: false }>["reason"], message?: string) {
     if (reason === "unauthenticated") {
-      router.push("/login?redirect=/checkout");
+      router.push(CHECKOUT_LOGIN_HREF);
       return;
     }
     if (reason === "coupon") {
@@ -508,9 +509,11 @@ export function CheckoutClient({
               // Sem `name` de propósito: o valor vem do estado (`coins`), e o
               // `<select>` escondido que o Radix cria com `name` disparava uma
               // troca falsa quando o carrinho hidratava, desmarcando o "Sim".
-              label="Usar lets coins"
-              // A moeda da marca (a mesma da home), pedida em 2026-10-28.
-              labelIcon={LETS_COIN_ICON}
+              // "Lets Coins" com maiúsculas, como no resto do site, e a moeda
+              // DENTRO do campo (2026-11-02, pedido do usuário; em 2026-10-28
+              // ela ficava ao lado do rótulo).
+              label="Usar Lets Coins"
+              leadingIcon={LETS_COIN_ICON}
               placeholder="Não"
               value={useCoins && maxCoins > 0 ? "sim" : "nao"}
               disabled={maxCoins === 0}

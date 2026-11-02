@@ -40,6 +40,11 @@ type SelectFieldProps = {
   hideLabel?: boolean;
   /** Arte antes do rótulo — ver `Field`. */
   labelIcon?: string;
+  /**
+   * Arte DENTRO do campo, à esquerda do valor (2026-11-02, a moeda do "Usar
+   * Lets Coins" no checkout). Decorativa: o rótulo já diz o que é o campo.
+   */
+  leadingIcon?: string;
 };
 
 /**
@@ -83,6 +88,7 @@ export function SelectField({
   id,
   hideLabel,
   labelIcon,
+  leadingIcon,
   ...props
 }: SelectFieldProps) {
   const generatedId = useId();
@@ -112,8 +118,20 @@ export function SelectField({
           {/* `truncate` num span próprio: o rótulo de uma parcela
               ("12x de R$ 104,90 sem juros") é mais largo que a pílula de 315px,
               e sem o corte ele empurraria a seta para fora do campo. */}
-          <span className="truncate">
-            <Select.Value placeholder={placeholder} />
+          <span className="flex min-w-0 items-center gap-[10px]">
+            {leadingIcon ? (
+              <Image
+                src={leadingIcon}
+                alt=""
+                width={24}
+                height={24}
+                aria-hidden
+                className="size-[24px] shrink-0 object-contain"
+              />
+            ) : null}
+            <span className="truncate">
+              <Select.Value placeholder={placeholder} />
+            </span>
           </span>
 
           <Select.Icon asChild>

@@ -137,7 +137,7 @@ export function SectionContentForm({
   return (
     <div className="flex flex-col gap-[18px]">
       {hasFields ? (
-        <div className={grid ? "grid gap-x-[20px] gap-y-[18px] md:grid-cols-2" : "flex flex-col gap-[16px]"}>
+        <div className={grid ? "grid grid-cols-1 gap-x-[20px] gap-y-[18px] md:grid-cols-2" : "flex flex-col gap-[16px]"}>
           {hasTitle && def.rich?.includes("title") ? (
             <div className={full}>
               <RichTextField

@@ -11,6 +11,7 @@ import { formatPhone } from "@/lib/masks";
 import { backendAsset } from "@/lib/publicApi";
 import { ACTION_FAILED_MESSAGE, runAction } from "@/lib/safeAction";
 import { updateOrderAction } from "./actions";
+import { MenuGameThumb } from "@/features/game/MenuGameThumb";
 import { InlineSelect } from "./InlineSelect";
 import { OrderInfoDialog } from "./OrderInfoDialog";
 import {
@@ -81,11 +82,11 @@ const COLUMNS = [
   // SEM rótulo, e o arquivo também não tem um: o emblema do jogo fecha a linha
   // encostado na margem direita do card (x=1743 de 1820, com os mesmos 50px de
   // recuo do resto). É identidade visual, não um dado com nome.
-  { key: "art", label: "", width: undefined },
+  { key: "art", label: "", width: 96 },
 ] as const;
 
 /** Soma das colunas com largura fixa. Abaixo disso, quem rola é a tabela. */
-const MIN_WIDTH = 1311;
+const MIN_WIDTH = 1407;
 
 /**
  * Tabela de "Vendas e pedidos" (Figma 2546:1136).
@@ -165,11 +166,151 @@ export function OrdersTable({
     });
   }
 
+  // Situação e entregador: os MESMOS seletores na tabela e nos cartões do celular.
+  function statusSelect(raw: AdminOrder, order: AdminOrder) {
+    const pill = orderPill(order);
+    return (
+      <InlineSelect
+        value={statusValue(order)}
+        disabled={pending}
+        onValueChange={(value) =>
+          // `ds:<id>` = status personalizado (o pedido vai para a etapa
+          // dele); o resto é a situação padrão.
+          value.startsWith(CUSTOM_PREFIX)
+            ? change(raw, { deliveryStatusId: value.slice(CUSTOM_PREFIX.length) })
+            : change(raw, { status: value })
+        }
+        ariaLabel={`Situação do pedido ${order.reference}`}
+        className={pill.className}
+        display={pill.label}
+        options={statusOptions(order, statuses)}
+      />
+    );
+  }
+
+  /*
+    `UNASSIGNED` e não `""`: o Radix reserva a string vazia para "nada
+    escolhido" e recusa um `<Select.Item>` com esse valor. "Sem atendente" é
+    uma escolha de verdade — é como se DESATRIBUI um pedido —, então precisa de
+    um valor próprio, traduzido de volta para `null` no envio.
+  */
+  function assigneeSelect(raw: AdminOrder, order: AdminOrder) {
+    return (
+      <InlineSelect
+        value={order.assigneeId ?? UNASSIGNED}
+        disabled={pending}
+        onValueChange={(value) => change(raw, { assigneeId: value === UNASSIGNED ? null : value })}
+        ariaLabel={`Entregador do pedido ${order.reference}`}
+        display={order.assigneeName || orDash(null)}
+        className="bg-[image:var(--brand-surface-fill)] text-white/80"
+        options={[
+          { value: UNASSIGNED, label: "Sem atendente" },
+          ...attendants.map((attendant) => ({ value: attendant.id, label: attendantName(attendant) })),
+        ]}
+      />
+    );
+  }
+
   return (
     <>
-      {/* Abaixo de ~1420px as dez colunas não cabem, e aí quem rola é a TABELA
-          dentro do card — nunca a página. Mesma regra da tabela de usuários. */}
-      <div className="scrollbar-orange -mx-[10px] overflow-x-auto px-[10px]">
+      {/* CELULAR (2026-11-02): cartões em vez da tabela de 1311px, que mostrava
+          só ID e telefone e escondia o resto na rolagem lateral. Mesmas ações:
+          número → chat, situação, entregador, informações e comprovante. */}
+      <ul className="flex flex-col gap-[12px] md:hidden">
+        {orders.length === 0 ? (
+          <li className="py-[40px] text-center font-poppins text-[15px] text-brand-fg-subtle">
+            Nenhum pedido com esses filtros.
+          </li>
+        ) : (
+          orders.map((raw) => {
+            const order = apply(raw);
+            const games = order.games ?? [];
+            const art = backendAsset(games[0]?.imageUrl);
+            const items = Array.isArray(order.items) ? order.items : [];
+            const phone = order.customerPhone && formatPhone(order.customerPhone);
+
+            return (
+              <li key={order.id} className="rounded-[16px] border border-white/10 bg-black/30 p-[14px]">
+                <div className="flex items-start gap-[12px]">
+                  {art ? <MenuGameThumb src={art} /> : null}
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      href={adminOrderChatHref(order.reference)}
+                      prefetch={false}
+                      title="Abrir o chat do pedido"
+                      className="font-poppins text-[16px] font-bold text-white underline decoration-white/30 underline-offset-[3px]"
+                    >
+                      {order.reference}
+                    </Link>
+                    <p className="mt-[2px] truncate font-helvetica text-[13px] text-brand-fg-subtle">
+                      {formatDateTime(order.createdAt)}
+                      {games.length > 0 ? ` · ${games.map((game) => game.name).join(", ")}` : ""}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="mt-[10px] truncate font-helvetica text-[14px] text-brand-placeholder">
+                  {canOpenUsers && order.customerId ? (
+                    <Link href={adminUserHref(order.customerId)} prefetch={false} className={USER_LINK_CLASS}>
+                      {order.customerName}
+                    </Link>
+                  ) : (
+                    order.customerName
+                  )}
+                  {phone ? <span className="text-brand-fg-subtle"> · {phone}</span> : null}
+                </p>
+
+                <div className="mt-[12px] grid grid-cols-2 gap-[10px]">
+                  <div className="flex min-w-0 flex-col items-start gap-[6px]">
+                    <span className="font-poppins text-[11px] font-bold tracking-[0.04em] text-brand-fg-subtle uppercase">Situação</span>
+                    {statusSelect(raw, order)}
+                  </div>
+                  <div className="flex min-w-0 flex-col items-start gap-[6px]">
+                    <span className="font-poppins text-[11px] font-bold tracking-[0.04em] text-brand-fg-subtle uppercase">Entregador</span>
+                    {assigneeSelect(raw, order)}
+                  </div>
+                </div>
+
+                <div className="mt-[14px] flex flex-wrap items-center gap-[8px] border-t border-white/10 pt-[12px]">
+                  <button
+                    type="button"
+                    onClick={() => setDetail(order)}
+                    className="rounded-full border border-white/15 px-[12px] py-[6px] font-poppins text-[12px] font-bold text-white"
+                  >
+                    Informações de compra
+                  </button>
+                  <a
+                    href={`${apiOrigin}/api/v1/admin/orders/${encodeURIComponent(order.reference)}/receipt`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-[6px] rounded-full border border-white/15 px-[12px] py-[6px] font-poppins text-[12px] font-bold text-white"
+                  >
+                    <Image src="/icons/admin/inbox-out.svg" alt="" width={16} height={16} aria-hidden className="size-[16px]" />
+                    Comprovante
+                  </a>
+                  {items.length > 1 ? (
+                    <span className="rounded-full border border-white/15 bg-white/5 px-[8px] py-[2px] font-poppins text-[11px] font-bold text-white/80">
+                      {items.length} itens
+                    </span>
+                  ) : null}
+                  {items.some((item) => item.gift) ? (
+                    <span className="rounded-full border border-[#22c55e]/40 bg-[#22c55e]/10 px-[8px] py-[2px] font-poppins text-[11px] font-bold text-[#4ade80]">
+                      + brinde
+                    </span>
+                  ) : null}
+                </div>
+              </li>
+            );
+          })
+        )}
+      </ul>
+
+      {/* Do `md` em diante, a tabela. Abaixo de ~1420px as dez colunas não
+          cabem, e aí quem rola é a TABELA dentro do card — nunca a página.
+          Mesma regra da tabela de usuários. `relative`: o `sr-only` do
+          comprovante é absoluto e, sem um ancestral posicionado DENTRO da
+          rolagem, alargava a página inteira (2026-11-02). */}
+      <div className="scrollbar-orange relative -mx-[10px] hidden overflow-x-auto px-[10px] md:block">
         <table
           className="w-full table-fixed border-collapse"
           style={{ minWidth: MIN_WIDTH }}
@@ -216,7 +357,6 @@ export function OrdersTable({
             ) : (
               orders.map((raw) => {
                 const order = apply(raw);
-                const pill = orderPill(order);
                 const games = order.games ?? [];
                 const art = backendAsset(games[0]?.imageUrl);
                 const items = Array.isArray(order.items) ? order.items : [];
@@ -266,21 +406,7 @@ export function OrdersTable({
                         painel ao ABRIR, então o custo não existia. Ver
                         `InlineSelect`.
                       */}
-                      <InlineSelect
-                        value={statusValue(order)}
-                        disabled={pending}
-                        onValueChange={(value) =>
-                          // `ds:<id>` = status personalizado (o pedido vai para a
-                          // etapa dele); o resto é a situação padrão.
-                          value.startsWith(CUSTOM_PREFIX)
-                            ? change(raw, { deliveryStatusId: value.slice(CUSTOM_PREFIX.length) })
-                            : change(raw, { status: value })
-                        }
-                        ariaLabel={`Situação do pedido ${order.reference}`}
-                        className={pill.className}
-                        display={pill.label}
-                        options={statusOptions(order, statuses)}
-                      />
+                      {statusSelect(raw, order)}
                     </td>
 
                     <td className="truncate py-[14px] pr-[10px] font-helvetica text-[16px] tracking-[0.16px] text-brand-placeholder">
@@ -295,27 +421,7 @@ export function OrdersTable({
                         é como se DESATRIBUI um pedido —, então precisa de um
                         valor próprio, traduído de volta para `null` no envio.
                       */}
-                      <InlineSelect
-                        value={order.assigneeId ?? UNASSIGNED}
-                        disabled={pending}
-                        onValueChange={(value) =>
-                          change(raw, {
-                            assigneeId: value === UNASSIGNED ? null : value,
-                          })
-                        }
-                        ariaLabel={`Entregador do pedido ${order.reference}`}
-                        display={
-                          order.assigneeName || orDash(null)
-                        }
-                        className="bg-[image:var(--brand-surface-fill)] text-white/80"
-                        options={[
-                          { value: UNASSIGNED, label: "Sem atendente" },
-                          ...attendants.map((attendant) => ({
-                            value: attendant.id,
-                            label: attendantName(attendant),
-                          })),
-                        ]}
-                      />
+                      {assigneeSelect(raw, order)}
                     </td>
 
                     <td className="py-[14px] text-center">
@@ -401,25 +507,17 @@ export function OrdersTable({
                         quadrado vazio de 27px seria ruído numa tabela de quinze
                         linhas.
                       */}
+                      {/*
+                        A MESMA moldura do menu GAMES (2026-11-02, pedido do
+                        usuário: "tem que ficar igual o dropdown do menu"). Era
+                        um quadrado de 27px com `object-cover`, que recortava o
+                        meio do logo — e os logos são largos (ARC Raiders
+                        372×106). `MenuGameThumb`: 76×40, `object-contain`,
+                        logo inteiro.
+                      */}
                       {art ? (
-                        // Caixa de 27px com a arte PREENCHENDO — a mesma
-                        // estrutura do arquivo (moldura fixa + `object-cover`).
-                        //
-                        // `fill` e não `width`/`height`: com as duas medidas em
-                        // atributo mais o `object-cover` recortando, o Next
-                        // avisa que a proporção mudou (a arte dos jogos é
-                        // larga, o quadro é quadrado) — e o aviso está certo, é
-                        // recorte de propósito. Dentro de um pai posicionado o
-                        // `fill` diz exatamente isso, sem aviso.
-                        <span className="relative ml-auto block size-[27px] overflow-hidden rounded-[4px]">
-                          <Image
-                            src={art}
-                            alt=""
-                            fill
-                            sizes="27px"
-                            aria-hidden
-                            className="object-cover"
-                          />
+                        <span className="ml-auto block w-fit">
+                          <MenuGameThumb src={art} />
                         </span>
                       ) : null}
                     </td>

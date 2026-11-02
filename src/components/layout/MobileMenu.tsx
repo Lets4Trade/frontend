@@ -10,6 +10,7 @@ import { cn } from "@/lib/cn";
 import { HeaderSearch } from "./HeaderSearch";
 import { SupportStatusCard } from "./SupportStatusCard";
 import { gameHref } from "@/features/game/href";
+import { LogoutButton } from "@/features/auth/LogoutButton";
 import { MenuGameThumb } from "@/features/game/MenuGameThumb";
 
 /**
@@ -79,6 +80,14 @@ export function MobileMenu({
             <MenuLink href="/" onClick={close}>Home</MenuLink>
             <MenuLink href="/fidelidade" onClick={close}>Fidelidade</MenuLink>
             <MenuLink href="/venda" onClick={close}>Venda pra nós</MenuLink>
+            {/* Conta junto dos outros atalhos (2026-11-02, pedido do usuário):
+                no fim da gaveta, depois de todos os jogos, ninguém os achava. */}
+            {loggedIn ? (
+              <>
+                <MenuLink href="/conta/pedidos" onClick={close}>Meus pedidos</MenuLink>
+                <MenuLink href="/conta/editar" onClick={close}>Minhas informações</MenuLink>
+              </>
+            ) : null}
           </nav>
 
           {games.length > 0 ? (
@@ -108,8 +117,15 @@ export function MobileMenu({
           <div className="mt-auto flex flex-col gap-[12px] pt-[28px]">
             {loggedIn ? (
               <>
-                <MenuLink href="/conta/pedidos" onClick={close}>Meus pedidos</MenuLink>
-                <MenuLink href="/conta/editar" onClick={close}>Minhas informações</MenuLink>
+                {/* Sem isto não havia como sair no celular (2026-11-02): o menu
+                    do avatar é `hidden md:block`. Fica no rodapé, longe dos
+                    atalhos, para ninguém sair sem querer. */}
+                <LogoutButton
+                  onStart={close}
+                  className="rounded-[12px] px-[8px] py-[10px] text-left font-poppins text-[16px] font-semibold text-white/70 transition-colors hover:bg-white/5 disabled:opacity-60"
+                >
+                  Sair
+                </LogoutButton>
               </>
             ) : (
               <>

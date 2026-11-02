@@ -3,6 +3,7 @@ import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { LoginForm } from "@/features/auth/LoginForm";
 import { SocialLogin, socialErrorMessage } from "@/features/auth/SocialLogin";
+import { CheckoutLoginNotice } from "@/features/checkout/CheckoutLoginNotice";
 
 export const metadata: Metadata = {
   title: "Login | Lets4Trade",
@@ -40,6 +41,7 @@ export default async function LoginPage({
           aria-labelledby="login-heading"
           className="w-full max-w-[415px] rounded-[30px] border border-brand-border bg-brand-surface/95 p-[30px] backdrop-blur-[75px] sm:p-[50px]"
         >
+          <CheckoutLoginNotice redirect={redirect} />
           <LoginForm
             social={<SocialLogin redirect={redirect} verb="Entrar" />}
             notice={socialErrorMessage(query.erro)}

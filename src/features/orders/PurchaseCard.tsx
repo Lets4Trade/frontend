@@ -22,6 +22,10 @@ import { ORDER_STATUS_STYLES, type OrderItem, type Purchase } from "./types";
  *   rodapé   a trilha da entrega e o total pago
  *
  * Um pedido tem uma situação e uma trilha (2026-10-16); os itens não repetem.
+ *
+ * Largura da tela (2026-11-02): era 1000px fixo. No celular a pílula e o
+ * "Ver pedido" descem para a própria linha, os itens ficam em UMA coluna e a
+ * trilha usa o tamanho compacto (a do card tem 362px e não cabe).
  */
 export function PurchaseCard({ purchase }: { purchase: Purchase }) {
   const href = `/conta/pedidos/${encodeURIComponent(purchase.reference)}`;
@@ -32,14 +36,14 @@ export function PurchaseCard({ purchase }: { purchase: Purchase }) {
   const count = purchase.items.length;
 
   return (
-    <article className="w-[1000px] shrink-0 overflow-hidden rounded-[24px] border border-white/10 bg-[#0b0b0b]">
-      <header className="flex items-center gap-[16px] border-b border-white/[0.07] px-[28px] py-[18px]">
-        <span className="relative size-[52px] shrink-0 overflow-hidden rounded-[14px] border border-white/10 bg-[#161616]">
+    <article className="@container w-full shrink-0 overflow-hidden rounded-[20px] border border-white/10 bg-[#0b0b0b] sm:rounded-[24px]">
+      <header className="flex flex-wrap items-center gap-x-[16px] gap-y-[12px] border-b border-white/[0.07] px-[16px] py-[16px] sm:flex-nowrap sm:px-[28px] sm:py-[18px]">
+        <span className="relative size-[44px] shrink-0 overflow-hidden rounded-[12px] border border-white/10 bg-[#161616] sm:size-[52px] sm:rounded-[14px]">
           {logo ? <Image src={logo} alt="" fill sizes="52px" className="object-contain p-[6px]" /> : null}
         </span>
 
         <div className="min-w-0 flex-1">
-          <h3 className="truncate font-poppins text-[20px] leading-[26px] font-semibold tracking-[-0.2px] text-white" title={title}>
+          <h3 className="truncate font-poppins text-[17px] leading-[24px] sm:text-[20px] sm:leading-[26px] font-semibold tracking-[-0.2px] text-white" title={title}>
             {title}
           </h3>
           <p className="mt-[2px] font-helvetica text-[13px] text-brand-fg-subtle">
@@ -59,9 +63,11 @@ export function PurchaseCard({ purchase }: { purchase: Purchase }) {
           </p>
         </div>
 
+        {/* Pílula + chat: linha própria no celular, à direita no desktop. */}
+        <div className="flex w-full items-center justify-between gap-[12px] sm:w-auto sm:shrink-0 sm:justify-end sm:gap-[16px]">
         <span
           className={cn(
-            "flex h-[28px] max-w-[260px] shrink-0 items-center justify-center truncate rounded-full border border-white/5 px-[14px] font-helvetica text-[14px] tracking-[0.14px]",
+            "flex h-[28px] max-w-[200px] min-w-0 sm:max-w-[260px] items-center justify-center truncate rounded-full border border-white/5 px-[14px] font-helvetica text-[14px] tracking-[0.14px]",
             pill.className,
           )}
         >
@@ -77,18 +83,32 @@ export function PurchaseCard({ purchase }: { purchase: Purchase }) {
           <Image src="/icons/order/chat.svg" alt="" width={16} height={16} aria-hidden />
           Ver pedido
         </Link>
+        </div>
       </header>
 
       {/* Dois itens por linha a partir de dois: o card não cresce tanto e cada
           linha continua do tamanho da do carrinho. */}
-      <ul className={cn("grid px-[28px] py-[6px]", count > 1 && "grid-cols-2 gap-x-[32px]")}>
+      <ul className={cn("grid px-[16px] py-[4px] sm:px-[28px] sm:py-[6px]", count > 1 && "@min-[640px]:grid-cols-2 @min-[640px]:gap-x-[32px]")}>
         {purchase.items.map((item) => (
           <ItemRow key={item.id} item={item} />
         ))}
       </ul>
 
-      <footer className="flex items-end justify-between gap-[24px] border-t border-white/[0.07] bg-white/[0.015] px-[28px] pt-[18px] pb-[16px]">
-        <OrderStatusTracker track={purchase.track} dates={purchase.stepDates} note={trackNote(purchase)} />
+      <footer className="flex flex-col gap-[16px] border-t border-white/[0.07] bg-white/[0.015] px-[16px] pt-[16px] pb-[14px] @min-[640px]:flex-row @min-[640px]:items-end @min-[640px]:justify-between @min-[640px]:gap-[24px] sm:px-[28px] sm:pt-[18px] sm:pb-[16px]">
+        {/* Pela largura do CARD (container query), não da tela: no painel de 1280 o card é estreito. A trilha do card tem 362px; abaixo de 420, a compacta (301px). Lado a lado com o total só a partir de 640. */}
+        <OrderStatusTracker
+          track={purchase.track}
+          dates={purchase.stepDates}
+          note={trackNote(purchase)}
+          className="hidden @min-[420px]:block"
+        />
+        <OrderStatusTracker
+          track={purchase.track}
+          dates={purchase.stepDates}
+          note={trackNote(purchase)}
+          size="compact"
+          className="self-center @min-[420px]:hidden"
+        />
 
         <dl className="flex shrink-0 flex-col items-end gap-[4px] pb-[6px]">
           {purchase.discount ? (
@@ -113,7 +133,7 @@ function ItemRow({ item }: { item: OrderItem }) {
   const detail = [item.platform, item.quantity].filter(Boolean).join(" · ");
 
   return (
-    <li className="flex min-w-0 items-center gap-[14px] border-b border-white/[0.07] py-[12px] last:border-b-0 [&:nth-last-child(2):nth-child(odd)]:border-b-0">
+    <li className="flex min-w-0 items-center gap-[14px] border-b border-white/[0.07] py-[12px] last:border-b-0 @min-[640px]:[&:nth-last-child(2):nth-child(odd)]:border-b-0">
       <span className="relative size-[56px] shrink-0 overflow-hidden rounded-[12px] border border-white/10 bg-[#161616]">
         {art ? (
           <Image

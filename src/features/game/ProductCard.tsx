@@ -8,6 +8,7 @@ import { MAX_CART_QUANTITY, useCart } from "@/features/cart/store";
 import { cn } from "@/lib/cn";
 import { formatPrice } from "./content";
 import { DiscountBadge } from "./DiscountBadge";
+import { DiscountedPrice } from "./DiscountedPrice";
 import { ProductCardShell } from "./ProductCardShell";
 import type { GameProduct } from "./types";
 
@@ -76,6 +77,11 @@ export function ProductCard({
     router.push("/checkout");
   }
 
+  // Só risca quando o cheio é MAIOR que o cobrado: preço antigo sem
+  // `listPriceCents` (ou igual) mostra só o selo, como antes.
+  const hasDiscount =
+    !!product.discountPercent && !!product.listPriceCents && product.listPriceCents > product.priceCents;
+
   return (
     <ProductCardShell
       name={product.name}
@@ -87,7 +93,15 @@ export function ProductCard({
       // O unitário completo cabe no leitor de tela (`title`/aria), não nos
       // 265px do card — "R$ 79.680,00 (5 × R$ 15.936,00)" estouraria a linha.
       price={
-        quantity > 1 ? (
+        // Com desconto (2026-11-02): o cheio riscado ao lado do novo, também no
+        // total de várias unidades. Aí o "· N un." sai — o contador logo abaixo
+        // já diz quantas, e a linha não comporta os três.
+        hasDiscount ? (
+          <DiscountedPrice
+            listLabel={formatPrice(product.listPriceCents! * quantity)}
+            priceLabel={formatPrice(product.priceCents * quantity)}
+          />
+        ) : quantity > 1 ? (
           <span title={`${quantity} × ${formatPrice(product.priceCents)}`}>
             {formatPrice(product.priceCents * quantity)}
             <span className="ml-[6px] text-[13px] font-medium text-white/60">· {quantity} un.</span>
@@ -97,7 +111,8 @@ export function ProductCard({
         )
       }
       image={product.image}
-      // Desconto do pacote (2026-10-27): só o selo; o preço acima já vem com ele.
+      // Desconto do pacote (2026-10-27): o selo; o preço acima já vem com ele
+      // (e, desde 2026-11-02, com o cheio riscado ao lado).
       badge={
         product.discountPercent ? (
           <DiscountBadge

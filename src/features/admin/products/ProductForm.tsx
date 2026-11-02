@@ -31,6 +31,7 @@ import { formatPrice } from "@/features/game/content";
 import { PackageCard } from "@/features/game/PackageCard";
 import { ProductCardShell } from "@/features/game/ProductCardShell";
 import { DiscountBadge } from "@/features/game/DiscountBadge";
+import { DiscountedPrice } from "@/features/game/DiscountedPrice";
 import { MAX_DISCOUNT_PERCENT, discountedCents } from "@/features/game/discount";
 import type { ProductPrefill } from "./links";
 import { categorySelectOptions } from "./categoryOptions";
@@ -595,7 +596,7 @@ export function ProductForm({
             title="Onde aparece"
             hint="Jogo, aba e servidor definem em que lugar da loja o produto entra."
           >
-            <div className="grid gap-x-[24px] gap-y-[22px] sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-x-[24px] gap-y-[22px] sm:grid-cols-2">
               <SelectField
                 key={`game-${resetCount}`}
                 label="Jogo:"
@@ -679,7 +680,7 @@ export function ProductForm({
           </FormSection>
 
           <FormSection id="card" number={2} title="Card" hint="O que o cliente vê na lista de produtos.">
-            <div className="grid gap-x-[24px] gap-y-[22px] sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-x-[24px] gap-y-[22px] sm:grid-cols-2">
               <TextField
                 key={`name-${entryKey}`}
                 ref={nameRef}
@@ -791,7 +792,7 @@ export function ProductForm({
                 />
                 <p className="mt-[6px] pl-[25px] font-helvetica text-[12px] text-brand-fg-subtle">
                   {previewDiscount > 0
-                    ? `O cliente paga ${formatPrice(discountedCents(priceCents, previewDiscount))} (de ${formatPrice(priceCents)}) e vê o selo -${previewDiscount}% no card.`
+                    ? `O cliente paga ${formatPrice(discountedCents(priceCents, previewDiscount))} (de ${formatPrice(priceCents)}) e vê o selo -${previewDiscount}% e o preço cheio riscado no card.`
                     : "Vazio ou 0 = sem desconto. Com desconto, o card mostra o selo no canto."}
                 </p>
               </div>
@@ -895,7 +896,17 @@ export function ProductForm({
                   <ProductCardShell
                     name={previewName || "Nome do produto"}
                     nameEn={previewNameEn.trim() || undefined}
-                    price={formatPrice(discountedCents(priceCents, previewDiscount))}
+                    // Igual à loja (2026-11-02): com desconto, o cheio riscado ao lado.
+                    price={
+                      previewDiscount > 0 && discountedCents(priceCents, previewDiscount) < priceCents ? (
+                        <DiscountedPrice
+                          listLabel={formatPrice(priceCents)}
+                          priceLabel={formatPrice(discountedCents(priceCents, previewDiscount))}
+                        />
+                      ) : (
+                        formatPrice(priceCents)
+                      )
+                    }
                     image={previewImage}
                     actions={null}
                     badge={previewDiscount > 0 ? <DiscountBadge percent={previewDiscount} /> : undefined}

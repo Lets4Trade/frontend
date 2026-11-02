@@ -13,6 +13,7 @@ import { CashbackSummary } from "./CashbackSummary";
 import { estimateCashback } from "./cashback";
 import { formatCents, itemCount, subtotalCents, useCart, type CartItem } from "./store";
 import { useLoyaltyRate } from "./useLoyaltyRate";
+import { CHECKOUT_LOGIN_HREF, CHECKOUT_PATH } from "@/features/checkout/loginHref";
 
 /**
  * Carrinho como gaveta lateral.
@@ -125,8 +126,12 @@ export function CartDrawer({ tiers, gifts }: { tiers: LoyaltyTierRule[]; gifts: 
                   </div>
                 </dl>
 
+                {/* Sem sessão vai direto ao login com volta ao checkout
+                    (2026-11-02): ninguém digita cartão antes de ter conta.
+                    A dica de cookie é só atalho — a página do checkout confere
+                    a sessão de verdade no servidor. */}
                 <Link
-                  href="/checkout"
+                  href={signedIn ? CHECKOUT_PATH : CHECKOUT_LOGIN_HREF}
                   onClick={close}
                   className="mt-[16px] flex h-[50px] w-full items-center justify-center rounded-full border border-[var(--brand-stroke-soft)] bg-[image:var(--brand-orange-gradient)] font-poppins text-[16px] font-bold tracking-[0.16px] text-black transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
                 >

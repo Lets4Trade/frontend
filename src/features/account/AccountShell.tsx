@@ -13,6 +13,16 @@ import type { AccountProfile } from "./profile";
  *
  * Medidas do design (frame de 1920): perfil em x=154, painel em x=666, vão de
  * 50px e margens de 154px dos dois lados → conteúdo de 1612px centrado.
+ *
+ * RESPONSIVO (2026-11-02, "não formatada pra mobile"): o desenho é só de
+ * desktop e somava 1712px FIXOS (462 + 50 + 1100 + margens) — no celular o
+ * painel sumia inteiro à direita, e até num notebook de 1440 ele saía cortado.
+ * Agora:
+ *   - `xl` (≥1280): o desenho do arquivo — perfil de 462 ao lado do painel
+ *     emoldurado de 898 de altura; o painel ENCOLHE até 1100 em vez de estourar.
+ *   - abaixo: tudo empilhado e na largura da tela — perfil compacto em cima,
+ *     painel SEM moldura (título + conteúdo direto), para os cartões de compra
+ *     terem a largura toda do celular.
  */
 export function AccountShell({
   profile,
@@ -31,30 +41,32 @@ export function AccountShell({
     <div className="flex min-h-dvh flex-col bg-brand-bg">
       <SiteHeader />
 
-      <main className="flex-1 overflow-x-auto">
-        <div className="mx-auto flex w-max gap-[50px] px-[50px] py-[68px]">
+      <main className="flex-1">
+        <div className="mx-auto flex w-full max-w-[1712px] flex-col gap-[28px] px-[16px] py-[24px] sm:px-[24px] xl:flex-row xl:items-start xl:gap-[50px] xl:px-[50px] xl:py-[68px]">
           <ProfileCard profile={profile} activeTab={activeTab} />
 
           <section
             aria-labelledby="painel-heading"
-            className="relative h-[898px] w-[1100px] shrink-0 overflow-hidden rounded-[30px] border border-white/10 bg-brand-surface"
+            className="relative flex min-w-0 flex-col xl:h-[898px] xl:max-w-[1100px] xl:flex-1 xl:overflow-hidden xl:rounded-[30px] xl:border xl:border-white/10 xl:bg-brand-surface xl:p-[50px]"
           >
-            {/* Marcador laranja à esquerda do título. */}
-            <div
-              aria-hidden
-              className="absolute top-[50px] left-[50px] h-[31px] w-[4px] rounded-[29px]"
-              style={{
-                backgroundImage:
-                  "linear-gradient(96.53deg, #ff7300 13.819%, #ff4d00 89.223%)",
-              }}
-            />
+            {/* Marcador laranja à esquerda do título (x=50 e x=76 no arquivo → vão de 22). */}
+            <div className="flex items-center gap-[16px] xl:gap-[22px]">
+              <div
+                aria-hidden
+                className="h-[26px] w-[4px] shrink-0 rounded-[29px] xl:h-[31px]"
+                style={{
+                  backgroundImage:
+                    "linear-gradient(96.53deg, #ff7300 13.819%, #ff4d00 89.223%)",
+                }}
+              />
 
-            <h2
-              id="painel-heading"
-              className="absolute top-[50px] left-[76px] font-helvetica text-[25px] leading-[24px] font-bold tracking-[0.25px] text-white"
-            >
-              {title}
-            </h2>
+              <h2
+                id="painel-heading"
+                className="font-helvetica text-[22px] leading-[24px] font-bold tracking-[0.25px] text-white xl:text-[25px]"
+              >
+                {title}
+              </h2>
+            </div>
 
             {children}
           </section>

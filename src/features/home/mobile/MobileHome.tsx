@@ -219,7 +219,10 @@ export function MobileVideo({ section }: { section: SectionView }) {
           quality={90}
           aria-hidden
           // Mesmo aro do desktop (2026-10-16): a foto escura sumia no fundo.
-          className="size-[50px] rounded-full object-cover ring-2 ring-brand-orange ring-offset-[3px] ring-offset-black"
+          // O aro (2px + 3px de folga) fica POR FORA da foto; encostada na
+          // borda, a moldura com `overflow-x-clip` da página do jogo cortava o
+          // lado esquerdo dele (2026-11-02). `ml-[5px]` = a largura do aro.
+          className="ml-[5px] size-[50px] shrink-0 rounded-full object-cover ring-2 ring-brand-orange ring-offset-[3px] ring-offset-black"
         />
         <div className="min-w-0 flex-1">
           <p className="font-poppins text-[16px] leading-[22px] font-bold text-white">{t.assinaturaNome}</p>

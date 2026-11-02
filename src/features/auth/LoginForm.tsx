@@ -166,7 +166,12 @@ export function LoginForm({
         <Button
           variant="outline"
           fullWidth
-          onClick={() => router.push("/criar-conta")}
+          // Leva o `?redirect=` junto (2026-11-02): quem veio do checkout e
+          // cria a conta volta ao checkout, não à home.
+          onClick={() => {
+            const next = safeRedirectPath(new URLSearchParams(window.location.search).get("redirect"), "");
+            router.push(next ? `/criar-conta?redirect=${encodeURIComponent(next)}` : "/criar-conta");
+          }}
         >
           CRIAR CONTA
         </Button>

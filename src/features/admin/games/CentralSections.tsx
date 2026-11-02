@@ -295,7 +295,7 @@ async function TabProductsAndCategories({
             {/* Grade produto × servidor: uma linha por produto, um preço por
                 servidor — 30 linhas em vez de 120 repetidas. Cada preço abre
                 a edição daquele produto. */}
-            <div className="mt-[15px] overflow-x-auto rounded-[12px] border border-white/5">
+            <div className="relative mt-[15px] overflow-x-auto rounded-[12px] border border-white/5">
               <table className="w-full min-w-[480px] border-collapse font-poppins text-[13px]">
                 <thead className="bg-black/40">
                   <tr className="text-left text-[12px] text-brand-fg-subtle">

@@ -111,13 +111,14 @@ export default async function AdminChatsPage({ searchParams }: PageProps) {
         </div>
       </header>
 
-      <div className="mt-[40px]">
+      <div className="mt-[20px] md:mt-[40px]">
         <ChatsBoard
           items={page.items}
           detail={detail}
           order={order}
           attendants={attendants}
           hrefFor={hrefFor}
+          listHref={buildChatsHref(query, { conversation: "" })}
           currentStaffId={staffId}
           canOpenUsers={canOpenUsers}
           orderControls={{ statuses, apiOrigin: backendOrigin() }}

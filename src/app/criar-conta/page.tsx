@@ -3,6 +3,7 @@ import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SignupForm } from "@/features/auth/SignupForm";
 import { SocialLogin } from "@/features/auth/SocialLogin";
+import { CheckoutLoginNotice } from "@/features/checkout/CheckoutLoginNotice";
 
 export const metadata: Metadata = {
   title: "Criar conta | Lets4Trade",
@@ -37,7 +38,8 @@ export default async function SignupPage({
           aria-labelledby="signup-heading"
           className="w-full max-w-[780px] rounded-[30px] border border-brand-border bg-brand-surface/95 p-[30px] backdrop-blur-[75px] sm:p-[50px]"
         >
-          <SignupForm social={<SocialLogin redirect={redirect} verb="Cadastrar" />} />
+          <CheckoutLoginNotice redirect={redirect} />
+          <SignupForm redirect={redirect} social={<SocialLogin redirect={redirect} verb="Cadastrar" />} />
         </section>
       </main>
 

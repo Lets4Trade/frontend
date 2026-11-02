@@ -110,8 +110,10 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
           do `xl` o selo some (md–xl) e o horário ocupa o meio livre do flex. */}
       <div className="relative mx-auto flex h-[60px] max-w-[1920px] items-center gap-[12px] px-[25px] md:h-[83px] md:gap-[25px] md:px-6 lg:px-[50px] xl:grid xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
         {/* Lado esquerdo: `contents` no flex (cada peça é filho direto, como
-            antes); bloco único na grade do `xl`. */}
-        <div className="contents xl:flex xl:min-w-0 xl:items-center xl:gap-[25px]">
+            antes); bloco único na grade do `xl`. Perto de 1280px a coluna não
+            comporta logo + JOGOS + busca de 219px e a busca invadia o selo
+            (2026-11-02): vão de 16px até o `2xl` e a busca encolhe até 140px. */}
+        <div className="contents xl:flex xl:min-w-0 xl:items-center xl:gap-[16px] 2xl:gap-[25px]">
           {/* `data-admin-section`: na prévia do painel, clicar aqui abre o campo
             certo (ver `features/pages/editor/previewPick.ts`). Na loja é inerte. */}
           <Link

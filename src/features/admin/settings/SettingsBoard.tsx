@@ -95,7 +95,7 @@ export function SettingsBoard({ initialSections }: { initialSections: SectionCon
         aria-label="Grupos de configuração"
         aria-orientation="vertical"
         onKeyDown={onKeyDown}
-        className="-mx-[16px] flex gap-[8px] overflow-x-auto px-[16px] pb-[4px] lg:sticky lg:top-[24px] lg:mx-0 lg:flex-col lg:self-start lg:overflow-visible lg:px-0"
+        className="relative -mx-[16px] flex gap-[8px] overflow-x-auto px-[16px] pb-[4px] lg:sticky lg:top-[24px] lg:mx-0 lg:flex-col lg:self-start lg:overflow-visible lg:px-0"
       >
         {SETTINGS_GROUPS.map((group) => {
           const selected = active === group.id;

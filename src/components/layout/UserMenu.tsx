@@ -3,9 +3,8 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import { logout } from "@/features/auth/authService";
+import { useState } from "react";
+import { useLogout } from "@/features/auth/useLogout";
 import type { SessionUser } from "@/features/auth/session";
 
 /**
@@ -22,18 +21,8 @@ import type { SessionUser } from "@/features/auth/session";
  * cabeçalho continuaria mostrando o avatar até a próxima navegação dura.
  */
 export function UserMenu({ user }: { user: SessionUser }) {
-  const router = useRouter();
   const [aberto, setAberto] = useState(false);
-  const [saindo, iniciarSaida] = useTransition();
-
-  function sair() {
-    setAberto(false);
-    iniciarSaida(async () => {
-      await logout();
-      router.replace("/");
-      router.refresh();
-    });
-  }
+  const { signOut: sair, pending: saindo } = useLogout(() => setAberto(false));
 
   return (
     <DropdownMenu.Root open={aberto} onOpenChange={setAberto}>

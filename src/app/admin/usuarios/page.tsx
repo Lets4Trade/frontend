@@ -69,7 +69,7 @@ export default async function AdminUsersPage({
             </p>
           </div>
 
-          <div className="flex items-center gap-[25px]">
+          <div className="flex w-full flex-wrap items-center gap-[16px] sm:w-auto sm:gap-[25px]">
             <FilterMenu
               // A `key` muda a cada filtro novo para o `<details>` remontar
               // fechado — a navegação do Next é suave e preservaria o `open`.

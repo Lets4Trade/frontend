@@ -112,7 +112,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
 
   return (
     <div className={`${ADMIN_SHELL} pb-[100px]`}>
-      <header className="flex flex-wrap items-start justify-between gap-[25px]">
+      <header className="flex flex-wrap items-start justify-between gap-[16px] md:gap-[25px]">
         <div>
           <h1 className="font-helvetica text-[25px] leading-none font-bold tracking-[0.25px] text-white">
             Vendas e pedidos
@@ -122,7 +122,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-[20px]">
+        <div className="flex flex-wrap items-center gap-[12px] md:gap-[20px]">
           {/* Status de entrega personalizados (2026-10-16): admin e atendente. */}
           <DeliveryStatusManager statuses={statuses} />
           <FilterMenu
@@ -158,11 +158,11 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
 
       <section
         aria-labelledby="titulo-pedidos"
-        className="mt-[50px] rounded-[30px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[40px] pt-[35px] pb-[40px]"
+        className="mt-[24px] rounded-[20px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[12px] pt-[20px] pb-[16px] sm:px-[24px] md:mt-[50px] md:rounded-[30px] md:px-[40px] md:pt-[35px] md:pb-[40px]"
       >
         <h2
           id="titulo-pedidos"
-          className="mb-[30px] font-helvetica text-[20px] leading-none font-bold tracking-[0.2px] text-white"
+          className="mb-[16px] px-[4px] font-helvetica text-[20px] leading-none font-bold tracking-[0.2px] text-white md:mb-[30px] md:px-0"
         >
           Pedidos ({page.total})
         </h2>

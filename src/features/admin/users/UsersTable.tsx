@@ -65,7 +65,7 @@ export function UsersTable({
        TABELA dentro do card — nunca a página. Barra horizontal na página é o
        que a loja inteira evita; barra numa tabela larga é o comportamento
        esperado, e mantém o cabeçalho do painel no lugar. */
-    <div className="scrollbar-orange -mx-[10px] overflow-x-auto px-[10px]">
+    <div className="scrollbar-orange relative -mx-[10px] overflow-x-auto px-[10px]">
       <table className="w-full min-w-[1138px] table-fixed border-collapse">
         <caption className="sr-only">
           Usuários da plataforma, com cargo, status de conta, número de compras
