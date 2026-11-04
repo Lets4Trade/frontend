@@ -13,13 +13,25 @@ import { tabHrefWithServer } from "./storefrontTabs";
  * as abas descem junto. Os números (30px de vão para o logo, 25 até as abas,
  * 15 entre elas) são os do arquivo, medidos como diferença de coordenadas.
  */
-export function GameIdentity({ page, server = "" }: { page: GamePage; server?: string }) {
+export function GameIdentity({
+  page,
+  server = "",
+  packageOpen = false,
+}: {
+  page: GamePage;
+  server?: string;
+  /** Página de um pacote aberta (`?pacote=`): o configurador ocupa a altura dos servidores. */
+  packageOpen?: boolean;
+}) {
   const { logo, heading, coin } = page.identity;
   // A moeda muda de lugar conforme o layout da aba: no catálogo (Figma 1116:314)
   // ela desce até os botões de servidor; no serviço (1708:3266) fica ao lado das
   // abas, 23px abaixo do topo do logo — lá, na altura dos servidores, está o
-  // card do configurador, e ela ficaria por cima dele.
-  const isService = page.tabs.find((tab) => tab.id === page.activeTabId)?.layout === "SERVICE";
+  // card do configurador, e ela ficaria por cima dele. A página do PACOTE
+  // aberto tem o mesmo configurador ali (2026-11-04, pedido do usuário: a
+  // moeda ficava atrás do card) — vai para a linha das abas também.
+  const besideTabs =
+    page.tabs.find((tab) => tab.id === page.activeTabId)?.layout === "SERVICE" || packageOpen;
 
   // Celular: logo menor ao lado do título e as abas numa grade de DUAS colunas,
   // cada aba com o ícone à esquerda e o rótulo à direita (2026-10-16, pedido do
@@ -52,7 +64,7 @@ export function GameIdentity({ page, server = "" }: { page: GamePage; server?: s
         <Link
           href={coin.href ?? "/fidelidade"}
           // Só no desktop: no celular ela cairia em cima das abas e dos servidores.
-          className={`absolute -right-[16px] hidden size-[179px] desk:block ${isService ? "top-[23px]" : "top-[150px]"}`}
+          className={`absolute -right-[16px] hidden size-[179px] desk:block ${besideTabs ? "top-[23px]" : "top-[150px]"}`}
           aria-label="Programa de fidelidade"
         >
           <Image

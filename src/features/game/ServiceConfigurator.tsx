@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useId, useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/cn";
 import { SelectField } from "@/components/ui/SelectField";
 import { formatHours } from "@/features/cart/store";
 import { quote, type Pricing, type Selection } from "@/features/pricing/quote";
@@ -54,19 +55,36 @@ export function ServiceConfigurator({
           do usuário) — antes caía na arte do card ou num retângulo cinza.
           Proporção no celular para a foto não virar uma faixa fina. */}
       {art ? (
-        <div className="relative aspect-[551/327] w-full overflow-hidden rounded-t-[30px] bg-[#2f2f2f] desk:aspect-auto desk:h-[327px]">
+        <div
+          className={cn(
+            "relative w-full overflow-hidden rounded-t-[30px] desk:aspect-auto",
+            // Imagem do card: quadro mais alto (4:3 no celular, 420 no
+            // computador) para a arte inteira não ficar pequena.
+            topArt === "image"
+              ? "aspect-[4/3] bg-black desk:h-[420px]"
+              : "aspect-[551/327] bg-[#2f2f2f] desk:h-[327px]",
+          )}
+        >
+          {/* Imagem do card (pacote) é quadrada/em pé e a faixa é deitada:
+              `contain` mostra a arte INTEIRA sobre o preto do quadro (2026-11-04,
+              pedido do usuário — com `cover` a ponta da arma era cortada). O
+              banner é feito para a faixa (1102×654) e continua preenchendo. */}
           <Image
             src={art.src}
             alt=""
             fill
             sizes="(min-width: 1392px) 554px, 100vw"
-            className="object-cover"
+            className={topArt === "image" ? "object-contain" : "object-cover"}
           />
-          {/* Degradê preto de 121px no pé da foto: garante leitura do primeiro
-              título sobre qualquer arte que o admin subir. */}
+          {/* Degradê preto no pé da foto: garante leitura do primeiro título
+              sobre qualquer arte que o admin subir. Mais curto na imagem do
+              card, que já termina no preto e perderia a parte de baixo. */}
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-[121px] bg-gradient-to-b from-transparent to-black"
+            className={cn(
+              "pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-b from-transparent to-black",
+              topArt === "image" ? "h-[40px]" : "h-[121px]",
+            )}
           />
         </div>
       ) : null}

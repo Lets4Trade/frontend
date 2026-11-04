@@ -131,7 +131,7 @@ function renderSection(
       return page.banners.length > 0 ? <BannerSection banners={page.banners} /> : null;
 
     case "identity":
-      return <GameIdentity page={page} server={query.server} />;
+      return <GameIdentity page={page} server={query.server} packageOpen={Boolean(query.pkg) && tab?.layout === "PACKAGES"} />;
 
     // Seções da home: no desktop, desenhadas na faixa de 1820 dela, centralizada
     // na coluna de 1714 (sangra 53px de cada lado; a moldura corta abaixo de
