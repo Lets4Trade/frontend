@@ -7,6 +7,7 @@ import {
   resolveCopyright,
   type ContactChannel,
 } from "@/features/site/contacts";
+import { CookiePreferencesLink } from "@/features/consent/CookiePreferencesLink";
 import { withNewsLink } from "@/features/site/footerLinks";
 import { getLayoutContent } from "@/features/site/layoutContent";
 import { mobileAlignOf } from "@/features/site/mobileAlign";
@@ -70,7 +71,6 @@ export async function SiteFooter() {
   const phone = parsePhone(company.subtitle);
   const email = parseEmail(company.footnote);
   const copyright = resolveCopyright(company.body, new Date().getFullYear());
-  const hasCompany = Boolean(cnpj || phone || email || copyright);
   // Celular (< lg): rodapé inteiro centralizado por padrão; o admin escolhe em
   // "Dados da empresa" (2026-10-15). `max-lg:` deixa o desktop como estava.
   const center = mobileAlignOf(company.extra) === "center";
@@ -200,7 +200,8 @@ export async function SiteFooter() {
           </>
         ) : null}
 
-        {hasCompany ? (
+        {/* Sempre presente (2026-11-03): "Preferências de cookies" tem que ficar
+            alcançável mesmo sem dados da empresa preenchidos. */}
           <>
             <hr className="mt-8 border-0 border-t border-brand-hairline lg:mt-11" />
 
@@ -225,10 +226,12 @@ export async function SiteFooter() {
                     <CompanyContact channel={email} label="E-mail" />
                   </li>
                 ) : null}
+                <li>
+                  <CookiePreferencesLink />
+                </li>
               </ul>
             </div>
           </>
-        ) : null}
       </div>
 
       <GlowBar className="bottom-0" />

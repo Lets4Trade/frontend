@@ -35,20 +35,20 @@ export function ReferencesSection({
 
   return (
     <section>
-      <div className="flex flex-col items-start gap-[16px] lg:flex-row lg:items-center lg:justify-between lg:gap-[25px]">
+      <div className="flex flex-col items-start gap-[16px] desk:flex-row desk:items-center desk:justify-between desk:gap-[25px]">
         <h2 className="font-helvetica text-[22px] leading-none font-bold tracking-[0.22px] text-white">
           {references.title}
         </h2>
 
         <Link
           href={references.ctaHref}
-          className="inline-flex h-[50px] w-full items-center justify-center rounded-full lg:w-auto lg:min-w-[276px] border border-[var(--brand-stroke-soft)] bg-[image:var(--brand-orange-gradient)] px-6 font-poppins text-[16px] font-bold tracking-[0.16px] text-black transition-opacity hover:opacity-90"
+          className="inline-flex h-[50px] w-full items-center justify-center rounded-full desk:w-auto desk:min-w-[276px] border border-[var(--brand-stroke-soft)] bg-[image:var(--brand-orange-gradient)] px-6 font-poppins text-[16px] font-bold tracking-[0.16px] text-black transition-opacity hover:opacity-90"
         >
           {references.ctaLabel}
         </Link>
       </div>
 
-      <div className="mt-[24px] grid grid-cols-1 gap-[16px] lg:mt-[50px] lg:grid-cols-[repeat(auto-fill,391px)] lg:justify-between lg:gap-[50px]">
+      <div className="mt-[24px] grid grid-cols-1 gap-[16px] md:grid-cols-2 lg:grid-cols-3 desk:mt-[50px] desk:grid-cols-[repeat(auto-fill,391px)] desk:justify-between desk:gap-[50px]">
         {references.items.map((item) => (
           <ReferenceCard key={item.id} reference={item} />
         ))}
@@ -59,7 +59,7 @@ export function ReferencesSection({
 
 function ReferenceCard({ reference }: { reference: GameReference }) {
   return (
-    <article className="min-h-[220px] w-full overflow-hidden rounded-[30px] border border-white/10 bg-black/10 px-[20px] pt-[22px] pb-[22px] lg:h-[299px] lg:min-h-0 lg:w-[391px] lg:px-[25px] lg:pt-[27px] lg:pb-0">
+    <article className="min-h-[220px] w-full overflow-hidden rounded-[30px] border border-white/10 bg-black/10 px-[20px] pt-[22px] pb-[22px] desk:h-[299px] desk:min-h-0 desk:w-[391px] desk:px-[25px] desk:pt-[27px] desk:pb-0">
       <div className="flex items-center gap-[15px]">
         {reference.avatar ? (
           <Image
@@ -146,7 +146,7 @@ export function NewsSection({ news }: { news: GamePage["news"] }) {
       </h2>
 
       {/* Celular (2026-10-09): uma coluna, cards em largura cheia. */}
-      <div className="mt-[24px] grid grid-cols-1 gap-[20px] lg:mt-[50px] lg:grid-cols-[repeat(auto-fill,391px)] lg:justify-between lg:gap-[50px]">
+      <div className="mt-[24px] grid grid-cols-1 gap-[20px] md:grid-cols-2 lg:grid-cols-3 desk:mt-[50px] desk:grid-cols-[repeat(auto-fill,391px)] desk:justify-between desk:gap-[50px]">
         {tall.map((item) => (
           <NewsCard key={item.id} item={item} />
         ))}
@@ -154,7 +154,7 @@ export function NewsSection({ news }: { news: GamePage["news"] }) {
         {/* `justify-end`: sem a notícia baixa, o card do blog fica na BASE da
             coluna (onde o arquivo o desenha), alinhado ao rodapé dos altos. */}
         <div
-          className="flex flex-col justify-end gap-[20px] lg:h-[438px] lg:w-[var(--col-w)] lg:gap-[var(--col-gap)]"
+          className="flex flex-col justify-end gap-[20px] desk:h-[438px] desk:w-[var(--col-w)] desk:gap-[var(--col-gap)]"
           style={{ "--col-w": `${NEWS_CARD_WIDTH}px`, "--col-gap": `${NEWS_COMPACT_GAP}px` } as CSSProperties}
         >
           {compact ? <CompactNewsCard item={compact} /> : null}
@@ -178,7 +178,7 @@ function NewsLink({ href, children }: { href?: string; children: ReactNode }) {
 function NewsCard({ item }: { item: GameNewsItem }) {
   return (
     <NewsLink href={item.href}>
-    <article className="relative h-[438px] w-full overflow-hidden rounded-[30px] border border-white/10 bg-[#2f2f2f] lg:w-[391px]">
+    <article className="relative h-[438px] w-full overflow-hidden rounded-[30px] border border-white/10 bg-[#2f2f2f] desk:w-[391px]">
       <div className="absolute top-px right-px left-px h-[276px] overflow-hidden rounded-t-[30px] bg-[#2f2f2f]">
         {item.image ? (
           <Image
@@ -240,7 +240,7 @@ function CompactNewsCard({ item }: { item: GameNewsItem }) {
   return (
     <NewsLink href={item.href}>
     <article
-      className="relative w-full overflow-hidden rounded-[30px] border border-white/10 bg-[#2f2f2f] lg:w-[391px]"
+      className="relative w-full overflow-hidden rounded-[30px] border border-white/10 bg-[#2f2f2f] desk:w-[391px]"
       style={{ height: NEWS_COMPACT_HEIGHT }}
     >
       {item.image ? (
@@ -318,35 +318,35 @@ export function GameFaqSection({
   return (
     // Celular (2026-10-09): recuos e fontes menores — com os do desktop o texto
     // ficava espremido numa coluna de ~250px.
-    <section className="rounded-[24px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[18px] py-[28px] lg:rounded-[30px] lg:px-[24px] lg:py-[49px]">
+    <section className="rounded-[24px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[18px] py-[28px] desk:rounded-[30px] desk:px-[24px] desk:py-[49px]">
       {visible.map((group, index) => (
-        <div key={group.id} className={index > 0 ? "mt-[40px] lg:mt-[59px]" : undefined}>
+        <div key={group.id} className={index > 0 ? "mt-[40px] desk:mt-[59px]" : undefined}>
           {/* `items-center`: a barrinha (31px) fica no meio do título (25px),
               inclusive quando ele quebra em mais de uma linha. */}
           {group.title ? (
-            <div className="flex items-center gap-[14px] lg:gap-[22px]">
+            <div className="flex items-center gap-[14px] desk:gap-[22px]">
               <span
                 aria-hidden
                 className="h-[31px] w-[4px] shrink-0 rounded-[29px] bg-[image:var(--brand-orange-gradient)]"
               />
-              <h2 className="font-helvetica text-[20px] leading-[1.15] font-bold tracking-[0.25px] text-white lg:text-[25px] lg:leading-none">
+              <h2 className="font-helvetica text-[20px] leading-[1.15] font-bold tracking-[0.25px] text-white desk:text-[25px] desk:leading-none">
                 {group.title}
               </h2>
             </div>
           ) : null}
 
           {group.items.length > 0 ? (
-            <dl className={`${group.title ? "mt-[18px] lg:mt-[24px] " : ""}pl-[18px] lg:pl-[26px]`}>
+            <dl className={`${group.title ? "mt-[18px] desk:mt-[24px] " : ""}pl-[18px] desk:pl-[26px]`}>
               {group.items.map((item: VisibleItem, itemIndex) => (
-                <div key={item.id} className={itemIndex > 0 ? "mt-[24px] lg:mt-[35px]" : undefined}>
+                <div key={item.id} className={itemIndex > 0 ? "mt-[24px] desk:mt-[35px]" : undefined}>
                   {/* Subtítulo vazio = parágrafo solto (o texto corrido antigo
                       foi migrado assim). */}
                   {item.question ? (
-                    <dt className="mb-[8px] font-helvetica text-[17px] leading-[1.2] font-bold tracking-[0.2px] break-words text-white lg:mb-[10px] lg:text-[20px] lg:leading-none">
+                    <dt className="mb-[8px] font-helvetica text-[17px] leading-[1.2] font-bold tracking-[0.2px] break-words text-white desk:mb-[10px] desk:text-[20px] desk:leading-none">
                       {item.question}
                     </dt>
                   ) : null}
-                  <dd className="max-w-[1575px] font-helvetica text-[15px] leading-[normal] tracking-[0.18px] break-words whitespace-pre-line text-brand-placeholder lg:text-[18px]">
+                  <dd className="max-w-[1575px] font-helvetica text-[15px] leading-[normal] tracking-[0.18px] break-words whitespace-pre-line text-brand-placeholder desk:text-[18px]">
                     {item.rich ? <RichAnswer source={item.answer} /> : item.answer}
                   </dd>
                 </div>

@@ -102,15 +102,17 @@ export default async function Home() {
         recorta — sem criar um container de rolagem, o que quebraria as
         animações presas à rolagem (`animation-timeline: view()`).
 
-        Abaixo de 1820 o `min-w` segura e a rolagem volta: aí o conteúdo
-        realmente não cabe, e cortar seria pior que rolar.
+        Abaixo de 1820 (2026-11-02): o desenho é ENCOLHIDO para caber (`.fit-1820`,
+        `zoom` de 80% a 100%) e, abaixo de 1476px — onde nem com 80% ele cabe —,
+        entra a versão de celular/tablet. Antes o `min-w` segurava os 1820 e a
+        página rolava de lado em quase todo notebook.
       */}
-      {/* Celular e tablet em pé (< 1024px): o desenho mobile. As duas versões
+      {/* Celular, tablet e notebook estreito (< 1476px, 2026-11-02; era < 1024): o desenho mobile. As duas versões
           vêm no HTML e o CSS escolhe — sem detectar aparelho no servidor, o que
           quebraria o cache da página e erraria em tela girada. */}
       <main className="flex flex-1 flex-col">
-        <div className="flex-1 overflow-x-clip px-[25px] pt-[20px] pb-[60px] lg:hidden">
-          <div className="mx-auto max-w-[560px]">
+        <div className="flex-1 overflow-x-clip px-[25px] pt-[20px] pb-[60px] min-[1476px]:hidden">
+          <div className="mx-auto max-w-[560px] lg:max-w-[720px]">
             {mobileBlocks.map((block, index) => (
               <div
                 key={block.key}
@@ -122,11 +124,11 @@ export default async function Home() {
           </div>
         </div>
 
-        <div className="hidden flex-1 overflow-x-auto lg:block">
-          <div className="relative mx-auto w-full max-w-[1920px] min-w-[1820px] overflow-x-clip">
+        <div className="hidden flex-1 min-[1476px]:block">
+          <div className="relative mx-auto w-full max-w-[1920px] overflow-x-clip">
             <HomeBackdrop />
 
-            <div className="mx-auto w-[1820px] pt-[37px] pb-[100px]">
+            <div className="fit-1820 mx-auto w-[1820px] pt-[37px] pb-[100px]">
               {/* Os blocos vêm de `homeBlocks`, na ordem do banco. O vão acompanha
                 o bloco que vem DEPOIS (medido do arquivo), então reordenar não
                 inventa espaçamento. */}

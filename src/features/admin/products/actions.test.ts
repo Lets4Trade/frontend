@@ -256,6 +256,38 @@ describe("updateProductAction", () => {
   });
 });
 
+describe("selo do card e categorias extras (2026-11-04)", () => {
+  it("cadastro: manda só quando há", async () => {
+    await createProductAction(productForm({ badgeText: "  Novo ", extraCategoryIds: '["c2","c3"]' }));
+    const sent = post.mock.calls[0][1] as FormData;
+    expect(sent.get("badgeText")).toBe("Novo");
+    expect(sent.get("extraCategoryIds")).toBe('["c2","c3"]');
+
+    await createProductAction(productForm());
+    const empty = post.mock.calls[1][1] as FormData;
+    expect(empty.has("badgeText")).toBe(false);
+    expect(empty.has("extraCategoryIds")).toBe(false);
+  });
+
+  it("edição: vão sempre (vazio tira o selo; [] tira as extras)", async () => {
+    await updateProductAction("p1", productForm({ serviceLabel: " Campanha " }));
+    const sent = patch.mock.calls[0][1] as FormData;
+    expect(sent.get("serviceLabel")).toBe("Campanha");
+    expect(sent.get("badgeText")).toBe("");
+    expect(sent.get("extraCategoryIds")).toBe("[]");
+  });
+
+  it.each([
+    ["selo longo", { badgeText: "x".repeat(25) }],
+    ["extra com barra", { extraCategoryIds: '["../x"]' }],
+    ["extras demais", { extraCategoryIds: JSON.stringify(Array.from({ length: 21 }, (_, i) => `c${i}`)) }],
+    ["extras não-JSON", { extraCategoryIds: "[c1" }],
+  ])("%s → invalid, sem API", async (_l, extra) => {
+    expect(await updateProductAction("p1", productForm(extra))).toMatchObject({ ok: false, reason: "invalid" });
+    expect(patch).not.toHaveBeenCalled();
+  });
+});
+
 describe("deleteProductAction", () => {
   it.each([[null], ["USER" as const]])("sessão %s não chama a API", async (r) => {
     role.mockResolvedValue(r);
@@ -447,7 +479,7 @@ describe("saveProductPricesAction", () => {
     role.mockResolvedValue("ADMIN");
     expect(await saveProductPricesAction("g1", list as typeof items)).toEqual({
       ok: false,
-      message: "Lista de preços inválida.",
+      message: "Lista de alterações inválida.",
     });
     expect(put).not.toHaveBeenCalled();
   });
@@ -459,6 +491,33 @@ describe("saveProductPricesAction", () => {
     expect(await saveProductPricesAction("g1", extra)).toEqual({ ok: true, saved: 2 });
     expect(put).toHaveBeenCalledWith("/admin/products/prices", { gameId: "g1", items });
     expect(revalidatePath).toHaveBeenCalledWith("/admin/jogos", "layout");
+  });
+
+  it("nome e categoria: só os campos trocados, nome aparado", async () => {
+    role.mockResolvedValue("ADMIN");
+    put.mockResolvedValue(apiOk({ saved: 2 }));
+    await saveProductPricesAction("g1", [
+      { id: "a", expectedPriceCents: 390, name: " Novo ", expectedName: "Velho" },
+      { id: "b", expectedPriceCents: 3500, categoryId: null, expectedCategoryId: "cat1" },
+    ]);
+    expect(put).toHaveBeenCalledWith("/admin/products/prices", {
+      gameId: "g1",
+      items: [
+        { id: "a", expectedPriceCents: 390, name: "Novo", expectedName: "Velho" },
+        { id: "b", expectedPriceCents: 3500, categoryId: null, expectedCategoryId: "cat1" },
+      ],
+    });
+  });
+
+  it.each([
+    ["linha sem mudança", { id: "a", expectedPriceCents: 1 }],
+    ["nome curto", { id: "a", expectedPriceCents: 1, name: " x ", expectedName: "ab" }],
+    ["nome sem o lido", { id: "a", expectedPriceCents: 1, name: "Novo" }],
+    ["categoria com barra", { id: "a", expectedPriceCents: 1, categoryId: "../x", expectedCategoryId: null }],
+  ])("linha inválida (%s) → recusa sem API", async (_l, item) => {
+    role.mockResolvedValue("ADMIN");
+    expect(await saveProductPricesAction("g1", [item] as typeof items)).toMatchObject({ ok: false });
+    expect(put).not.toHaveBeenCalled();
   });
 
   it("409 repassa a mensagem do backend (diz qual preço mudou)", async () => {

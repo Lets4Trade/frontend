@@ -44,7 +44,7 @@ export async function PackagesSection({
           {/* Mesma grade do catálogo (265 de card; ver o comentário do 24 vs
               25 em `ProductGrid`). Abaixo de 1024 a própria `auto-fill`
               reduz as colunas — nada rola na horizontal. */}
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(265px,100%),265px))] justify-center gap-x-[24px] gap-y-[25px] lg:justify-between">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(265px,100%),265px))] justify-center gap-x-[24px] gap-y-[25px] desk:justify-between">
             {products.map((product) => (
               <PackageCard
                 key={product.id}

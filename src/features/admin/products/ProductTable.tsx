@@ -8,6 +8,7 @@ import { formatPrice } from "@/features/game/content";
 import { ACTION_FAILED_MESSAGE, runAction } from "@/lib/safeAction";
 import { deleteProductAction } from "./actions";
 import { productImage, type AdminProduct } from "./catalog";
+import { editProductHref } from "./links";
 
 /**
  * A lista de Painel → Produtos (2026-10-01, "deixar clean"). Substituiu a grade
@@ -19,7 +20,7 @@ import { productImage, type AdminProduct } from "./catalog";
  * duas ações. Abaixo de `md` jogo/aba/servidor vão para baixo do nome —
  * nenhuma coluna rola na horizontal.
  */
-export function ProductTable({ products }: { products: AdminProduct[] }) {
+export function ProductTable({ products, returnTo }: { products: AdminProduct[]; returnTo?: string | null }) {
   return (
     <div className="overflow-hidden rounded-[18px] border border-brand-border bg-[image:var(--brand-surface-fill)]">
       <table className="w-full table-fixed border-collapse text-left">
@@ -47,7 +48,7 @@ export function ProductTable({ products }: { products: AdminProduct[] }) {
         </thead>
         <tbody className="divide-y divide-white/5">
           {products.map((product) => (
-            <Row key={product.id} product={product} />
+            <Row key={product.id} product={product} returnTo={returnTo} />
           ))}
         </tbody>
       </table>
@@ -55,7 +56,7 @@ export function ProductTable({ products }: { products: AdminProduct[] }) {
   );
 }
 
-function Row({ product }: { product: AdminProduct }) {
+function Row({ product, returnTo }: { product: AdminProduct; returnTo?: string | null }) {
   const image = productImage(product.imageUrl);
   const where = [product.game.name, product.tabLabel, product.server?.label].filter(Boolean).join(" · ");
 
@@ -68,7 +69,7 @@ function Row({ product }: { product: AdminProduct }) {
           </span>
           <span className="min-w-0">
             <Link
-              href={`/admin/produtos/${product.id}/editar`}
+              href={editProductHref(product.id, returnTo)}
               className="block truncate font-poppins text-[15px] font-semibold text-white hover:underline"
             >
               {product.name}
@@ -98,7 +99,7 @@ function Row({ product }: { product: AdminProduct }) {
       <td className="py-[10px] pr-[18px] pl-[12px]">
         <div className="flex items-center justify-end gap-[8px]">
           <Link
-            href={`/admin/produtos/${product.id}/editar`}
+            href={editProductHref(product.id, returnTo)}
             aria-label={`Editar ${product.name}`}
             className="flex size-[36px] items-center justify-center rounded-[10px] border border-white/10 transition-colors hover:bg-white/5"
           >

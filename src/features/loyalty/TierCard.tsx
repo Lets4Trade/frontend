@@ -90,7 +90,7 @@ export function TierCard({
         {/* Celular: o percentual na própria linha. */}
         <div className="shrink-0 text-right sm:hidden">
           <p className="font-helvetica text-[12px] leading-[14px] font-bold text-white/70">Cashback</p>
-          <StatValue className="mt-[2px] text-[20px] leading-[24px]">{cashback}</StatValue>
+          <StatValue className="text-[20px] leading-[28px]">{cashback}</StatValue>
         </div>
       </div>
 

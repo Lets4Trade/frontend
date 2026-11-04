@@ -5,6 +5,7 @@ import { getAdminGames } from "@/features/admin/catalog";
 import { ProductForm } from "@/features/admin/products/ProductForm";
 import { RETURN_PARAM, safeReturnPath } from "@/features/admin/products/links";
 import { getAdminProduct } from "@/features/admin/products/list";
+import { getProductNeighbors } from "@/features/admin/products/neighbors";
 import { getGameTabs } from "@/features/admin/games/tabs/list";
 import { requirePanelArea } from "@/features/admin/guard";
 
@@ -49,11 +50,24 @@ export default async function EditProductPage({
 
   // As abas do jogo do produto já chegam prontas (o jogo não muda na edição).
   // Depende do produto para saber o jogo, então vem depois — uma leitura a mais.
-  const tabs = await getGameTabs(product.game.id);
+  // "Anterior / Próximo" (2026-11-04): a lista de onde a pessoa veio (`volta`),
+  // lida em paralelo com as abas.
+  const [tabs, neighbors] = await Promise.all([
+    getGameTabs(product.game.id),
+    getProductNeighbors(product.id, returnTo, games.map((game) => game.id)),
+  ]);
 
   return (
     <AdminFormCard title="EDITAR PRODUTO" headingId="editar-produto-heading">
-      <ProductForm games={games} product={product} initialTabs={tabs} returnTo={returnTo} />
+      <ProductForm
+        // Trocar de produto pelas setas remonta o formulário (estado limpo).
+        key={product.id}
+        games={games}
+        product={product}
+        initialTabs={tabs}
+        returnTo={returnTo}
+        neighbors={neighbors}
+      />
     </AdminFormCard>
   );
 }

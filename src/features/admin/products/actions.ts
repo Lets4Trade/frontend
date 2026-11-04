@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { apiDelete, apiPatchFormData, apiPost, apiPostFormData, apiPut } from "@/lib/serverApi";
 import { MAX_IMAGE_BYTES } from "../games/options";
 import { pricingSchema, type Pricing } from "@/features/pricing/quote";
-import { MAX_PRICE_BATCH, MAX_PRICE_CENTS } from "./prices";
+import { MAX_PRICE_BATCH, MAX_PRICE_CENTS, NAME_MAX, parseNameInput, type RowChange } from "./prices";
 import { createProductSchema, highlightsSchema } from "./schema";
 import { tabContentSchema, type TabContent } from "../games/tabs/types";
 
@@ -51,6 +51,9 @@ export async function createProductAction(
     tabId: form.get("tabId"),
     serverId: form.get("serverId") ?? "",
     categoryId: form.get("categoryId") ?? "",
+    badgeText: form.get("badgeText") ?? "",
+    serviceLabel: form.get("serviceLabel") ?? "",
+    extraCategoryIds: form.get("extraCategoryIds") ?? "",
   });
 
   if (!parsed.success) {
@@ -72,6 +75,12 @@ export async function createProductAction(
   payload.set("gameId", parsed.data.gameId);
   payload.set("name", parsed.data.name);
   if (parsed.data.nameEn) payload.set("nameEn", parsed.data.nameEn);
+  // Selo e categorias extras (2026-11-04): no cadastro, só quando há.
+  if (parsed.data.badgeText) payload.set("badgeText", parsed.data.badgeText);
+  if (parsed.data.serviceLabel) payload.set("serviceLabel", parsed.data.serviceLabel);
+  if (parsed.data.extraCategoryIds.length > 0) {
+    payload.set("extraCategoryIds", JSON.stringify(parsed.data.extraCategoryIds));
+  }
   // Inteiro de centavos até o fim. O `Decimal` só nasce na borda do banco, no
   // `ProductsService` — em nenhum ponto do caminho o preço passa por float.
   payload.set("priceCents", String(parsed.data.priceCents));
@@ -240,6 +249,9 @@ export async function updateProductAction(
       tabId: form.get("tabId"),
       serverId: form.get("serverId") ?? "",
       categoryId: form.get("categoryId") ?? "",
+      badgeText: form.get("badgeText") ?? "",
+      serviceLabel: form.get("serviceLabel") ?? "",
+      extraCategoryIds: form.get("extraCategoryIds") ?? "",
     });
 
   if (!parsed.success) {
@@ -257,6 +269,12 @@ export async function updateProductAction(
   payload.set("name", parsed.data.name);
   // Sempre vai na edição: vazio APAGA o nome em inglês (o backend grava null).
   payload.set("nameEn", parsed.data.nameEn);
+  // Selo e extras (2026-11-04) vão SEMPRE na edição: vazio tira o selo, lista
+  // vazia tira todas as extras (o backend substitui a lista inteira).
+  payload.set("badgeText", parsed.data.badgeText);
+  // Vazio volta o menu ao nome do produto.
+  payload.set("serviceLabel", parsed.data.serviceLabel);
+  payload.set("extraCategoryIds", JSON.stringify(parsed.data.extraCategoryIds));
   payload.set("priceCents", String(parsed.data.priceCents));
   // Na edição vai SEMPRE: 0 tira o desconto (inclusive de quem saiu do catálogo).
   payload.set("discountPercent", String(parsed.data.discountPercent));
@@ -365,42 +383,43 @@ export async function saveProductOrderAction(
 
 /**
  * "Editar preços" (2026-10-01): vários preços de um jogo numa gravação só.
+ * Desde 2026-11-04 a mesma linha também troca NOME e CATEGORIA.
  *
- * Tudo ou nada no backend: cada item leva o preço que a tela leu, e se algum
- * mudou no meio do caminho a resposta é 409 com os nomes — essa mensagem é
- * repassada como veio, porque é ela que diz o que conferir.
+ * Tudo ou nada no backend: cada item leva o que a tela leu, e se algo mudou no
+ * meio do caminho a resposta é 409 com os nomes — essa mensagem é repassada
+ * como veio, porque é ela que diz o que conferir.
  */
 export async function saveProductPricesAction(
   gameId: string,
-  items: { id: string; priceCents: number; expectedPriceCents: number }[],
+  items: RowChange[],
 ): Promise<{ ok: true; saved: number } | { ok: false; message: string }> {
   const role = await getSessionRole();
   if (!canAccess(role, "catalog")) {
-    return { ok: false, message: "Sua conta não tem permissão para alterar preços." };
+    return { ok: false, message: "Sua conta não tem permissão para alterar produtos." };
   }
-  const cents = (value: unknown, min: number) =>
-    Number.isInteger(value) && (value as number) >= min && (value as number) <= MAX_PRICE_CENTS;
   if (
     !isValidId(gameId) ||
     !Array.isArray(items) ||
     items.length === 0 ||
     items.length > MAX_PRICE_BATCH ||
-    !items.every(
-      (item) =>
-        typeof item === "object" &&
-        item !== null &&
-        isValidId(item.id) &&
-        cents(item.priceCents, 1) &&
-        cents(item.expectedPriceCents, 0),
-    )
+    !items.every(isValidRowChange)
   ) {
-    return { ok: false, message: "Lista de preços inválida." };
+    return { ok: false, message: "Lista de alterações inválida." };
   }
 
-  // Remontado: só os campos do `SaveProductPricesDto` viajam.
+  // Remontado: só os campos do `SaveProductPricesDto` viajam, e só os que a
+  // linha troca (ausente = o backend não mexe).
   const response = await apiPut<{ saved: number }>("/admin/products/prices", {
     gameId,
-    items: items.map(({ id, priceCents, expectedPriceCents }) => ({ id, priceCents, expectedPriceCents })),
+    items: items.map((item) => ({
+      id: item.id,
+      expectedPriceCents: item.expectedPriceCents,
+      ...(item.priceCents === undefined ? {} : { priceCents: item.priceCents }),
+      ...(item.name === undefined ? {} : { name: item.name.trim(), expectedName: item.expectedName }),
+      ...(item.categoryId === undefined
+        ? {}
+        : { categoryId: item.categoryId, expectedCategoryId: item.expectedCategoryId ?? null }),
+    })),
   });
   if (!response.ok) {
     return {
@@ -408,13 +427,33 @@ export async function saveProductPricesAction(
       message:
         (response.status === 409 || response.status === 400) && response.message
           ? response.message
-          : "Não conseguimos salvar os preços agora. Tente novamente em instantes.",
+          : "Não conseguimos salvar agora. Tente novamente em instantes.",
     };
   }
 
   revalidatePath("/admin/produtos", "layout");
   revalidatePath("/admin/jogos", "layout");
   return { ok: true, saved: response.data?.saved ?? items.length };
+}
+
+/** Uma linha do lote, conferida campo a campo (vem do cliente). */
+function isValidRowChange(value: unknown): value is RowChange {
+  if (typeof value !== "object" || value === null) return false;
+  const item = value as Record<string, unknown>;
+  const cents = (v: unknown, min: number) =>
+    Number.isInteger(v) && (v as number) >= min && (v as number) <= MAX_PRICE_CENTS;
+  const optionalId = (v: unknown) => v === null || isValidId(v);
+  if (!isValidId(item.id) || !cents(item.expectedPriceCents, 0)) return false;
+  if (item.priceCents !== undefined && !cents(item.priceCents, 1)) return false;
+  if (item.name !== undefined) {
+    if (typeof item.name !== "string" || parseNameInput(item.name) === null) return false;
+    if (typeof item.expectedName !== "string" || item.expectedName.length > NAME_MAX) return false;
+  }
+  if (item.categoryId !== undefined) {
+    if (!optionalId(item.categoryId)) return false;
+    if (item.expectedCategoryId !== undefined && !optionalId(item.expectedCategoryId)) return false;
+  }
+  return item.priceCents !== undefined || item.name !== undefined || item.categoryId !== undefined;
 }
 
 /**
@@ -527,6 +566,8 @@ function readHighlights(
  * o atual.
  */
 function attachBanner(form: FormData, payload: FormData) {
+  // "Remover banner" (2026-11-04): só na edição tem efeito; arquivo novo vence.
+  if (form.get("removeBanner") === "1") payload.set("removeBanner", "true");
   const banner = form.get("banner");
   if (!(banner instanceof File) || banner.size === 0) return null;
   if (banner.size > MAX_IMAGE_BYTES) {

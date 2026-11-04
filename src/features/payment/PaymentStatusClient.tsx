@@ -5,6 +5,7 @@ import { customerOrderChatHref } from "@/features/orders/orderChatHref";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { formatBrl as formatCents, paidOrderHref } from "@/features/payment/types";
+import { trackPurchase } from "@/features/consent/gtag";
 import { fetchPaymentStatus, payPayment, sandboxPayPix } from "./api";
 import type { PaymentView } from "./types";
 
@@ -131,6 +132,12 @@ function Paid({ payment }: { payment: PaymentView }) {
   const href = paidOrderHref(payment);
   const [left, setLeft] = useState(REDIRECT_SECONDS);
 
+  // Conversão de compra no Google Ads/GA4 (2026-11-03). Não faz nada sem o
+  // Google tag carregado (sem ID ou sem consentimento).
+  useEffect(() => {
+    trackPurchase({ id: payment.id, amountCents: payment.amountCents });
+  }, [payment.id, payment.amountCents]);
+
   useEffect(() => {
     if (!href) return;
     const timer = window.setInterval(() => setLeft((value) => Math.max(0, value - 1)), 1000);
@@ -143,7 +150,7 @@ function Paid({ payment }: { payment: PaymentView }) {
 
   return (
     <>
-      <p className="bg-[image:var(--brand-orange-gradient)] bg-clip-text font-poppins text-[26px] leading-[32px] font-bold text-transparent">
+      <p className="bg-[image:var(--brand-orange-gradient)] bg-clip-text font-poppins text-[26px] leading-[36px] font-bold text-transparent">
         Pagamento aprovado!
       </p>
       <p className="mt-[12px] font-helvetica text-[16px] leading-[24px] text-brand-fg-muted">

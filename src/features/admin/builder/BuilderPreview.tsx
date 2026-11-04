@@ -16,6 +16,7 @@ import { toGameDescription } from "@/features/game/description";
 import { gapBefore, type GameSectionKey } from "@/features/game/sections";
 import { defaultTabIcon, tabIconSrc, type GameTab } from "@/features/admin/games/tabs/types";
 import type { BuilderShared, Draft } from "./types";
+import { PriceHighlight } from "@/features/game/DiscountedPrice";
 
 /**
  * A pré-visualização do builder (Figma 3916:2867) — a página do jogo desenhada
@@ -448,7 +449,7 @@ function renderBlock(key: GameSectionKey, ctx: BlockContext) {
               <ProductCardShell
                 key={i}
                 name="Product Name"
-                price="R$ 25,00"
+                price={<PriceHighlight>R$ 25,00</PriceHighlight>}
                 actions={<CardActions />}
                 cta={
                   <span

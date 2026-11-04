@@ -15,7 +15,7 @@ import { InlineVideo, useAutoplayInView } from "@/features/home/InlineAutoplayVi
  */
 export function VideoBlockPlayer({ videoId, title }: { videoId: string; title: string }) {
   const boxRef = useRef<HTMLDivElement>(null);
-  const { active, visible, activate } = useAutoplayInView(boxRef);
+  const { active, visible, activate } = useAutoplayInView(boxRef, true);
 
   return (
     <div

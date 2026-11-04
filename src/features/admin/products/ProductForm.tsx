@@ -25,17 +25,28 @@ import {
   type CreateProductResult,
 } from "./actions";
 import { ACTION_FAILED_UPLOAD_MESSAGE, runAction } from "@/lib/safeAction";
-import { MAX_HIGHLIGHT_CHARS, MAX_HIGHLIGHTS, MAX_PRICE_CENTS, createProductSchema, parseHighlights } from "./schema";
+import {
+  BADGE_PRESETS,
+  MAX_BADGE_CHARS,
+  MAX_EXTRA_CATEGORIES,
+  MAX_HIGHLIGHT_CHARS,
+  MAX_HIGHLIGHTS,
+  MAX_PRICE_CENTS,
+  createProductSchema,
+  parseHighlights,
+} from "./schema";
 import { productImage, type AdminProduct } from "./catalog";
 import { formatPrice } from "@/features/game/content";
 import { PackageCard } from "@/features/game/PackageCard";
 import { ProductCardShell } from "@/features/game/ProductCardShell";
-import { DiscountBadge } from "@/features/game/DiscountBadge";
-import { DiscountedPrice } from "@/features/game/DiscountedPrice";
+import { DiscountBadge, LabelBadge } from "@/features/game/DiscountBadge";
+import { DiscountedPrice, PriceHighlight } from "@/features/game/DiscountedPrice";
 import { MAX_DISCOUNT_PERCENT, discountedCents } from "@/features/game/discount";
 import type { ProductPrefill } from "./links";
+import type { ProductNeighbor, ProductNeighbors } from "./neighbors";
 import { categorySelectOptions } from "./categoryOptions";
 import { gameHref } from "@/features/game/href";
+import { cn } from "@/lib/cn";
 
 type ErrorField =
   | "gameId"
@@ -46,6 +57,9 @@ type ErrorField =
   | "tabId"
   | "serverId"
   | "categoryId"
+  | "badgeText"
+  | "serviceLabel"
+  | "extraCategoryIds"
   | "highlights";
 type FieldErrors = Partial<Record<ErrorField, string>>;
 
@@ -110,6 +124,7 @@ export function ProductForm({
   initialTabs,
   prefill,
   returnTo = null,
+  neighbors = null,
 }: {
   games: AdminGame[];
   /** Presente = EDIÇÃO. Ausente = cadastro novo. */
@@ -131,8 +146,16 @@ export function ProductForm({
    * "Salvar e cadastrar outro" continua aqui, como sempre).
    */
   returnTo?: string | null;
+  /**
+   * Edição: anterior/próximo da lista de onde a pessoa veio (2026-11-04,
+   * `neighbors.ts`). `null` = sem setas.
+   */
+  neighbors?: ProductNeighbors | null;
 }) {
   const router = useRouter();
+  // Alguma coisa foi mexida desde que a tela abriu: as setas perguntam antes de
+  // sair (o "SALVAR E PRÓXIMO" é o caminho sem perder nada).
+  const dirty = useRef(false);
   const isEditing = product !== undefined;
   const seed = isEditing ? null : (prefill ?? null);
   const initialGameId = product?.game.id ?? seed?.gameId ?? "";
@@ -154,7 +177,7 @@ export function ProductForm({
    * uma vez, no submit, e não desenha nada. O Enter num campo dispara o
    * PRIMEIRO botão de envio — o de sempre.
    */
-  const submitIntent = useRef<"announce" | "again">("announce");
+  const submitIntent = useRef<"announce" | "again" | "next">("announce");
   /**
    * Muda a cada "cadastrar outro": remonta nome, preço e imagem, os três
    * campos que se limpam (os dois últimos guardam estado próprio que só o
@@ -200,6 +223,9 @@ export function ProductForm({
   const selectedTab = productTabs.find((tab) => tab.id === tabId) ?? null;
   const isQuoted = selectedTab !== null && isQuotedLayout(selectedTab.layout);
   const isPackages = selectedTab?.layout === "PACKAGES";
+  // Abas que abrem a "tela do serviço" (o `ServiceConfigurator`): Serviço e
+  // a página do pacote. Só elas usam o banner (2026-11-04).
+  const isService = selectedTab?.layout === "SERVICE";
 
   // Preço do produto acompanhado AO VIVO só para a prévia do serviço.
   const [priceCents, setPriceCents] = useState(product?.priceCents ?? 0);
@@ -211,6 +237,13 @@ export function ProductForm({
   const [discountPercent, setDiscountPercent] = useState(product?.discountPercent ?? 0);
   const previewDiscount =
     !isQuoted && discountPercent > 0 && discountPercent <= MAX_DISCOUNT_PERCENT ? discountPercent : 0;
+  // Selo do card (2026-11-04): controlado, para os atalhos "Novo"/"Em alta"
+  // preencherem o campo e a prévia acompanhar.
+  const [badgeText, setBadgeText] = useState(product?.badgeText ?? "");
+  // Categoria principal escolhida (só para tirá-la da lista de extras) e as
+  // EXTRAS marcadas (2026-11-04).
+  const [primaryCategory, setPrimaryCategory] = useState(product?.categoryId ?? "");
+  const [extraIds, setExtraIds] = useState<string[]>(() => product?.extraCategoryIds ?? []);
   // A regra que VALE hoje para o produto (`effectivePricing`): a salva, ou o
   // padrão do layout da aba (Quantidade sem regra = 1..1000).
   const [pricingDraft, setPricingDraft] = useState<PricingDraft>(() => {
@@ -243,6 +276,7 @@ export function ProductForm({
   );
 
   function onFormChange(event: FormEvent<HTMLFormElement>) {
+    dirty.current = true;
     const target = event.target as HTMLInputElement;
     if (target.name === "name") setPreviewName(target.value);
     if (target.name === "nameEn") setPreviewNameEn(target.value);
@@ -347,6 +381,13 @@ export function ProductForm({
     product?.categoryId && categoryOptions.some((option) => option.value === product.categoryId)
       ? product.categoryId
       : undefined;
+  // Extras (2026-11-04): as mesmas opções do escopo, menos a principal. O que
+  // vai no hidden é só o que ainda está no escopo — trocar de servidor/aba não
+  // pode mandar uma extra que o backend recusaria.
+  const extraOptions = categoryOptions.filter((option) => option.value !== primaryCategory);
+  const extraField = JSON.stringify(
+    extraIds.filter((id) => extraOptions.some((option) => option.value === id)),
+  );
 
   /**
    * O que vai no hidden `pricing`: a regra (aba cotada), `"null"` para LIMPAR
@@ -396,6 +437,7 @@ export function ProductForm({
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const again = !isEditing && submitIntent.current === "again";
+    const goNext = isEditing && submitIntent.current === "next" && neighbors?.next ? neighbors.next : null;
     submitIntent.current = "announce";
 
     const data = new FormData(event.currentTarget);
@@ -411,6 +453,9 @@ export function ProductForm({
       tabId: data.get("tabId") ?? "",
       serverId: data.get("serverId") ?? "",
       categoryId: data.get("categoryId") ?? "",
+      badgeText: data.get("badgeText") ?? "",
+      serviceLabel: data.get("serviceLabel") ?? "",
+      extraCategoryIds: data.get("extraCategoryIds") ?? "",
     });
 
     if (!parsed.success) {
@@ -474,6 +519,13 @@ export function ProductForm({
       if (isEditing) {
         // Voltando para a Central, o aviso vai junto (o toaster é do layout
         // do painel e sobrevive à navegação); a listagem já mostra o produto.
+        dirty.current = false;
+        // "SALVAR E PRÓXIMO" (2026-11-04): segue a lista, sem voltar a ela.
+        if (goNext) {
+          toastOk(`${result.name} salvo.`);
+          router.push(goNext.href);
+          return;
+        }
         if (returnTo) toastOk(`${result.name} salvo.`);
         router.push(returnTo ?? "/admin/produtos");
         return;
@@ -495,6 +547,7 @@ export function ProductForm({
         setEntryKey((key) => key + 1);
         setPriceCents(0);
         setDiscountPercent(0);
+        setBadgeText("");
         setHighlightsText("");
         setPreviewName("");
         setImagePreview(null);
@@ -513,6 +566,9 @@ export function ProductForm({
       setPricingDraft(pricingToDraft(null));
       pricingTouched.current = false;
       setHighlightsText("");
+      setBadgeText("");
+      setPrimaryCategory("");
+      setExtraIds([]);
       setPreviewName("");
       setImagePreview(null);
     });
@@ -533,8 +589,35 @@ export function ProductForm({
     { id: "card", label: "Card" },
     { id: "preco", label: "Preço" },
     ...(isPackages ? [{ id: "pagina", label: "Página do pacote" }] : []),
+    ...(isService ? [{ id: "tela", label: "Tela do serviço" }] : []),
     ...(hasHoverDescription ? [{ id: "descricao", label: "Descrição" }] : []),
   ];
+
+  /**
+   * Banner da tela do serviço (2026-10-06; 2026-11-04: também na aba SERVIÇO,
+   * e SEM banner a tela mostra só o texto — não cai mais na arte do card).
+   * O card é retrato e o topo do configurador é largo, por isso é outra arte.
+   */
+  const bannerField = (
+    <div className="mb-[22px]">
+      <FileField
+        key={`banner-${entryKey}`}
+        label="Banner da tela do serviço (ideal 1102×654)"
+        placeholder={
+          isEditing && product?.bannerUrl ? "Trocar banner (opcional)" : "Anexar banner (vazio = só o texto)"
+        }
+        name="banner"
+        accept={ACCEPTED_IMAGE_TYPES}
+        maxBytes={MAX_IMAGE_BYTES}
+      />
+      {isEditing && product?.bannerUrl ? (
+        <label className="mt-[10px] flex cursor-pointer items-center gap-[8px] pl-[25px] font-helvetica text-[13px] text-white/80">
+          <input type="checkbox" name="removeBanner" value="1" className="size-[15px] accent-brand-orange" />
+          Remover o banner atual (a tela passa a mostrar só o texto)
+        </label>
+      ) : null}
+    </div>
+  );
 
   const submitButtons = (
     <>
@@ -549,6 +632,21 @@ export function ProductForm({
       >
         {isSubmitting ? "SALVANDO…" : isEditing ? "SALVAR ALTERAÇÕES" : "SALVAR E ANUNCIAR"}
       </Button>
+
+      {/* Edição em série (2026-11-04): salva e abre o próximo da lista. */}
+      {isEditing && neighbors?.next ? (
+        <Button
+          type="submit"
+          variant="outline"
+          fullWidth
+          disabled={isSubmitting}
+          onClick={() => {
+            submitIntent.current = "next";
+          }}
+        >
+          SALVAR E PRÓXIMO →
+        </Button>
+      ) : null}
 
       {/* Cadastro em série (admin-games-ux.md, Etapa 1): mantém jogo,
           plataforma, servidor, aba, categoria e regra de preço; limpa nome,
@@ -584,6 +682,8 @@ export function ProductForm({
           campos fora de ordem e o Salvar só no fim. */}
       {/* O que não é campo visível viaja nestes três (regra de preço, tópicos,
           textos do pacote) — validados de novo na action e no backend. */}
+      {isEditing && neighbors ? <NeighborNav neighbors={neighbors} dirty={dirty} /> : null}
+
       <input type="hidden" name="pricing" value={pricingField} />
       <input type="hidden" name="highlights" value={highlightsField} />
       <input type="hidden" name="content" value={contentField} />
@@ -669,9 +769,62 @@ export function ProductForm({
                 }
                 options={categoryOptions}
                 defaultValue={categoryDefault}
+                onValueChange={(value) => {
+                  dirty.current = true;
+                  setPrimaryCategory(value);
+                }}
                 disabled={selectedGame === null || categoryOptions.length === 0}
                 error={fieldErrors.categoryId}
               />
+
+              {/* Categorias EXTRAS (2026-11-04, "o mesmo item em mais de uma
+                  categoria"): o produto aparece também nelas, na loja e nos
+                  filtros do painel. A de cima continua sendo a principal. */}
+              {extraOptions.length > 0 ? (
+                <fieldset className="sm:col-span-2">
+                  <legend className="pl-[25px] font-poppins text-[14px] font-semibold text-white">
+                    Também aparece em (opcional)
+                  </legend>
+                  <input type="hidden" name="extraCategoryIds" value={extraField} />
+                  <div className="mt-[10px] flex flex-wrap gap-[8px] pl-[25px]">
+                    {extraOptions.map((option) => {
+                      const on = extraIds.includes(option.value);
+                      return (
+                        <label
+                          key={option.value}
+                          className={cn(
+                            "flex h-[34px] cursor-pointer items-center gap-[8px] rounded-full border px-[14px] font-poppins text-[12px] font-bold transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-orange",
+                            on
+                              ? "border-brand-orange bg-brand-orange/15 text-white"
+                              : "border-white/10 text-white/70 hover:border-white/30",
+                          )}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={on}
+                            disabled={!on && extraIds.length >= MAX_EXTRA_CATEGORIES}
+                            onChange={() =>
+                              setExtraIds((prev) =>
+                                prev.includes(option.value)
+                                  ? prev.filter((id) => id !== option.value)
+                                  : [...prev, option.value],
+                              )
+                            }
+                            className="size-[14px] accent-brand-orange"
+                          />
+                          {option.label}
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-[6px] pl-[25px] font-helvetica text-[12px] text-brand-fg-subtle">
+                    {fieldErrors.extraCategoryIds ??
+                      "Marque outras categorias onde este produto também deve aparecer. Só aparecem as deste servidor e aba."}
+                  </p>
+                </fieldset>
+              ) : (
+                <input type="hidden" name="extraCategoryIds" value="[]" />
+              )}
 
               {/* Plataforma saiu do formulário (2026-10-08, pedido do usuário):
                   o backend usa a primeira plataforma do jogo no cadastro e não
@@ -706,6 +859,22 @@ export function ProductForm({
                 maxLength={160}
                 error={fieldErrors.nameEn}
               />
+
+              {/* Nome no menu "Selecionar serviço" da tela do serviço
+                  (2026-11-04): só nas abas que têm essa tela. Vazio = o nome
+                  em português de cima. */}
+              {isQuoted ? (
+                <TextField
+                  key={`serviceLabel-${entryKey}`}
+                  label="Nome no “Selecionar serviço” (opcional)"
+                  name="serviceLabel"
+                  placeholder={previewName || "Vazio = o nome em português"}
+                  defaultValue={product?.serviceLabel ?? ""}
+                  autoComplete="off"
+                  maxLength={160}
+                  error={fieldErrors.serviceLabel}
+                />
+              ) : null}
 
               <FileField
                 key={`image-${entryKey}`}
@@ -798,6 +967,57 @@ export function ProductForm({
               </div>
             )}
 
+            {/* Selo do card (2026-11-04): "Novo", "Em alta" ou texto livre,
+                no canto superior esquerdo, no mesmo laranja do desconto. */}
+            <div className="mt-[22px] max-w-[460px]">
+              <TextField
+                label="Selo do card (opcional)"
+                name="badgeText"
+                placeholder="Ex.: Novo, Em alta, Promoção"
+                value={badgeText}
+                onChange={(event) => setBadgeText(event.target.value)}
+                autoComplete="off"
+                maxLength={MAX_BADGE_CHARS}
+                error={fieldErrors.badgeText}
+              />
+              <div className="mt-[8px] flex flex-wrap items-center gap-[8px] pl-[25px]">
+                {BADGE_PRESETS.map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => {
+                      dirty.current = true;
+                      setBadgeText(preset);
+                    }}
+                    aria-pressed={badgeText.trim() === preset}
+                    className={cn(
+                      "h-[30px] rounded-full border px-[12px] font-poppins text-[12px] font-bold transition-colors",
+                      badgeText.trim() === preset
+                        ? "border-brand-orange bg-brand-orange/15 text-white"
+                        : "border-white/10 text-white/70 hover:border-white/30",
+                    )}
+                  >
+                    {preset}
+                  </button>
+                ))}
+                {badgeText ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      dirty.current = true;
+                      setBadgeText("");
+                    }}
+                    className="h-[30px] rounded-full px-[10px] font-poppins text-[12px] font-bold text-white/60 hover:text-white"
+                  >
+                    Sem selo
+                  </button>
+                ) : null}
+              </div>
+              <p className="mt-[6px] pl-[25px] font-helvetica text-[12px] text-brand-fg-subtle">
+                Aparece num quadro laranja no canto superior esquerdo do card. Vazio = sem selo.
+              </p>
+            </div>
+
             {isPackages ? (
               <div className="mt-[26px]">
                 <PackageLayoutPicker draft={pricingDraft} onChange={onPricingChange} />
@@ -829,28 +1049,25 @@ export function ProductForm({
               title="Página do pacote"
               hint="O que aparece depois do CONTINUAR: o banner no topo e os textos da esquerda (ex.: “What you will get”)."
             >
-              {/* Banner próprio da tela do serviço (2026-10-06): o card é
-                  retrato e o topo do configurador é largo, então uma imagem
-                  só ficava mal cortada em um dos dois. Vazio = usa a do card. */}
-              <div className="mb-[22px]">
-                <FileField
-                  key={`banner-${entryKey}`}
-                  label="Banner da tela do serviço (ideal 1102×654)"
-                  placeholder={
-                    isEditing && product?.bannerUrl
-                      ? "Trocar banner (opcional)"
-                      : "Anexar banner (vazio usa a imagem do card)"
-                  }
-                  name="banner"
-                  accept={ACCEPTED_IMAGE_TYPES}
-                  maxBytes={MAX_IMAGE_BYTES}
-                />
-              </div>
+              {bannerField}
               <ServiceSectionsEditor
                 sections={packageSections}
                 onChange={setPackageSections}
                 emptyText="Nenhum texto próprio: a página do pacote mostra os textos da aba."
               />
+            </FormSection>
+          ) : null}
+
+          {/* Aba SERVIÇO (2026-11-04): o banner do topo da tela do serviço,
+              que antes só a aba de pacotes podia subir. */}
+          {isService ? (
+            <FormSection
+              id="tela"
+              number={4}
+              title="Tela do serviço"
+              hint="O banner no topo da tela do serviço. Sem banner, a tela mostra só o texto."
+            >
+              {bannerField}
             </FormSection>
           ) : null}
 
@@ -889,6 +1106,7 @@ export function ProductForm({
                     tabId: tabId,
                     highlights: highlightsPreview,
                     image: previewImage,
+                    badgeText: badgeText.trim() || undefined,
                   }}
                 />
               ) : (
@@ -904,12 +1122,19 @@ export function ProductForm({
                           priceLabel={formatPrice(discountedCents(priceCents, previewDiscount))}
                         />
                       ) : (
-                        formatPrice(priceCents)
+                        <PriceHighlight>{formatPrice(priceCents)}</PriceHighlight>
                       )
                     }
                     image={previewImage}
                     actions={null}
-                    badge={previewDiscount > 0 ? <DiscountBadge percent={previewDiscount} /> : undefined}
+                    badge={
+                      previewDiscount > 0 || badgeText.trim() ? (
+                        <>
+                          {badgeText.trim() ? <LabelBadge text={badgeText.trim()} /> : null}
+                          {previewDiscount > 0 ? <DiscountBadge percent={previewDiscount} /> : null}
+                        </>
+                      ) : undefined
+                    }
                   />
                 </div>
               )}
@@ -1014,4 +1239,60 @@ function FormSection({
 /** A aba cobra por `quote` (Serviço, Quantidade, Pacotes)? Fonte: `QUOTED_LAYOUTS`. */
 function isQuotedLayout(layout: TabLayout): boolean {
   return (QUOTED_LAYOUTS as readonly string[]).includes(layout);
+}
+
+/**
+ * Setas "Anterior / Próximo" da edição (2026-11-04). Links de verdade (abrem em
+ * nova aba, o navegador mostra o destino); com alteração não salva, perguntam
+ * antes de sair — o "SALVAR E PRÓXIMO" é o caminho que não perde nada.
+ */
+function NeighborNav({
+  neighbors,
+  dirty,
+}: {
+  neighbors: ProductNeighbors;
+  dirty: React.RefObject<boolean>;
+}) {
+  function guard(event: React.MouseEvent<HTMLAnchorElement>) {
+    if (dirty.current && !window.confirm("Há alterações não salvas neste produto. Sair mesmo assim?")) {
+      event.preventDefault();
+    }
+  }
+  const arrow = (item: ProductNeighbor | null, direction: "prev" | "next") => {
+    const label = direction === "prev" ? "← Anterior" : "Próximo →";
+    const base =
+      "flex h-[38px] min-w-0 items-center gap-[8px] rounded-full border px-[14px] font-poppins text-[13px] font-bold transition-colors";
+    if (!item) {
+      return (
+        <span aria-disabled className={cn(base, "border-white/5 text-white/25")}>
+          {label}
+        </span>
+      );
+    }
+    return (
+      <Link
+        href={item.href}
+        onClick={guard}
+        rel={direction}
+        title={item.name}
+        className={cn(base, "border-white/15 text-white hover:border-brand-orange hover:bg-brand-orange/10")}
+      >
+        {direction === "prev" ? <span className="shrink-0">{label}</span> : null}
+        <span className="hidden max-w-[220px] truncate font-medium text-white/60 sm:inline">{item.name}</span>
+        {direction === "next" ? <span className="shrink-0">{label}</span> : null}
+      </Link>
+    );
+  };
+  return (
+    <nav
+      aria-label="Navegar pela lista de produtos"
+      className="mb-[22px] flex items-center justify-between gap-[10px] rounded-[20px] border border-brand-border bg-black/30 px-[12px] py-[10px]"
+    >
+      {arrow(neighbors.prev, "prev")}
+      <span className="shrink-0 font-poppins text-[12px] text-brand-fg-subtle">
+        {neighbors.position} de {neighbors.total}
+      </span>
+      {arrow(neighbors.next, "next")}
+    </nav>
+  );
 }

@@ -4,7 +4,7 @@ import { PackageDescriptionPopover } from "./PackageDescriptionPopover";
 import type { ServiceContent } from "./types";
 
 const ART_BOX =
-  "relative h-[150px] w-full overflow-hidden rounded-t-[22px] lg:absolute lg:top-px lg:left-px lg:h-[276px] lg:w-[263px] lg:rounded-t-[30px]";
+  "relative h-[150px] w-full overflow-hidden rounded-t-[22px] desk:absolute desk:top-px desk:left-px desk:h-[276px] desk:w-[263px] desk:rounded-t-[30px]";
 
 /**
  * A CASCA do card de produto (Figma 1374:1859) — 265×417.
@@ -67,13 +67,13 @@ export function ProductCardShell({
       // Inteira e com respiro (pedido do usuário, 2026-10-06): com
       // `object-cover` a arte preenchia a área toda e ficava grande e
       // cortada. A margem de baixo é maior porque o degradê come a base.
-      className="size-full object-contain px-[16px] pt-[14px] pb-[10px] lg:px-[28px] lg:pt-[24px] lg:pb-[40px]"
+      className="size-full object-contain px-[16px] pt-[14px] pb-[10px] desk:px-[28px] desk:pt-[24px] desk:pb-[40px]"
     />
   ) : null;
 
   return (
     <article
-      className={`relative flex w-full flex-col overflow-hidden rounded-[22px] border border-white/10 bg-black/10 pb-[14px] lg:block lg:w-[265px] lg:rounded-[30px] lg:pb-0 ${cta ? "lg:h-[467px]" : "lg:h-[417px]"}`}
+      className={`relative flex w-full flex-col overflow-hidden rounded-[22px] border border-white/10 bg-black/10 pb-[14px] desk:block desk:w-[265px] desk:rounded-[30px] desk:pb-0 ${cta ? "desk:h-[467px]" : "desk:h-[417px]"}`}
     >
       {/* A imagem é opcional de propósito. O arquivo desenha um retângulo
           #2f2f2f atrás dela; saiu em 2026-10-08 (pedido do usuário): a arte
@@ -93,39 +93,39 @@ export function ProductCardShell({
           qualquer imagem que o admin subir. */}
       <div
         aria-hidden
-        className="absolute top-[239px] left-px hidden h-[38px] w-[263px] bg-gradient-to-b from-transparent to-black lg:block"
+        className="absolute top-[239px] left-px hidden h-[38px] w-[263px] bg-gradient-to-b from-transparent to-black desk:block"
       />
       <div
         aria-hidden
-        className="absolute top-[277px] left-px hidden h-[60px] w-[257px] bg-black lg:block"
+        className="absolute top-[277px] left-px hidden h-[60px] w-[257px] bg-black desk:block"
       />
 
       {/* Nome menor que o do arquivo (15px, pedido do usuário 2026-10-08) para
           caber o português e o inglês, um por linha, acima do preço. Só com o
           português, a linha fica no meio do espaço que o nome tinha. */}
       <h3
-        className={`mt-[8px] w-full truncate px-[10px] text-center font-poppins text-[13px] leading-[18px] font-semibold tracking-[0.3px] text-white lg:absolute lg:mt-0 lg:left-0 lg:text-[15px] lg:leading-[20px] ${nameEn ? "lg:top-[259px]" : "lg:top-[275px]"}`}
+        className={`mt-[8px] w-full truncate px-[10px] text-center font-poppins text-[13px] leading-[18px] font-semibold tracking-[0.3px] text-white desk:absolute desk:mt-0 desk:left-0 desk:text-[15px] desk:leading-[20px] ${nameEn ? "desk:top-[259px]" : "desk:top-[275px]"}`}
       >
         {name}
       </h3>
       {nameEn ? (
         <p
           lang="en"
-          className="w-full truncate px-[10px] text-center font-poppins text-[12px] leading-[17px] font-medium tracking-[0.3px] text-white/70 lg:absolute lg:top-[280px] lg:left-0 lg:text-[15px] lg:leading-[20px]"
+          className="w-full truncate px-[10px] text-center font-poppins text-[12px] leading-[17px] font-medium tracking-[0.3px] text-white/70 desk:absolute desk:top-[280px] desk:left-0 desk:text-[15px] desk:leading-[20px]"
         >
           {nameEn}
         </p>
       ) : null}
 
-      <p className="mt-[4px] w-full truncate px-[10px] text-center font-poppins text-[16px] leading-[24px] font-semibold tracking-[0.36px] text-white lg:absolute lg:top-[305px] lg:left-0 lg:mt-0 lg:text-[18px] lg:leading-[27px]">
+      <p className="mt-[4px] w-full truncate px-[10px] text-center font-poppins text-[16px] leading-[24px] font-semibold tracking-[0.36px] text-white desk:absolute desk:top-[305px] desk:left-0 desk:mt-0 desk:text-[18px] desk:leading-[27px]">
         {price}
       </p>
 
       {/* Só a POSIÇÃO da fileira é da casca (y=342 nos dois desenhos). O
           arranjo interno fica com cada variante, porque eles diferem: na
           vitrine a fileira começa a 32px da borda, no painel ela é centrada. */}
-      <div className="mt-[10px] w-full lg:absolute lg:top-[342px] lg:left-0 lg:mt-0">{actions}</div>
-      {cta ? <div className="mt-[10px] w-full px-[10px] lg:absolute lg:top-[402px] lg:left-0 lg:mt-0 lg:px-0">{cta}</div> : null}
+      <div className="mt-[10px] w-full desk:absolute desk:top-[342px] desk:left-0 desk:mt-0">{actions}</div>
+      {cta ? <div className="mt-[10px] w-full px-[10px] desk:absolute desk:top-[402px] desk:left-0 desk:mt-0 desk:px-0">{cta}</div> : null}
       {badge}
     </article>
   );

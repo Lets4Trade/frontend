@@ -3,6 +3,8 @@ import type { Metadata, Viewport } from "next";
 import { Manrope, DM_Sans } from "next/font/google";
 import localFont from "next/font/local";
 import { PageViewTracker } from "@/features/admin/PageViewTracker";
+import { CookieConsent } from "@/features/consent/CookieConsent";
+import { GoogleTag } from "@/features/consent/GoogleTag";
 import { getContacts } from "@/features/site/contacts";
 import { getLayoutContent } from "@/features/site/layoutContent";
 import { ContactBubble } from "@/features/support/ContactBubble";
@@ -191,6 +193,11 @@ export default async function RootLayout({
         {exitConfig && exitOffer ? <ExitIntentCoupon offer={exitOffer} config={exitConfig} /> : null}
         {/* Atalhos flutuantes do celular em toda a loja (2026-10-15). */}
         <GlobalMobileNav games={games} />
+        {/* Aviso de cookies (2026-11-03): decide o rastreador e o autoplay do
+            YouTube. Ver `features/consent/consent.ts`. */}
+        <CookieConsent />
+        {/* Google Ads/Analytics — só com ID configurado E consentimento. */}
+        <GoogleTag />
       </body>
     </html>
   );

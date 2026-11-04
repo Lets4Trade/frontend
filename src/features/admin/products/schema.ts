@@ -18,6 +18,12 @@ import { MAX_DISCOUNT_PERCENT } from "@/features/game/discount";
 /** Espelha o `@Max(MAX_PRICE_CENTS)` do DTO: R$ 20 mi (era R$ 100 mil até 2026-10-15). */
 export { MAX_PRICE_CENTS };
 
+/** Selo do card e categorias extras (2026-11-04): tetos do backend. */
+export const MAX_BADGE_CHARS = 24;
+export const MAX_EXTRA_CATEGORIES = 20;
+/** Atalhos do selo (o campo aceita qualquer texto). */
+export const BADGE_PRESETS = ["Novo", "Em alta"] as const;
+
 export const createProductSchema = z.object({
   gameId: z.string().min(1, "Escolha o jogo do produto."),
 
@@ -68,6 +74,27 @@ export const createProductSchema = z.object({
    * Builder de Páginas não tem nenhuma para escolher.
    */
   categoryId: z.string().optional().default(""),
+
+  /** Nome no "Selecionar serviço" (2026-11-04). Vazio = usa o nome do produto. */
+  serviceLabel: z.string().trim().max(160, "O nome no menu é longo demais.").default(""),
+
+  /** Selo do card (2026-11-04): "Novo", "Em alta" ou livre. Vazio = sem selo. */
+  badgeText: z.string().trim().max(MAX_BADGE_CHARS, `O selo vai até ${MAX_BADGE_CHARS} caracteres.`).default(""),
+
+  /**
+   * Categorias EXTRAS (2026-11-04): chegam do `<input type="hidden">` com o
+   * JSON da lista. Mesmo formato fechado de id do resto; teto do backend.
+   */
+  extraCategoryIds: z
+    .preprocess((value) => {
+      if (typeof value !== "string" || value.trim() === "") return [];
+      try {
+        return JSON.parse(value);
+      } catch {
+        return value;
+      }
+    }, z.array(z.string().regex(/^[A-Za-z0-9_-]{1,100}$/, "Categoria inválida.")).max(MAX_EXTRA_CATEGORIES, `No máximo ${MAX_EXTRA_CATEGORIES} categorias extras.`))
+    .default([]),
 });
 
 export type CreateProductValues = z.infer<typeof createProductSchema>;

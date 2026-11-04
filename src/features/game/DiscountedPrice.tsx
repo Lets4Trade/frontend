@@ -28,19 +28,33 @@ export function DiscountedPrice({
   return (
     <span
       title={`De ${listLabel} por ${priceLabel}`}
-      className={`inline-flex max-w-full items-baseline justify-center gap-[6px] lg:gap-[8px] ${className ?? ""}`}
+      className={`inline-flex max-w-full items-baseline justify-center gap-[6px] desk:gap-[8px] ${className ?? ""}`}
     >
-      <s className="min-w-0 truncate text-[12px] font-medium text-white/45 decoration-white/60 lg:text-[15px]">
+      <s className="min-w-0 truncate text-[12px] font-medium text-white/45 decoration-white/60 desk:text-[15px]">
         <span className="sr-only">De </span>
         {listLabel}
       </s>
-      <span
-        className="shrink-0 bg-clip-text text-transparent"
-        style={{ backgroundImage: "linear-gradient(137.97deg, #ff7300 13.819%, #ff4d00 89.223%)" }}
-      >
+      <PriceHighlight className="shrink-0">
         <span className="sr-only">por </span>
         {priceLabel}
-      </span>
+      </PriceHighlight>
+    </span>
+  );
+}
+
+/**
+ * O preço cobrado no degradê laranja da marca (2026-11-04, pedido do usuário:
+ * "mudar a cor dos preços para laranja, no mesmo padrão do desconto"). É o
+ * MESMO degradê do preço com desconto, para os cards com e sem desconto lerem
+ * igual — só o riscado ao lado diferencia.
+ */
+export function PriceHighlight({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <span
+      className={`bg-clip-text text-transparent ${className ?? ""}`}
+      style={{ backgroundImage: "linear-gradient(137.97deg, #ff7300 13.819%, #ff4d00 89.223%)" }}
+    >
+      {children}
     </span>
   );
 }

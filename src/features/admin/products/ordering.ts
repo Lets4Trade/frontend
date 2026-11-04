@@ -12,6 +12,10 @@ export type OrderableProduct = {
   /** Ausente em API antiga — a grade da Central (`productGrid`) cai no rótulo. */
   serverId?: string | null;
   serverLabel?: string | null;
+  /** "Editar preços" (2026-11-04). Ausente em API antiga = sem categoria. */
+  categoryId?: string | null;
+  /** Categorias extras (2026-11-04): o filtro de categoria também as olha. */
+  extraCategoryIds?: string[];
   /** Já tem posição manual. Os outros estão, por enquanto, em ordem A–Z. */
   ordered: boolean;
 };

@@ -17,7 +17,7 @@ export function StatsBlock({ props }: { props: BlockPropsMap["stats"] }) {
           key={item.id}
           className="flex flex-col items-center justify-center gap-[6px] rounded-[24px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[16px] py-[26px] text-center"
         >
-          <span className="text-brand-gradient font-helvetica text-[34px] leading-none font-bold md:text-[44px]">
+          <span className="text-brand-gradient font-helvetica text-[34px] leading-[1.2] font-bold md:text-[44px]">
             {item.value}
           </span>
           <span className="font-poppins text-[13px] font-bold tracking-[0.5px] text-white uppercase">{item.label}</span>

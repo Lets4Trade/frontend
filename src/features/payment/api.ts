@@ -23,11 +23,15 @@ const HEADERS = {
 
 export type PayRequest =
   | { method: Extract<PaymentMethod, "PIX"> }
-  | {
+  | ({
       method: Extract<PaymentMethod, "CREDIT_CARD">;
-      card: CardPayload;
       installments: number;
-    }
+    } & (
+      /** Cartão digitado; `saveCard` = a caixa "salvar" marcada (2026-11-02). */
+      | { card: CardPayload; saveCard?: boolean }
+      /** Cartão salvo: o `id` da lista e o CVV — o token fica no backend. */
+      | { savedCard: { id: string; cvv: string } }
+    ))
   | {
       method: Extract<PaymentMethod, "DEBIT_CARD">;
       card: CardPayload;
@@ -108,6 +112,24 @@ export function payPayment(id: string, request: PayRequest) {
     method: "POST",
     body: JSON.stringify(request),
   });
+}
+
+/**
+ * Remove um cartão salvo da conta (2026-11-02). `true` = removido (ou já não
+ * existia — nos dois casos ele some da lista).
+ */
+export async function removeSavedCard(id: string): Promise<boolean> {
+  if (API_URL === "") return false;
+  try {
+    const response = await fetchWithSession(`${API_URL}/payments/cards/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      headers: HEADERS,
+      cache: "no-store",
+    });
+    return response.ok || response.status === 404;
+  } catch {
+    return false;
+  }
 }
 
 export function fetchPaymentStatus(id: string) {

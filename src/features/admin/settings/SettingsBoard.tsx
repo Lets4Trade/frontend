@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import type { CouponChoice } from "@/features/admin/coupons/choices";
 import { SectionContentForm } from "@/features/admin/sections/SectionContentForm";
 import type { SectionContent } from "@/features/site/list";
 import { sectionKey, sitePage } from "@/features/site/sections";
@@ -26,7 +27,14 @@ import { SECTION_INFO, SETTINGS_GROUPS, SETTINGS_PAGE, settingsNotices, type Set
  *  - Os grupos continuam MONTADOS (só escondidos): trocar de aba não perde o
  *    que foi digitado e ainda não salvo.
  */
-export function SettingsBoard({ initialSections }: { initialSections: SectionContent[] }) {
+export function SettingsBoard({
+  initialSections,
+  couponChoices = null,
+}: {
+  initialSections: SectionContent[];
+  /** Cupons do select do aviso de saída; `null` = sem acesso (campo de texto). */
+  couponChoices?: readonly CouponChoice[] | null;
+}) {
   const [sections, setSections] = useState(initialSections);
   const [active, setActive] = useState<string>(SETTINGS_GROUPS[0].id);
   const [highlight, setHighlight] = useState<string | null>(null);
@@ -199,6 +207,7 @@ export function SettingsBoard({ initialSections }: { initialSections: SectionCon
                         onSaved={(content) => replace(fullKey, content)}
                         layout="grid"
                         compactList
+                        couponChoices={couponChoices}
                       />
                     </article>
                   );

@@ -91,22 +91,22 @@ export async function PackageDetail({
     <section
       id="pacote"
       aria-label={current.name}
-      className="flex scroll-mt-[100px] flex-col gap-[40px] lg:flex-row lg:items-start lg:justify-between"
+      className="flex scroll-mt-[100px] flex-col gap-[40px] desk:flex-row desk:items-start desk:justify-between"
     >
       <div className="min-w-0 flex-1">
         <Link
           href={back}
-          className="font-poppins text-[15px] font-bold text-brand-orange transition-opacity hover:opacity-80 lg:pl-[29px]"
+          className="font-poppins text-[15px] font-bold text-brand-orange transition-opacity hover:opacity-80 desk:pl-[29px]"
         >
           ← Voltar aos pacotes
         </Link>
-        <h2 className="mt-[14px] mb-[30px] font-poppins text-[26px] leading-[34px] font-bold break-words text-white lg:pl-[29px]">
+        <h2 className="mt-[14px] mb-[30px] font-poppins text-[26px] leading-[34px] font-bold break-words text-white desk:pl-[29px]">
           {current.name}
         </h2>
         <ServiceText content={current.content ?? tab.content} />
       </div>
 
-      <div className="w-full lg:ml-auto lg:w-auto">
+      <div className="w-full desk:ml-auto desk:w-auto">
         <ServiceConfigurator
           // Outro servidor = outro produto: a escolha anterior não sobrevive.
           key={current.id}

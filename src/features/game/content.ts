@@ -101,6 +101,10 @@ type StorefrontProductPage = {
     /** Desconto do pacote (2026-10-27); ausentes sem desconto. */
     discountPercent?: number | null;
     listPriceCents?: number | null;
+    /** Selo do card ("Novo", "Em alta"…), 2026-11-04. Ausente = sem selo. */
+    badgeText?: string | null;
+    /** Nome no "Selecionar serviço" (2026-11-04). Ausente = usa o `name`. */
+    serviceLabel?: string | null;
     tabSlug?: string | null;
     /** Regra efetiva em aba cotada (`effectivePricing`); nulo/ausente fora dela. */
     pricing?: unknown;
@@ -468,6 +472,9 @@ function toProduct(item: StorefrontProductPage["items"][number]): GameProduct {
     id: item.id,
     name: item.name,
     nameEn: item.nameEn?.trim() || undefined,
+    // Selo do card (2026-11-04). Teto aqui também: é texto de API num card.
+    badgeText: typeof item.badgeText === "string" ? item.badgeText.trim().slice(0, 24) || undefined : undefined,
+    serviceLabel: typeof item.serviceLabel === "string" ? item.serviceLabel.trim() || undefined : undefined,
     priceCents: item.priceCents,
     ...readDiscount(item),
     // As medidas são só a proporção que o `next/image` usa para reservar o

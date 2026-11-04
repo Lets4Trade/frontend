@@ -501,7 +501,9 @@ function GuideCard({ guide, compact = false }: { guide: SectionItemView; compact
           src={guide.image}
           alt=""
           fill
-          sizes="(max-width: 1024px) 100vw, 400px"
+          // A home de celular vai até 1475px (2026-11-02), numa coluna de até 720:
+          // "400px acima de 1024" baixaria uma arte menor que a exibida.
+          sizes="(max-width: 767px) 100vw, 720px"
           aria-hidden
           className="guide-art object-cover"
         />

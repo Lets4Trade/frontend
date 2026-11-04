@@ -54,6 +54,41 @@ const THREE_DS_SCRIPT_SOURCES = [
   "https://*.mastercard.com",
 ];
 
+/**
+ * Google Ads + Analytics (2026-11-03): domínios da lista oficial do Google
+ * (página "Use Content Security Policy" do Google tag), com `google.com.br`
+ * porque o público é do Brasil. SÓ entram com `NEXT_PUBLIC_GOOGLE_TAG_IDS`
+ * preenchido no build — sem Google configurado, a CSP fica fechada como antes.
+ * O script só baixa com consentimento (`features/consent/GoogleTag.tsx`); a
+ * CSP é a segunda trava, não a primeira.
+ */
+const GOOGLE_TAG = (process.env.NEXT_PUBLIC_GOOGLE_TAG_IDS ?? "").trim() !== "";
+const GOOGLE_SCRIPT = GOOGLE_TAG
+  ? ["https://*.googletagmanager.com", "https://www.googleadservices.com", "https://googleads.g.doubleclick.net"]
+  : [];
+const GOOGLE_IMG = GOOGLE_TAG
+  ? [
+      "https://*.google-analytics.com",
+      "https://*.googletagmanager.com",
+      "https://*.g.doubleclick.net",
+      "https://*.google.com",
+      "https://*.google.com.br",
+    ]
+  : [];
+const GOOGLE_CONNECT = GOOGLE_TAG
+  ? [
+      "https://*.google-analytics.com",
+      "https://*.analytics.google.com",
+      "https://*.googletagmanager.com",
+      "https://*.g.doubleclick.net",
+      "https://*.google.com",
+      "https://*.google.com.br",
+      "https://pagead2.googlesyndication.com",
+      "https://www.googleadservices.com",
+    ]
+  : [];
+const GOOGLE_FRAME = GOOGLE_TAG ? ["https://td.doubleclick.net", "https://*.googletagmanager.com"] : [];
+
 function contentSecurityPolicy({ checkout = false, framableBySelf = false } = {}): string {
   const isDev = process.env.NODE_ENV !== "production";
 
@@ -75,16 +110,16 @@ function contentSecurityPolicy({ checkout = false, framableBySelf = false } = {}
 
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
-    "script-src": ["'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : []), ...threeDs],
+    "script-src": ["'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : []), ...threeDs, ...GOOGLE_SCRIPT],
     "style-src": ["'self'", "'unsafe-inline'"],
     // `i.imgur.com`: imagem por link do Imgur no texto do blog/seções/descrição
     // (2026-10-16). Só esse host — o mesmo que `IMGUR_IMAGE` aceita no texto.
-    "img-src": ["'self'", "data:", "blob:", apiOrigin, "https://i.imgur.com", ...anyHttps],
+    "img-src": ["'self'", "data:", "blob:", apiOrigin, "https://i.imgur.com", ...GOOGLE_IMG, ...anyHttps],
     "font-src": ["'self'", "data:"],
-    "connect-src": ["'self'", apiOrigin, apiSocket, ...(isDev ? ["ws:"] : []), ...anyHttps],
+    "connect-src": ["'self'", apiOrigin, apiSocket, ...(isDev ? ["ws:"] : []), ...GOOGLE_CONNECT, ...anyHttps],
     // `'self'` para o editor de páginas embutir a prévia (`/previa/...`) — só a
     // própria origem, e quem decide se aceita ser embutida é a página embutida.
-    "frame-src": ["'self'", youtube, ...anyHttps],
+    "frame-src": ["'self'", youtube, ...GOOGLE_FRAME, ...anyHttps],
     // O vídeo enviado pelo painel é servido pelo backend (`/uploads/videos`).
     "media-src": ["'self'", apiOrigin],
     "worker-src": ["'self'", "blob:"],

@@ -4,6 +4,7 @@ import { canAccess } from "@/features/admin/permissions";
 import { getSessionRole } from "@/features/auth/session";
 import { SETTINGS_PAGE } from "@/features/admin/settings/catalog";
 import { SettingsBoard } from "@/features/admin/settings/SettingsBoard";
+import { getCouponChoices } from "@/features/admin/coupons/data";
 import { getSectionsAdmin } from "@/features/site/list";
 import { requirePanelArea } from "@/features/admin/guard";
 
@@ -23,7 +24,10 @@ export const metadata: Metadata = {
 export default async function StoreSettingsPage() {
   // Conteúdo: ADMIN e EDITOR (o atendente entra no painel, mas não aqui).
   await requirePanelArea("content");
-  const [snapshot, role] = await Promise.all([getSectionsAdmin(), getSessionRole()]);
+  // Cupons (select do aviso de saída) em paralelo: só ADMIN lê a lista; para o
+  // EDITOR o backend recusa, vem `null` e o campo continua de texto.
+  const [snapshot, role, coupons] = await Promise.all([getSectionsAdmin(), getSessionRole(), getCouponChoices()]);
+  const couponChoices = canAccess(role, "promotions") ? coupons : null;
   const sections = snapshot.sections.filter((section) => section.key.startsWith(`${SETTINGS_PAGE}:`));
 
   return (
@@ -51,7 +55,7 @@ export default async function StoreSettingsPage() {
         </p>
       ) : (
         <div className="mt-[28px]">
-          <SettingsBoard initialSections={sections} />
+          <SettingsBoard initialSections={sections} couponChoices={couponChoices} />
         </div>
       )}
     </div>

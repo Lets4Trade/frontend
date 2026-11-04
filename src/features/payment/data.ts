@@ -1,6 +1,16 @@
 import { apiGet } from "@/lib/serverApi";
 import { normalizePayment } from "./api";
+import { readSavedCards, type SavedCard } from "./savedCards";
 import type { PaymentView } from "./types";
+
+/**
+ * Cartões salvos da conta, lidos no SERVIDOR (2026-11-02). Falha ou sem sessão
+ * = lista vazia: o checkout continua com o formulário de cartão de sempre.
+ */
+export async function getSavedCards(): Promise<SavedCard[]> {
+  const result = await apiGet<unknown>("/payments/cards");
+  return result.ok ? readSavedCards(result.data) : [];
+}
 
 export type PaymentResult =
   | { ok: true; payment: PaymentView }

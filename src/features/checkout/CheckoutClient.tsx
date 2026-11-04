@@ -32,7 +32,13 @@ import {
   readPendingPayment,
   savePendingPayment,
 } from "@/features/payment/pendingPayment";
-import { CREDIT_CARD_FEE_BPS, MAX_INSTALLMENTS, cardFeeCents, maxInstallmentsFor } from "@/features/payment/types";
+import {
+  CREDIT_CARD_FEE_BPS,
+  DEFAULT_MIN_INSTALLMENT_CENTS,
+  MAX_INSTALLMENTS,
+  cardFeeCents,
+  maxInstallmentsFor,
+} from "@/features/payment/types";
 import { runAction } from "@/lib/safeAction";
 import { hashString, selectionKey } from "@/features/cart/lineId";
 import {
@@ -43,7 +49,9 @@ import {
   type CheckoutResult,
 } from "./actions";
 import { CHECKOUT_LOGIN_HREF } from "./loginHref";
-import { cardSchema, pixSchema } from "./schema";
+import { cardSchema, pixSchema, savedCardSchema } from "./schema";
+import { NEW_CARD, SaveCardCheckbox, SavedCardPicker } from "./SavedCardPicker";
+import type { SavedCard } from "@/features/payment/savedCards";
 
 /**
  * Cotação de reserva da Lets Coin, em centavos.
@@ -91,7 +99,11 @@ export function CheckoutClient({
   whatsappHref,
   referencesHref,
   installmentLimit = MAX_INSTALLMENTS,
+  minInstallmentCents = DEFAULT_MIN_INSTALLMENT_CENTS,
+  savedCards = [],
 }: {
+  /** Cartões salvos da conta (2026-11-02) — sem o token, ver `payment/savedCards.ts`. */
+  savedCards?: SavedCard[];
   loyalty: LoyaltySummary | null;
   /** Regras de brinde ligadas (2026-10-12) — ver `features/gifts`. */
   gifts?: PublicGift[];
@@ -108,6 +120,8 @@ export function CheckoutClient({
    * corta a lista; o backend recusa acima do limite de qualquer jeito.
    */
   installmentLimit?: number;
+  /** Parcela mínima da loja, em centavos (Configurações → Pagamento, 2026-11-03). Só prévia. */
+  minInstallmentCents?: number;
 }) {
   const router = useRouter();
 
@@ -116,6 +130,20 @@ export function CheckoutClient({
   const hydrated = useCartHydrated();
 
   const [method, setMethod] = useState<Method>("pix");
+  // Cartão salvo (2026-11-02): já vem escolhido o último usado, se válido.
+  const [cards, setCards] = useState<SavedCard[]>(savedCards);
+  const [cardChoice, setCardChoice] = useState<string>(
+    () => savedCards.find((card) => !card.expired)?.id ?? NEW_CARD,
+  );
+  const [saveCard, setSaveCard] = useState(false);
+  const usingSavedCard =
+    method !== "pix" && cardChoice !== NEW_CARD && cards.some((card) => card.id === cardChoice && !card.expired);
+
+  function forgetCard(id: string) {
+    const rest = cards.filter((card) => card.id !== id);
+    setCards(rest);
+    if (cardChoice === id) setCardChoice(rest.find((card) => !card.expired)?.id ?? NEW_CARD);
+  }
   // Lets Coins é SIM ou NÃO (2026-10-27, pedido do usuário): sim usa o máximo
   // possível, e já vem marcado. Quanto é "o máximo" sai de `maxCoins`, que
   // acompanha carrinho e cupom sozinho.
@@ -195,7 +223,7 @@ export function CheckoutClient({
   // O total muda com as coins; a parcela escolhida antes pode ter ficado
   // abaixo do mínimo. Mesma regra do backend (`maxInstallmentsFor`, sobre o
   // valor com a taxa).
-  const effectiveInstallments = Math.min(installments, maxInstallmentsFor(charge, installmentLimit));
+  const effectiveInstallments = Math.min(installments, maxInstallmentsFor(charge, installmentLimit, minInstallmentCents));
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -204,7 +232,7 @@ export function CheckoutClient({
     const data = new FormData(event.currentTarget);
     const read = (name: string) => String(data.get(name) ?? "");
 
-    const schema = method === "pix" ? pixSchema : cardSchema;
+    const schema = method === "pix" ? pixSchema : usingSavedCard ? savedCardSchema : cardSchema;
     const parsed = schema.safeParse({
       holder: read("holder"),
       number: read("number"),
@@ -308,11 +336,19 @@ export function CheckoutClient({
       result =
         method === "pix"
           ? await payPayment(pending.id, { method: "PIX" })
-          : await payPayment(pending.id, {
-              method: "CREDIT_CARD",
-              card: card!,
-              installments: effectiveInstallments,
-            });
+          : usingSavedCard
+            ? await payPayment(pending.id, {
+                method: "CREDIT_CARD",
+                // Só o id e o CVV: o token da Cielo nunca chega ao navegador.
+                savedCard: { id: cardChoice, cvv: read("cvv").replace(/\D/g, "") },
+                installments: effectiveInstallments,
+              })
+            : await payPayment(pending.id, {
+                method: "CREDIT_CARD",
+                card: card!,
+                installments: effectiveInstallments,
+                saveCard,
+              });
     } catch {
       setIsSubmitting(false);
       setFormError("Não conseguimos processar o pagamento. Tente de novo em instantes.");
@@ -445,53 +481,76 @@ export function CheckoutClient({
 
           {method !== "pix" ? (
             <div className="mt-[28px] flex flex-col gap-[25px]">
-              <TextField
-                name="holder"
-                label="Nome do titular do cartão *"
-                type="text"
-                autoComplete="cc-name"
-                placeholder="Nome"
-                error={fieldErrors.holder}
-              />
-              <TextField
-                name="number"
-                label="Número do cartão *"
-                type="text"
-                inputMode="numeric"
-                autoComplete="cc-number"
-                maxLength={23}
-                placeholder="**** **** **** ****"
-                error={fieldErrors.number}
-              />
-              <div className="grid grid-cols-2 gap-x-[16px] lg:grid-cols-[225px_225px] lg:gap-x-[26px]">
+              {cards.length > 0 ? (
+                <SavedCardPicker cards={cards} value={cardChoice} onChange={setCardChoice} onRemoved={forgetCard} />
+              ) : null}
+
+              {usingSavedCard ? (
+                // Cartão salvo: só o CVV (a Cielo exige a cada compra).
+                <div className="lg:w-[225px]">
+                  <TextField
+                    name="cvv"
+                    label="Código do cartão (CVV) *"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="cc-csc"
+                    maxLength={4}
+                    placeholder="CVV"
+                    error={fieldErrors.cvv}
+                  />
+                </div>
+              ) : (
+                <>
                 <TextField
-                  name="expiry"
-                  label="Validade (MM/AA) *"
+                  name="holder"
+                  label="Nome do titular do cartão *"
                   type="text"
-                  // A "/" entra sozinha (2026-10-28); teclado e tamanho vêm da máscara.
-                  mask="cardExpiry"
-                  autoComplete="cc-exp"
-                  placeholder="MM/AA"
-                  error={fieldErrors.expiry}
+                  autoComplete="cc-name"
+                  placeholder="Nome"
+                  error={fieldErrors.holder}
                 />
                 <TextField
-                  name="cvv"
-                  label="Código do cartão *"
+                  name="number"
+                  label="Número do cartão *"
                   type="text"
                   inputMode="numeric"
-                  autoComplete="cc-csc"
-                  maxLength={4}
-                  placeholder="CVV"
-                  error={fieldErrors.cvv}
+                  autoComplete="cc-number"
+                  maxLength={23}
+                  placeholder="**** **** **** ****"
+                  error={fieldErrors.number}
                 />
-              </div>
+                <div className="grid grid-cols-2 gap-x-[16px] lg:grid-cols-[225px_225px] lg:gap-x-[26px]">
+                  <TextField
+                    name="expiry"
+                    label="Validade (MM/AA) *"
+                    type="text"
+                    // A "/" entra sozinha (2026-10-28); teclado e tamanho vêm da máscara.
+                    mask="cardExpiry"
+                    autoComplete="cc-exp"
+                    placeholder="MM/AA"
+                    error={fieldErrors.expiry}
+                  />
+                  <TextField
+                    name="cvv"
+                    label="Código do cartão *"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="cc-csc"
+                    maxLength={4}
+                    placeholder="CVV"
+                    error={fieldErrors.cvv}
+                  />
+                </div>
+                  <SaveCardCheckbox checked={saveCard} onChange={setSaveCard} />
+                </>
+              )}
               <SelectField
                 name="installments"
                 label="Número de parcelas"
                 placeholder="Escolha as parcelas"
                 value={String(effectiveInstallments)}
                 onValueChange={(value) => setInstallments(Number(value))}
-                options={installmentOptions(charge, installmentLimit)}
+                options={installmentOptions(charge, installmentLimit, minInstallmentCents)}
               />
               <p className="-mt-[12px] font-helvetica text-[13px] leading-[18px] text-brand-placeholder">
                 Taxa de {CREDIT_CARD_FEE_BPS / 100}% no cartão de crédito ({formatCents(fee)}). No PIX não há taxa.
@@ -846,8 +905,8 @@ function chosenServer(gift: CartGift, choice: Record<string, string>) {
   return gift.servers.find((server) => server.productId === choice[gift.gameSlug]) ?? gift.servers[0];
 }
 
-function installmentOptions(totalCents: number, limit: number) {
-  return Array.from({ length: maxInstallmentsFor(totalCents, limit) }, (_, index) => {
+function installmentOptions(totalCents: number, limit: number, minCents: number) {
+  return Array.from({ length: maxInstallmentsFor(totalCents, limit, minCents) }, (_, index) => {
     const times = index + 1;
     return {
       value: String(times),

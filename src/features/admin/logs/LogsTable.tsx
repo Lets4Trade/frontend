@@ -57,7 +57,7 @@ export function LogsTable({ entries }: { entries: AuditEntry[] }) {
               <th
                 key={column.key}
                 scope="col"
-                className="pb-[10px] text-left font-helvetica text-[18px] leading-[17px] font-bold tracking-[0.18px] text-white"
+                className="pb-[5px] text-left font-helvetica text-[18px] leading-[22px] font-bold tracking-[0.18px] text-white"
               >
                 {column.label}
               </th>

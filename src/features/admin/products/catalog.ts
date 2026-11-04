@@ -38,6 +38,12 @@ export type AdminProduct = {
   bannerUrl?: string | null;
   serverId: string | null;
   categoryId: string | null;
+  /** Categorias EXTRAS (2026-11-04): o produto aparece também nelas. */
+  extraCategoryIds?: string[];
+  /** Selo do card ("Novo", "Em alta"…), 2026-11-04. Ausente = sem selo. */
+  badgeText?: string | null;
+  /** Nome no "Selecionar serviço" (2026-11-04). Ausente = usa o `name`. */
+  serviceLabel?: string | null;
   createdAt: string;
   game: { id: string; slug: string; name: string };
   server: { id: string; label: string } | null;
@@ -78,6 +84,8 @@ export const PARAM = {
   tab: "aba",
   /** Servidor (id) — só com jogo escolhido (2026-10-01). */
   server: "servidor",
+  /** Categoria (id) — só com jogo escolhido; inclui as subcategorias (2026-11-02). */
+  category: "categoria",
   sort: "ordem",
   search: "busca",
   page: "pagina",
@@ -89,6 +97,8 @@ export type ProductsQuery = {
   tab: string;
   /** Servidor do jogo. Validado contra os servidores do jogo na página. */
   server: string;
+  /** Categoria do jogo (com as subcategorias). Validada contra as do jogo na página. */
+  category: string;
   sort: string;
   search: string;
   page: number;
@@ -116,6 +126,7 @@ export function parseProductsQuery(
   const rawGame = first(params[PARAM.game]) ?? "";
   const rawTab = first(params[PARAM.tab]) ?? "";
   const rawServer = first(params[PARAM.server]) ?? "";
+  const rawCategory = first(params[PARAM.category]) ?? "";
   const rawSort = first(params[PARAM.sort]) ?? "";
   const rawPage = Number.parseInt(first(params[PARAM.page]) ?? "1", 10);
 
@@ -126,6 +137,7 @@ export function parseProductsQuery(
     // mesmo deste jogo, a página confere com a lista de abas que ela lê.
     tab: game !== "" && /^[A-Za-z0-9_-]{1,100}$/.test(rawTab) ? rawTab : "",
     server: game !== "" && /^[A-Za-z0-9_-]{1,100}$/.test(rawServer) ? rawServer : "",
+    category: game !== "" && /^[A-Za-z0-9_-]{1,100}$/.test(rawCategory) ? rawCategory : "",
     sort: SORTS.has(rawSort) ? rawSort : "recente",
     search: (first(params[PARAM.search]) ?? "").slice(0, 80),
     page: Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1,
@@ -148,13 +160,15 @@ export function buildHref(
 
   const search = new URLSearchParams();
   if (next.game) search.set(PARAM.game, next.game);
-  // Trocar de jogo zera aba e servidor: são de UM jogo só.
+  // Trocar de jogo zera aba, servidor e categoria: são de UM jogo só.
   if (patch.game !== undefined && patch.game !== query.game) {
     if (patch.tab === undefined) next.tab = "";
     if (patch.server === undefined) next.server = "";
+    if (patch.category === undefined) next.category = "";
   }
   if (next.tab) search.set(PARAM.tab, next.tab);
   if (next.server) search.set(PARAM.server, next.server);
+  if (next.category) search.set(PARAM.category, next.category);
   // "recente" é o padrão do backend; omiti-lo mantém a URL limpa.
   if (next.sort && next.sort !== "recente") search.set(PARAM.sort, next.sort);
   if (next.search) search.set(PARAM.search, next.search);

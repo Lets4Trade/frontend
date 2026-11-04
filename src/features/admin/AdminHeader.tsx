@@ -2,16 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { GlowBar } from "@/components/layout/GlowBar";
 import { UserMenu } from "@/components/layout/UserMenu";
-import { ChatsUnreadDot } from "@/features/admin/chats/ChatsUnreadDot";
 import { PresenceToggle } from "@/features/admin/chats/PresenceToggle";
-import { SaleAlerts, SalesBadge } from "@/features/admin/sales/SaleAlerts";
-import { ProposalsNewDot } from "@/features/admin/sellRequests/ProposalsNewDot";
+import { SaleAlerts } from "@/features/admin/sales/SaleAlerts";
 import type { SessionUser } from "@/features/auth/session";
-import { cn } from "@/lib/cn";
-import { ADMIN_NAV } from "./nav";
+import { AdminNav, useNavAttention } from "./AdminNav";
+import { adminNavSections } from "./nav";
 import { canAccess, type PanelRole } from "./permissions";
 import { AdminSearch } from "./search/AdminSearch";
 
@@ -32,18 +29,18 @@ import { AdminSearch } from "./search/AdminSearch";
  * O bloco da direita é o mesmo `UserMenu` da loja: no arquivo é exatamente o
  * avatar de 50px com a bolinha de status e a seta de 18px a 15px dele.
  *
- * ── Duas posições do menu (2026-10-23) ─────────────────────────────────────
- * Com 10 seções o menu tem ~1035px. Centrado no cabeçalho, ele só cabe entre
- * a logo e o grupo da direita (Online, sino, busca, avatar ~374px) a partir de
- * ~1830px — abaixo disso passava POR CIMA do botão Online (1280 e, com
- * "Propostas", também 1440). Então:
- *   - ≥ 1830px: uma linha só, centrada, como no arquivo do Figma;
- *   - abaixo: o menu desce para uma FAIXA logo embaixo do cabeçalho, centrada,
- *     que rola de lado dentro dela se não couber (nunca a página).
- * Antes, abaixo de 1280 o menu sumia e só a busca (Ctrl+K) navegava.
+ * ── Menu em grupos (2026-11-03, pedido do usuário) ────────────────────────
+ * Com 11 itens soltos (~1.050px) o menu só cabia numa linha a partir de
+ * 1830px; abaixo disso descia para uma faixa e o cabeçalho ia de 83 para
+ * 132px — a maioria dos notebooks. Agora são 4 grupos com submenu (Vendas,
+ * Catálogo, Site, Sistema — `nav.ts`): uma linha de 83px a partir do `lg`
+ * (1024px); abaixo, uma faixa curta com os 4 grupos, sem rolar de lado. O
+ * menu deixou de ficar no centro EXATO do cabeçalho (como no Figma de 1920):
+ * agora centra no espaço entre a logo e a direita, que é o que cabe em todas
+ * as larguras.
  *
- * Client component só por causa do `usePathname()`, que é o que acende a seção
- * atual. O layout continua sendo servidor e é ele quem lê a sessão — o `user`
+ * Client component por causa dos pins (vendas, chats, propostas), mantidos
+ * vivos aqui. O layout continua sendo servidor e é ele quem lê a sessão — o `user`
  * chega por prop já resolvido.
  */
 export function AdminHeader({
@@ -57,43 +54,10 @@ export function AdminHeader({
   /** "Logo da marca" do painel (2026-09-24); ausente = o arquivo de fábrica. */
   logoUrl?: string;
 }) {
-  const pathname = usePathname();
-
-  const links = ADMIN_NAV.filter((item) => canAccess(role, item.area)).map((item) => {
-    const active = item.match?.some((prefix) => pathname.startsWith(prefix)) ?? false;
-    const baseClass = cn(
-      "font-poppins text-[16px] font-bold tracking-[0.16px] whitespace-nowrap",
-      active ? "text-brand-orange" : "text-white",
-    );
-
-    // Seção que ainda não existe: texto, não link. `aria-disabled` conta
-    // ao leitor de tela a mesma coisa que o cursor conta a quem enxerga.
-    return item.href === null ? (
-      <span
-        key={item.label}
-        aria-disabled
-        title="Ainda não disponível"
-        className={cn(baseClass, "cursor-not-allowed opacity-60")}
-      >
-        {item.label}
-      </span>
-    ) : (
-      <Link
-        key={item.label}
-        href={item.href}
-        aria-current={active ? "page" : undefined}
-        className={cn(baseClass, "transition-opacity hover:opacity-80")}
-      >
-        {item.label}
-        {/* Vendas novas desde a última visita à lista (2026-10-16). */}
-        {item.href === "/admin/pedidos" && canAccess(role, "orders") ? <SalesBadge /> : null}
-        {/* Mensagem de cliente que a equipe não abriu (2026-10-28). */}
-        {item.href === "/admin/chats" && canAccess(role, "support") ? <ChatsUnreadDot /> : null}
-        {/* Proposta de "Venda pra nós" ainda NOVA (2026-10-28). */}
-        {item.href === "/admin/propostas" && canAccess(role, "orders") ? <ProposalsNewDot /> : null}
-      </Link>
-    );
-  });
+  const sections = adminNavSections((area) => canAccess(role, area));
+  // Pins mantidos vivos AQUI (o cabeçalho está sempre montado); os submenus só
+  // existem abertos. Ver `AdminNav.tsx`.
+  const attention = useNavAttention({ orders: canAccess(role, "orders"), support: canAccess(role, "support") });
 
   return (
     <header className="relative z-20 w-full bg-black/50 backdrop-blur-[9px]">
@@ -111,18 +75,15 @@ export function AdminHeader({
           />
         </Link>
 
-        {/* Fora do fluxo flex para cair no centro EXATO do cabeçalho, e não no
-            meio do que sobra entre logo e avatar — que mudaria de lugar a cada
-            item novo. Mesma solução do selo "+1000" no cabeçalho da loja. */}
-        <nav
-          aria-label="Seções do painel"
-          className="absolute top-1/2 left-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-[22px] min-[1830px]:flex"
-        >
-          {links}
-        </nav>
+        {/* Menu em 4 grupos (2026-11-03): cabe numa linha a partir do `lg`,
+            centrado no espaço entre a logo e o grupo da direita. */}
+        <AdminNav
+          sections={sections}
+          attention={attention}
+          className="hidden min-w-0 flex-1 items-center justify-center gap-[28px] lg:flex xl:gap-[40px]"
+        />
 
-        {/* Busca (Ctrl+K). Abaixo de xl o menu não cabe e ela vira a navegação. */}
-        <div className="ml-auto flex min-w-0 shrink-0 items-center gap-[8px] sm:gap-[16px]">
+        <div className="ml-auto flex min-w-0 shrink-0 items-center gap-[8px] sm:gap-[16px] lg:ml-0">
           {/* Online/Offline do atendente no chat da loja (2026-10-16). ADMIN
               e ATENDENTE atendem — o EDITOR não vê chats. */}
           {canAccess(role, "support") ? <PresenceToggle /> : null}
@@ -134,10 +95,14 @@ export function AdminHeader({
         </div>
       </div>
 
-      {/* Abaixo de 1830px: o mesmo menu numa faixa própria (ver o topo). */}
-      <nav aria-label="Seções do painel" className="scrollbar-orange relative overflow-x-auto border-t border-white/10 min-[1830px]:hidden">
-        <div className="mx-auto flex w-max items-center gap-[22px] px-4 py-[12px] sm:px-6 lg:px-[50px]">{links}</div>
-      </nav>
+      {/* Celular/tablet (< lg): os mesmos 4 grupos numa faixa curta, sem
+          rolar de lado (cabem em 390px). */}
+      <AdminNav
+        sections={sections}
+        attention={attention}
+        compact
+        className="flex items-center justify-center gap-[16px] border-t border-white/10 px-4 py-[11px] sm:gap-[32px] lg:hidden"
+      />
     </header>
   );
 }

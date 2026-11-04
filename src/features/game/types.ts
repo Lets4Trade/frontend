@@ -130,6 +130,10 @@ export type GameProduct = {
    */
   discountPercent?: number;
   listPriceCents?: number;
+  /** Selo do card no canto superior ESQUERDO ("Novo", "Em alta"…), 2026-11-04. */
+  badgeText?: string;
+  /** Nome no menu "Selecionar serviço" (2026-11-04). Ausente = o `name`. */
+  serviceLabel?: string;
   image?: ImageRef;
   /** Ausente quando o produto não tem servidor cadastrado. */
   serverSlug?: string;

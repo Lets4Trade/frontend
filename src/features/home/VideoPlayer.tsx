@@ -64,7 +64,7 @@ export function VideoPlayer({
     frameClassName ??
     "absolute top-0 left-[674px] h-[609px] w-[1146px] overflow-hidden rounded-[30px]";
   const frameRef = useRef<HTMLDivElement>(null);
-  const { active, visible } = useAutoplayInView(frameRef);
+  const { active, visible } = useAutoplayInView(frameRef, !videoFile && Boolean(videoId));
 
   const thumb = (
     <Image

@@ -40,6 +40,15 @@
 }
 
 @theme {
+  /*
+   * `desk` (2026-11-02): onde a PÁGINA DO JOGO troca do layout fluido para o
+   * desenho de 1714px do Figma. Antes era o `lg` (1024) e, entre 1024 e 1714,
+   * a página inteira rolava de lado. Agora o desenho entra a partir de 1392px
+   * ENCOLHIDO por `zoom` (no mínimo 80%, ver `.fit-frame`), e abaixo disso vale
+   * a versão fluida. Só os componentes da página do jogo usam `desk:`.
+   */
+  --breakpoint-desk: 87rem;
+
   --font-family-manrope: var(--font-manrope);
   --font-family-dm-sans: var(--font-dm-sans);
   
@@ -259,6 +268,33 @@ input[type="number"] {
   textarea,
   select {
     font-size: 16px;
+  }
+}
+
+/*
+ * `truncate` SEM cortar o rabo das letras (2026-11-03, pedido do usuário: "tá
+ * cortando o rabo do g"). O `truncate` do Tailwind é `overflow: hidden`, que
+ * corta nos DOIS eixos — e com linha baixa (`leading-none`, `leading-[16px]`
+ * numa fonte de 15px) o "g", "p", "y" da Poppins passam da caixa e somem
+ * embaixo (e o acento do "É" em cima). Para as reticências só precisa cortar na
+ * HORIZONTAL: `overflow-x: clip` + `overflow-y: visible` mantém o "…" e deixa a
+ * letra inteira. Vale para os ~115 `truncate` de hoje e para os que vierem.
+ *
+ * `min-width: 0`: com `hidden` o item de flex/grid encolhia sozinho (contêiner
+ * de rolagem tem mínimo 0); `clip` não é contêiner de rolagem, então o mínimo
+ * voltaria a ser o texto inteiro e o "…" sumiria. Quem já pede um mínimo
+ * próprio (`min-w-[160px]`) fica com o dele.
+ *
+ * Fora de `@layer` para vencer o utilitário do Tailwind. Em `@supports`:
+ * navegador sem `overflow: clip` (Safari < 16) fica com o `truncate` de antes.
+ */
+@supports (overflow: clip) {
+  .truncate {
+    overflow-x: clip;
+    overflow-y: visible;
+  }
+  .truncate:not([class*="min-w-"]) {
+    min-width: 0;
   }
 }
 
@@ -2579,4 +2615,68 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
   97% {
     transform: scale(1) rotate(0deg);
   }
+}
+
+/*
+ * Desenho fixo do Figma ENCOLHIDO para caber na tela (2026-11-02).
+ *
+ * A home (1820px) e a página do jogo (1714px) são desenhadas em largura fixa.
+ * Entre 1024px e essa largura a página inteira rolava de lado — quase todo
+ * notebook. Agora o desenho é encolhido com `zoom` (que, ao contrário de
+ * `transform: scale`, encolhe também o espaço ocupado) até no MÍNIMO 80%;
+ * abaixo disso cada página mostra a versão fluida (ver `desk` no @theme e o
+ * `min-[1476px]` da home).
+ *
+ * Degraus de 1% por media query, e não `calc(100vw / 1714px)`: dividir
+ * comprimento por comprimento ainda não funciona em todos os navegadores.
+ * Largura útil = tela − 20px (barra de rolagem vertical + folga).
+ */
+@media (min-width: 1392px) { .fit-1714 { zoom: 0.80; } }
+@media (min-width: 1409px) { .fit-1714 { zoom: 0.81; } }
+@media (min-width: 1426px) { .fit-1714 { zoom: 0.82; } }
+@media (min-width: 1443px) { .fit-1714 { zoom: 0.83; } }
+@media (min-width: 1460px) { .fit-1714 { zoom: 0.84; } }
+@media (min-width: 1477px) { .fit-1714 { zoom: 0.85; } }
+@media (min-width: 1495px) { .fit-1714 { zoom: 0.86; } }
+@media (min-width: 1512px) { .fit-1714 { zoom: 0.87; } }
+@media (min-width: 1529px) { .fit-1714 { zoom: 0.88; } }
+@media (min-width: 1546px) { .fit-1714 { zoom: 0.89; } }
+@media (min-width: 1563px) { .fit-1714 { zoom: 0.90; } }
+@media (min-width: 1580px) { .fit-1714 { zoom: 0.91; } }
+@media (min-width: 1597px) { .fit-1714 { zoom: 0.92; } }
+@media (min-width: 1615px) { .fit-1714 { zoom: 0.93; } }
+@media (min-width: 1632px) { .fit-1714 { zoom: 0.94; } }
+@media (min-width: 1649px) { .fit-1714 { zoom: 0.95; } }
+@media (min-width: 1666px) { .fit-1714 { zoom: 0.96; } }
+@media (min-width: 1683px) { .fit-1714 { zoom: 0.97; } }
+@media (min-width: 1700px) { .fit-1714 { zoom: 0.98; } }
+@media (min-width: 1717px) { .fit-1714 { zoom: 0.99; } }
+@media (min-width: 1734px) { .fit-1714 { zoom: 1; } }
+@media (min-width: 1476px) { .fit-1820 { zoom: 0.80; } }
+@media (min-width: 1495px) { .fit-1820 { zoom: 0.81; } }
+@media (min-width: 1513px) { .fit-1820 { zoom: 0.82; } }
+@media (min-width: 1531px) { .fit-1820 { zoom: 0.83; } }
+@media (min-width: 1549px) { .fit-1820 { zoom: 0.84; } }
+@media (min-width: 1567px) { .fit-1820 { zoom: 0.85; } }
+@media (min-width: 1586px) { .fit-1820 { zoom: 0.86; } }
+@media (min-width: 1604px) { .fit-1820 { zoom: 0.87; } }
+@media (min-width: 1622px) { .fit-1820 { zoom: 0.88; } }
+@media (min-width: 1640px) { .fit-1820 { zoom: 0.89; } }
+@media (min-width: 1658px) { .fit-1820 { zoom: 0.90; } }
+@media (min-width: 1677px) { .fit-1820 { zoom: 0.91; } }
+@media (min-width: 1695px) { .fit-1820 { zoom: 0.92; } }
+@media (min-width: 1713px) { .fit-1820 { zoom: 0.93; } }
+@media (min-width: 1731px) { .fit-1820 { zoom: 0.94; } }
+@media (min-width: 1749px) { .fit-1820 { zoom: 0.95; } }
+@media (min-width: 1768px) { .fit-1820 { zoom: 0.96; } }
+@media (min-width: 1786px) { .fit-1820 { zoom: 0.97; } }
+@media (min-width: 1804px) { .fit-1820 { zoom: 0.98; } }
+@media (min-width: 1822px) { .fit-1820 { zoom: 0.99; } }
+@media (min-width: 1840px) { .fit-1820 { zoom: 1; } }
+
+/* Blocos da home dentro da página do jogo (`HomeBleed`): a faixa de 1820 não
+   cabe na tela abaixo de 1840px — encolhe para os 1714 da coluna (1714/1820),
+   alinhada à esquerda dela, em vez de ser cortada nas bordas. */
+@media (min-width: 1392px) and (max-width: 1839.98px) {
+  .home-bleed { zoom: 0.9418; left: 0; translate: none; }
 }

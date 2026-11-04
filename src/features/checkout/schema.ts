@@ -74,5 +74,8 @@ export const cardSchema = z.object({
 
 export type CardFormValues = z.infer<typeof cardSchema>;
 
+/** Cartão SALVO (2026-11-02): do cartão, só o CVV — o resto está na Cielo. */
+export const savedCardSchema = cardSchema.pick({ cvv: true, installments: true, coins: true, notes: true });
+
 /** No PIX só o que não é do cartão continua valendo. */
 export const pixSchema = cardSchema.pick({ installments: true, coins: true, notes: true });

@@ -31,8 +31,11 @@ export type SectionExtraField = {
    * `hours` (2026-10-16, horário de atendimento): o formulário desenha
    * Aberto/Fechado + abre/fecha em vez de texto; o valor é "HH:MM-HH:MM" ou
    * vazio (fechado). Ver `features/support/hours.ts`.
+   *
+   * `coupon` (2026-11-03, aviso de cupom ao sair): select com os cupons de
+   * Cupons e a situação de cada um. Sem acesso à lista (não-ADMIN), vira texto.
    */
-  kind?: "hours";
+  kind?: "hours" | "coupon";
 };
 
 export function blogCardExtraFields(linkHint: string): SectionExtraField[] {

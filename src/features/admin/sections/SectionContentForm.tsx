@@ -12,6 +12,13 @@ import type { SectionContent } from "@/features/site/list";
 import type { GameOption, SiteSectionDef } from "@/features/site/sections";
 import { ACTION_FAILED_MESSAGE, ACTION_FAILED_UPLOAD_MESSAGE, runAction } from "@/lib/safeAction";
 import { cn } from "@/lib/cn";
+import {
+  couponChoiceProblem,
+  couponSavedValue,
+  couponSelectOptions,
+  couponSelectValue,
+  type CouponChoice,
+} from "@/features/admin/coupons/choices";
 import { HoursGrid } from "./HoursExtraField";
 import { SectionItemsEditor } from "./SectionItemsEditor";
 
@@ -37,6 +44,7 @@ export function SectionContentForm({
   onSaved,
   layout = "stack",
   compactList = false,
+  couponChoices = null,
 }: {
   /** `layout:contatos`. */
   fullKey: string;
@@ -48,6 +56,8 @@ export function SectionContentForm({
   layout?: "stack" | "grid";
   /** Lista de itens em grade de cartões menores (redes sociais nas Configurações). */
   compactList?: boolean;
+  /** Cupons para campos `kind: "coupon"`. `null`/ausente = campo de texto. */
+  couponChoices?: readonly CouponChoice[] | null;
 }) {
   const [title, setTitle] = useState(content?.title ?? "");
   const [subtitle, setSubtitle] = useState(content?.subtitle ?? "");
@@ -214,7 +224,23 @@ export function SectionContentForm({
           ) : null}
           {otherExtras.map((field) => (
             <div key={field.name}>
-              {field.options ? (
+              {field.kind === "coupon" && couponChoices ? (
+                <>
+                  <SelectField
+                    label={field.label}
+                    value={couponSelectValue(extras[field.name] ?? "")}
+                    onValueChange={(value) =>
+                      setExtras((current) => ({ ...current, [field.name]: couponSavedValue(value) }))
+                    }
+                    options={couponSelectOptions(couponChoices, extras[field.name] ?? "")}
+                  />
+                  {couponChoiceProblem(couponChoices, extras[field.name] ?? "") ? (
+                    <p role="status" className="mt-[6px] font-poppins text-[12px] font-medium text-amber-300">
+                      {couponChoiceProblem(couponChoices, extras[field.name] ?? "")}
+                    </p>
+                  ) : null}
+                </>
+              ) : field.options ? (
                 // Escolha: vazio no banco = o padrão, então o select mostra o padrão.
                 <SelectField
                   label={field.label}

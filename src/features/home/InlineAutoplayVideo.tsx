@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type RefObject } from "react";
+import { hasConsent } from "@/features/consent/consent";
 
 /**
  * Vídeo que COMEÇA A TOCAR quando a seção aparece na tela (2026-10-16, pedido
@@ -36,7 +37,16 @@ function autoplayAllowed(): boolean {
  * `active`: o player já foi montado (fica montado depois disso).
  * `visible`: a seção está na tela agora — toca; fora dela, pausa.
  */
-export function useAutoplayInView(target: RefObject<HTMLElement | null>) {
+export function useAutoplayInView(
+  target: RefObject<HTMLElement | null>,
+  /**
+   * O vídeo é do YouTube (terceiro)? Então só toca sozinho com "Vídeos do
+   * YouTube" aceito no aviso de cookies (2026-11-03). Sem isso fica a capa e o
+   * player só carrega no clique da própria pessoa. Arquivo enviado pelo painel
+   * é nosso e não depende disso.
+   */
+  thirdParty = false,
+) {
   const [active, setActive] = useState(false);
   const [visible, setVisible] = useState(false);
 
@@ -47,13 +57,13 @@ export function useAutoplayInView(target: RefObject<HTMLElement | null>) {
       ([entry]) => {
         const inView = entry.isIntersecting && entry.intersectionRatio >= VISIBLE_RATIO;
         setVisible(inView);
-        if (inView && autoplayAllowed()) setActive(true);
+        if (inView && autoplayAllowed() && (!thirdParty || hasConsent("media"))) setActive(true);
       },
       { threshold: [0, VISIBLE_RATIO] },
     );
     observer.observe(element);
     return () => observer.disconnect();
-  }, [target]);
+  }, [target, thirdParty]);
 
   /** Clique no play da capa (quem não toca sozinho): monta já, como visível. */
   function activate() {

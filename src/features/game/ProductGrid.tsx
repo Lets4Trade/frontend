@@ -62,7 +62,7 @@ export async function ProductGrid({
         grade do arquivo (6×4) vira 5×5. O `justify-between` devolve o pixel.
       */}
       {/* Celular (2026-10-09): duas colunas fluidas (o card é fluido abaixo de `lg`). */}
-      <div className="grid grid-cols-2 gap-[10px] lg:grid-cols-[repeat(auto-fill,265px)] lg:justify-between lg:gap-x-[24px] lg:gap-y-[25px]">
+      <div className="grid grid-cols-2 gap-[10px] md:grid-cols-3 md:gap-[16px] lg:grid-cols-4 desk:grid-cols-[repeat(auto-fill,265px)] desk:justify-between desk:gap-x-[24px] desk:gap-y-[25px]">
         {result.items.map((product) => (
           <ProductCard key={product.id} product={product} context={context} />
         ))}

@@ -20,7 +20,44 @@ export type AdminNavItem = {
   match?: readonly string[];
   /** Área do painel do item (`permissions.ts`): quem não tem a área não vê o item. */
   area: PanelArea;
+  /** Submenu do cabeçalho (2026-11-03) — ver `ADMIN_NAV_GROUPS`. */
+  group: AdminNavGroupKey;
 };
+
+/**
+ * Grupos do menu (2026-11-03, pedido do usuário: "o header do admin tá
+ * ficando muito grande"). Com 11 itens soltos o menu tinha ~1.050px e só cabia
+ * numa linha a partir de 1830px; abaixo disso virava uma segunda faixa e o
+ * cabeçalho ia de 83 para 132px. Em 4 grupos com submenu ele cabe numa linha
+ * a partir do `lg` (1024px). A ORDEM daqui é a ordem na tela.
+ */
+export const ADMIN_NAV_GROUPS = [
+  { key: "vendas", label: "Vendas" },
+  { key: "catalogo", label: "Catálogo" },
+  { key: "site", label: "Site" },
+  { key: "sistema", label: "Sistema" },
+] as const;
+
+export type AdminNavGroupKey = (typeof ADMIN_NAV_GROUPS)[number]["key"];
+
+export type AdminNavSection = {
+  key: AdminNavGroupKey;
+  label: string;
+  items: AdminNavItem[];
+};
+
+/**
+ * O menu de um cargo: só os itens das áreas que ele acessa, agrupados; grupo
+ * vazio some. Grupo com UM item vira link direto no cabeçalho (o REDATOR vê
+ * só "Blog" — um submenu com uma opção seria um clique a mais à toa).
+ */
+export function adminNavSections(canSee: (area: PanelArea) => boolean): AdminNavSection[] {
+  return ADMIN_NAV_GROUPS.map((group) => ({
+    key: group.key,
+    label: group.label,
+    items: ADMIN_NAV.filter((item) => item.group === group.key && canSee(item.area)),
+  })).filter((section) => section.items.length > 0);
+}
 
 export const ADMIN_NAV: readonly AdminNavItem[] = [
   {
@@ -28,6 +65,7 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
     href: "/admin/pedidos",
     match: ["/admin/pedidos"],
     area: "orders",
+    group: "vendas",
   },
   {
     // Aponta para a LISTAGEM, não para o cadastro: é dali que se vê o que
@@ -38,23 +76,30 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
     href: "/admin/produtos",
     match: ["/admin/produtos"],
     area: "catalog",
+    group: "catalogo",
   },
   // NÃO está no Figma (2026-10-23): o que chega pelo formulário "Venda pra
   // nós". ADMIN e ATENDENTE (área de pedidos) — é contato com cliente.
-  { label: "Propostas", href: "/admin/propostas", match: ["/admin/propostas"], area: "orders" },
+  { label: "Propostas", href: "/admin/propostas", match: ["/admin/propostas"], area: "orders", group: "vendas" },
   // NÃO está no Figma (2026-10-12): cupons de desconto. Só ADMIN — cupom é
   // dinheiro que a loja deixa de receber.
-  { label: "Cupons", href: "/admin/cupons", match: ["/admin/cupons"], area: "promotions" },
+  { label: "Cupons", href: "/admin/cupons", match: ["/admin/cupons"], area: "promotions", group: "catalogo" },
   // NÃO está no arquivo do Figma: o CRUD de jogos ganhou tela própria em
   // 2026-09-28 (antes o cadastro ficava sob "Produtos" e editar/excluir, só no
   // Builder). ADMIN e EDITOR — o catálogo é do EDITOR também desde 2026-10-16.
   //
   // Desde 2026-09-30 (admin-games-ux.md, Etapa 1) é também a porta do Builder
   // de cada jogo para o ADMIN — por isso acende em `/admin/builder`.
-  { label: "Jogos", href: "/admin/jogos", match: ["/admin/jogos", "/admin/builder"], area: "catalog" },
+  {
+    label: "Jogos",
+    href: "/admin/jogos",
+    match: ["/admin/jogos", "/admin/builder"],
+    area: "catalog",
+    group: "catalogo",
+  },
   // NÃO está no arquivo do Figma: o atendimento (popup de contato + Discord) foi
   // pedido em 2026-09-15. Ao lado de pedidos porque é o mesmo trabalho.
-  { label: "Chats", href: "/admin/chats", match: ["/admin/chats"], area: "support" },
+  { label: "Chats", href: "/admin/chats", match: ["/admin/chats"], area: "support", group: "vendas" },
   {
     // Desde 2026-09-15 a edição é NA PRÓPRIA PÁGINA (`/admin/paginas`). O
     // formulário antigo (`/admin/sessoes`) foi aposentado em 2026-10-01 — a rota
@@ -63,6 +108,7 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
     href: "/admin/paginas",
     match: ["/admin/paginas", "/admin/sessoes"],
     area: "content",
+    group: "site",
   },
   // NÃO está no arquivo do Figma: o blog (contrato blog.md, 2026-09-28). É
   // conteúdo, então o EDITOR também vê — ao lado de "Páginas". Área própria
@@ -72,6 +118,7 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
     href: "/admin/blog",
     match: ["/admin/blog"],
     area: "blog",
+    group: "site",
   },
   // NÃO está no Figma (2026-10-01): WhatsApp, logo, CNPJ e redes estavam
   // escondidos como "sessões" de Páginas → Cabeçalho e rodapé. Mesmos cargos de
@@ -81,11 +128,12 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
     href: "/admin/configuracoes",
     match: ["/admin/configuracoes"],
     area: "content",
+    group: "site",
   },
-  { label: "Usuários", href: "/admin/usuarios", match: ["/admin/usuarios"], area: "users" },
+  { label: "Usuários", href: "/admin/usuarios", match: ["/admin/usuarios"], area: "users", group: "sistema" },
   // "Builder de Page" (só do EDITOR desde 2026-09-30) saiu em 2026-10-16: o
   // EDITOR passou a ter a lista de Jogos, que já leva ao Builder de cada jogo.
   // NÃO está no arquivo do Figma: as cinco abas desenhadas não incluem logs. A
   // tela foi pedida depois, e sem item de menu ela seria inalcançável.
-  { label: "Logs", href: "/admin/logs", match: ["/admin/logs"], area: "logs" },
+  { label: "Logs", href: "/admin/logs", match: ["/admin/logs"], area: "logs", group: "sistema" },
 ];

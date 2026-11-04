@@ -116,10 +116,10 @@ export async function ServiceSection({
   return (
     <section
       aria-label={tab.label}
-      className="flex flex-col gap-[50px] lg:flex-row lg:items-start lg:justify-between"
+      className="flex flex-col gap-[50px] desk:flex-row desk:items-start desk:justify-between"
     >
       <ServiceText content={tab.content} />
-      <div className="w-full lg:ml-auto lg:w-auto">
+      <div className="w-full desk:ml-auto desk:w-auto">
         <ServiceConfigurator
           // Novo escopo, nova escolha: sem a `key`, o produto escolhido no
           // servidor anterior sobreviveria à troca.
@@ -146,7 +146,7 @@ export function ServiceText({ content }: { content?: ServiceContent }) {
   if (!content || content.sections.length === 0) return null;
 
   return (
-    <div className="min-w-0 flex-1 lg:max-w-[1016px] lg:pl-[29px]">
+    <div className="min-w-0 flex-1 desk:max-w-[1016px] desk:pl-[29px]">
       {content.sections.map((section, index) => (
         <section key={index} className={index > 0 ? "mt-[40px]" : undefined}>
           <SectionContentView section={section} />

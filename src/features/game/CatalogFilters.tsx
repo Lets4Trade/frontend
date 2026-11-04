@@ -43,7 +43,7 @@ export function ServerPicker({
         {page.servers.label}
       </h2>
 
-      <div className="mt-[16px] flex flex-wrap gap-[10px] lg:mt-[25px] lg:gap-[25px]">
+      <div className="mt-[16px] flex flex-wrap gap-[10px] desk:mt-[25px] desk:gap-[25px]">
         {page.servers.items.map((server) => {
           const active = server.slug === query.server;
           return (
@@ -121,14 +121,14 @@ export function CategoryPanel({
 
 function CategoryBox({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-[24px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[14px] pt-[18px] pb-[20px] lg:rounded-[30px] lg:px-[24px] lg:pt-[25px] lg:pb-[30px]">
+    <section className="rounded-[24px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[14px] pt-[18px] pb-[20px] desk:rounded-[30px] desk:px-[24px] desk:pt-[25px] desk:pb-[30px]">
       <h2 className="font-helvetica text-[18px] leading-none font-bold tracking-[0.18px] text-white">{title}</h2>
       {/* Escolha única: grupo de rádios para o leitor de tela. */}
       <div
         role="radiogroup"
         aria-label={title}
         // Celular: duas colunas fluidas; desktop: a grade de 282px do arquivo.
-        className="mt-[16px] grid grid-cols-2 items-start gap-x-[10px] gap-y-[10px] lg:mt-[24px] lg:grid-cols-[repeat(auto-fill,282px)] lg:gap-x-[24px] lg:gap-y-[15px]"
+        className="mt-[16px] grid grid-cols-2 items-start gap-x-[10px] gap-y-[10px] md:grid-cols-3 lg:grid-cols-4 desk:mt-[24px] desk:grid-cols-[repeat(auto-fill,282px)] desk:gap-x-[24px] desk:gap-y-[15px]"
       >
         {children}
       </div>
@@ -155,12 +155,12 @@ export function CatalogToolbar({
   return (
     // Celular: título, ordenações (2 por linha) e a busca em largura cheia,
     // empilhados; desktop: tudo numa linha, como no arquivo.
-    <div className="flex flex-col gap-[16px] lg:flex-row lg:items-center lg:justify-between lg:gap-[25px]">
-      <h2 className="font-helvetica text-[20px] leading-none font-bold tracking-[0.22px] text-white lg:text-[22px]">
+    <div className="flex flex-col gap-[16px] desk:flex-row desk:items-center desk:justify-between desk:gap-[25px]">
+      <h2 className="font-helvetica text-[20px] leading-none font-bold tracking-[0.22px] text-white desk:text-[22px]">
         {server?.label ?? page.name}
       </h2>
 
-      <div className="grid grid-cols-2 gap-x-[12px] gap-y-[12px] lg:flex lg:items-center lg:gap-[32px]">
+      <div className="grid grid-cols-2 gap-x-[12px] gap-y-[12px] lg:grid-cols-4 desk:flex desk:items-center desk:gap-[32px]">
         {SORT_OPTIONS.map((option) => {
           const active = query.sort === option.key;
           return (
@@ -202,7 +202,7 @@ function SearchBox({ page, query }: { page: GamePage; query: CatalogQuery }) {
       action={gameHref(page.slug)}
       method="get"
       role="search"
-      className="relative col-span-2 h-[50px] w-full lg:w-[219px]"
+      className="relative col-span-2 h-[50px] w-full desk:w-[219px]"
     >
       {/* O filtro atual viaja junto em campos escondidos. Um `<form>` GET
           descarta tudo o que não está nele — sem isto, buscar zeraria o
@@ -254,7 +254,7 @@ function CategoryOption({
       role="radio"
       aria-checked={checked}
       // Recuo curto (era 25px): caixinha de 22px com 9px em volta.
-      className={`flex h-[40px] w-full min-w-0 items-center gap-[10px] rounded-[8px] lg:w-[282px] border border-white/10 pr-[14px] pl-[9px] backdrop-blur-[100px] transition-opacity hover:opacity-90 ${
+      className={`flex h-[40px] w-full min-w-0 items-center gap-[10px] rounded-[8px] desk:w-[282px] border border-white/10 pr-[14px] pl-[9px] backdrop-blur-[100px] transition-opacity hover:opacity-90 ${
         checked ? "bg-[image:var(--brand-orange-gradient)] text-white" : "bg-[image:var(--brand-surface-fill)] text-white/80"
       }`}
     >

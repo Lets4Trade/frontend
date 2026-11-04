@@ -87,7 +87,7 @@ export function GameBannerSlider({
       // Celular (2026-10-09): mais baixo e com o canto menor — 490px de altura
       // ocupavam mais da metade da tela. Abaixo de 640px a caixa é 2:1
       // (2026-10-16), a proporção da arte de celular enviada no painel.
-      className="group relative aspect-[2/1] touch-pan-y overflow-hidden rounded-[20px] border border-white/10 bg-[#2f2f2f] sm:aspect-auto sm:h-[280px] lg:h-[490px] lg:rounded-[30px]"
+      className="group relative aspect-[2/1] touch-pan-y overflow-hidden rounded-[20px] border border-white/10 bg-[#2f2f2f] sm:aspect-auto sm:h-[280px] desk:h-[490px] desk:rounded-[30px]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}

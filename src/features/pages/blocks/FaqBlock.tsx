@@ -21,7 +21,7 @@ export function FaqBlock({ props }: { props: BlockPropsMap["faq"] }) {
               {item.question}
               <span
                 aria-hidden
-                className="text-brand-gradient shrink-0 text-[22px] leading-none transition-transform group-open:rotate-45"
+                className="text-brand-gradient shrink-0 text-[22px] leading-[1.2] transition-transform group-open:rotate-45"
               >
                 +
               </span>

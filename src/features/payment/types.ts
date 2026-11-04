@@ -61,8 +61,14 @@ export function paidOrderHref(payment: Pick<PaymentView, "orders">): string | nu
   return reference ? `/conta/pedidos/${encodeURIComponent(reference)}?pago=1` : null;
 }
 
-/** Espelha `MIN_INSTALLMENT_CENTS`/`MAX_INSTALLMENTS` do backend. */
-export const MIN_INSTALLMENT_CENTS = 500;
+/**
+ * Espelha `DEFAULT_MIN_INSTALLMENT_CENTS`/`MIN_INSTALLMENT_FLOOR_CENTS`/
+ * `MAX_INSTALLMENTS` do backend. Parcela mínima padrão R$ 50, configurável no
+ * painel (2026-11-03); à vista vale para qualquer valor.
+ */
+export const DEFAULT_MIN_INSTALLMENT_CENTS = 5_000;
+export const MIN_INSTALLMENT_FLOOR_CENTS = 500;
+const MIN_INSTALLMENT_CEIL_CENTS = 1_000_000;
 export const MAX_INSTALLMENTS = 12;
 
 /**
@@ -88,10 +94,25 @@ export function installmentLimitFrom(raw: string | null | undefined): number {
   return Math.min(MAX_INSTALLMENTS, Math.max(1, Number(text)));
 }
 
+/**
+ * Parcela mínima do painel (extra `parcela-minima`, reais) em centavos.
+ * Espelho de `minInstallmentFrom` do backend. Só PRÉVIA.
+ */
+export function minInstallmentFrom(raw: string | null | undefined): number {
+  const text = (raw ?? "").trim();
+  if (!/^\d{1,6}$/.test(text)) return DEFAULT_MIN_INSTALLMENT_CENTS;
+  return Math.min(MIN_INSTALLMENT_CEIL_CENTS, Math.max(MIN_INSTALLMENT_FLOOR_CENTS, Number(text) * 100));
+}
+
 /** Parcelas possíveis: o limite da loja e a parcela mínima, o que for menor. */
-export function maxInstallmentsFor(amountCents: number, limit: number = MAX_INSTALLMENTS) {
+export function maxInstallmentsFor(
+  amountCents: number,
+  limit: number = MAX_INSTALLMENTS,
+  minCents: number = DEFAULT_MIN_INSTALLMENT_CENTS,
+) {
   const cap = Math.min(MAX_INSTALLMENTS, Math.max(1, Math.floor(limit)));
-  return Math.max(1, Math.min(cap, Math.floor(amountCents / MIN_INSTALLMENT_CENTS)));
+  const min = Math.max(MIN_INSTALLMENT_FLOOR_CENTS, Math.floor(minCents));
+  return Math.max(1, Math.min(cap, Math.floor(amountCents / min)));
 }
 
 /**

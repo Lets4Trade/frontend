@@ -27,17 +27,17 @@ export function GameIdentity({ page, server = "" }: { page: GamePage; server?: s
   // as abas do fim. O `contents` do miolo põe título e abas direto no `flex` de
   // fora no celular; no desktop o miolo volta a ser a coluna do arquivo.
   return (
-    <div className="relative flex flex-wrap items-center gap-x-[14px] gap-y-[18px] lg:flex-nowrap lg:items-start lg:gap-[30px]">
+    <div className="relative flex flex-wrap items-center gap-x-[14px] gap-y-[18px] desk:flex-nowrap desk:items-start desk:gap-[30px]">
       <GameLogo logo={logo} name={page.name} />
 
-      <div className="contents lg:block lg:flex-1 lg:pt-[8px]">
-        <h1 className="min-w-0 flex-1 font-helvetica text-[22px] leading-[1.15] font-bold tracking-[0.3px] text-white lg:text-[30px] lg:leading-none">
+      <div className="contents desk:block desk:flex-1 desk:pt-[8px]">
+        <h1 className="min-w-0 flex-1 font-helvetica text-[22px] leading-[1.15] font-bold tracking-[0.3px] text-white desk:text-[30px] desk:leading-none">
           {heading}
         </h1>
 
         {/* Jogo sem aba ativa: sem a fileira vazia (e sem o vão de 25px). */}
         {page.tabs.length > 0 ? (
-          <nav className="grid basis-full grid-cols-2 gap-[8px] lg:mt-[25px] lg:flex lg:flex-wrap lg:gap-[15px]">
+          <nav className="grid basis-full grid-cols-2 gap-[8px] md:grid-cols-3 lg:grid-cols-5 desk:mt-[25px] desk:flex desk:flex-wrap desk:gap-[15px]">
             {page.tabs.map((tab) => (
               <TabLink key={tab.id} tab={tab} server={server} active={tab.id === page.activeTabId} />
             ))}
@@ -52,7 +52,7 @@ export function GameIdentity({ page, server = "" }: { page: GamePage; server?: s
         <Link
           href={coin.href ?? "/fidelidade"}
           // Só no desktop: no celular ela cairia em cima das abas e dos servidores.
-          className={`absolute -right-[16px] hidden size-[179px] lg:block ${isService ? "top-[23px]" : "top-[150px]"}`}
+          className={`absolute -right-[16px] hidden size-[179px] desk:block ${isService ? "top-[23px]" : "top-[150px]"}`}
           aria-label="Programa de fidelidade"
         >
           <Image
@@ -95,7 +95,7 @@ function GameLogo({ logo, name }: { logo?: { src: string; alt?: string }; name: 
   return (
     // Celular: a mesma caixa a ~48% (96×79), ao lado do título.
     <div
-      className="relative h-[79px] w-[96px] shrink-0 lg:h-[var(--logo-h)] lg:w-[var(--logo-w)]"
+      className="relative h-[79px] w-[96px] shrink-0 desk:h-[var(--logo-h)] desk:w-[var(--logo-w)]"
       style={{ "--logo-w": `${LOGO_BOX.width}px`, "--logo-h": `${LOGO_BOX.height}px` } as CSSProperties}
     >
       {[true, false].map((blurred) => (
@@ -192,14 +192,14 @@ function TabLink({ tab, server, active }: { tab: GameTab; server: string; active
     <Link
       href={tabHrefWithServer(tab, server)}
       aria-current={active ? "page" : undefined}
-      className={`relative flex h-[56px] min-w-0 items-center gap-[10px] rounded-[8px] border-2 border-white/10 px-[10px] backdrop-blur-[100px] transition-opacity hover:opacity-90 lg:h-[99px] lg:min-w-[130px] lg:shrink-0 lg:flex-col lg:justify-start lg:gap-0 lg:px-[10px] lg:pt-[11px] ${
+      className={`relative flex h-[56px] min-w-0 items-center gap-[10px] rounded-[8px] border-2 border-white/10 px-[10px] backdrop-blur-[100px] transition-opacity hover:opacity-90 desk:h-[99px] desk:min-w-[130px] desk:shrink-0 desk:flex-col desk:justify-start desk:gap-0 desk:px-[10px] desk:pt-[11px] ${
         active
           ? "bg-[image:var(--brand-orange-gradient)] text-white"
           : "bg-[image:var(--brand-surface-fill)] text-white/80"
       }`}
     >
       <TabIcon tab={tab} />
-      <span className="line-clamp-2 min-w-0 font-poppins text-[12px] leading-[1.2] font-bold tracking-[0.15px] lg:mt-[5px] lg:line-clamp-none lg:text-[15px] lg:leading-none lg:whitespace-nowrap">
+      <span className="line-clamp-2 min-w-0 font-poppins text-[12px] leading-[1.3] font-bold tracking-[0.15px] desk:mt-[5px] desk:line-clamp-none desk:text-[15px] desk:leading-none desk:whitespace-nowrap">
         {tab.label}
       </span>
     </Link>
@@ -219,14 +219,14 @@ function TabIcon({ tab }: { tab: GameTab }) {
   // Fica inteiro dentro dos 50×50. Só os SVGs padrão (`/icons/`) sangram.
   if (!tab.icon.src.startsWith("/icons/")) {
     return (
-      <span className="relative block size-[32px] shrink-0 lg:size-[50px]">
+      <span className="relative block size-[32px] shrink-0 desk:size-[50px]">
         <Image src={tab.icon.src} alt="" fill sizes="50px" aria-hidden className="object-contain" />
       </span>
     );
   }
 
   return (
-    <span className="relative block size-[32px] shrink-0 lg:size-[50px]">
+    <span className="relative block size-[32px] shrink-0 desk:size-[50px]">
       <span className="absolute" style={{ inset: ICON_BLEED }}>
         <Image
           src={tab.icon.src}

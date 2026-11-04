@@ -4,6 +4,7 @@ import { AdminSearchBox, FilterMenu } from "@/features/admin/AdminFilters";
 import type { AdminGame } from "@/features/admin/catalog";
 import { cn } from "@/lib/cn";
 import { PARAM, SORT_OPTIONS, buildHref, type ProductsQuery } from "./catalog";
+import { categorySelectOptions } from "./categoryOptions";
 import { newProductHref } from "./links";
 
 /**
@@ -15,6 +16,10 @@ import { newProductHref } from "./links";
  * servidor, ordem e busca —, todos na URL (a filtragem é no banco).
  *
  * Aba e servidor só aparecem com jogo escolhido: são de UM jogo.
+ *
+ * Categoria (2026-11-02): também só com jogo, e só as que valem para a aba e o
+ * servidor escolhidos (escopo da categoria). "Categoria › Subcategoria", como
+ * no cadastro; escolher a categoria traz também as subcategorias dela.
  */
 export function ProductFilters({
   games,
@@ -27,12 +32,21 @@ export function ProductFilters({
   tabs: { id: string; label: string; isActive: boolean }[] | null;
 }) {
   // Navegar fecha os <details>: a `key` muda junto com a URL.
-  const resetKey = `${query.game}|${query.tab}|${query.server}|${query.sort}|${query.search}|${query.page}`;
+  const resetKey = `${query.game}|${query.tab}|${query.server}|${query.category}|${query.sort}|${query.search}|${query.page}`;
 
   const currentGame = games.find((game) => game.id === query.game);
   const currentTab = tabs?.find((tab) => tab.id === query.tab);
   const currentServer = currentGame?.servers.find((server) => server.id === query.server);
   const currentSort = SORT_OPTIONS.find((option) => option.value === query.sort) ?? SORT_OPTIONS[0];
+
+  // Só as categorias que valem para a aba/servidor escolhidos (sem escopo = todas).
+  const scopedCategories = (currentGame?.categories ?? []).filter(
+    (category) =>
+      (!query.tab || !category.tabId || category.tabId === query.tab) &&
+      (!query.server || !category.serverId || category.serverId === query.server),
+  );
+  const categoryOptions = categorySelectOptions(scopedCategories);
+  const currentCategory = categoryOptions.find((option) => option.value === query.category);
 
   const scope = query.game
     ? `?${PARAM.game}=${encodeURIComponent(query.game)}${query.tab ? `&${PARAM.tab}=${encodeURIComponent(query.tab)}` : ""}`
@@ -107,6 +121,23 @@ export function ProductFilters({
           />
         ) : null}
 
+        {currentGame && categoryOptions.length > 0 ? (
+          <FilterMenu
+            key={`category-${resetKey}`}
+            width={260}
+            label={currentCategory?.label ?? "Todas as categorias"}
+            active={query.category !== ""}
+            options={[
+              { href: buildHref(query, { category: "" }), label: "Todas as categorias", active: query.category === "" },
+              ...categoryOptions.map((option) => ({
+                href: buildHref(query, { category: option.value }),
+                label: option.label,
+                active: option.value === query.category,
+              })),
+            ]}
+          />
+        ) : null}
+
         <FilterMenu
           key={`sort-${resetKey}`}
           width={215}
@@ -128,6 +159,7 @@ export function ProductFilters({
             [PARAM.game]: query.game,
             [PARAM.tab]: query.tab,
             [PARAM.server]: query.server,
+            [PARAM.category]: query.category,
             [PARAM.sort]: query.sort === "recente" ? "" : query.sort,
           }}
         />

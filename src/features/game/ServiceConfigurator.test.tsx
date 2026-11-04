@@ -98,6 +98,36 @@ describe("ServiceConfigurator", () => {
     expect(push).toHaveBeenCalledWith("/checkout");
   });
 
+  it("sem banner mostra só o texto (nem a arte do card); com banner, a imagem (2026-11-04)", () => {
+    const image = { src: "/card.webp", alt: "", width: 263, height: 276 };
+    const { container, rerender } = render(
+      <ServiceConfigurator products={[{ ...product, image }]} context={context} filters={null} emptyMessage="vazio" />,
+    );
+    // Só os ícones do controle de nível: nem a arte do card, nem o cinza no lugar.
+    expect(container.querySelector('img[src="/card.webp"]')).toBeNull();
+    expect(container.querySelector(".rounded-t-\\[30px\\]")).toBeNull();
+
+    const banner = { src: "/banner.webp", alt: "", width: 551, height: 327 };
+    rerender(
+      <ServiceConfigurator products={[{ ...product, image, banner }]} context={context} filters={null} emptyMessage="vazio" />,
+    );
+    expect(container.querySelector('img[src="/banner.webp"]')).not.toBeNull();
+    expect(container.querySelector('img[src="/card.webp"]')).toBeNull();
+  });
+
+  it("menu \"Selecionar serviço\": nome próprio quando há, senão o nome (2026-11-04)", () => {
+    render(
+      <ServiceConfigurator
+        products={[{ ...product, serviceLabel: "Campanha 1-50" }, { ...product, id: "p2", name: "Farm de Divine" }]}
+        context={context}
+        filters={null}
+        emptyMessage="vazio"
+      />,
+    );
+    expect(screen.getByLabelText("Selecionar serviço:")).toHaveTextContent("Campanha 1-50");
+    expect(screen.queryByText("Power Leveling")).not.toBeInTheDocument();
+  });
+
   it("sem produto no escopo mostra o estado vazio", () => {
     render(<ServiceConfigurator products={[]} context={context} filters={null} emptyMessage="Nada aqui." />);
     expect(screen.getByRole("status")).toHaveTextContent("Nada aqui.");

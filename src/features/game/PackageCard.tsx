@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
+import { LabelBadge } from "./DiscountBadge";
 import { PackageDescriptionPopover } from "./PackageDescriptionPopover";
 import type { GameProduct, ServiceContent } from "./types";
 
@@ -50,6 +51,8 @@ export function PackageCard({
 
   return (
     <article className="relative flex min-h-[417px] w-full max-w-[265px] flex-col overflow-hidden rounded-[30px] border border-white/10 bg-black/10">
+      {/* Selo livre ("Novo", "Em alta"…), 2026-11-04 — o mesmo do card de catálogo. */}
+      {product.badgeText ? <LabelBadge text={product.badgeText} /> : null}
       {hasDescription ? (
         <PackageDescriptionPopover
           title={product.name}

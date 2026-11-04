@@ -51,6 +51,8 @@ export default async function AdminProductsPage({
     // Aba/servidor que não são deste jogo (URL editada à mão) viram "sem filtro".
     tab: productTabs?.some((tab) => tab.id === parsed.tab) ? parsed.tab : "",
     server: game?.servers.some((server) => server.id === parsed.server) ? parsed.server : "",
+    // Categoria que não é deste jogo vira "sem filtro" (2026-11-02).
+    category: game?.categories.some((category) => category.id === parsed.category) ? parsed.category : "",
   };
   const page = await getAdminProducts(query);
 
@@ -76,7 +78,9 @@ export default async function AdminProductsPage({
             <p className="mb-[10px] font-helvetica text-[13px] text-brand-fg-subtle">
               {page.total} {page.total === 1 ? "produto" : "produtos"}
             </p>
-            <ProductTable products={page.items} />
+            {/* `returnTo`: a edição volta para esta mesma página e anda pela
+                lista com "Anterior / Próximo" (2026-11-04). */}
+            <ProductTable products={page.items} returnTo={buildHref(query, { page: page.page })} />
 
             <Pagination
               current={page.page}
@@ -98,7 +102,8 @@ export default async function AdminProductsPage({
  * resultado faz o admin achar que perdeu o catálogo.
  */
 function EmptyState({ query, hasGames }: { query: ProductsQuery; hasGames: boolean }) {
-  const filtering = query.game !== "" || query.tab !== "" || query.server !== "" || query.search !== "";
+  const filtering =
+    query.game !== "" || query.tab !== "" || query.server !== "" || query.category !== "" || query.search !== "";
 
   if (filtering) {
     return (

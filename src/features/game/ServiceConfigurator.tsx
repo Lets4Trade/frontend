@@ -40,28 +40,28 @@ export function ServiceConfigurator({
   const product = products.find((item) => item.id === productId) ?? products[0];
 
   return (
-    <div className="relative w-full shrink-0 overflow-hidden rounded-[30px] border border-brand-hairline bg-black lg:w-[554px]">
-      {/* Foto do produto escolhido no topo (Mentoria 4222:1160: 551×327,
-          cantos 30), ou o cinza do arquivo enquanto o admin não sobe a arte.
+    <div className="relative w-full shrink-0 overflow-hidden rounded-[30px] border border-brand-hairline bg-black desk:w-[554px]">
+      {/* Banner do serviço escolhido no topo (Mentoria 4222:1160: 551×327,
+          cantos 30). SEM banner, a tela mostra só o texto (2026-11-04, pedido
+          do usuário) — antes caía na arte do card ou num retângulo cinza.
           Proporção no celular para a foto não virar uma faixa fina. */}
-      <div className="relative aspect-[551/327] w-full overflow-hidden rounded-t-[30px] bg-[#2f2f2f] lg:aspect-auto lg:h-[327px]">
-        {/* Banner próprio da tela do serviço; sem ele, a arte do card. */}
-        {(product?.banner ?? product?.image) ? (
+      {product?.banner ? (
+        <div className="relative aspect-[551/327] w-full overflow-hidden rounded-t-[30px] bg-[#2f2f2f] desk:aspect-auto desk:h-[327px]">
           <Image
-            src={(product.banner ?? product.image)!.src}
+            src={product.banner.src}
             alt=""
             fill
-            sizes="(min-width: 1024px) 554px, 100vw"
+            sizes="(min-width: 1392px) 554px, 100vw"
             className="object-cover"
           />
-        ) : null}
-        {/* Degradê preto de 121px no pé da foto: garante leitura do primeiro
-            título sobre qualquer arte que o admin subir. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-[121px] bg-gradient-to-b from-transparent to-black"
-        />
-      </div>
+          {/* Degradê preto de 121px no pé da foto: garante leitura do primeiro
+              título sobre qualquer arte que o admin subir. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-[121px] bg-gradient-to-b from-transparent to-black"
+          />
+        </div>
+      ) : null}
 
       <div className="relative px-[24px] pt-[30px] pb-[25px] sm:px-[50px]">
         {filters}
@@ -117,10 +117,11 @@ export function ProductSelect({
   return (
     <SelectField
       label="Selecionar serviço:"
-      options={products.map((item) => ({ value: item.id, label: item.name }))}
+      // Nome próprio do menu quando o admin escreveu um (2026-11-04).
+      options={products.map((item) => ({ value: item.id, label: item.serviceLabel || item.name }))}
       value={value}
       onValueChange={onChange}
-      className="lg:max-w-[452px]"
+      className="desk:max-w-[452px]"
     />
   );
 }

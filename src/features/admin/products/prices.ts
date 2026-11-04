@@ -72,28 +72,115 @@ export function changeRatio(currentCents: number, nextCents: number): number {
   return currentCents > 0 ? (nextCents - currentCents) / currentCents : 0;
 }
 
-export type PriceRow = { id: string; priceCents: number };
+/** Mesmas regras do cadastro (`CreateProductDto.name`): aparado, 2–160. */
+export const NAME_MIN = 2;
+export const NAME_MAX = 160;
+
+/** Valor do filtro "Sem categoria" (`?categoria=sem-categoria`); id de verdade é cuid. */
+export const NO_CATEGORY = "sem-categoria";
+
+export type EditableRow = {
+  id: string;
+  priceCents: number;
+  name: string;
+  categoryId?: string | null;
+};
 
 /**
- * O lote que vai para a API: só as linhas cujo rascunho é um preço VÁLIDO e
- * DIFERENTE do atual, cada uma com o preço lido (`expectedPriceCents`) para o
- * backend recusar se alguém mudou no meio do caminho. Linha com texto
- * inválido não entra — a tela bloqueia o salvar enquanto houver alguma.
+ * Rascunhos da tabela, um mapa por coluna. Ausente = a pessoa não mexeu. Na
+ * categoria, `""` é "Sem categoria".
  */
-export function buildPriceChanges(rows: readonly PriceRow[], drafts: Readonly<Record<string, string>>) {
-  const changes: { id: string; priceCents: number; expectedPriceCents: number }[] = [];
+export type RowDrafts = {
+  price: Readonly<Record<string, string>>;
+  name: Readonly<Record<string, string>>;
+  category: Readonly<Record<string, string>>;
+};
+
+export type RowChange = {
+  id: string;
+  /** Sempre: é a trava da linha no backend. */
+  expectedPriceCents: number;
+  priceCents?: number;
+  name?: string;
+  expectedName?: string;
+  /** `null` = tirar a categoria. */
+  categoryId?: string | null;
+  expectedCategoryId?: string | null;
+};
+
+/** Nome digitado → nome a gravar, ou `null` se não couber nas regras. */
+export function parseNameInput(raw: string): string | null {
+  const name = raw.trim();
+  return name.length >= NAME_MIN && name.length <= NAME_MAX ? name : null;
+}
+
+/**
+ * O lote que vai para a API (2026-11-04: preço, nome e categoria): uma entrada
+ * por produto com ALGUMA coluna válida e diferente da gravada, cada campo
+ * trocado com o valor lido (`expected*`) para o backend recusar se alguém
+ * mudou no meio do caminho. Linha com preço ou nome inválido não entra — a
+ * tela bloqueia o salvar enquanto houver alguma.
+ */
+export function buildRowChanges(rows: readonly EditableRow[], drafts: RowDrafts) {
+  const changes: RowChange[] = [];
   const invalid: string[] = [];
   for (const row of rows) {
-    const draft = drafts[row.id];
-    if (draft === undefined) continue;
-    const cents = parsePriceInput(draft);
-    if (cents === null) {
-      invalid.push(row.id);
-      continue;
+    const change: RowChange = { id: row.id, expectedPriceCents: row.priceCents };
+    let bad = false;
+
+    const priceDraft = drafts.price[row.id];
+    if (priceDraft !== undefined) {
+      const cents = parsePriceInput(priceDraft);
+      if (cents === null) bad = true;
+      else if (cents !== row.priceCents) change.priceCents = cents;
     }
-    if (cents !== row.priceCents) {
-      changes.push({ id: row.id, priceCents: cents, expectedPriceCents: row.priceCents });
+
+    const nameDraft = drafts.name[row.id];
+    if (nameDraft !== undefined) {
+      const name = parseNameInput(nameDraft);
+      if (name === null) bad = true;
+      else if (name !== row.name) {
+        change.name = name;
+        change.expectedName = row.name;
+      }
+    }
+
+    const categoryDraft = drafts.category[row.id];
+    const currentCategory = row.categoryId ?? null;
+    if (categoryDraft !== undefined && (categoryDraft || null) !== currentCategory) {
+      change.categoryId = categoryDraft || null;
+      change.expectedCategoryId = currentCategory;
+    }
+
+    if (bad) invalid.push(row.id);
+    else if (change.priceCents !== undefined || change.name !== undefined || change.categoryId !== undefined) {
+      changes.push(change);
     }
   }
   return { changes, invalid };
+}
+
+type ScopedCategory = { id: string; label: string; parentId?: string | null; serverId?: string | null; tabId?: string | null };
+
+/**
+ * Categorias que valem para um produto: as do servidor + aba dele e as
+ * globais (mesma regra do cadastro e do backend). `serverId` vazio no filtro
+ * = qualquer servidor (todas as da aba).
+ */
+export function categoriesInScope<T extends ScopedCategory>(
+  categories: readonly T[],
+  tabId: string,
+  serverId: string | null | undefined,
+  anyServer = false,
+): T[] {
+  return categories.filter(
+    (category) =>
+      (!category.tabId || category.tabId === tabId) &&
+      (anyServer || !category.serverId || category.serverId === (serverId ?? null)),
+  );
+}
+
+/** A categoria do filtro e as subcategorias dela (filtrar "Moedas" pega "Moedas › Raras"). */
+export function categoryWithChildren(categories: readonly ScopedCategory[], id: string): Set<string> {
+  return new Set([id, ...categories.filter((category) => category.parentId === id).map((category) => category.id)]);
 }

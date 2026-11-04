@@ -211,7 +211,10 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
                   data-admin-section="layout:header-acoes"
                   className={cn(
                     buttonVariants({ variant: "outline" }),
-                    "hidden min-w-[197px] px-[20px] lg:inline-flex",
+                    // A partir de 1280 (2026-11-02; era 1024): entre 1024 e 1280 os dois
+                    // botões + carrinho não cabiam e a PÁGINA rolava 136px de lado.
+                    // Ali fica só "Acessar conta" — o login tem o "Criar conta".
+                    "hidden min-w-[197px] px-[20px] xl:inline-flex",
                   )}
                 >
                   {actions.subtitle}

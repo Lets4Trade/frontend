@@ -31,7 +31,8 @@ function first(value: string | string[] | undefined) {
  * chega aqui com a aba e o servidor que estavam abertos. Tudo VALIDADO contra
  * o que existe antes de qualquer leitura — é input de URL. O servidor só
  * define o filtro inicial; a tabela carrega a aba inteira (todos os
- * servidores), para trocar de servidor sem perder o que já foi digitado.
+ * servidores), para trocar de servidor sem perder o que já foi digitado. Idem
+ * `categoria` (2026-11-04): a tabela confere o id contra as do jogo.
  */
 export default async function ProductPricesPage({ searchParams }: PageProps) {
   await requirePanelArea("catalog");
@@ -62,7 +63,7 @@ export default async function ProductPricesPage({ searchParams }: PageProps) {
         <div>
           <h1 className="font-poppins text-[26px] leading-[32px] font-semibold text-white">Editar preços</h1>
           <p className="mt-[6px] font-helvetica text-[15px] text-brand-fg-muted">
-            Escolha o jogo e a aba, digite os preços novos e salve tudo de uma vez.
+            Escolha o jogo e a aba, troque preço, nome ou categoria e salve tudo de uma vez.
           </p>
         </div>
         {game ? (
@@ -117,9 +118,13 @@ export default async function ProductPricesPage({ searchParams }: PageProps) {
             <ProductPriceTable
               key={`${game.id}|${tab.id}`}
               gameId={game.id}
+              tabId={tab.id}
               quoted={hasTabContent(tab.layout)}
+              packages={tab.layout === "PACKAGES"}
               servers={servers.map(({ id, label }) => ({ id, label }))}
+              categories={listed.categories ?? []}
               initialServerId={serverId}
+              initialCategoryId={first(params[PARAM.category]) ?? ""}
               initial={ordering.items}
             />
           </>

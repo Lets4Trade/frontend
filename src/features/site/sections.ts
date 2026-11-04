@@ -668,10 +668,11 @@ export const SITE_PAGES: readonly SitePageDef[] = [
           },
           {
             name: "cupom",
-            label: "Código do cupom",
+            label: "Cupom",
             defaultValue: "",
             maxLength: 40,
-            hint: "Um cupom criado em Cupons. Se ele estiver desativado, vencido ou esgotado, o aviso não aparece.",
+            kind: "coupon" as const,
+            hint: "Os cupons de Cupons. Só aparece na loja enquanto o cupom estiver valendo (ligado, dentro da validade e com usos sobrando).",
           },
           {
             name: "botao",
@@ -704,10 +705,24 @@ export const SITE_PAGES: readonly SitePageDef[] = [
             label: "Parcelas no cartão de crédito",
             defaultValue: String(MAX_INSTALLMENTS),
             maxLength: 2,
-            hint: "Máximo de vezes que o cliente pode parcelar, sem juros. Compras pequenas parcelam menos: nenhuma parcela fica abaixo de R$ 5,00.",
+            hint: "Máximo de vezes que o cliente pode parcelar, sem juros. Compras pequenas parcelam menos, pela parcela mínima ao lado.",
             options: Array.from({ length: MAX_INSTALLMENTS }, (_, index) => ({
               value: String(index + 1),
               label: index === 0 ? "1x (sem parcelamento)" : `Até ${index + 1}x`,
+            })),
+          },
+          {
+            // 2026-11-03: era fixo no código (R$ 50). Quem obedece é o BACKEND
+            // (`minInstallmentFrom`), que também prende o valor a R$ 5..R$ 10.000.
+            // Select, e não texto: valor digitado errado não chega a existir.
+            name: "parcela-minima",
+            label: "Valor mínimo da parcela",
+            defaultValue: "50",
+            maxLength: 6,
+            hint: "Nenhuma parcela fica abaixo disto. À vista (1x) vale para qualquer valor. Ex.: com R$ 50, uma compra de R$ 120 parcela em até 2x.",
+            options: [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 250, 300, 500].map((reais) => ({
+              value: String(reais),
+              label: `R$ ${reais},00`,
             })),
           },
         ],

@@ -108,8 +108,8 @@ function QuantityPanel({
   const unavailable = product.pricingInvalid;
 
   return (
-    <div className="flex flex-col gap-[25px] lg:flex-row lg:items-stretch">
-      <section aria-labelledby={`${id}-title`} className={`${PANEL} min-w-0 lg:max-w-[1287px] lg:flex-1`}>
+    <div className="flex flex-col gap-[25px] desk:flex-row desk:items-stretch">
+      <section aria-labelledby={`${id}-title`} className={`${PANEL} min-w-0 desk:max-w-[1287px] desk:flex-1`}>
         {products.length > 1 ? (
           // Mais de um produto no escopo (aba + servidor): o select substitui
           // o título. `h2` escondido mantém o nome da região para leitor de tela.
@@ -146,7 +146,7 @@ function QuantityPanel({
               <div
                 role="group"
                 aria-labelledby={`${id}-label`}
-                className="mt-[15px] grid grid-cols-2 gap-x-[25px] gap-y-[15px] sm:grid-cols-3 lg:grid-cols-6"
+                className="mt-[15px] grid grid-cols-2 gap-x-[25px] gap-y-[15px] sm:grid-cols-3 desk:grid-cols-6"
               >
                 {presets.map((preset) => {
                   const active = preset === quantity;
@@ -172,7 +172,7 @@ function QuantityPanel({
                       {off > 0 ? (
                         <DiscountBadge
                           percent={off}
-                          className="-top-[9px] -right-[6px] lg:-top-[10px] lg:-right-[8px]"
+                          className="-top-[9px] -right-[6px] desk:-top-[10px] desk:-right-[8px]"
                         />
                       ) : null}
                     </div>
@@ -232,7 +232,7 @@ function QuantityPanel({
       {/* Card "Preço" (1666:1640, 403×352). */}
       <section
         aria-labelledby={`${id}-price`}
-        className={`${PANEL} flex flex-col lg:w-[403px] lg:shrink-0`}
+        className={`${PANEL} flex flex-col desk:w-[403px] desk:shrink-0`}
       >
         <h2 id={`${id}-price`} className={TITLE}>
           Preço

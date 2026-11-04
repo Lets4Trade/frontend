@@ -33,6 +33,7 @@ export async function getAdminProducts(
   // Aba (`tabId`) só com jogo — `parseProductsQuery` garante.
   if (query.tab) search.set("tab", query.tab);
   if (query.server) search.set("serverId", query.server);
+  if (query.category) search.set("categoryId", query.category);
   if (query.search) search.set("search", query.search);
   search.set("sort", query.sort);
   search.set("page", String(query.page));

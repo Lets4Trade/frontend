@@ -139,7 +139,7 @@ function renderSection(
     case "homeVideo":
       return (
         <>
-          <div className="overflow-x-clip lg:hidden">
+          <div className="overflow-x-clip md:mx-auto md:max-w-[760px] desk:hidden">
             <MobileVideo section={page.showcase.mobile.video} />
           </div>
           <HomeBleed>
@@ -151,7 +151,7 @@ function renderSection(
     case "homeReviews":
       return (page.showcase.reviews.items?.length ?? 0) > 0 ? (
         <>
-          <div className="overflow-x-clip lg:hidden">
+          <div className="overflow-x-clip desk:hidden">
             <MobileReviews section={page.showcase.mobile.reviews} items={page.showcase.reviews.items ?? []} />
           </div>
           <HomeBleed>
@@ -198,7 +198,14 @@ function renderSection(
   }
 }
 
-/** A largura do desenho da home, centralizada na coluna da página de jogo. */
+/**
+ * A largura do desenho da home, centralizada na coluna da página de jogo.
+ *
+ * `home-bleed` (2026-11-02): a faixa de 1820 sangra 53px de cada lado da coluna
+ * de 1714 — só cabe com a tela a partir de ~1840px. Abaixo disso (coluna
+ * encolhida por `.fit-1714`) ela encolhe para a largura EXATA da coluna, em vez
+ * de ser cortada nas bordas da tela.
+ */
 function HomeBleed({ children }: { children: ReactNode }) {
-  return <div className="relative left-1/2 hidden w-[1820px] -translate-x-1/2 lg:block">{children}</div>;
+  return <div className="home-bleed relative left-1/2 hidden w-[1820px] -translate-x-1/2 desk:block">{children}</div>;
 }

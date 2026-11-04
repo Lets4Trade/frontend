@@ -65,7 +65,7 @@ export function StatValue({
   return (
     <p
       className={cn(
-        "font-poppins text-[24px] leading-[27px] font-bold tracking-[0.24px]",
+        "font-poppins text-[24px] leading-[30px] font-bold tracking-[0.24px]",
         gradient && "text-brand-gradient",
         className,
       )}

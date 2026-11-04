@@ -31,13 +31,19 @@ export function WideFrame({ children }: { children: ReactNode }) {
  * Abaixo de `lg` (2026-10-09) a faixa vira FLUIDA com 16px de margem: antes o
  * `min-w-[1714px]` valia em qualquer tela e o celular recebia uma página de
  * 1714px para arrastar de lado. Cada bloco tem a sua versão estreita.
+ *
+ * SEM ROLAGEM LATERAL (2026-11-02): entre 1024 e 1714px a faixa fixa rolava de
+ * lado — praticamente todo notebook. Agora:
+ *   - `desk` (≥1392px): o desenho de 1714, ENCOLHIDO para caber (`.fit-1714`,
+ *     `zoom` de 80% a 100% conforme a tela);
+ *   - abaixo: a versão fluida (a mesma do celular/tablet), com margem maior.
  */
 export function GameFrame({ children, glow }: { children: ReactNode; glow?: ReactNode }) {
   return (
-    <div className="flex-1 lg:overflow-x-auto">
-      <div className="relative mx-auto w-full max-w-[1920px] overflow-x-clip lg:min-w-[1714px]">
+    <div className="flex-1">
+      <div className="relative mx-auto w-full max-w-[1920px] overflow-x-clip">
         {glow}
-        <div className="relative mx-auto w-full px-[16px] pt-[24px] pb-[60px] lg:w-[1714px] lg:px-0 lg:pt-[50px] lg:pb-[100px]">
+        <div className="fit-1714 relative mx-auto w-full px-[16px] pt-[24px] pb-[60px] md:px-[32px] lg:px-[48px] desk:w-[1714px] desk:px-0 desk:pt-[50px] desk:pb-[100px]">
           {children}
         </div>
       </div>

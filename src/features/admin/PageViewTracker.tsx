@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { useConsent } from "@/features/consent/useConsent";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 
@@ -30,9 +31,13 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 export function PageViewTracker({ surface }: { surface: "admin" | "store" }) {
   const pathname = usePathname();
   const lastPath = useRef<string | null>(null);
+  const consent = useConsent();
+  // Loja: só com "Medição" aceita no aviso de cookies (2026-11-03, LGPD). Sem
+  // escolha = não grava. O painel é da equipe e segue registrando sempre.
+  const allowed = surface === "admin" || consent?.measurement === true;
 
   useEffect(() => {
-    if (API_URL === "") return;
+    if (API_URL === "" || !allowed) return;
 
     // O painel tem o SEU rastreador, no `app/admin/layout.tsx`. Este vive no
     // layout raiz, que também envolve o painel — sem esta linha, cada tela do
@@ -55,7 +60,7 @@ export function PageViewTracker({ surface }: { surface: "admin" | "store" }) {
         surface,
       }),
     }).catch(() => undefined);
-  }, [pathname, surface]);
+  }, [pathname, surface, allowed]);
 
   return null;
 }

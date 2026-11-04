@@ -135,7 +135,7 @@ export function ExitIntentCoupon({ offer, config }: { offer: ExitOffer; config: 
               {config.text}
             </Dialog.Description>
 
-            <p className="mt-[18px] bg-gradient-to-b from-brand-orange to-brand-orange-deep bg-clip-text font-poppins text-[34px] leading-[40px] font-extrabold text-transparent">
+            <p className="mt-[15px] bg-gradient-to-b from-brand-orange to-brand-orange-deep bg-clip-text font-poppins text-[34px] leading-[46px] font-extrabold text-transparent">
               {offer.discount}
             </p>
 

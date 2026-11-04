@@ -6,8 +6,9 @@ import { CheckoutClient } from "@/features/checkout/CheckoutClient";
 import { CheckoutShell } from "@/features/checkout/CheckoutShell";
 import { getPublicGifts } from "@/features/gifts/publicGifts";
 import { getLoyalty } from "@/features/loyalty/data";
-import { installmentLimitFrom } from "@/features/payment/types";
+import { installmentLimitFrom, minInstallmentFrom } from "@/features/payment/types";
 import { getContacts } from "@/features/site/contacts";
+import { getSavedCards } from "@/features/payment/data";
 import { getReferencesVideoHref } from "@/features/site/content";
 import { getLayoutContent } from "@/features/site/layoutContent";
 
@@ -53,13 +54,15 @@ export default async function CheckoutPage() {
   // O vídeo de referências (2026-10-20) também: leitura pública das sessões.
   // O limite de parcelas (2026-10-28) também: sessão `layout:pagamento`, da
   // mesma leitura cacheada do layout.
-  const [user, result, contacts, gifts, referencesHref, layout] = await Promise.all([
+  // Cartões salvos (2026-11-02): também em paralelo; sem sessão vem vazio.
+  const [user, result, contacts, gifts, referencesHref, layout, savedCards] = await Promise.all([
     getSessionUser(),
     getLoyalty(),
     getContacts(),
     getPublicGifts(),
     getReferencesVideoHref(),
     getLayoutContent(),
+    getSavedCards(),
   ]);
 
   if (!user) redirect(CHECKOUT_LOGIN_HREF);
@@ -73,6 +76,8 @@ export default async function CheckoutPage() {
         whatsappHref={contacts.whatsapp?.href}
         referencesHref={referencesHref}
         installmentLimit={installmentLimitFrom(layout.text("pagamento").extra("parcelas", ""))}
+        minInstallmentCents={minInstallmentFrom(layout.text("pagamento").extra("parcela-minima", ""))}
+        savedCards={savedCards}
       />
     </CheckoutShell>
   );

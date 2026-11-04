@@ -7,8 +7,8 @@ import { buttonVariants } from "@/components/ui/Button";
 import { MAX_CART_QUANTITY, useCart } from "@/features/cart/store";
 import { cn } from "@/lib/cn";
 import { formatPrice } from "./content";
-import { DiscountBadge } from "./DiscountBadge";
-import { DiscountedPrice } from "./DiscountedPrice";
+import { DiscountBadge, LabelBadge } from "./DiscountBadge";
+import { DiscountedPrice, PriceHighlight } from "./DiscountedPrice";
 import { ProductCardShell } from "./ProductCardShell";
 import type { GameProduct } from "./types";
 
@@ -103,26 +103,33 @@ export function ProductCard({
           />
         ) : quantity > 1 ? (
           <span title={`${quantity} × ${formatPrice(product.priceCents)}`}>
-            {formatPrice(product.priceCents * quantity)}
+            <PriceHighlight>{formatPrice(product.priceCents * quantity)}</PriceHighlight>
             <span className="ml-[6px] text-[13px] font-medium text-white/60">· {quantity} un.</span>
           </span>
         ) : (
-          formatPrice(product.priceCents)
+          // Laranja também sem desconto (2026-11-04), no padrão do desconto.
+          <PriceHighlight>{formatPrice(product.priceCents)}</PriceHighlight>
         )
       }
       image={product.image}
       // Desconto do pacote (2026-10-27): o selo; o preço acima já vem com ele
       // (e, desde 2026-11-02, com o cheio riscado ao lado).
       badge={
-        product.discountPercent ? (
-          <DiscountBadge
-            percent={product.discountPercent}
-            title={
-              product.listPriceCents
-                ? `De ${formatPrice(product.listPriceCents)} por ${formatPrice(product.priceCents)}`
-                : undefined
-            }
-          />
+        product.discountPercent || product.badgeText ? (
+          <>
+            {/* Selo livre ("Novo", "Em alta"…) à esquerda, 2026-11-04. */}
+            {product.badgeText ? <LabelBadge text={product.badgeText} /> : null}
+            {product.discountPercent ? (
+              <DiscountBadge
+                percent={product.discountPercent}
+                title={
+                  product.listPriceCents
+                    ? `De ${formatPrice(product.listPriceCents)} por ${formatPrice(product.priceCents)}`
+                    : undefined
+                }
+              />
+            ) : null}
+          </>
         ) : undefined
       }
       // Só com descrição escrita no painel (2026-10-20); sem ela, nada no hover.
@@ -134,7 +141,7 @@ export function ProductCard({
       actions={
         // Celular: fileira centrada e mais justa (botões de 36px) para caber
         // no card de ~170px; desktop: começa a 32px da borda, como no arquivo.
-        <div className="flex items-center justify-center gap-[6px] lg:justify-start lg:gap-[15px] lg:pl-[32px]">
+        <div className="flex items-center justify-center gap-[6px] desk:justify-start desk:gap-[15px] desk:pl-[32px]">
         <StepButton
           label={`Diminuir a quantidade de ${product.name}`}
           onClick={() => setQuantity((value) => Math.max(1, value - 1))}
@@ -145,7 +152,7 @@ export function ProductCard({
 
         <span
           aria-live="polite"
-          className="min-w-[20px] text-center font-poppins text-[16px] leading-[27px] font-bold tracking-[0.36px] text-white tabular-nums lg:min-w-[22px] lg:text-[18px]"
+          className="min-w-[20px] text-center font-poppins text-[16px] leading-[27px] font-bold tracking-[0.36px] text-white tabular-nums desk:min-w-[22px] desk:text-[18px]"
         >
           {quantity}
         </span>
@@ -162,7 +169,7 @@ export function ProductCard({
         <button
           type="button"
           onClick={add}
-          className="flex size-[36px] items-center justify-center rounded-[8px] border border-white/15 bg-[image:var(--brand-orange-gradient)] transition-opacity hover:opacity-90 lg:size-[50px]"
+          className="flex size-[36px] items-center justify-center rounded-[8px] border border-white/15 bg-[image:var(--brand-orange-gradient)] transition-opacity hover:opacity-90 desk:size-[50px]"
         >
           <Image
             src="/icons/game/cart.svg"
@@ -170,7 +177,7 @@ export function ProductCard({
             width={22}
             height={22}
             aria-hidden
-            className="size-[18px] lg:size-[22px]"
+            className="size-[18px] desk:size-[22px]"
           />
           <span className="sr-only">
             Adicionar {quantity} × {product.name} ao carrinho
@@ -184,7 +191,7 @@ export function ProductCard({
           type="button"
           onClick={buyNow}
           aria-label={`Comprar ${quantity} × ${product.name} agora`}
-          className={cn(buttonVariants({ variant: "primary" }), "h-[38px] w-full px-0 text-[13px] lg:ml-[32px] lg:h-[40px] lg:w-[217px] lg:text-[16px]")}
+          className={cn(buttonVariants({ variant: "primary" }), "h-[38px] w-full px-0 text-[13px] desk:ml-[32px] desk:h-[40px] desk:w-[217px] desk:text-[16px]")}
         >
           COMPRE AQUI
         </button>
@@ -210,7 +217,7 @@ function StepButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="flex size-[36px] items-center justify-center rounded-[8px] border border-white/10 bg-[image:var(--brand-surface-fill)] font-poppins text-[16px] font-bold tracking-[0.18px] text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 lg:size-[50px] lg:text-[18px]"
+      className="flex size-[36px] items-center justify-center rounded-[8px] border border-white/10 bg-[image:var(--brand-surface-fill)] font-poppins text-[16px] font-bold tracking-[0.18px] text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 desk:size-[50px] desk:text-[18px]"
     >
       {children}
     </button>

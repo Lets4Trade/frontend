@@ -15,7 +15,6 @@ import {
   dismissSale,
   getCards,
   getServerCards,
-  getUnseen,
   METHOD_LABEL,
   parseSale,
   pushSale,
@@ -32,7 +31,7 @@ import {
  * tela de chats usa — sala só de ADMIN). A cada venda:
  *   - card no canto com valor, cliente, itens e "Ver pedido" (some em 20 s);
  *   - som curto (Web Audio, sem arquivo);
- *   - contador em "Vendas e pedidos" (`SalesBadge`), que zera ao abrir a lista;
+ *   - contador em "Vendas e pedidos" (`AdminNav`, pelo `getUnseen`), que zera ao abrir a lista;
  *   - notificação do navegador se a aba estiver em segundo plano e a pessoa
  *     tiver ligado o sininho;
  *   - na própria lista de pedidos, ela recarrega sozinha.
@@ -149,20 +148,6 @@ function SaleCard({ sale, canOpenUsers }: { sale: SaleAlert; canOpenUsers: boole
         </Link>
       </div>
     </div>
-  );
-}
-
-/** Contador laranja ao lado de "Vendas e pedidos". */
-export function SalesBadge() {
-  const unseen = useSyncExternalStore(subscribeSales, getUnseen, () => 0);
-  if (unseen === 0) return null;
-  return (
-    <span
-      aria-label={`${unseen} venda(s) nova(s)`}
-      className="ml-[6px] inline-flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-brand-orange px-[6px] align-middle font-poppins text-[11px] font-bold text-black"
-    >
-      {unseen > 99 ? "99+" : unseen}
-    </span>
   );
 }
 
