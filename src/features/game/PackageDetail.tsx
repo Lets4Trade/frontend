@@ -111,6 +111,8 @@ export async function PackageDetail({
           // Outro servidor = outro produto: a escolha anterior não sobrevive.
           key={current.id}
           products={[current]}
+          // A imagem do card no topo; o banner fica no painel do mouse (2026-11-04).
+          topArt="image"
           context={context}
           filters={filters}
           emptyMessage="Este pacote está indisponível no momento."

@@ -65,6 +65,26 @@ describe("PackageCard", () => {
     vi.unstubAllGlobals();
   });
 
+  it("painel do mouse mostra o BANNER, nunca a imagem do card; sem banner, só o texto (2026-11-04)", () => {
+    vi.stubGlobal("matchMedia", () => ({ matches: true }));
+    const content = { sections: [{ title: "T", items: ["a"] }] };
+    const image = { src: "/card.webp", alt: "", width: 263, height: 276 };
+    const banner = { src: "/banner.webp", alt: "", width: 551, height: 327 };
+    const first = render(<PackageCard product={{ ...pack, content, image, banner }} href="#" />);
+    fireEvent.mouseEnter(first.container.querySelector("article")!.firstElementChild!);
+    let panel = document.querySelector("[data-package-tooltip]")!;
+    expect(panel.querySelector('img[src="/banner.webp"]')).not.toBeNull();
+    expect(panel.querySelector('img[src="/card.webp"]')).toBeNull();
+    first.unmount();
+
+    const second = render(<PackageCard product={{ ...pack, content, image }} href="#" />);
+    fireEvent.mouseEnter(second.container.querySelector("article")!.firstElementChild!);
+    panel = document.querySelector("[data-package-tooltip]")!;
+    expect(panel.querySelector("img")).toBeNull();
+    second.unmount();
+    vi.unstubAllGlobals();
+  });
+
   it("sem hover (toque), o painel não abre", () => {
     vi.stubGlobal("matchMedia", () => ({ matches: false }));
     const { container } = render(

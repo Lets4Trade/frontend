@@ -596,13 +596,19 @@ export function ProductForm({
   /**
    * Banner da tela do serviço (2026-10-06; 2026-11-04: também na aba SERVIÇO,
    * e SEM banner a tela mostra só o texto — não cai mais na arte do card).
+   * Em PACOTE (2026-11-04, depois): o banner vai para o painel do mouse no
+   * card, e o topo da página do pacote usa a imagem do card.
    * O card é retrato e o topo do configurador é largo, por isso é outra arte.
    */
   const bannerField = (
     <div className="mb-[22px]">
       <FileField
         key={`banner-${entryKey}`}
-        label="Banner da tela do serviço (ideal 1102×654)"
+        label={
+          isPackages
+            ? "Banner do painel ao passar o mouse no card (ideal 1102×654)"
+            : "Banner da tela do serviço (ideal 1102×654)"
+        }
         placeholder={
           isEditing && product?.bannerUrl ? "Trocar banner (opcional)" : "Anexar banner (vazio = só o texto)"
         }
@@ -613,7 +619,9 @@ export function ProductForm({
       {isEditing && product?.bannerUrl ? (
         <label className="mt-[10px] flex cursor-pointer items-center gap-[8px] pl-[25px] font-helvetica text-[13px] text-white/80">
           <input type="checkbox" name="removeBanner" value="1" className="size-[15px] accent-brand-orange" />
-          Remover o banner atual (a tela passa a mostrar só o texto)
+          {isPackages
+            ? "Remover o banner atual (o painel do mouse passa a mostrar só o texto)"
+            : "Remover o banner atual (a tela passa a mostrar só o texto)"}
         </label>
       ) : null}
     </div>
@@ -878,7 +886,7 @@ export function ProductForm({
 
               <FileField
                 key={`image-${entryKey}`}
-                label={isPackages ? "Imagem do card (526×552)" : "Imagem do produto (526×552)"}
+                label={isPackages ? "Imagem do card e do topo da página do pacote (526×552)" : "Imagem do produto (526×552)"}
                 // Editando sem anexar nada, o backend mantém a arte atual — o texto diz
                 // isso para ninguém achar que salvar vai apagar a imagem que já existe.
                 placeholder={isEditing ? "Trocar imagem (opcional)" : "Anexar imagem"}
@@ -1047,7 +1055,7 @@ export function ProductForm({
               id="pagina"
               number={4}
               title="Página do pacote"
-              hint="O que aparece depois do CONTINUAR: o banner no topo e os textos da esquerda (ex.: “What you will get”)."
+              hint="Depois do CONTINUAR: a imagem do card no topo e os textos da esquerda (ex.: “What you will get”). Os mesmos textos e o banner aparecem no painel ao passar o mouse no card."
             >
               {bannerField}
               <ServiceSectionsEditor

@@ -29,15 +29,23 @@ export function ServiceConfigurator({
   context,
   filters,
   emptyMessage,
+  topArt = "banner",
 }: {
   products: GameProduct[];
   context: ProductContext;
   /** As pílulas de servidor e categoria, montadas no servidor. */
   filters: ReactNode;
   emptyMessage: string;
+  /**
+   * Qual arte vai no topo (2026-11-04, pedido do usuário): a aba SERVIÇO usa o
+   * banner; a página do PACOTE usa a imagem do card (o banner do pacote vai
+   * para o painel que abre ao passar o mouse no card). Sem a arte, só o texto.
+   */
+  topArt?: "banner" | "image";
 }) {
   const [productId, setProductId] = useState(products[0]?.id ?? "");
   const product = products.find((item) => item.id === productId) ?? products[0];
+  const art = topArt === "image" ? product?.image : product?.banner;
 
   return (
     <div className="relative w-full shrink-0 overflow-hidden rounded-[30px] border border-brand-hairline bg-black desk:w-[554px]">
@@ -45,10 +53,10 @@ export function ServiceConfigurator({
           cantos 30). SEM banner, a tela mostra só o texto (2026-11-04, pedido
           do usuário) — antes caía na arte do card ou num retângulo cinza.
           Proporção no celular para a foto não virar uma faixa fina. */}
-      {product?.banner ? (
+      {art ? (
         <div className="relative aspect-[551/327] w-full overflow-hidden rounded-t-[30px] bg-[#2f2f2f] desk:aspect-auto desk:h-[327px]">
           <Image
-            src={product.banner.src}
+            src={art.src}
             alt=""
             fill
             sizes="(min-width: 1392px) 554px, 100vw"

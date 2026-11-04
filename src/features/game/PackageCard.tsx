@@ -57,7 +57,9 @@ export function PackageCard({
         <PackageDescriptionPopover
           title={product.name}
           content={description!}
-          image={(product.banner ?? product.image)?.src}
+          // Só o banner (2026-11-04, pedido do usuário): sem banner, o painel
+          // mostra só o texto — a imagem do card já está no próprio card.
+          image={product.banner?.src}
           className={ART_BOX}
         >
           {art}

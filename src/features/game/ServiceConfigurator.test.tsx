@@ -115,6 +115,22 @@ describe("ServiceConfigurator", () => {
     expect(container.querySelector('img[src="/card.webp"]')).toBeNull();
   });
 
+  it("página do pacote (topArt=image): a imagem do card no topo, nunca o banner; sem imagem, só o texto", () => {
+    const image = { src: "/card.webp", alt: "", width: 263, height: 276 };
+    const banner = { src: "/banner.webp", alt: "", width: 551, height: 327 };
+    const { container, rerender } = render(
+      <ServiceConfigurator topArt="image" products={[{ ...product, image, banner }]} context={context} filters={null} emptyMessage="vazio" />,
+    );
+    expect(container.querySelector('img[src="/card.webp"]')).not.toBeNull();
+    expect(container.querySelector('img[src="/banner.webp"]')).toBeNull();
+
+    rerender(
+      <ServiceConfigurator topArt="image" products={[{ ...product, banner }]} context={context} filters={null} emptyMessage="vazio" />,
+    );
+    expect(container.querySelector('img[src="/banner.webp"]')).toBeNull();
+    expect(container.querySelector(".rounded-t-\\[30px\\]")).toBeNull();
+  });
+
   it("menu \"Selecionar serviço\": nome próprio quando há, senão o nome (2026-11-04)", () => {
     render(
       <ServiceConfigurator
