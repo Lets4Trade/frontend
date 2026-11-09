@@ -111,7 +111,8 @@ function fillItem(container: HTMLElement) {
   const price = document.getElementById(
     screen.getByText(/^Preço( base)?$/, { selector: "label" }).getAttribute("for") ?? "",
   ) as HTMLInputElement;
-  fireEvent.change(price, { target: { value: "1990" } });
+  // Preço com vírgula digitada (4 casas, 2026-11-09): "19,90" = 1990 centavos.
+  fireEvent.change(price, { target: { value: "19,90" } });
   fireEvent.change(screen.getByLabelText("Tópicos do card"), { target: { value: "Entrega rápida" } });
   fireEvent.change(select("Categoria:"), { target: { value: "c1" } });
   expect(field(container, "priceCents").value).toBe("1990");

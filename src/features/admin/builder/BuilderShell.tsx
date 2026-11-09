@@ -17,7 +17,6 @@ import {
   BannerPanel,
   CategoryTreePanel,
   DescriptionPanel,
-  LogoPanel,
   NamePanel,
   PanelShell,
   TitlesPanel,
@@ -260,14 +259,6 @@ function renderPanel(
           onChange={(banners) => patch({ banners })}
         />
       );
-    case "logo":
-      return (
-        <LogoPanel
-          gameId={game.id}
-          imageUrl={draft.imageUrl}
-          onUploaded={(imageUrl) => patch({ imageUrl })}
-        />
-      );
     case "nome":
       return <NamePanel draft={draft} patch={patch} publishedSlug={game.slug} />;
     case "servidores":
@@ -313,10 +304,6 @@ function renderPanel(
           onChange={(sectionOrder) => patch({ sectionOrder })}
         />
       );
-    // As etapas 5 e 8 são `<Link>` na lateral e nunca abrem painel — ver `steps.ts`.
-    case "categorias-principais":
-    case "produtos":
-      return null;
   }
 }
 

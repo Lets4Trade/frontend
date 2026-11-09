@@ -84,6 +84,8 @@ function buildPayload(form: FormData, mode: "create" | "update"): FormData | Fai
   // Na criação, sem jogo = campo ausente. Na edição, vazio = "tirar o jogo"
   // (PATCH parcial: ausente significaria "não mexer").
   if (data.gameId !== "" || mode === "update") payload.set("gameId", data.gameId);
+  // Cargo do autor (2026-11-09): mesma regra — na edição, vazio TIRA o cargo.
+  if (data.authorTitle !== "" || mode === "update") payload.set("authorTitle", data.authorTitle);
   payload.set("isPublished", String(data.isPublished));
   // Publicar sem data: o backend usa "agora" (contrato). Rascunho não leva data.
   if (data.isPublished && data.publishedAt !== "") {

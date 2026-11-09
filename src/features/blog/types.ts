@@ -29,9 +29,20 @@ export type BlogCardView = {
   href: string;
 };
 
+/**
+ * Quem escreveu a matéria (2026-11-09): nome e foto do autor no site, e o
+ * "cargo" escrito no post. Sem autor (seed, conta apagada) = `null`.
+ */
+export type BlogAuthorView = {
+  name: string;
+  avatar: string | null;
+  title: string | null;
+};
+
 export type BlogArticleView = BlogCardView & {
   /** Markdown RESTRITO — renderizado por `features/pages/blocks/markdown.tsx`. */
   body: string;
+  author: BlogAuthorView | null;
   related: BlogCardView[];
 };
 

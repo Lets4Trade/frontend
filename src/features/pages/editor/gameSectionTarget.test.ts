@@ -34,7 +34,7 @@ describe("gameSectionTarget", () => {
   it("Dúvidas = DESCRIÇÃO do jogo (sem as dúvidas comuns); Orbs só em PoE", () => {
     expect(gameSectionTarget("faq", "g1", "diablo")).toEqual({
       kind: "faq",
-      descriptionHref: "/admin/builder/g1?etapa=descricao",
+      descriptionHref: "/admin/jogos/g1?secao=descricao",
       orbsKey: null,
     });
     const poe = gameSectionTarget("faq", "g1", "path-of-exile-2");
@@ -44,7 +44,7 @@ describe("gameSectionTarget", () => {
   it("chave antiga \"description\" (ordens salvas antes de 2026-10-06) leva à etapa Descrição", () => {
     expect(gameSectionTarget("description", "g1")).toEqual({
       kind: "links",
-      links: [{ label: "Descrição do jogo", href: "/admin/builder/g1?etapa=descricao" }],
+      links: [{ label: "Descrição do jogo", href: "/admin/jogos/g1?secao=descricao" }],
     });
   });
 

@@ -78,7 +78,7 @@ export default async function BuilderPage({
       tabs={tabs}
       canManage={canManage}
       initialStep={initialStep}
-      nav={<GameAdminNav game={game} active={null} canManage={canManage} canGift={canGift} variant="bar" />}
+      nav={<GameAdminNav game={game} active="builder" canManage={canManage} canGift={canGift} variant="bar" />}
       shared={
         published
           ? {

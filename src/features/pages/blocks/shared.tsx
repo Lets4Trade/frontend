@@ -29,7 +29,7 @@ export function assetUrl(path: string | undefined): string | null {
 }
 
 export function formatPriceCents(cents: number) {
-  return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 4 });
 }
 
 /** Título de seção de bloco: mesma tipografia das seções da home. */

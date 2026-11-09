@@ -8,9 +8,22 @@
  */
 export const MAX_DISCOUNT_PERCENT = 90;
 
+/**
+ * ESPELHO de `backend/src/app/products/product-discount.ts`. Preço com desconto, em centavos. Nunca chega a zero (pedido de R$ 0 não tem
+ * como ser cobrado).
+ *
+ * Preço cheio em centavo inteiro → arredonda para o centavo mais próximo, como
+ * sempre foi (o card mostra "R$ 9,49", não "R$ 9,4905"). Preço com fração de
+ * centavo (2026-11-09, até 4 casas em reais) → mantém essa precisão: arredondar
+ * R$ 0,035 para o centavo apagaria o próprio motivo da fração.
+ */
 export function discountedCents(listCents: number, percent: number): number {
   if (!(percent > 0)) return listCents;
-  return Math.max(1, Math.round((listCents * (100 - percent)) / 100));
+  if (Number.isInteger(listCents)) {
+    return Math.max(1, Math.round((listCents * (100 - percent)) / 100));
+  }
+  const points = Math.round(listCents * 100);
+  return Math.max(1, Math.round((points * (100 - percent)) / 100)) / 100;
 }
 
 /** Percentual válido vindo da API (inteiro de 1 a 90) ou `undefined`. */

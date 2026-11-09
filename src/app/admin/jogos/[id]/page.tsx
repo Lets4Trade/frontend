@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getBuilderGame } from "@/features/admin/builder/list";
 import { getAdminGift } from "@/features/admin/gifts/data";
-import { parseCentralQuery } from "@/features/admin/games/central";
-import { GiftSection, OverviewSection, StorePageSection, TabsSection } from "@/features/admin/games/CentralSections";
+import { builderHref, parseCentralQuery } from "@/features/admin/games/central";
+import { GiftSection, OverviewSection, TabsSection } from "@/features/admin/games/CentralSections";
 import { GameAdminNav } from "@/features/admin/games/GameAdminNav";
+import { CentralDescription, type CommonFaq } from "@/features/admin/games/CentralDescription";
+import { getSectionItemsFor, getSectionsFor } from "@/features/site/content";
+import { FAQ_DESCRIPTION_GROUP } from "@/features/game/types";
 import { getGameTabs } from "@/features/admin/games/tabs/list";
 import { isValidId } from "@/features/admin/games/tabs/types";
 import { requirePanelArea } from "@/features/admin/guard";
@@ -40,6 +43,8 @@ export default async function GameCentralPage({ params, searchParams }: PageProp
   await requirePanelArea("catalog");
   const [{ id }, raw, role] = await Promise.all([params, searchParams, getSessionRole()]);
   if (!isValidId(id)) notFound();
+  // "Página da loja" virou o Builder de Página (2026-11-09): link antigo vai direto para lá.
+  if (raw.secao === "pagina") redirect(builderHref(id));
   const query = parseCentralQuery(raw);
   // Brinde é promoção: só ADMIN (2026-10-16). O EDITOR cuida do resto da Central.
   const canGift = canAccess(role, "promotions");
@@ -47,10 +52,11 @@ export default async function GameCentralPage({ params, searchParams }: PageProp
 
   // Jogo e abas em paralelo (as abas só na seção que as desenha). Jogo
   // inexistente, desativado ou leitura que falhou: 404, como no produto.
-  const [game, tabs, gift] = await Promise.all([
+  const [game, tabs, gift, commonFaq] = await Promise.all([
     getBuilderGame(id),
     query.section === "abas" ? getGameTabs(id) : Promise.resolve(null),
     query.section === "brinde" ? getAdminGift(id) : Promise.resolve(null),
+    query.section === "descricao" ? readCommonFaq() : Promise.resolve(null),
   ]);
   if (game === null) notFound();
 
@@ -86,8 +92,12 @@ export default async function GameCentralPage({ params, searchParams }: PageProp
         <div className="min-w-0">
           {query.section === "visao-geral" ? (
             <OverviewSection game={game} />
-          ) : query.section === "pagina" ? (
-            <StorePageSection game={game} />
+          ) : query.section === "descricao" ? (
+            <CentralDescription
+              gameId={game.id}
+              initial={game.descriptionGroups}
+              common={commonFaq ?? { title: "", items: [] }}
+            />
           ) : query.section === "brinde" ? (
             <GiftSection game={game} gift={gift} />
           ) : (
@@ -104,4 +114,21 @@ export default async function GameCentralPage({ params, searchParams }: PageProp
       </div>
     </div>
   );
+}
+
+/**
+ * O texto comum "Dúvidas frequentes" (Páginas → Textos comuns dos jogos), com a
+ * mesma leitura da loja: a aba Descrição o mostra como referência, abaixo da
+ * descrição do jogo. Falha vira vazio (a aba continua editável).
+ */
+async function readCommonFaq(): Promise<CommonFaq> {
+  try {
+    const [section, items] = await Promise.all([getSectionsFor("games"), getSectionItemsFor("games")]);
+    return {
+      title: section(FAQ_DESCRIPTION_GROUP).title,
+      items: items(FAQ_DESCRIPTION_GROUP).map((item) => ({ question: item.title, answer: item.body })),
+    };
+  } catch {
+    return { title: "", items: [] };
+  }
 }

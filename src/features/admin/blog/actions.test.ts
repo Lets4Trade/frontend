@@ -188,6 +188,17 @@ describe("updateBlogPostAction", () => {
     expect(entries.removeCover).toBe("true");
   });
 
+  it("cargo do autor (2026-11-09): aparado no cadastro; na edição vazio vai como \"\" (tira); acima de 80 recusa", async () => {
+    await createBlogPostAction(validForm({ authorTitle: "  Especialista em Diablo  " }));
+    expect(formEntries(post.mock.calls[0][1]).authorTitle).toBe("Especialista em Diablo");
+    await updateBlogPostAction("cln1abc", validForm({ authorTitle: "" }));
+    expect(formEntries(patch.mock.calls[0][1]).authorTitle).toBe("");
+    expect(await createBlogPostAction(validForm({ authorTitle: "x".repeat(81) }))).toMatchObject({
+      ok: false,
+      field: "authorTitle",
+    });
+  });
+
   it("capa nova vence o removeCover", async () => {
     await updateBlogPostAction("cln1abc", validForm({ removeCover: "true", cover: smallImage() }));
     const entries = formEntries(patch.mock.calls[0][1]);

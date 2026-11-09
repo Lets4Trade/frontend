@@ -52,6 +52,7 @@ import { CHECKOUT_LOGIN_HREF } from "./loginHref";
 import { cardSchema, pixSchema, savedCardSchema } from "./schema";
 import { NEW_CARD, SaveCardCheckbox, SavedCardPicker } from "./SavedCardPicker";
 import type { SavedCard } from "@/features/payment/savedCards";
+import { lineTotalCents } from "@/features/pricing/quote";
 
 /**
  * Cotação de reserva da Lets Coin, em centavos.
@@ -170,7 +171,7 @@ export function CheckoutClient({
    * Se o carrinho mudou e o cupom deixou de valer (abaixo do mínimo, item
    * elegível removido), o desconto vira zero e a nota explica.
    */
-  const lineCents = items.map((item) => item.unitPriceCents * item.quantity);
+  const lineCents = items.map((item) => lineTotalCents(item.unitPriceCents, item.quantity));
   const couponResult = coupon
     ? couponDiscount(
         coupon,
@@ -875,7 +876,7 @@ function CheckoutCashback({
   const tierKey = loyalty?.tier ?? "BRONZE";
   const bps = loyalty?.cashbackBps ?? 100;
   const paidLines = items.map((item, index) => ({
-    unitPriceCents: Math.max(0, item.unitPriceCents * item.quantity - (lineShares[index]?.cents ?? 0)),
+    unitPriceCents: Math.max(0, lineTotalCents(item.unitPriceCents, item.quantity) - (lineShares[index]?.cents ?? 0)),
     quantity: 1,
   }));
   const { coins, cents } = estimateCashback(paidLines, bps, loyalty?.coinCents || FALLBACK_COIN_CENTS);

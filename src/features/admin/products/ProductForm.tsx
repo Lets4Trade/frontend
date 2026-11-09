@@ -946,7 +946,17 @@ export function ProductForm({
                 maxCents={MAX_PRICE_CENTS}
                 onCentsChange={onPriceChange}
                 error={fieldErrors.priceCents}
+                // Até 4 casas (2026-11-09, "preciso colocar 0,035"): a pessoa
+                // digita a vírgula; o que é cobrado desce ao centavo.
+                fractionDigits={4}
               />
+              {isService ? (
+                // Aba SERVIÇO (2026-11-09): o preço base pode ficar vazio (R$ 0)
+                // quando o valor vem todo das faixas ou dos adicionais.
+                <p className="mt-[6px] pl-[25px] font-helvetica text-[12px] text-brand-fg-subtle">
+                  Pode ficar vazio (R$ 0) se o preço vier das faixas ou dos adicionais.
+                </p>
+              ) : null}
             </div>
 
             {/* Desconto do pacote (2026-10-27): só em aba de CATÁLOGO, onde o

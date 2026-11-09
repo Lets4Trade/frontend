@@ -62,7 +62,9 @@ export function BlogCard({
               priority={priority}
               className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
             />
-          ) : post.game?.logo ? (
+          ) : null}
+          {post.cover && post.game?.logo ? <CoverGameLogo logo={post.game.logo} /> : null}
+          {!post.cover && post.game?.logo ? (
             // Post SEM capa (2026-10-16): o logo do jogo no centro de um fundo
             // escuro com brilho da marca — o retângulo cinza vazio parecia
             // imagem quebrada. Capa enviada no painel sempre vence.
@@ -117,24 +119,50 @@ export function BlogCard({
 }
 
 /**
- * Linha "logo · jogo | data" (y=194 no card): círculo de 45px com a logo do
- * jogo em fundo escuro (cinza sem jogo/arte), nome em Poppins SemiBold 16,
- * divisor 1×29 a 20% e a data dd/mm/aa. Vãos do arquivo: círculo → nome 12,
- * nome → divisor 8, divisor → data 12.
+ * Logo do jogo no canto da CAPA (2026-11-09, pedido do usuário: "mais parecido
+ * com a home; não aparece a logo do jogo"), como nos cards "Guias populares":
+ * degradê preto no topo para dar contraste e a logo inteira (`contain`) no
+ * canto de cima à esquerda. Substitui o círculo de 45px da linha jogo · data,
+ * onde logos largas (Diablo IV) ficavam ilegíveis.
+ */
+export function CoverGameLogo({ logo, size = "card" }: { logo: string; size?: "card" | "page" }) {
+  const page = size === "page";
+  return (
+    <>
+      <span
+        aria-hidden
+        className={`pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-black/85 to-transparent ${
+          page ? "h-[45%]" : "h-[55%]"
+        }`}
+      />
+      <span
+        aria-hidden
+        className={`pointer-events-none absolute ${
+          page
+            ? "top-[18px] left-[18px] h-[56px] w-[170px] lg:top-[30px] lg:left-[34px] lg:h-[86px] lg:w-[260px]"
+            : "top-[16px] left-[18px] h-[48px] w-[150px] lg:top-[22px] lg:left-[24px] lg:h-[62px] lg:w-[190px]"
+        }`}
+      >
+        <Image
+          src={logo}
+          alt=""
+          fill
+          sizes={page ? "260px" : "190px"}
+          className="object-contain object-left-top drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]"
+        />
+      </span>
+    </>
+  );
+}
+
+/**
+ * Linha "jogo | data" (y=194 no card): nome em Poppins SemiBold 16, divisor
+ * 1×29 a 20% e a data dd/mm/aa. O círculo com a logo saiu em 2026-11-09 — a
+ * logo agora fica grande no canto da capa (`CoverGameLogo`).
  */
 export function PostMeta({ post, className = "" }: { post: BlogCardView; className?: string }) {
   return (
     <div className={`flex items-center gap-[12px] ${className}`}>
-      <span
-        aria-hidden
-        className={`relative flex size-[45px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 ${
-          post.game?.logo ? "bg-[#0a0a0a]" : "bg-[#2f2f2f]"
-        }`}
-      >
-        {post.game?.logo ? (
-          <Image src={post.game.logo} alt="" fill sizes="45px" className="object-contain p-[6px]" />
-        ) : null}
-      </span>
       {post.game ? (
         <>
           <span className="-mr-[4px] truncate font-poppins text-[16px] leading-[27px] font-semibold tracking-[0.08px] text-white">

@@ -4,6 +4,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { blogCardTexts } from "@/features/home/blogCard";
 import { VisitBlogCard } from "@/features/home/VisitBlogCard";
 import { BodyImage, parseBlocks, renderInline } from "@/features/pages/blocks/markdown";
+import { CoverGameLogo } from "@/features/blog/BlogCard";
 import { GameBannerSlider } from "./GameBannerSlider";
 import type { GameDescriptionGroup } from "./description";
 import { FAQ_DESCRIPTION_GROUP } from "./types";
@@ -175,38 +176,40 @@ function NewsLink({ href, children }: { href?: string; children: ReactNode }) {
   );
 }
 
+/**
+ * Card de notícia (2026-11-09, pedido do usuário: "não tá a logo do jogo e a
+ * imagem tá cortada ao meio"). A capa aparece INTEIRA em 16:9 — o formato que
+ * o painel pede (1280×720) — com a logo do jogo no canto, como no blog; título,
+ * resumo e data vêm EMBAIXO, sem degradê por cima da arte. Antes a caixa era
+ * 389×276 (cortava as laterais) e um degradê preto cobria a metade de baixo.
+ */
 function NewsCard({ item }: { item: GameNewsItem }) {
   return (
     <NewsLink href={item.href}>
-    <article className="relative h-[438px] w-full overflow-hidden rounded-[30px] border border-white/10 bg-[#2f2f2f] desk:w-[391px]">
-      <div className="absolute top-px right-px left-px h-[276px] overflow-hidden rounded-t-[30px] bg-[#2f2f2f]">
+    <article className="flex h-full w-full flex-col overflow-hidden rounded-[30px] border border-white/10 bg-black desk:h-[438px] desk:w-[391px]">
+      <div className="relative aspect-video w-full shrink-0 overflow-hidden bg-[#2f2f2f]">
         {item.image ? (
           <Image
             src={item.image.src}
             alt={item.image.alt ?? ""}
-            width={item.image.width}
-            height={item.image.height}
-            className="size-full object-cover"
+            fill
+            sizes="(min-width: 1392px) 391px, (min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+            className="object-cover"
           />
         ) : null}
+        {item.logo ? <CoverGameLogo logo={item.logo} /> : null}
       </div>
 
-      {/* A metade de baixo do card é preta com degradê por cima da arte — é o
-          que deixa título e resumo legíveis sobre qualquer imagem. */}
-      <div
-        aria-hidden
-        className="absolute top-[225px] right-px left-px h-[212px] bg-gradient-to-b from-transparent via-black/85 to-black"
-      />
+      <div className="flex min-h-0 flex-1 flex-col px-[26px] pt-[20px] pb-[24px]">
+        <h3 className="truncate font-poppins text-[18px] leading-[27px] font-semibold tracking-[0.09px] text-white">
+          {item.title}
+        </h3>
 
-      <h3 className="absolute top-[265px] right-[26px] left-[26px] truncate font-poppins text-[18px] leading-[27px] font-semibold tracking-[0.09px] text-white">
-        {item.title}
-      </h3>
+        <p className="mt-[8px] line-clamp-2 font-helvetica text-[16px] leading-[normal] tracking-[0.16px] text-brand-placeholder">
+          {item.excerpt}
+        </p>
 
-      <p className="absolute top-[302px] right-[26px] left-[26px] line-clamp-2 font-helvetica text-[16px] leading-[normal] tracking-[0.16px] text-brand-placeholder">
-        {item.excerpt}
-      </p>
-
-      <div className="absolute top-[367px] left-[26px] flex items-center gap-[10px]">
+      <div className="mt-auto flex items-center gap-[10px] pt-[16px]">
         {item.avatar ? (
           <Image
             src={item.avatar.src}
@@ -224,6 +227,7 @@ function NewsCard({ item }: { item: GameNewsItem }) {
         <time className="font-helvetica text-[16px] tracking-[0.16px] text-brand-placeholder">
           {item.date}
         </time>
+      </div>
       </div>
     </article>
     </NewsLink>
@@ -257,6 +261,7 @@ function CompactNewsCard({ item }: { item: GameNewsItem }) {
         aria-hidden
         className="absolute inset-x-0 top-[60px] h-[146px] bg-gradient-to-b from-transparent via-black/85 to-black"
       />
+      {item.logo ? <CoverGameLogo logo={item.logo} /> : null}
 
       <div className="absolute top-[100px] right-[26px] left-[26px] flex items-center gap-[10px]">
         <h3 className="min-w-0 truncate font-poppins text-[18px] leading-[27px] font-semibold tracking-[0.09px] text-white">
@@ -282,10 +287,12 @@ function CompactNewsCard({ item }: { item: GameNewsItem }) {
  * Grupos e perguntas são listas: o admin acrescenta, remove e reordena sem que
  * nada aqui precise mudar. Por isso o painel também não tem altura fixa.
  *
- * A DESCRIÇÃO do jogo (etapa 9 do builder) toma o lugar do grupo "Dúvidas
- * frequentes" padrão (2026-10-08), com quantos blocos o admin criar: o título
- * de cada um vai na barrinha laranja, cada subtítulo no lugar de uma pergunta
- * e o texto no lugar da resposta. Bloco sem título é só a lista.
+ * A DESCRIÇÃO do jogo (Central → Descrição, ou etapa 9 do builder) entra
+ * ACIMA do texto comum "Dúvidas frequentes" (2026-11-09; de 2026-10-08 até
+ * então ela o substituía), com quantos blocos o admin criar: o título de cada
+ * um vai na barrinha laranja, cada subtítulo no lugar de uma pergunta e o texto
+ * no lugar da resposta. Bloco sem título é só a lista. O comum aparece em todos
+ * os jogos.
  */
 export function GameFaqSection({
   groups,
@@ -297,8 +304,11 @@ export function GameFaqSection({
   // Grupo padrão só aparece com pergunta; bloco da descrição pode ser só um
   // título (o `toGameDescription` já descartou os que não têm nem isso).
   const visible = groups.flatMap((group) => {
+    // Desde 2026-11-09 (pedido do usuário) a descrição do jogo NÃO substitui
+    // mais o texto comum: entra ACIMA dele, e o comum aparece em todos os jogos.
+    const common = group.items.length > 0 ? [group] : [];
     if (group.id === FAQ_DESCRIPTION_GROUP && description) {
-      return description.map((block, blockIndex) => ({
+      const own = description.map((block, blockIndex) => ({
         id: `descricao-${blockIndex}`,
         title: block.title,
         items: block.items.map((item, index) => ({
@@ -309,8 +319,9 @@ export function GameFaqSection({
           rich: true,
         })),
       }));
+      return [...own, ...common];
     }
-    return group.items.length > 0 ? [group] : [];
+    return common;
   });
   type VisibleItem = (typeof visible)[number]["items"][number] & { rich?: boolean };
   if (visible.length === 0) return null;
@@ -385,6 +396,8 @@ function RichAnswer({ source }: { source: string }) {
         }
         // Imagem na descrição (2026-10-16): arte do painel ou link do Imgur.
         if (block.kind === "img") return <BodyImage key={index} src={block.src} alt={block.alt} />;
+        // Vídeo só no blog (`videos` não é ligado aqui); o tipo exige o caso.
+        if (block.kind === "video") return null;
         // `##`/`###` no meio do texto: destaque em negrito, sem virar outro
         // nível de título (os títulos da descrição já são os campos dela).
         return (

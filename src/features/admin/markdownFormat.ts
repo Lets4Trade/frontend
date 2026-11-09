@@ -6,6 +6,8 @@
  * `**negrito**`, `*itálico*`, `[texto](https://…)`, `- lista` e `1. lista`.
  * Nada além disso é desenhado, então o botão nunca gera algo que a loja ignore.
  */
+import { youtubeId, youtubeWatchUrl } from "@/features/home/youtube";
+
 export type MarkdownFormat = "bold" | "italic" | "link" | "ul" | "ol";
 
 export type Edit = { value: string; selectionStart: number; selectionEnd: number };
@@ -114,11 +116,23 @@ export function toggleHeading(value: string, start: number, end: number): Edit {
  * para não grudar num parágrafo ou numa lista.
  */
 export function insertImage(value: string, position: number, url: string, alt = "imagem"): Edit {
+  return insertOwnLine(value, position, `![${alt}](${url})`);
+}
+
+/**
+ * Vídeo do YouTube (2026-11-09): o link SOZINHO numa linha, que é como a loja
+ * o reconhece (`parseBlocks({ videos: true })`). Mesma colocação da imagem.
+ */
+export function insertVideo(value: string, position: number, url: string): Edit {
+  return insertOwnLine(value, position, url);
+}
+
+/** Uma linha só dela, no fim da linha do cursor, com linha em branco em volta. */
+function insertOwnLine(value: string, position: number, syntax: string): Edit {
   const nextBreak = value.indexOf("\n", position);
   const at = nextBreak === -1 ? value.length : nextBreak;
   const before = value.slice(0, at);
   const after = value.slice(at);
-  const syntax = `![${alt}](${url})`;
   const lead = before === "" ? "" : before.endsWith("\n\n") ? "" : before.endsWith("\n") ? "\n" : "\n\n";
   const trail = after === "" ? "\n" : after.startsWith("\n\n") ? "" : after.startsWith("\n") ? "\n" : "\n\n";
   const inserted = lead + syntax + trail;
@@ -161,4 +175,15 @@ export function imgurImageUrl(input: string): { url: string } | { error: string 
   if (!match) return { error: NOT_IMGUR };
   const ext = (match[2] ?? "png").toLowerCase().replace("gifv", "gif");
   return { url: `https://i.imgur.com/${match[1]}.${ext}` };
+}
+
+/**
+ * Link do YouTube colado no painel → o link canônico `youtube.com/watch?v=<id>`
+ * (aceita youtu.be, shorts, embed e live). O que não for vídeo do YouTube com
+ * certeza é recusado com a frase.
+ */
+export function youtubeVideoUrl(input: string): { url: string } | { error: string } {
+  const id = youtubeId(input);
+  if (!id) return { error: "Cole o link de um vídeo do YouTube, como https://www.youtube.com/watch?v=abc123DEF45." };
+  return { url: youtubeWatchUrl(id) };
 }

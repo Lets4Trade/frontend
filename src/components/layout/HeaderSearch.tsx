@@ -79,7 +79,7 @@ type IdleItem =
   | { kind: "history" | "trending"; key: string; term: string }
   | ({ kind: "category" } & Suggestion);
 
-const price = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const price = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 4 });
 
 /** `/uploads/x.webp` → URL no backend (a arte é servida pelo Nest). */
 function asset(path?: string) {

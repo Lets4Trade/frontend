@@ -11,6 +11,7 @@ import { DiscountBadge, LabelBadge } from "./DiscountBadge";
 import { DiscountedPrice, PriceHighlight } from "./DiscountedPrice";
 import { ProductCardShell } from "./ProductCardShell";
 import type { GameProduct } from "./types";
+import { lineTotalCents } from "@/features/pricing/quote";
 
 /**
  * O que o carrinho precisa saber e o produto sozinho não diz: em que jogo ele
@@ -98,12 +99,12 @@ export function ProductCard({
         // já diz quantas, e a linha não comporta os três.
         hasDiscount ? (
           <DiscountedPrice
-            listLabel={formatPrice(product.listPriceCents! * quantity)}
-            priceLabel={formatPrice(product.priceCents * quantity)}
+            listLabel={formatPrice(shownCents(product.listPriceCents!, quantity))}
+            priceLabel={formatPrice(shownCents(product.priceCents, quantity))}
           />
         ) : quantity > 1 ? (
           <span title={`${quantity} × ${formatPrice(product.priceCents)}`}>
-            <PriceHighlight>{formatPrice(product.priceCents * quantity)}</PriceHighlight>
+            <PriceHighlight>{formatPrice(shownCents(product.priceCents, quantity))}</PriceHighlight>
             <span className="ml-[6px] text-[13px] font-medium text-white/60">· {quantity} un.</span>
           </span>
         ) : (
@@ -222,4 +223,13 @@ function StepButton({
       {children}
     </button>
   );
+}
+
+/**
+ * O preço que o card mostra: 1 unidade = o unitário como está (pode ter fração
+ * de centavo, "R$ 0,035"); várias = o total que será cobrado, arredondado para
+ * baixo no centavo (2026-11-09, `lineTotalCents`).
+ */
+function shownCents(unitCents: number, quantity: number): number {
+  return quantity > 1 ? lineTotalCents(unitCents, quantity) : unitCents;
 }

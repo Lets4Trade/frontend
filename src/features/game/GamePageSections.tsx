@@ -131,7 +131,7 @@ function renderSection(
       return page.banners.length > 0 ? <BannerSection banners={page.banners} /> : null;
 
     case "identity":
-      return <GameIdentity page={page} server={query.server} packageOpen={Boolean(query.pkg) && tab?.layout === "PACKAGES"} />;
+      return <GameIdentity page={page} server={query.server} />;
 
     // Seções da home: no desktop, desenhadas na faixa de 1820 dela, centralizada
     // na coluna de 1714 (sangra 53px de cada lado; a moldura corta abaixo de
@@ -190,8 +190,8 @@ function renderSection(
     case "news":
       return page.news.items.length > 0 ? <NewsSection news={page.news} /> : null;
 
-    // A descrição do jogo (etapa 9 do builder) toma o lugar do grupo "Dúvidas
-    // frequentes" padrão (pedido do usuário, 2026-10-08), não num card solto.
+    // A descrição do jogo entra ACIMA do texto comum "Dúvidas frequentes"
+    // (2026-11-09; antes o substituía), no mesmo card, não num card solto.
     // O próprio `GameFaqSection` some quando não há pergunta nem descrição.
     case "faq":
       return <GameFaqSection groups={page.faq} description={page.description} />;

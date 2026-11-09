@@ -1,13 +1,16 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
-import { MAX_SERVICE_TOTAL_CENTS, quote, type Selection } from "@/features/pricing/quote";
+import { Fragment, useMemo, useState, type ReactNode } from "react";
+import { addonsTitle, MAX_ADDON_CHOICES, MAX_SERVICE_TOTAL_CENTS, quote, type Selection } from "@/features/pricing/quote";
 import { cn } from "@/lib/cn";
 import {
   PRICING_MODES,
-  addonIds,
+  addonIdTree,
+  emptyAddon,
+  type AddonDraft,
   draftToPricing,
   emptyDraft,
+  moveItem,
   newKey,
   parsePresets,
   type PricingDraft,
@@ -55,7 +58,7 @@ export function PricingEditor({
     // Troca de modo mantém horas base e adicionais (valem em todos) e começa
     // os campos do modo novo com valores sensatos.
     const fresh = emptyDraft(mode);
-    onChange({ ...fresh, baseHours: draft.baseHours, addons: draft.addons });
+    onChange({ ...fresh, baseHours: draft.baseHours, addons: draft.addons, addonsTitle: draft.addonsTitle, maxAddons: draft.maxAddons });
   }
 
   return (
@@ -169,7 +172,7 @@ export function PricingEditor({
       {draft.mode === "LEVEL_RANGE" ? (
         <Table
           title="Faixas de nível"
-          hint="Cada nível de “de” (inclusive) até “até” (exclusive) custa o valor da faixa. Todo nível entre o mínimo e o máximo precisa estar numa faixa."
+          hint="Cada nível de “de” (inclusive) até “até” (exclusive) custa o valor da faixa. Todo nível entre o mínimo e o máximo precisa estar numa faixa. Se duas faixas cobrem o mesmo nível, vale a de CIMA: use ↑ ↓ para ordenar."
           headers={["De", "Até", "Preço por nível", "Horas por nível", ""]}
           addLabel="+ Adicionar faixa"
           canAdd={draft.bands.length < 50}
@@ -202,10 +205,13 @@ export function PricingEditor({
                 numeric
                 onChange={(hoursPerLevel) => set({ hoursPerLevel })}
               />,
-              <RemoveButton
-                key="rm"
-                label={`Remover faixa ${index + 1}`}
-                onClick={() => patch({ bands: draft.bands.filter((b) => b.key !== band.key) })}
+              <RowActions
+                key="actions"
+                noun="faixa"
+                index={index}
+                count={draft.bands.length}
+                onMove={(delta) => patch({ bands: moveItem(draft.bands, index, delta) })}
+                onRemove={() => patch({ bands: draft.bands.filter((b) => b.key !== band.key) })}
               />,
             ];
           })}
@@ -236,6 +242,12 @@ export function PricingEditor({
   );
 }
 
+/**
+ * Serviços / adicionais (2026-11-09: título da lista, limite de escolhas e
+ * SUBSERVIÇOS com limite próprio, pedido do usuário). Os subserviços abrem
+ * numa linha embaixo do serviço ("Subserviços (N)"); na loja aparecem quando
+ * o serviço é marcado.
+ */
 function AddonsTable({
   draft,
   patch,
@@ -243,83 +255,215 @@ function AddonsTable({
   draft: PricingDraft;
   patch: (next: Partial<PricingDraft>) => void;
 }) {
-  const ids = addonIds(draft.addons);
+  const ids = addonIdTree(draft.addons);
+  const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
+  const toggleOpen = (key: string) =>
+    setOpen((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  const setAddons = (addons: AddonDraft[]) => patch({ addons });
+  const defaultTitle = addonsTitle({ mode: draft.mode });
+
   return (
-    <Table
-      title="Adicionais (opcional)"
-      hint="O cliente marca os que quiser. Percentual incide sobre o serviço (não sobre outros adicionais). O id é gerado do nome e não muda depois de salvo."
-      headers={["Nome", "Tipo", "Valor", "Horas a mais", "Id", ""]}
-      addLabel="+ Adicionar adicional"
-      canAdd={draft.addons.length < 20}
-      onAdd={() =>
-        patch({
-          addons: [
-            ...draft.addons,
-            { key: newKey(), id: null, label: "", kind: "PERCENT", percent: "", cents: 0, extraHours: "" },
-          ],
-        })
-      }
-      rowKeys={draft.addons.map((addon) => addon.key)}
-      rows={draft.addons.map((addon, index) => {
-        const set = (next: Partial<typeof addon>) =>
-          patch({ addons: draft.addons.map((a) => (a.key === addon.key ? { ...a, ...next } : a)) });
-        return [
+    <div className="flex flex-col gap-[14px]">
+      <div className="flex flex-wrap gap-[15px]">
+        <Mini label="Título da lista na loja" wide>
           <TextInput
-            key="label"
-            ariaLabel={`Adicional ${index + 1}: nome`}
-            value={addon.label}
-            maxLength={80}
-            placeholder="Prioridade"
-            onChange={(label) => set({ label })}
-          />,
-          <select
-            key="kind"
-            aria-label={`Adicional ${index + 1}: tipo`}
-            value={addon.kind}
-            onChange={(event) => set({ kind: event.target.value === "FIXED" ? "FIXED" : "PERCENT" })}
-            className={MINI_INPUT}
-          >
-            <option value="PERCENT">%</option>
-            <option value="FIXED">R$</option>
-          </select>,
-          addon.kind === "PERCENT" ? (
-            <TextInput
-              key="value"
-              ariaLabel={`Adicional ${index + 1}: percentual`}
-              value={addon.percent}
-              numeric
-              signed
-              placeholder="10 ou -100"
-              onChange={(percent) => set({ percent })}
-            />
-          ) : (
-            <CentsInput
-              key="value"
-              ariaLabel={`Adicional ${index + 1}: valor`}
-              cents={addon.cents}
-              onChange={(cents) => set({ cents })}
-            />
-          ),
+            value={draft.addonsTitle}
+            maxLength={60}
+            placeholder={defaultTitle}
+            onChange={(addonsTitle) => patch({ addonsTitle })}
+          />
+        </Mini>
+        <Mini label="Máximo que o cliente marca">
           <TextInput
-            key="hours"
-            ariaLabel={`Adicional ${index + 1}: horas a mais`}
-            value={addon.extraHours}
+            value={draft.maxAddons}
             numeric
-            placeholder="0"
-            onChange={(extraHours) => set({ extraHours })}
-          />,
-          <code key="id" className="block truncate font-mono text-[12px] text-brand-fg-subtle">
-            {ids[index]}
-          </code>,
-          <RemoveButton
-            key="rm"
-            label={`Remover adicional ${index + 1}`}
-            onClick={() => patch({ addons: draft.addons.filter((a) => a.key !== addon.key) })}
-          />,
-        ];
-      })}
-    />
+            placeholder="Sem limite"
+            onChange={(maxAddons) => patch({ maxAddons })}
+          />
+        </Mini>
+      </div>
+      <Table
+        title="Serviços / adicionais (opcional)"
+        hint="O cliente marca os que quiser, até o máximo acima. Percentual incide sobre o serviço (não sobre outros adicionais). O id é gerado do nome e não muda depois de salvo. A loja mostra na ordem desta lista: use ↑ ↓ para ordenar. Cada serviço pode ter subserviços, com limite próprio."
+        headers={["Nome", "Tipo", "Valor", "Horas a mais", "Id", "Subserviços", ""]}
+        addLabel="+ Adicionar serviço"
+        canAdd={draft.addons.length < MAX_ADDON_CHOICES}
+        onAdd={() => setAddons([...draft.addons, emptyAddon()])}
+        rowKeys={draft.addons.map((addon) => addon.key)}
+        rows={draft.addons.map((addon, index) => [
+          ...addonCells({
+            addon,
+            index,
+            noun: "adicional",
+            id: ids.parents[index],
+            list: draft.addons,
+            setList: setAddons,
+          }).slice(0, 5),
+          <button
+            key="children"
+            type="button"
+            onClick={() => toggleOpen(addon.key)}
+            aria-expanded={open.has(addon.key)}
+            aria-label={`Subserviços de ${addon.label || `adicional ${index + 1}`}`}
+            className={cn(
+              "h-[40px] rounded-full border px-[14px] font-poppins text-[12px] font-bold whitespace-nowrap transition-colors",
+              open.has(addon.key) || addon.children.length > 0
+                ? "border-brand-orange/70 text-white"
+                : "border-dashed border-white/25 text-white/80 hover:border-brand-orange/60",
+            )}
+          >
+            {/* Texto que diz o que é (2026-11-09: "0 ▾" sozinho não se achava). */}
+            {addon.children.length === 0 && !open.has(addon.key)
+              ? "+ Subserviços"
+              : `Subserviços (${addon.children.length}) ${open.has(addon.key) ? "▴" : "▾"}`}
+          </button>,
+          addonCells({
+            addon,
+            index,
+            noun: "adicional",
+            id: ids.parents[index],
+            list: draft.addons,
+            setList: setAddons,
+          })[5],
+        ])}
+        details={draft.addons.map((addon, index) =>
+          open.has(addon.key) ? (
+            <ChildAddons
+              key={addon.key}
+              parent={addon}
+              parentIndex={index}
+              ids={ids.children[index] ?? []}
+              onChange={(next) => setAddons(draft.addons.map((item) => (item.key === addon.key ? { ...item, ...next } : item)))}
+            />
+          ) : null,
+        )}
+      />
+    </div>
   );
+}
+
+/** Os subserviços de um serviço: limite + a mesma tabela, um nível abaixo. */
+function ChildAddons({
+  parent,
+  parentIndex,
+  ids,
+  onChange,
+}: {
+  parent: AddonDraft;
+  parentIndex: number;
+  ids: string[];
+  onChange: (next: Partial<AddonDraft>) => void;
+}) {
+  const name = parent.label.trim() || `adicional ${parentIndex + 1}`;
+  const setChildren = (children: AddonDraft[]) => onChange({ children });
+  return (
+    <div className="ml-[18px] flex flex-col gap-[12px] rounded-[16px] border border-white/10 bg-black/30 p-[14px]">
+      <Mini label={`Máximo de subserviços de “${name}”`}>
+        <TextInput
+          value={parent.maxChildren}
+          numeric
+          placeholder="Todos"
+          onChange={(maxChildren) => onChange({ maxChildren })}
+        />
+      </Mini>
+      <Table
+        title={`Subserviços de “${name}”`}
+        hint="Na loja, ao marcar a caixinha do serviço, abrem embaixo estes subserviços para o cliente escolher. Desmarcar o serviço tira os subserviços."
+        headers={["Nome", "Tipo", "Valor", "Horas a mais", "Id", ""]}
+        addLabel="+ Adicionar subserviço"
+        canAdd={parent.children.length < MAX_ADDON_CHOICES}
+        onAdd={() => setChildren([...parent.children, emptyAddon()])}
+        rowKeys={parent.children.map((child) => child.key)}
+        rows={parent.children.map((child, index) =>
+          addonCells({
+            addon: child,
+            index,
+            noun: `subserviço de ${name}`,
+            id: ids[index],
+            list: parent.children,
+            setList: setChildren,
+          }),
+        )}
+      />
+    </div>
+  );
+}
+
+/** As células de uma linha de serviço ou subserviço (nome, tipo, valor, horas, id, ações). */
+function addonCells({
+  addon,
+  index,
+  noun,
+  id,
+  list,
+  setList,
+}: {
+  addon: AddonDraft;
+  index: number;
+  noun: string;
+  id: string;
+  list: AddonDraft[];
+  setList: (next: AddonDraft[]) => void;
+}): ReactNode[] {
+  const label = `${noun.charAt(0).toUpperCase()}${noun.slice(1)} ${index + 1}`;
+  const set = (next: Partial<AddonDraft>) => setList(list.map((item) => (item.key === addon.key ? { ...item, ...next } : item)));
+  return [
+    <TextInput
+      key="label"
+      ariaLabel={`${label}: nome`}
+      value={addon.label}
+      maxLength={80}
+      placeholder="Prioridade"
+      onChange={(next) => set({ label: next })}
+    />,
+    <select
+      key="kind"
+      aria-label={`${label}: tipo`}
+      value={addon.kind}
+      onChange={(event) => set({ kind: event.target.value === "FIXED" ? "FIXED" : "PERCENT" })}
+      className={cn(MINI_INPUT, "min-w-[72px]")}
+    >
+      <option value="PERCENT">%</option>
+      <option value="FIXED">R$</option>
+    </select>,
+    addon.kind === "PERCENT" ? (
+      <TextInput
+        key="value"
+        ariaLabel={`${label}: percentual`}
+        value={addon.percent}
+        numeric
+        signed
+        placeholder="10 ou -100"
+        onChange={(percent) => set({ percent })}
+      />
+    ) : (
+      <CentsInput key="value" ariaLabel={`${label}: valor`} cents={addon.cents} onChange={(cents) => set({ cents })} />
+    ),
+    <TextInput
+      key="hours"
+      ariaLabel={`${label}: horas a mais`}
+      value={addon.extraHours}
+      numeric
+      placeholder="0"
+      onChange={(extraHours) => set({ extraHours })}
+    />,
+    <code key="id" className="block truncate font-mono text-[12px] text-brand-fg-subtle">
+      {id}
+    </code>,
+    <RowActions
+      key="actions"
+      noun={noun}
+      index={index}
+      count={list.length}
+      onMove={(delta) => setList(moveItem(list, index, delta))}
+      onRemove={() => setList(list.filter((item) => item.key !== addon.key))}
+    />,
+  ];
 }
 
 /**
@@ -333,7 +477,8 @@ function PricePreview({ draft, basePriceCents }: { draft: PricingDraft; basePric
   const [chosen, setChosen] = useState<string[]>([]);
 
   const validation = draftToPricing(draft);
-  const ids = addonIds(draft.addons);
+  const tree = addonIdTree(draft.addons);
+  const ids = [...tree.parents, ...tree.children.flat()];
 
   let result: ReturnType<typeof quote> | null = null;
   if (validation.ok) {
@@ -373,21 +518,39 @@ function PricePreview({ draft, basePriceCents }: { draft: PricingDraft; basePric
             </Mini>
           </>
         ) : null}
-        {draft.addons.map((addon, index) => (
-          <label key={addon.key} className="flex h-[40px] items-center gap-[8px] font-poppins text-[13px] text-white/80">
-            <input
-              type="checkbox"
-              checked={chosen.includes(ids[index])}
-              onChange={(event) =>
-                setChosen((current) =>
-                  event.target.checked ? [...current, ids[index]] : current.filter((id) => id !== ids[index]),
-                )
-              }
-              className="size-[16px] accent-[var(--brand-orange)]"
-            />
-            {addon.label || `Adicional ${index + 1}`}
-          </label>
-        ))}
+        {draft.addons.map((addon, index) => {
+          const id = tree.parents[index];
+          const on = chosen.includes(id);
+          return (
+            <Fragment key={addon.key}>
+              <PreviewCheck
+                label={addon.label || `Adicional ${index + 1}`}
+                checked={on}
+                onChange={(checked) =>
+                  setChosen((current) =>
+                    // Desmarcar o serviço tira os subserviços dele (como na loja).
+                    checked ? [...current, id] : current.filter((item) => item !== id && !tree.children[index].includes(item)),
+                  )
+                }
+              />
+              {on
+                ? addon.children.map((child, childIndex) => {
+                    const childId = tree.children[index][childIndex];
+                    return (
+                      <PreviewCheck
+                        key={child.key}
+                        label={`› ${child.label || `Subserviço ${childIndex + 1}`}`}
+                        checked={chosen.includes(childId)}
+                        onChange={(checked) =>
+                          setChosen((current) => (checked ? [...current, childId] : current.filter((item) => item !== childId)))
+                        }
+                      />
+                    );
+                  })
+                : null}
+            </Fragment>
+          );
+        })}
       </div>
 
       <div className="mt-[15px] font-poppins text-[13px]">
@@ -584,16 +747,61 @@ function CentsInput({
   );
 }
 
-function RemoveButton({ label, onClick }: { label: string; onClick: () => void }) {
+const ROW_BUTTON =
+  "flex size-[40px] shrink-0 items-center justify-center rounded-[8px] border border-white/10 bg-black/40 font-poppins text-[14px] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-30";
+
+/**
+ * Subir / descer / remover a linha (2026-11-09: antes só dava para pôr linha
+ * nova no FIM, e encaixar uma faixa no meio obrigava a apagar e refazer tudo).
+ * As chaves das linhas são estáveis (`rowKeys`), então o React MOVE a linha e
+ * os campos não trocam de valor no caminho.
+ */
+function RowActions({
+  noun,
+  index,
+  count,
+  onMove,
+  onRemove,
+}: {
+  noun: string;
+  index: number;
+  count: number;
+  onMove: (delta: -1 | 1) => void;
+  onRemove: () => void;
+}) {
+  const position = index + 1;
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      className="flex size-[40px] items-center justify-center rounded-[8px] border border-white/10 bg-black/40 font-poppins text-[14px] text-brand-orange transition-opacity hover:opacity-90"
-    >
-      ✕
-    </button>
+    <div className="flex items-center gap-[6px]">
+      <button
+        type="button"
+        onClick={() => onMove(-1)}
+        disabled={index === 0}
+        aria-label={`Subir ${noun} ${position}`}
+        title="Subir"
+        className={`${ROW_BUTTON} text-white`}
+      >
+        ↑
+      </button>
+      <button
+        type="button"
+        onClick={() => onMove(1)}
+        disabled={index === count - 1}
+        aria-label={`Descer ${noun} ${position}`}
+        title="Descer"
+        className={`${ROW_BUTTON} text-white`}
+      >
+        ↓
+      </button>
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label={`Remover ${noun} ${position}`}
+        title="Remover"
+        className={`${ROW_BUTTON} text-brand-orange`}
+      >
+        ✕
+      </button>
+    </div>
   );
 }
 
@@ -606,11 +814,14 @@ function Table({
   addLabel,
   canAdd,
   onAdd,
+  details,
 }: {
   title: string;
   hint: string;
   headers: string[];
   rows: ReactNode[][];
+  /** Linha extra, em largura cheia, embaixo de cada linha (subserviços, 2026-11-09). */
+  details?: (ReactNode | null)[];
   /** Chave estável por linha: remover uma do meio não pode mover o foco. */
   rowKeys: string[];
   addLabel: string;
@@ -635,13 +846,20 @@ function Table({
             </thead>
             <tbody>
               {rows.map((cells, index) => (
-                <tr key={rowKeys[index] ?? index}>
-                  {cells.map((cell, cellIndex) => (
-                    <td key={cellIndex} className="align-middle">
-                      {cell}
-                    </td>
-                  ))}
-                </tr>
+                <Fragment key={rowKeys[index] ?? index}>
+                  <tr>
+                    {cells.map((cell, cellIndex) => (
+                      <td key={cellIndex} className="align-middle">
+                        {cell}
+                      </td>
+                    ))}
+                  </tr>
+                  {details?.[index] ? (
+                    <tr>
+                      <td colSpan={cells.length}>{details[index]}</td>
+                    </tr>
+                  ) : null}
+                </Fragment>
               ))}
             </tbody>
           </table>
@@ -668,4 +886,19 @@ function formatCents(cents: number): string {
 function numericText(raw: string, signed?: boolean): string {
   const digits = raw.replace(/[^\d.,]/g, "");
   return signed && raw.trimStart().startsWith("-") ? `-${digits}` : digits;
+}
+
+/** Caixa da prévia (escolha de exemplo; não vai para o produto). */
+function PreviewCheck({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
+  return (
+    <label className="flex h-[40px] items-center gap-[8px] font-poppins text-[13px] text-white/80">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="size-[16px] accent-[var(--brand-orange)]"
+      />
+      {label}
+    </label>
+  );
 }

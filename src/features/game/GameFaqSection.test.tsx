@@ -18,7 +18,7 @@ const headings = () =>
   screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent);
 
 describe("GameFaqSection", () => {
-  it("os blocos da descrição tomam o lugar do grupo Dúvidas frequentes, na ordem", () => {
+  it("os blocos da descrição entram ACIMA das Dúvidas frequentes comuns, que continuam (2026-11-09)", () => {
     render(
       <GameFaqSection
         groups={[orbs, general]}
@@ -28,11 +28,11 @@ describe("GameFaqSection", () => {
         ]}
       />,
     );
-    expect(headings()).toEqual(["Dúvidas sobre Orbs", "Sobre o PoE 2", "Entrega"]);
+    expect(headings()).toEqual(["Dúvidas sobre Orbs", "Sobre o PoE 2", "Entrega", "Dúvidas frequentes"]);
     expect(screen.getByText("O que é o jogo?").tagName).toBe("DT");
     expect(screen.getByText(/Linha 1/).closest("dd")).not.toBeNull();
-    // O grupo padrão sai inteiro, não só o título.
-    expect(screen.queryByText("Quanto tempo?")).toBeNull();
+    // O texto comum continua inteiro, abaixo da descrição do jogo.
+    expect(screen.getByText("Quanto tempo?")).toBeTruthy();
   });
 
   it("imagem do Imgur na descrição vira <img> sem referrer; outro host não (2026-10-16)", () => {

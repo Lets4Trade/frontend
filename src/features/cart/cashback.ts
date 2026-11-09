@@ -1,4 +1,5 @@
 import type { CartItem } from "./store";
+import { lineTotalCents } from "@/features/pricing/quote";
 
 /**
  * Quanto de cashback o carrinho rende (2026-10-09, pedido do usuário).
@@ -20,7 +21,7 @@ export function estimateCashback(
   if (cashbackBps <= 0 || coinCents <= 0) return { coins: 0, cents: 0 };
   let coins = 0;
   for (const item of items) {
-    const line = item.unitPriceCents * item.quantity;
+    const line = lineTotalCents(item.unitPriceCents, item.quantity);
     if (line <= 0) continue;
     coins += Math.floor(Math.floor((line * cashbackBps) / 10_000) / coinCents);
   }

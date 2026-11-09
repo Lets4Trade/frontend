@@ -142,6 +142,38 @@ export async function savePageAction(
   return { ok: true, data: result.data };
 }
 
+/**
+ * Só a DESCRIÇÃO (aba "Descrição" da Central, 2026-11-09). Rota própria no
+ * backend: mandar a página inteira regravaria servidores e categorias que outra
+ * aba pode ter mudado. Mesma limpeza e tetos do builder.
+ */
+export async function saveDescriptionAction(
+  gameId: string,
+  groups: unknown,
+): Promise<BuilderResult<{ slug: string }>> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+  if (!/^[A-Za-z0-9_-]{1,100}$/.test(gameId)) {
+    return { ok: false, reason: "invalid", message: "Jogo inválido." };
+  }
+  const description = cleanDescriptionGroups(groups);
+  if (!description.ok) return { ok: false, reason: "invalid", message: description.message };
+
+  const result = await apiPut<{ slug: string }>(
+    `/admin/game-page/${encodeURIComponent(gameId)}/description`,
+    { descriptionGroups: description.data },
+  );
+  if (!result.ok) return failure(result);
+
+  // Só o que mostra a descrição: a página do jogo e a Central. O `revalidate`
+  // do builder derruba o layout raiz (nome/link do jogo aparecem na home e no
+  // menu); a descrição não aparece em mais lugar nenhum, e limpar o cache do
+  // site inteiro a cada texto salvo só geraria renderizações frias à toa.
+  revalidatePath(gameHref(result.data.slug));
+  revalidatePath(`/admin/jogos/${gameId}`);
+  return { ok: true, data: { slug: result.data.slug } };
+}
+
 /** Etapa 3 — troca a arte do jogo. */
 export async function uploadLogoAction(
   gameId: string,

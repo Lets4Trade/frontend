@@ -289,7 +289,7 @@ export async function getGamePage(slug: string): Promise<GamePage | null> {
       // de sessões → conteúdo semente. O blog vence porque tem página própria
       // (o card leva à matéria) e data de publicação real.
       items: blogNews.length
-        ? blogNews.map((post) => blogNewsItem(post, game.name))
+        ? blogNews.map((post) => blogNewsItem(post, game.name, logo))
         : items("noticias").length
         ? items("noticias").map((item) => ({
             id: item.id,
@@ -302,6 +302,7 @@ export async function getGamePage(slug: string): Promise<GamePage | null> {
             // que faz a notícia continuar certa em qualquer jogo sem o admin
             // reescrever a etiqueta em cada um.
             tag: game.name,
+            logo: logo ?? undefined,
             // A DATA é quando o item foi criado, não um campo digitado: campo de
             // data é campo que alguém esquece de atualizar.
             date: formatNewsDate(item.createdAt),
@@ -360,12 +361,14 @@ export async function getGamePage(slug: string): Promise<GamePage | null> {
  * do jogo da página (mesma regra dos itens editoriais) e a data, a de
  * publicação no formato de hoje ("17/04/26").
  */
-export function blogNewsItem(post: BlogCardView, gameName: string): GameNewsItem {
+export function blogNewsItem(post: BlogCardView, gameName: string, gameLogo?: string | null): GameNewsItem {
+  const logo = post.game?.logo ?? gameLogo ?? null;
   return {
     id: `blog:${post.slug}`,
     title: post.title,
     excerpt: post.excerpt,
-    image: post.cover ? { src: post.cover, width: 400, height: 225, alt: "" } : undefined,
+    image: post.cover ? { src: post.cover, width: 1280, height: 720, alt: "" } : undefined,
+    ...(logo ? { logo } : {}),
     tag: gameName,
     date: post.date,
     href: post.href,
@@ -559,6 +562,8 @@ export function formatPrice(cents: number) {
   return (cents / 100).toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
+    // Preço com fração de centavo (2026-11-09): "R$ 0,035". Inteiros seguem com 2.
+    maximumFractionDigits: 4,
   });
 }
 

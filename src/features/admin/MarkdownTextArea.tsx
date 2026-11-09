@@ -8,6 +8,8 @@ import {
   applyFormat,
   imgurImageUrl,
   insertImage,
+  insertVideo,
+  youtubeVideoUrl,
   toggleHeading,
   type Edit,
   type MarkdownFormat,
@@ -17,11 +19,12 @@ import {
 export type UploadImage = (file: File) => Promise<{ url: string } | { error: string }>;
 
 /** Campo aberto embaixo da barra: endereço do link ou link da imagem do Imgur. */
-type Panel = "link" | "imgur";
+type Panel = "link" | "imgur" | "youtube";
 
 const PANEL_COPY: Record<Panel, { label: string; placeholder: string }> = {
   link: { label: "Endereço do link", placeholder: "https://… ou /blog" },
   imgur: { label: "Link da imagem no Imgur", placeholder: "https://i.imgur.com/abc1234.png" },
+  youtube: { label: "Link do vídeo no YouTube", placeholder: "https://www.youtube.com/watch?v=…" },
 };
 
 /**
@@ -50,6 +53,7 @@ export function MarkdownTextArea({
   onUploadImage,
   imageHint,
   imageLinks = false,
+  videoLinks = false,
   name,
   error: fieldError,
   className,
@@ -68,6 +72,8 @@ export function MarkdownTextArea({
   imageHint?: string;
   /** Liga o botão "Imagem (Imgur)". Mesma regra: só onde a loja desenha imagem. */
   imageLinks?: boolean;
+  /** Liga o botão "Vídeo (YouTube)" — só onde a loja desenha vídeo (blog, 2026-11-09). */
+  videoLinks?: boolean;
   /** Para o texto viajar num `FormData` (formulário do blog). */
   name?: string;
   error?: string;
@@ -147,6 +153,16 @@ export function MarkdownTextArea({
 
   function confirmPanel() {
     const input = address.trim();
+    if (panel === "youtube") {
+      const result = youtubeVideoUrl(input);
+      if ("error" in result) {
+        setError(result.error);
+        return;
+      }
+      setPanel(null);
+      commit(insertVideo(value, pending.current.end, result.url));
+      return;
+    }
     if (panel === "imgur") {
       const result = imgurImageUrl(input);
       if ("error" in result) {
@@ -224,7 +240,17 @@ export function MarkdownTextArea({
             Imagem (Imgur)
           </ToolButton>
         ) : null}
+        {videoLinks ? (
+          <ToolButton label="Vídeo do YouTube" onClick={() => openPanel("youtube")} pressed={panel === "youtube"}>
+            Vídeo (YouTube)
+          </ToolButton>
+        ) : null}
       </div>
+      {videoLinks ? (
+        <p className="font-poppins text-[12px] leading-[18px] text-brand-fg-subtle">
+          Vídeo: cole o link do YouTube (o botão põe numa linha só dele). Na página ele aparece como player.
+        </p>
+      ) : null}
       {withImages ? (
         <p className="font-poppins text-[12px] leading-[18px] text-brand-fg-subtle">
           A imagem entra no texto, numa linha só dela, na posição do cursor

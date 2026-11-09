@@ -183,6 +183,8 @@ export type GameNewsItem = {
   excerpt: string;
   image?: ImageRef;
   avatar?: ImageRef;
+  /** Logo do jogo, no canto da capa (2026-11-09, como no blog). */
+  logo?: string;
   tag: string;
   date: string;
   href?: string;

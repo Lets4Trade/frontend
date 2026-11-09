@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { formatCents, formatHours, isServiceItem, useCart, type CartItem } from "./store";
+import { lineTotalCents } from "@/features/pricing/quote";
 
 /**
  * Uma linha COMPACTA: miniatura 72px, nome (até 2 linhas), servidor e — no
@@ -75,7 +76,7 @@ export function CartRow({ item }: { item: CartItem }) {
             className="bg-clip-text font-poppins text-[15px] font-semibold text-transparent"
             style={{ backgroundImage: "var(--brand-orange-gradient)" }}
           >
-            {formatCents(item.unitPriceCents * item.quantity)}
+            {formatCents(lineTotalCents(item.unitPriceCents, item.quantity))}
           </span>
         </div>
       </div>

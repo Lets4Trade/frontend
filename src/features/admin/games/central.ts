@@ -10,10 +10,18 @@
  */
 import { isValidId, type GameTab } from "./tabs/types";
 
+/** Editor do texto comum dos jogos: Páginas → Textos comuns dos jogos → Dúvidas. */
+export const COMMON_FAQ_HREF = "/admin/paginas?pagina=jogos-compartilhado&secao=duvidas";
+
 export const CENTRAL_SECTIONS = [
   { id: "visao-geral", label: "Visão geral" },
   { id: "abas", label: "Abas e produtos" },
-  { id: "pagina", label: "Página da loja" },
+  // Descrição do jogo (2026-11-09): antes só pelo Builder (etapa 9), com o
+  // caminho passando pelo bloco Dúvidas do Construtor.
+  { id: "descricao", label: "Descrição" },
+  // "Página da loja" (mapa da página com atalhos) saiu em 2026-11-09, pedido
+  // do usuário: no lugar dela a barra leva ao Builder de Página do jogo
+  // (`centralNavLinks`). `?secao=pagina` antigo redireciona para o Builder.
   // Brinde por compra (2026-10-12): "ganhe 50Mi de Ouro a cada R$ 50,00".
   { id: "brinde", label: "Brinde" },
 ] as const;
@@ -107,7 +115,7 @@ export function pickCentralTab(tabs: readonly GameTab[], tabId: string): GameTab
  * Builder, "Blocos e ordem" (Construtor de páginas, que ele acessa) e a loja.
  */
 export type CentralNavLink = {
-  key: CentralSection | "voltar" | "blocos" | "loja";
+  key: CentralSection | "builder" | "voltar" | "blocos" | "loja";
   href: string;
   label: string;
   external?: boolean;
@@ -135,14 +143,27 @@ export function centralNavLinks(
       ],
     };
   }
-  return {
-    sections: CENTRAL_SECTIONS.filter((section) => canGift || section.id !== "brinde").map((section) => ({
+  const sections: CentralNavLink[] = CENTRAL_SECTIONS.filter((section) => canGift || section.id !== "brinde").map(
+    (section) => ({
       key: section.id,
       href: centralHref(game.id, { section: section.id }),
       label: section.label,
-    })),
+    }),
+  );
+  // Builder de Página no lugar da antiga "Página da loja" (2026-11-09): depois
+  // de Descrição, antes de Brinde. É outra rota, mas a mesma barra aparece lá
+  // e o marca como ativo.
+  const afterDescription = sections.findIndex((link) => link.key === "descricao") + 1;
+  sections.splice(afterDescription, 0, { key: "builder", href: builderHref(game.id), label: "Builder de Página" });
+  return {
+    sections,
     extras: [{ key: "voltar", href: "/admin/jogos", label: "← Jogos" }, store],
   };
+}
+
+/** O Builder de Página do jogo (`/admin/builder/<id>`). */
+export function builderHref(gameId: string): string {
+  return `/admin/builder/${encodeURIComponent(gameId)}`;
 }
 
 /** O Builder do jogo aberto numa etapa (`banner`, `logo`, `titulos`, `categorias`, `descricao`…). */

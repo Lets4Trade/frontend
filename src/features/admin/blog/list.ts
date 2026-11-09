@@ -36,6 +36,11 @@ export type AdminBlogPost = {
   isPublished: boolean;
   /** ISO ou "". */
   publishedAt: string;
+  /** "Cargo" do autor escrito no post (2026-11-09); "" = sem. */
+  authorTitle: string;
+  /** Quem criou o post (nome e foto), para o editor mostrar ao lado do cargo. */
+  authorName: string;
+  authorAvatar: string | null;
 };
 
 type Raw = Record<string, unknown>;
@@ -108,5 +113,17 @@ export async function getAdminBlogPost(id: string): Promise<AdminBlogPost | null
     gameId: str(post.gameId) || str(gameOf(post)?.id),
     isPublished: post.isPublished === true,
     publishedAt: str(post.publishedAt),
+    authorTitle: str(post.authorTitle),
+    authorName: authorNameOf(post),
+    authorAvatar: backendAsset(str(authorOf(post)?.avatarUrl) || null),
   };
+}
+
+function authorOf(row: Raw): Raw | null {
+  return typeof row.createdBy === "object" && row.createdBy !== null ? (row.createdBy as Raw) : null;
+}
+
+function authorNameOf(row: Raw): string {
+  const author = authorOf(row);
+  return author ? `${str(author.firstName)} ${str(author.lastName)}`.trim() : "";
 }

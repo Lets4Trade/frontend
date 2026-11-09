@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { CONTENT_IMAGE, IMGUR_IMAGE, isBodyImage } from "@/features/game/sectionContent";
 import { backendAsset } from "@/lib/publicApi";
+import { youtubeId } from "@/features/home/youtube";
+import { VideoBlockPlayer } from "./VideoBlockPlayer";
 
 /**
  * Markdown RESTRITO do bloco "Texto formatado" (2026-09-25).
@@ -23,8 +25,17 @@ import { backendAsset } from "@/lib/publicApi";
  * `images` liga a linha de imagem (ver `parseBlocks`) — blog e "Texto
  * formatado" do construtor desde 2026-10-16.
  */
-export function Markdown({ source, images = false }: { source: string; images?: boolean }) {
-  return <>{parseBlocks(source, { images }).map((block, index) => renderBlock(block, index))}</>;
+export function Markdown({
+  source,
+  images = false,
+  videos = false,
+}: {
+  source: string;
+  images?: boolean;
+  /** Link do YouTube numa linha só vira player (2026-11-09, blog). */
+  videos?: boolean;
+}) {
+  return <>{parseBlocks(source, { images, videos }).map((block, index) => renderBlock(block, index))}</>;
 }
 
 /**
@@ -70,7 +81,8 @@ export function BodyImage({
 export type MdBlock =
   | { kind: "h2" | "h3" | "p"; text: string }
   | { kind: "ul" | "ol"; items: string[] }
-  | { kind: "img"; src: string; alt: string };
+  | { kind: "img"; src: string; alt: string }
+  | { kind: "video"; id: string };
 
 /**
  * `keepLineBreaks`: linhas seguidas do mesmo parágrafo ficam separadas por
@@ -86,7 +98,22 @@ export type MdBlock =
  */
 export function parseBlocks(
   source: string,
-  { keepLineBreaks = false, images = false }: { keepLineBreaks?: boolean; images?: boolean } = {},
+  {
+    keepLineBreaks = false,
+    images = false,
+    videos = false,
+  }: {
+    keepLineBreaks?: boolean;
+    images?: boolean;
+    /**
+     * Vídeo do YouTube (2026-11-09, pedido do usuário: "coloca um link e ele
+     * aparece já configurado na página, igual o Imgur"): um link do YouTube
+     * SOZINHO numa linha vira player. Só o ID de 11 caracteres sai daqui
+     * (`youtubeId`) — a URL digitada nunca chega ao iframe. Link no meio de um
+     * parágrafo, ou `[texto](link)`, continua sendo link.
+     */
+    videos?: boolean;
+  } = {},
 ): MdBlock[] {
   const blocks: MdBlock[] = [];
   let paragraph: string[] = [];
@@ -120,6 +147,14 @@ export function parseBlocks(
       flushParagraph();
       flushList();
       if (isBodyImage(image[2])) blocks.push({ kind: "img", src: image[2], alt: image[1].trim() });
+      continue;
+    }
+
+    const video = videos && /^https?:\/\/\S+$/.test(line) ? youtubeId(line) : undefined;
+    if (video) {
+      flushParagraph();
+      flushList();
+      blocks.push({ kind: "video", id: video });
       continue;
     }
 
@@ -198,6 +233,10 @@ function renderBlock(block: MdBlock, index: number) {
   switch (block.kind) {
     case "img":
       return <BodyImage key={index} src={block.src} alt={block.alt} />;
+    case "video":
+      // O mesmo player do bloco "Vídeo": capa própria, play no clique, e só
+      // toca sozinho com o consentimento de vídeos (aviso de cookies).
+      return <VideoBlockPlayer key={index} videoId={block.id} title="Vídeo do YouTube" />;
     case "h2":
       return (
         <h3 key={index} className="font-helvetica text-[22px] leading-[28px] font-bold text-white">

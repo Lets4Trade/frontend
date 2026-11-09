@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MAX_PRICE_CENTS } from "@/features/pricing/quote";
+import { isPriceCents, MAX_PRICE_CENTS } from "@/features/pricing/quote";
 import { MAX_DISCOUNT_PERCENT } from "@/features/game/discount";
 
 /**
@@ -38,11 +38,14 @@ export const createProductSchema = z.object({
 
   // Chega do `<input type="hidden">` do `MoneyField`, sempre como string de
   // dígitos. `coerce` aqui é seguro justamente porque a origem é controlada.
+  // Desde 2026-11-09: até 2 casas em centavos (R$ 0,035 = 3,5) e 0 aceito —
+  // preço zero só vale em aba SERVIÇO, e quem sabe a aba é o backend
+  // (`assertZeroPriceAllowed`), que devolve a mensagem.
   priceCents: z.coerce
     .number()
-    .int()
-    .min(1, "Informe o preço do produto.")
-    .max(MAX_PRICE_CENTS, "O preço passa do teto de R$ 20.000.000,00."),
+    .min(0, "Informe o preço do produto.")
+    .max(MAX_PRICE_CENTS, "O preço passa do teto de R$ 20.000.000,00.")
+    .refine(isPriceCents, "O preço aceita até 4 casas depois da vírgula (ex.: 0,035)."),
 
   /**
    * Desconto do pacote em % inteiro (2026-10-27). Vazio/ausente = 0 (o campo

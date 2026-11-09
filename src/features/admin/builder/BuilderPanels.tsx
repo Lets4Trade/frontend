@@ -13,7 +13,6 @@ import {
   reorderBannersAction,
   uploadBannerAction,
   uploadBannerMobileAction,
-  uploadLogoAction,
 } from "./actions";
 import { DESCRIPTION_LIMITS } from "@/features/game/description";
 import { MarkdownTextArea } from "@/features/admin/MarkdownTextArea";
@@ -177,8 +176,10 @@ export function DescriptionPanel({
   draft,
   patch,
 }: {
-  draft: Draft;
-  patch: (next: Partial<Draft>) => void;
+  // Só a descrição: a aba "Descrição" da Central (2026-11-09) usa o mesmo
+  // editor sem ter o rascunho inteiro do builder.
+  draft: Pick<Draft, "descriptionGroups">;
+  patch: (next: Pick<Draft, "descriptionGroups">) => void;
 }) {
   const groups = draft.descriptionGroups;
   const setGroups = (descriptionGroups: DescriptionDraftGroup[]) => patch({ descriptionGroups });
@@ -191,7 +192,7 @@ export function DescriptionPanel({
     <>
       {groups.length === 0 ? (
         <p className="font-poppins text-[13px] text-brand-fg-subtle">
-          Sem descrição: a página mostra as Dúvidas frequentes padrão.
+          Sem descrição própria: a página mostra só o texto comum (Dúvidas frequentes), que aparece em todos os jogos.
         </p>
       ) : null}
 
@@ -289,8 +290,9 @@ export function DescriptionPanel({
         + Adicionar título
       </button>
       <p className="-mt-[15px] font-poppins text-[13px] text-brand-fg-subtle">
-        Na loja, substitui o grupo Dúvidas frequentes: cada título leva a barrinha
-        laranja, e cada subtítulo aparece como uma pergunta com o texto embaixo.
+        Na loja, aparece acima do texto comum (Dúvidas frequentes), que continua
+        em todos os jogos: cada título leva a barrinha laranja, e cada subtítulo
+        aparece como uma pergunta com o texto embaixo.
         Até {DESCRIPTION_LIMITS.groups} títulos com {DESCRIPTION_LIMITS.itemsPerGroup} subtítulos
         cada. No texto, selecione um trecho e use os botões (negrito, itálico,
         link, listas); as quebras de linha são mantidas.
@@ -690,70 +692,14 @@ export function RowButton({
 }
 
 /**
- * Etapas 2 e 3 — as imagens.
+ * Etapa 2 — o banner (a logo saiu do Builder em 2026-11-09: troca na Central →
+ * Visão geral).
  *
- * Sobem NA HORA em que o arquivo é escolhido, e não no botão de publicar:
+ * Sobe NA HORA em que o arquivo é escolhido, e não no botão de publicar:
  * binário não cabe no corpo JSON do salvamento, e reenviar a arte a cada
  * gravação seria mandar megabytes para trocar um título. A consequência
  * honesta, e que a tela diz: a imagem já está publicada assim que aparece aqui.
  */
-export function LogoPanel({
-  gameId,
-  imageUrl,
-  onUploaded,
-}: {
-  gameId: string;
-  imageUrl: string | null;
-  onUploaded: (url: string) => void;
-}) {
-  const [pending, startTransition] = useTransition();
-  const input = useRef<HTMLInputElement>(null);
-
-  function send(file: File) {
-    const form = new FormData();
-    form.append("image", file);
-
-    startTransition(async () => {
-      const result = await runAction(() => uploadLogoAction(gameId, form), {
-        ok: false,
-        reason: "error",
-        message: ACTION_FAILED_UPLOAD_MESSAGE,
-      });
-      if (result.ok) onUploaded(result.data.imageUrl);
-      else toastError(result.message ?? "Não foi possível enviar a imagem.");
-    });
-  }
-
-  return (
-    <>
-      <div className="flex items-center gap-[25px]">
-        <div className="relative h-[164px] w-[199px] shrink-0 rounded-[12px] border border-white/10 bg-black/40">
-          {imageUrl ? (
-            <Image src={imageUrl} alt="" fill sizes="200px" className="object-contain p-[10px]" />
-          ) : (
-            <span className="absolute inset-0 flex items-center justify-center font-poppins text-[13px] text-white/30">
-              Sem arte
-            </span>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-[10px]">
-          <UploadButton
-            inputRef={input}
-            pending={pending}
-            onPick={([file]) => send(file)}
-            label={imageUrl ? "Trocar a logo" : "Enviar a logo"}
-          />
-          <p className="max-w-[420px] font-poppins text-[13px] text-brand-fg-subtle">
-            PNG, JPEG ou WebP, até 5 MB. A arte entra numa caixa de 199×164 sem
-            esticar, então o formato original é preservado.
-          </p>
-        </div>
-      </div>
-    </>
-  );
-}
-
 export function BannerPanel({
   gameId,
   banners,

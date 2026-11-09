@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { SelectField } from "@/components/ui/SelectField";
 import { formatHours } from "@/features/cart/store";
-import { quote, type Pricing, type Selection } from "@/features/pricing/quote";
-import { ADDON_SEARCH_THRESHOLD, filterAddons, snapQuantity } from "./configurator";
+import { addonsTitle, quote, type Pricing, type Selection } from "@/features/pricing/quote";
+import { ADDON_SEARCH_THRESHOLD, atLimit, filterAddons, snapQuantity, toggleAddon } from "./configurator";
 import { formatPrice } from "./content";
 import type { ProductContext } from "./ProductCard";
 import type { GameProduct } from "./types";
@@ -206,15 +206,14 @@ function ProductControls({ product, context }: { product: GameProduct; context: 
         <AddonList
           // Preço fixo + serviços marcáveis é o layout "Lista de serviços"
           // (Figma 1735:4247, "Select Service"): ali eles SÃO o serviço, não
-          // um extra. Nos outros modos continuam "Adicionais".
-          title={pricing.mode === "FIXED" ? "Selecionar serviços:" : "Adicionais:"}
+          // um extra. Nos outros modos continuam "Adicionais". Desde
+          // 2026-11-09 o título vem do painel (`addonsTitle`), com esses padrões.
+          title={addonsTitle(pricing)}
           addons={pricing.addons}
+          maxAddons={pricing.maxAddons}
           selected={addonIds}
-          onToggle={(id) =>
-            setAddonIds((current) =>
-              current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
-            )
-          }
+          // Limites de serviços e subserviços aplicados no clique (`toggleAddon`).
+          onToggle={(id) => setAddonIds((current) => toggleAddon(pricing, current, id))}
         />
       ) : null}
 
@@ -493,11 +492,14 @@ function LevelRangeControl({
 function AddonList({
   title,
   addons,
+  maxAddons,
   selected,
   onToggle,
 }: {
   title: string;
   addons: NonNullable<Pricing["addons"]>;
+  /** Quantos serviços podem ser marcados (2026-11-09). Ausente = sem limite. */
+  maxAddons?: number;
   selected: string[];
   onToggle: (id: string) => void;
 }) {
@@ -505,12 +507,15 @@ function AddonList({
   const [search, setSearch] = useState("");
   const searchable = addons.length > ADDON_SEARCH_THRESHOLD;
   const visible = searchable ? filterAddons(addons, search, selected) : addons;
+  const chosen = addons.filter((addon) => selected.includes(addon.id)).length;
+  const full = atLimit(chosen, maxAddons);
 
   return (
     <div className="mt-[25px] first:mt-0">
       <h3 id={id} className={TITLE}>
         {title}
       </h3>
+      {maxAddons ? <LimitHint max={maxAddons} chosen={chosen} /> : null}
 
       {searchable ? (
         <div role="search" className="relative mt-[15px] h-[50px] w-full">
@@ -537,34 +542,40 @@ function AddonList({
       <div role="group" aria-labelledby={id} className="mt-[15px] flex flex-col gap-[15px]">
         {visible.map((addon) => {
           const on = selected.includes(addon.id);
-          // Percentual negativo é DESCONTO (2026-10-09): "− 100%", nunca "+ -100%".
-          const sign = addon.value < 0 ? "−" : "+";
-          const suffix =
-            addon.kind === "PERCENT"
-              ? `${sign} ${Math.abs(addon.value)}%`
-              : `+ ${formatPrice(addon.value)}`;
+          const children = addon.children ?? [];
+          const chosenChildren = children.filter((child) => selected.includes(child.id)).length;
+          // Serviço com subserviços (2026-11-09, pedido do usuário): continua
+          // CAIXINHA; marcada, abre a "pasta" com os subserviços embaixo.
           return (
             <div key={addon.id}>
-              <label className="flex cursor-pointer items-center gap-[15px]">
-                <input
-                  type="checkbox"
-                  checked={on}
-                  onChange={() => onToggle(addon.id)}
-                  className="peer sr-only"
-                />
-                <span
-                  aria-hidden
-                  className={`h-[30px] w-[33px] shrink-0 rounded-[8px] border-2 border-white/10 backdrop-blur-[100px] peer-focus-visible:ring-2 peer-focus-visible:ring-brand-orange ${
-                    on ? "bg-[image:var(--brand-orange-gradient)]" : "bg-[image:var(--brand-surface-fill)]"
-                  }`}
-                />
-                <span className="min-w-0 flex-1 font-helvetica text-[16px] leading-[20px] tracking-[0.16px] break-words text-brand-placeholder">
-                  {addon.label}
-                </span>
-                <span className="shrink-0 font-helvetica text-[16px] leading-none font-bold tracking-[0.16px] text-white">
-                  {suffix}
-                </span>
-              </label>
+              <AddonRow addon={addon} on={on} disabled={!on && full} onToggle={() => onToggle(addon.id)} />
+              {!on && children.length > 0 ? (
+                <p className="mt-[6px] ml-[48px] font-helvetica text-[13px] leading-[18px] text-white/50">
+                  Marque para ver {children.length} {children.length === 1 ? "opção" : "opções"}.
+                </p>
+              ) : null}
+              {on && children.length > 0 ? (
+                <div
+                  role="group"
+                  aria-label={`Opções de ${addon.label}`}
+                  className="mt-[12px] ml-[16px] flex flex-col gap-[12px] border-l border-white/15 pl-[16px]"
+                >
+                  {addon.maxChildren ? <LimitHint max={addon.maxChildren} chosen={chosenChildren} /> : null}
+                  {children.map((child) => {
+                    const childOn = selected.includes(child.id);
+                    return (
+                      <AddonRow
+                        key={child.id}
+                        addon={child}
+                        on={childOn}
+                        small
+                        disabled={!childOn && atLimit(chosenChildren, addon.maxChildren)}
+                        onToggle={() => onToggle(child.id)}
+                      />
+                    );
+                  })}
+                </div>
+              ) : null}
             </div>
           );
         })}
@@ -576,5 +587,60 @@ function AddonList({
         </p>
       ) : null}
     </div>
+  );
+}
+
+/** "Escolha até 2 · 1 escolhido" — o limite de uma lista (2026-11-09). */
+function LimitHint({ max, chosen }: { max: number; chosen: number }) {
+  return (
+    <p className="mt-[8px] font-helvetica text-[13px] leading-[18px] text-white/60">
+      {max === 1 ? "Escolha 1" : `Escolha até ${max}`}
+      {chosen > 0 ? ` · ${chosen} ${chosen === 1 ? "escolhido" : "escolhidos"}` : ""}
+    </p>
+  );
+}
+
+/**
+ * Uma linha marcável (serviço ou subserviço). Caixa de seleção NATIVA escondida
+ * por baixo do desenho: teclado (espaço), leitor de tela e o `<label>`
+ * clicável vêm de graça. `disabled` = lista no limite.
+ */
+function AddonRow({
+  addon,
+  on,
+  disabled,
+  small = false,
+  onToggle,
+}: {
+  addon: { id: string; label: string; kind: "PERCENT" | "FIXED"; value: number };
+  on: boolean;
+  disabled: boolean;
+  small?: boolean;
+  onToggle: () => void;
+}) {
+  // Percentual negativo é DESCONTO (2026-10-09): "− 100%", nunca "+ -100%".
+  const sign = addon.value < 0 ? "−" : "+";
+  const suffix = addon.kind === "PERCENT" ? `${sign} ${Math.abs(addon.value)}%` : `+ ${formatPrice(addon.value)}`;
+  return (
+    <label
+      className={`flex items-center gap-[15px] ${disabled ? "cursor-not-allowed opacity-40" : "cursor-pointer"}`}
+      title={disabled ? "Limite de escolhas atingido: desmarque outro para trocar." : undefined}
+    >
+      <input type="checkbox" checked={on} disabled={disabled} onChange={onToggle} className="peer sr-only" />
+      <span
+        aria-hidden
+        className={`${small ? "h-[24px] w-[26px]" : "h-[30px] w-[33px]"} shrink-0 rounded-[8px] border-2 border-white/10 backdrop-blur-[100px] peer-focus-visible:ring-2 peer-focus-visible:ring-brand-orange ${
+          on ? "bg-[image:var(--brand-orange-gradient)]" : "bg-[image:var(--brand-surface-fill)]"
+        }`}
+      />
+      <span
+        className={`min-w-0 flex-1 font-helvetica ${small ? "text-[15px]" : "text-[16px]"} leading-[20px] tracking-[0.16px] break-words text-brand-placeholder`}
+      >
+        {addon.label}
+      </span>
+      <span className="shrink-0 font-helvetica text-[16px] leading-none font-bold tracking-[0.16px] text-white">
+        {suffix}
+      </span>
+    </label>
   );
 }

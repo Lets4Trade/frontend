@@ -1,17 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { BUILDER_STEPS, visibleSteps } from "./steps";
 
-describe("visibleSteps", () => {
-  it("ADMIN vê todas; EDITOR não vê atalhos para telas só-ADMIN", () => {
-    expect(visibleSteps(true)).toHaveLength(BUILDER_STEPS.length);
-    const editor = visibleSteps(false);
-    expect(editor.map((step) => step.id)).not.toContain("categorias-principais");
-    expect(editor.map((step) => step.id)).not.toContain("produtos");
-    expect(editor.every((step) => !step.href)).toBe(true);
+describe("BUILDER_STEPS (2026-11-09, lista do usuário)", () => {
+  it("sete etapas, numeradas de 1 a 7, sem abas, produtos e logo", () => {
+    expect(BUILDER_STEPS.map((step) => `${step.number} ${step.title}`)).toEqual([
+      "1 Títulos",
+      "2 Banner Principal",
+      "3 Nome do game",
+      "4 Servidores",
+      "5 Categorias globais",
+      "6 Descrição",
+      "7 Ordem da página",
+    ]);
   });
 
-  it("a etapa 5 leva à Central do jogo", () => {
-    const step = BUILDER_STEPS.find((item) => item.id === "categorias-principais");
-    expect(step?.href?.("g1", "poe")).toBe("/admin/jogos/g1?secao=abas");
+  it("nenhuma etapa é atalho, então ADMIN e EDITOR veem as mesmas", () => {
+    expect(BUILDER_STEPS.every((step) => !step.href)).toBe(true);
+    expect(visibleSteps(false)).toEqual(visibleSteps(true));
   });
 });

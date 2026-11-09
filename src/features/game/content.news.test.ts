@@ -64,7 +64,7 @@ describe("getGamePage → seção NOTÍCIAS", () => {
         id: "blog:temporada-nova",
         title: "Temporada nova",
         excerpt: "O que muda",
-        image: { src: "http://api.test/uploads/blog/t.webp", width: 400, height: 225, alt: "" },
+        image: { src: "http://api.test/uploads/blog/t.webp", width: 1280, height: 720, alt: "" },
         tag: "Diablo IV",
         date: "20/09/26",
         href: "/blog/temporada-nova",

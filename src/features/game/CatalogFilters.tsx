@@ -1,7 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
 import {
-  PARAM,
   SORT_OPTIONS,
   activeCategory,
   buildHref,
@@ -10,6 +8,7 @@ import {
   type CatalogQuery,
 } from "./catalog";
 import { pillClassName } from "./pill";
+import { CatalogSearch } from "./CatalogSearch";
 import type { GamePage } from "./types";
 import { gameHref } from "@/features/game/href";
 
@@ -197,44 +196,8 @@ export function CatalogToolbar({
 }
 
 function SearchBox({ page, query }: { page: GamePage; query: CatalogQuery }) {
-  return (
-    <form
-      action={gameHref(page.slug)}
-      method="get"
-      role="search"
-      className="relative col-span-2 h-[50px] w-full desk:w-[219px]"
-    >
-      {/* O filtro atual viaja junto em campos escondidos. Um `<form>` GET
-          descarta tudo o que não está nele — sem isto, buscar zeraria o
-          servidor e as categorias escolhidas. */}
-      <input type="hidden" name={PARAM.tab} value={query.tab} />
-      <input type="hidden" name={PARAM.server} value={query.server} />
-      {query.categories.map((id) => (
-        <input key={id} type="hidden" name={PARAM.category} value={id} />
-      ))}
-      {query.sort ? (
-        <input type="hidden" name={PARAM.sort} value={query.sort} />
-      ) : null}
-
-      <Image
-        src="/icons/search.svg"
-        alt=""
-        width={20}
-        height={20}
-        aria-hidden
-        className="pointer-events-none absolute top-1/2 left-[25px] size-[20px] -translate-y-1/2"
-      />
-      <input
-        type="search"
-        name={PARAM.search}
-        defaultValue={query.search}
-        maxLength={80}
-        aria-label="Pesquisar itens"
-        placeholder="Pesquisar itens..."
-        className="h-full w-full rounded-full border border-brand-border bg-[image:var(--brand-surface-fill)] pr-[20px] pl-[60px] font-helvetica text-[15px] tracking-[0.15px] text-white outline-none placeholder:text-brand-placeholder focus-visible:border-brand-orange"
-      />
-    </form>
-  );
+  // Em tempo real desde 2026-11-09 (ver `CatalogSearch`).
+  return <CatalogSearch slug={page.slug} action={gameHref(page.slug)} query={query} />;
 }
 
 function CategoryOption({

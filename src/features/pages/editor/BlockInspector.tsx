@@ -11,6 +11,7 @@ import { BlockField, type EditorGame } from "./fields";
 import { LegacySectionPanel } from "./LegacySectionPanel";
 import { HOME_SHARED, isHomeSharedKey } from "../homeShared";
 import { gameSectionTarget, type GameSectionLink } from "./gameSectionTarget";
+import { COMMON_FAQ_HREF } from "@/features/admin/games/central";
 
 const SPACING_OPTIONS = [
   { value: "sm", label: "Pequeno" },
@@ -143,10 +144,15 @@ export function BlockInspector({
                 <div className="flex flex-col gap-[24px]">
                   <div className="flex flex-col gap-[12px] rounded-[16px] border border-brand-orange/40 bg-brand-orange/5 p-[16px] font-poppins text-[13px] leading-[20px] text-brand-fg-muted">
                     <p>
-                      Este bloco é a <strong className="text-white">descrição deste jogo</strong>: títulos, subtítulos e
-                      textos que você monta no Builder.
+                      Este bloco mostra a <strong className="text-white">descrição deste jogo</strong> e, abaixo dela, o{" "}
+                      <strong className="text-white">texto comum</strong> de todos os jogos.
                     </p>
-                    <TargetLinks links={[{ label: "Editar descrição do jogo", href: target.descriptionHref }]} />
+                    <TargetLinks
+                      links={[
+                        { label: "Editar descrição do jogo", href: target.descriptionHref },
+                        { label: "Editar texto comum", href: COMMON_FAQ_HREF },
+                      ]}
+                    />
                   </div>
                   {target.orbsKey ? (
                     <section className="flex flex-col gap-[10px]">

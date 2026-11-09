@@ -93,3 +93,62 @@ export function filterAddons(
   if (!needle) return [...addons];
   return addons.filter((addon) => selected.includes(addon.id) || fold(addon.label).includes(needle));
 }
+
+/**
+ * Marcar/desmarcar um serviço ou subserviço respeitando os limites da regra
+ * (2026-11-09). A mesma conferência que o `quote` faz na cobrança, aplicada ANTES
+ * no clique para o cliente nunca montar uma escolha que seria recusada.
+ *
+ * Serviço COM subserviços é uma caixinha que ABRE a "pasta" (pedido do usuário,
+ * 2026-11-09: "tem que ficar como checkbox; se ativa a checkbox abre a pasta"):
+ * marcar o serviço mostra os subserviços embaixo; desmarcar fecha e tira os
+ * subserviços escolhidos. Subserviço só com o serviço marcado.
+ *  - no limite: com máximo 1 o clique TROCA (como um botão de opção); acima de
+ *    1, o clique é ignorado (a tela mostra os outros apagados).
+ */
+export function toggleAddon(
+  pricing: Pick<Pricing, "addons" | "maxAddons">,
+  selected: readonly string[],
+  id: string,
+): string[] {
+  const addons = pricing.addons ?? [];
+  const parent = addons.find((addon) => addon.id === id);
+  const on = selected.includes(id);
+
+  /** Abre espaço para mais um serviço no 1º nível; `null` = não cabe. */
+  const roomForParent = (current: readonly string[]): string[] | null => {
+    const chosenParents = addons.filter((addon) => current.includes(addon.id));
+    if (!pricing.maxAddons || chosenParents.length < pricing.maxAddons) return [...current];
+    if (pricing.maxAddons !== 1) return null;
+    const drop = new Set(chosenParents.flatMap((addon) => [addon.id, ...(addon.children ?? []).map((child) => child.id)]));
+    return current.filter((item) => !drop.has(item));
+  };
+
+  if (parent) {
+    const childIds = (parent.children ?? []).map((child) => child.id);
+    // Desmarcar fecha a "pasta" e leva os subserviços junto.
+    if (on) return selected.filter((item) => item !== id && !childIds.includes(item));
+    const room = roomForParent(selected);
+    return room ? [...room, id] : [...selected];
+  }
+
+  const owner = addons.find((addon) => (addon.children ?? []).some((child) => child.id === id));
+  if (!owner) return [...selected];
+  const siblings = (owner.children ?? []).map((child) => child.id).filter((item) => selected.includes(item));
+
+  if (on) return selected.filter((item) => item !== id);
+  // Subserviço só aparece (e só vale) com o serviço marcado.
+  if (!selected.includes(owner.id)) return [...selected];
+
+  let base: string[] = [...selected];
+  if (owner.maxChildren && siblings.length >= owner.maxChildren) {
+    if (owner.maxChildren !== 1) return [...selected];
+    base = base.filter((item) => !siblings.includes(item));
+  }
+  return [...base, id];
+}
+
+/** Lista no limite (e com máximo acima de 1): os não marcados ficam apagados. */
+export function atLimit(chosen: number, max: number | undefined): boolean {
+  return Boolean(max && max > 1 && chosen >= max);
+}

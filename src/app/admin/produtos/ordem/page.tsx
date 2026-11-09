@@ -120,6 +120,12 @@ export default async function ProductOrderPage({ searchParams }: PageProps) {
               gameId={game.id}
               tabId={tab.key}
               initial={ordering.items}
+              // Filtros (2026-11-09): servidores do jogo e as categorias que
+              // valem NESTA aba (globais + as da aba).
+              servers={game.servers}
+              categories={game.categories
+                .filter((category) => !category.tabId || category.tabId === tab.key)
+                .map(({ id, label, parentId }) => ({ id, label, parentId: parentId ?? null }))}
             />
           </>
         )}

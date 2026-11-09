@@ -4,7 +4,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
-import { BlogCard, PostMeta } from "@/features/blog/BlogCard";
+import { BlogCard, CoverGameLogo, PostMeta } from "@/features/blog/BlogCard";
+import { BlogAuthor } from "@/features/blog/BlogAuthor";
 import { getBlogPost } from "@/features/blog/data";
 import { newsArticleJsonLd, serializeJsonLd } from "@/features/blog/seo";
 import { Markdown } from "@/features/pages/blocks/markdown";
@@ -89,6 +90,7 @@ export default async function NoticiaPage({ params }: { params: Promise<RoutePar
                 sizes="(min-width: 1746px) 1714px, 100vw"
                 className="object-cover"
               />
+              {post.game?.logo ? <CoverGameLogo logo={post.game.logo} size="page" /> : null}
             </div>
           ) : null}
 
@@ -99,6 +101,9 @@ export default async function NoticiaPage({ params }: { params: Promise<RoutePar
 
             <PostMeta post={post} className="mt-[20px]" />
 
+            {/* Autor da matéria: foto, nome e cargo (2026-11-09). */}
+            {post.author ? <BlogAuthor author={post.author} className="mt-[24px]" /> : null}
+
             {post.excerpt ? (
               <p className="mt-[30px] font-helvetica text-[18px] leading-[28px] text-brand-placeholder">
                 {post.excerpt}
@@ -108,7 +113,7 @@ export default async function NoticiaPage({ params }: { params: Promise<RoutePar
             <hr className="mt-[30px] border-0 border-t border-white/10" />
 
             <div className="mt-[30px] flex flex-col gap-[18px]">
-              <Markdown source={post.body} images />
+              <Markdown source={post.body} images videos />
             </div>
           </div>
         </article>

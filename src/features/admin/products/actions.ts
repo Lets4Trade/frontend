@@ -5,7 +5,7 @@ import { canAccess } from "@/features/admin/permissions";
 import { revalidatePath } from "next/cache";
 import { apiDelete, apiPatchFormData, apiPost, apiPostFormData, apiPut } from "@/lib/serverApi";
 import { MAX_IMAGE_BYTES } from "../games/options";
-import { pricingSchema, type Pricing } from "@/features/pricing/quote";
+import { isPriceCents, pricingSchema, type Pricing } from "@/features/pricing/quote";
 import { MAX_PRICE_BATCH, MAX_PRICE_CENTS, NAME_MAX, parseNameInput, type RowChange } from "./prices";
 import { createProductSchema, highlightsSchema } from "./schema";
 import { tabContentSchema, type TabContent } from "../games/tabs/types";
@@ -34,6 +34,13 @@ export type CreateProductResult =
       reason: "unauthenticated" | "forbidden" | "invalid" | "error";
       message?: string;
     };
+
+/**
+ * Preço 0 recusado (2026-11-09): só vale em aba SERVIÇO, e quem sabe a aba é o
+ * backend. A mensagem dele não é repassada (ver abaixo), então o motivo mais
+ * provável de um 400 com preço 0 é dito daqui.
+ */
+const ZERO_PRICE_REFUSED = "Informe o preço do produto. Preço zero só vale em aba de Serviço.";
 
 export async function createProductAction(
   form: FormData,
@@ -136,7 +143,9 @@ export async function createProductAction(
         ok: false,
         reason: "invalid",
         message:
-          "O servidor recusou os dados. Confira se a plataforma, o servidor, a aba e a categoria pertencem ao jogo escolhido.",
+          parsed.data.priceCents === 0
+            ? ZERO_PRICE_REFUSED
+            : "O servidor recusou os dados. Confira se a plataforma, o servidor, a aba e a categoria pertencem ao jogo escolhido.",
       };
     }
     return { ok: false, reason: "error" };
@@ -321,7 +330,10 @@ export async function updateProductAction(
       return {
         ok: false,
         reason: "invalid",
-        message: "O servidor recusou os dados. Confira os campos e tente de novo.",
+        message:
+          parsed.data.priceCents === 0
+            ? ZERO_PRICE_REFUSED
+            : "O servidor recusou os dados. Confira os campos e tente de novo.",
       };
     }
     return { ok: false, reason: "error" };
@@ -440,11 +452,11 @@ export async function saveProductPricesAction(
 function isValidRowChange(value: unknown): value is RowChange {
   if (typeof value !== "object" || value === null) return false;
   const item = value as Record<string, unknown>;
-  const cents = (v: unknown, min: number) =>
-    Number.isInteger(v) && (v as number) >= min && (v as number) <= MAX_PRICE_CENTS;
+  // Até 2 casas em centavos (2026-11-09): R$ 0,035 = 3,5.
+  const cents = (v: unknown, min: number) => isPriceCents(v) && v >= min && v <= MAX_PRICE_CENTS;
   const optionalId = (v: unknown) => v === null || isValidId(v);
   if (!isValidId(item.id) || !cents(item.expectedPriceCents, 0)) return false;
-  if (item.priceCents !== undefined && !cents(item.priceCents, 1)) return false;
+  if (item.priceCents !== undefined && !cents(item.priceCents, 0.01)) return false;
   if (item.name !== undefined) {
     if (typeof item.name !== "string" || parseNameInput(item.name) === null) return false;
     if (typeof item.expectedName !== "string" || item.expectedName.length > NAME_MAX) return false;

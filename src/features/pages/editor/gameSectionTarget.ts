@@ -12,7 +12,7 @@ import { ORBS_GAMES, type GameSectionKey } from "@/features/game/sections";
  *   - `shared`: as sessões `games:*` abrem ALI MESMO, no painel do bloco;
  *   - `home`: a seção da home de onde o conteúdo vem;
  *   - `links`: a etapa EXATA do Builder ou da Central (mesmos destinos do mapa
- *     da Central, `storePageMap`).
+ *     da Central).
  */
 export type GameSectionLink = { label: string; href: string };
 
@@ -20,10 +20,10 @@ export type GameSectionTarget =
   | { kind: "shared"; sectionKeys: string[]; links: GameSectionLink[] }
   | { kind: "home"; source: string }
   /**
-   * Dúvidas = a DESCRIÇÃO do jogo (blocos do Builder, 2026-10-08): o admin
-   * põe ali o que quiser. O grupo de Orbs (jogos de PoE) vem antes dela. As
-   * "Dúvidas frequentes" comuns NÃO são oferecidas aqui (pedido do usuário,
-   * 2026-10-09) — continuam em Páginas → Textos comuns dos jogos.
+   * Dúvidas = a DESCRIÇÃO do jogo (Central → Descrição) ACIMA das "Dúvidas
+   * frequentes" comuns (2026-11-09; antes a descrição as substituía). O grupo
+   * de Orbs (jogos de PoE) vem antes. O comum se edita em Páginas → Textos
+   * comuns dos jogos (vale para todos).
    */
   | { kind: "faq"; descriptionHref: string; orbsKey: string | null }
   | { kind: "links"; links: GameSectionLink[] };
@@ -35,7 +35,7 @@ export function gameSectionTarget(key: string, gameId: string, gameSlug = ""): G
   // Chave ANTIGA: o bloco "description" saiu em 2026-10-06 (a descrição foi
   // para o topo das Dúvidas), mas ordens salvas antes ainda o trazem.
   if (key === "description") {
-    return { kind: "links", links: [{ label: "Descrição do jogo", href: builder("descricao") }] };
+    return { kind: "links", links: [{ label: "Descrição do jogo", href: centralHref(gameId, { section: "descricao" }) }] };
   }
 
   switch (key as GameSectionKey) {
@@ -45,7 +45,8 @@ export function gameSectionTarget(key: string, gameId: string, gameSlug = ""): G
       return {
         kind: "links",
         links: [
-          { label: "Logo", href: builder("logo") },
+          // A logo saiu do Builder (2026-11-09): troca na Central → Visão geral.
+          { label: "Logo", href: centralHref(gameId, { section: "visao-geral" }) },
           { label: "Títulos", href: builder("titulos") },
           { label: "Abas", href: tabs },
         ],
@@ -81,7 +82,8 @@ export function gameSectionTarget(key: string, gameId: string, gameSlug = ""): G
     case "faq":
       return {
         kind: "faq",
-        descriptionHref: builder("descricao"),
+        // Aba "Descrição" da Central (2026-11-09): o caminho curto.
+        descriptionHref: centralHref(gameId, { section: "descricao" }),
         // O grupo de Orbs só aparece nos jogos de Path of Exile (`ORBS_GAMES`),
         // e é só neles que o painel o oferece.
         orbsKey: ORBS_GAMES.has(gameSlug) ? "duvidas-orbs" : null,

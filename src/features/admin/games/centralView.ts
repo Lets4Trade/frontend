@@ -1,4 +1,3 @@
-import { builderStepHref, centralHref, pageBlocksHref } from "./central";
 import { isProductTab, type GameTab, type ScopedCategoryRow } from "./tabs/types";
 
 /**
@@ -107,75 +106,6 @@ export function productGrid<T extends GridItem & { priceCents: number }>(
       return { name, cells: used, mixed: prices.size > 1 };
     }),
   };
-}
-
-// ── Mapa da página da loja ──────────────────────────────────────────────────
-
-export type StoreMapLink = { label: string; href: string };
-export type StoreMapPart = { title: string; hint: string; links: StoreMapLink[] };
-
-/**
- * A página do jogo NA ORDEM em que o cliente a vê, e onde se edita cada parte.
- * O conteúdo vive em quatro telas (Central, Builder, Construtor, Notícias);
- * este mapa é o índice — o nome de cada destino diz O QUE se edita, não o nome
- * interno da tela ("etapa 7").
- */
-export function storePageMap(game: { id: string }): StoreMapPart[] {
-  const builder = (step: string) => builderStepHref(game.id, step);
-  const tabs = centralHref(game.id, { section: "abas" });
-  const shared = `/admin/paginas?${new URLSearchParams({ pagina: "jogos-compartilhado" }).toString()}`;
-  return [
-    {
-      title: "Banner principal",
-      hint: "A imagem grande do topo.",
-      links: [{ label: "Trocar banner", href: builder("banner") }],
-    },
-    {
-      title: "Logo, título e abas",
-      hint: "A logo do jogo, o título da página e os botões das abas.",
-      links: [
-        { label: "Logo", href: builder("logo") },
-        { label: "Títulos", href: builder("titulos") },
-        { label: "Abas", href: tabs },
-      ],
-    },
-    {
-      title: "Selecionar servidor",
-      hint: "Os botões de servidor acima dos produtos.",
-      links: [{ label: "Servidores", href: centralHref(game.id, { section: "visao-geral" }) }],
-    },
-    {
-      title: "Selecionar categoria",
-      hint: "O filtro lateral. Categorias globais valem em todas as abas; as de cada aba ficam na aba.",
-      links: [
-        { label: "Categorias globais", href: builder("categorias") },
-        { label: "Categorias por aba", href: tabs },
-      ],
-    },
-    {
-      title: "Lista de produtos",
-      hint: "Os produtos e preços de cada aba.",
-      links: [{ label: "Produtos e preços", href: tabs }],
-    },
-    {
-      title: "Descrição",
-      hint: "O texto sobre o jogo abaixo dos produtos.",
-      links: [{ label: "Descrição", href: builder("descricao") }],
-    },
-    {
-      title: "Referências, notícias e dúvidas",
-      hint: "Iguais em todas as páginas de jogo. Posts publicados no blog para este jogo aparecem aqui.",
-      links: [
-        { label: "Referências e dúvidas", href: shared },
-        { label: "Blog", href: "/admin/blog" },
-      ],
-    },
-    {
-      title: "Ordem e blocos extras",
-      hint: "Mudar a ordem das partes acima, esconder alguma ou somar blocos (vídeo, banner, FAQ…).",
-      links: [{ label: "Blocos e ordem", href: pageBlocksHref(game.id) }],
-    },
-  ];
 }
 
 // ── Categorias que a loja mostra ────────────────────────────────────────────

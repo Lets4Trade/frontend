@@ -1,6 +1,7 @@
 /**
  * "Editar preços" (2026-10-01) — regras puras da tabela, fora do componente
- * para serem testadas. Dinheiro em CENTAVOS inteiros, como na API.
+ * para serem testadas. Dinheiro em CENTAVOS, como na API — com até 2 casas
+ * desde 2026-11-09 (R$ 0,035 = 3,5).
  */
 
 import { MAX_PRICE_CENTS } from "@/features/pricing/quote";
@@ -20,9 +21,10 @@ export const BIG_CHANGE_RATIO = 0.5;
 /**
  * Texto digitado → centavos, ou `null` se não for um preço válido.
  *
- * Aceita o jeito brasileiro ("4,10", "1.234,56", "R$ 4,10") e o ponto como
- * decimal quando não há vírgula e ele tem 1–2 casas depois ("4.10"). Conta com
- * STRINGS, não com float: "0,29" vira 29, não 28,999….
+ * Aceita o jeito brasileiro ("4,10", "1.234,56", "R$ 4,10", "0,035") e o
+ * ponto como decimal quando não há vírgula e ele é claramente decimal ("4.10",
+ * "0.035"). Até 4 casas em reais (2026-11-09). Conta com STRINGS, não com
+ * float: "0,29" vira 29, não 28,999….
  */
 export function parsePriceInput(raw: string): number | null {
   let text = raw.replace(/R\$/gi, "").replace(/\s/g, "");
@@ -32,20 +34,22 @@ export function parsePriceInput(raw: string): number | null {
     text = text.replace(/\./g, "").replace(",", ".");
   } else {
     const dots = text.split(".").length - 1;
-    // "1.234" (milhar) vs "4.10" (decimal): ponto único com 1–2 casas é decimal.
-    if (dots > 1 || (dots === 1 && !/\.\d{1,2}$/.test(text))) text = text.replace(/\./g, "");
+    // "1.234" (milhar) vs "4.10" / "0.035" / "0.0035" (decimal).
+    const decimalDot = /\.\d{1,2}$/.test(text) || /\.\d{4}$/.test(text) || /^0\.\d{3}$/.test(text);
+    if (dots > 1 || (dots === 1 && !decimalDot)) text = text.replace(/\./g, "");
   }
 
-  const match = /^(\d+)(?:\.(\d{1,2}))?$/.exec(text);
+  const match = /^(\d+)(?:\.(\d{1,4}))?$/.exec(text);
   if (!match) return null;
-  const cents = Number(match[1]) * 100 + Number((match[2] ?? "").padEnd(2, "0"));
-  if (!Number.isSafeInteger(cents) || cents < 1 || cents > MAX_PRICE_CENTS) return null;
-  return cents;
+  // Décimos-milésimos de real (= centésimos de centavo), inteiros.
+  const points = Number(match[1]) * 10_000 + Number((match[2] ?? "").padEnd(4, "0"));
+  if (!Number.isSafeInteger(points) || points < 1 || points > MAX_PRICE_CENTS * 100) return null;
+  return points / 100;
 }
 
 /** Centavos → "4,10" (o que vai no campo; sem "R$", para editar fácil). */
 export function formatPriceInput(cents: number): string {
-  return (cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 4 });
 }
 
 /**
@@ -55,8 +59,12 @@ export function formatPriceInput(cents: number): string {
  */
 export function applyPercent(currentCents: number, percent: number): number | null {
   if (!Number.isFinite(percent)) return null;
-  const next = Math.round((currentCents * (100 + percent)) / 100);
-  return next >= 1 && next <= MAX_PRICE_CENTS ? next : null;
+  // Preço em centavo inteiro arredonda para o centavo, como sempre; com fração
+  // de centavo (2026-11-09), para o centésimo de centavo (4 casas em reais).
+  const next = Number.isInteger(currentCents)
+    ? Math.round((currentCents * (100 + percent)) / 100)
+    : Math.round(Math.round(currentCents * 100) * (100 + percent) / 100) / 100;
+  return next >= (Number.isInteger(currentCents) ? 1 : 0.01) && next <= MAX_PRICE_CENTS ? next : null;
 }
 
 /** "+5", "-2,5", "5%" → número; `null` se não der. */

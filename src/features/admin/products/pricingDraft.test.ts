@@ -18,8 +18,8 @@ describe("draftToPricing", () => {
     draft.baseHours = "0,5";
     draft.tiers = [{ key: "a", from: "10", unitPriceCents: 4000 }];
     draft.addons = [
-      { key: "b", id: null, label: "Prioridade", kind: "PERCENT", percent: "20", cents: 0, extraHours: "" },
-      { key: "c", id: null, label: "Prioridade", kind: "FIXED", percent: "", cents: 1500, extraHours: "2" },
+      { key: "b", id: null, label: "Prioridade", kind: "PERCENT", percent: "20", cents: 0, extraHours: "", children: [], maxChildren: "" },
+      { key: "c", id: null, label: "Prioridade", kind: "FIXED", percent: "", cents: 1500, extraHours: "2", children: [], maxChildren: "" },
     ];
     const result = draftToPricing(draft);
     expect(result).toEqual({

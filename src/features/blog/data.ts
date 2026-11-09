@@ -1,7 +1,7 @@
 import { backendAsset, publicApiGet } from "@/lib/publicApi";
 import { BLOG_TAG, formatBlogDate } from "./format";
 import { BLOG_PAGE_SIZE, BLOG_SLUG_RE, blogPostHref, type BlogQuery } from "./query";
-import type { BlogArticleView, BlogCardView, BlogGameRef, BlogListView } from "./types";
+import type { BlogArticleView, BlogAuthorView, BlogCardView, BlogGameRef, BlogListView } from "./types";
 
 /**
  * Leituras PÚBLICAS do blog (`GET /blog`, `/blog/:slug`, `/blog/games`).
@@ -33,7 +33,7 @@ type RawCard = {
   game?: RawGame | null;
 };
 type RawList = { items?: unknown; total?: unknown; page?: unknown; pageCount?: unknown };
-type RawArticle = RawCard & { body?: unknown; related?: unknown };
+type RawArticle = RawCard & { body?: unknown; related?: unknown; author?: unknown };
 
 function str(value: unknown): string {
   return typeof value === "string" ? value : "";
@@ -116,6 +116,7 @@ export async function getBlogPost(slug: string): Promise<BlogArticleView | null>
   return {
     ...card,
     body: str(data.body),
+    author: toAuthor(data.author),
     // Nunca a própria matéria nos relacionados, mesmo que o backend a mande.
     related: toCards(data.related)
       .filter((item) => item.slug !== card.slug)
@@ -140,4 +141,21 @@ export async function getGameNews(gameSlug: string, limit = 4): Promise<BlogCard
   const data = await publicApiGet<RawList>(`/blog?${params.toString()}`, CACHE);
   if (!data || typeof data !== "object") return [];
   return toCards(data.items).slice(0, limit);
+}
+
+/**
+ * Autor da matéria (2026-11-09). O backend apaga campo nulo da resposta, então
+ * foto e cargo podem simplesmente não vir. Foto só servida pela API (`/uploads`).
+ */
+export function toAuthor(raw: unknown): BlogAuthorView | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const record = raw as Record<string, unknown>;
+  const name = str(record.name).trim();
+  if (!name) return null;
+  const title = str(record.title).trim();
+  return {
+    name: name.slice(0, 120),
+    avatar: backendAsset(str(record.avatarUrl) || null),
+    title: title ? title.slice(0, 80) : null,
+  };
 }

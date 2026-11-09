@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Pricing } from "@/features/pricing/quote";
-import { filterAddons, formatQuantity, initialQuantity, snapQuantity, validPresets } from "./configurator";
+import { atLimit, filterAddons, formatQuantity, initialQuantity, snapQuantity, toggleAddon, validPresets } from "./configurator";
 
 const gold: Extract<Pricing, { mode: "QUANTITY" }> = {
   mode: "QUANTITY",
@@ -62,5 +62,61 @@ describe("filterAddons", () => {
 
   it("marcados continuam na lista", () => {
     expect(filterAddons(addons, "epica", ["c"]).map((addon) => addon.id)).toEqual(["b", "c"]);
+  });
+});
+
+describe("toggleAddon (limites de serviços e subserviços, 2026-11-09)", () => {
+  const pricing: Pricing = {
+    mode: "FIXED",
+    maxAddons: 2,
+    addons: [
+      {
+        id: "campanha",
+        label: "Campanha",
+        kind: "FIXED",
+        value: 1000,
+        maxChildren: 1,
+        children: [
+          { id: "ato-1", label: "Ato 1", kind: "FIXED", value: 200 },
+          { id: "ato-2", label: "Ato 2", kind: "FIXED", value: 300 },
+        ],
+      },
+      { id: "mapas", label: "Mapas", kind: "FIXED", value: 500 },
+      { id: "chefes", label: "Chefes", kind: "FIXED", value: 700 },
+    ],
+  };
+
+  it("no limite (máximo 2) o terceiro é ignorado", () => {
+    expect(toggleAddon(pricing, ["campanha", "mapas"], "chefes")).toEqual(["campanha", "mapas"]);
+    expect(toggleAddon(pricing, ["mapas"], "chefes")).toEqual(["mapas", "chefes"]);
+  });
+
+  it("máximo 1 TROCA a escolha (subserviço)", () => {
+    expect(toggleAddon(pricing, ["campanha", "ato-1"], "ato-2")).toEqual(["campanha", "ato-2"]);
+  });
+
+  it("máximo 1 de serviços troca e leva junto os subserviços do antigo", () => {
+    const one = { ...pricing, maxAddons: 1 };
+    expect(toggleAddon(one, ["campanha", "ato-1"], "mapas")).toEqual(["mapas"]);
+  });
+
+  it("caixinha do serviço com subserviços: marcar abre (entra na escolha); desmarcar tira os subserviços", () => {
+    expect(toggleAddon(pricing, ["mapas"], "campanha")).toEqual(["mapas", "campanha"]);
+    expect(toggleAddon(pricing, ["campanha", "ato-1", "mapas"], "campanha")).toEqual(["mapas"]);
+  });
+
+  it("subserviço sem o serviço marcado é ignorado; desmarcar o último mantém o serviço", () => {
+    expect(toggleAddon(pricing, ["mapas"], "ato-1")).toEqual(["mapas"]);
+    expect(toggleAddon(pricing, ["campanha", "ato-1"], "ato-1")).toEqual(["campanha"]);
+  });
+
+  it("no limite de serviços (máx 2), marcar outro serviço é ignorado", () => {
+    expect(toggleAddon(pricing, ["mapas", "chefes"], "campanha")).toEqual(["mapas", "chefes"]);
+  });
+
+  it("atLimit só apaga os outros com máximo acima de 1", () => {
+    expect(atLimit(2, 2)).toBe(true);
+    expect(atLimit(1, 1)).toBe(false);
+    expect(atLimit(5, undefined)).toBe(false);
   });
 });

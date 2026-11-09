@@ -71,8 +71,10 @@ describe("createProductAction", () => {
   it.each([
     ["sem jogo", { gameId: "" }],
     ["nome curto", { name: "x" }],
-    ["preço zero", { priceCents: "0" }],
-    ["preço fracionado", { priceCents: "10.5" }],
+    // Preço 0 passa daqui (2026-11-09): só vale em aba Serviço, e quem sabe a aba é o backend.
+    ["preço negativo", { priceCents: "-1" }],
+    // Até 2 casas em centavos (R$ 0,105 = 10.5); 3 casas é inválido.
+    ["preço com 3 casas em centavos", { priceCents: "10.555" }],
     ["preço acima do teto", { priceCents: "2000000001" }],
     ["preço não numérico", { priceCents: "abc" }],
     ["sem aba", { tabId: "" }],
@@ -135,6 +137,13 @@ describe("createProductAction", () => {
     expect(result).toMatchObject(expected);
     expect(JSON.stringify(result)).not.toContain("eco");
     expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("preço 0 (2026-11-09): passa para a API; recusado, diz que só vale em Serviço", async () => {
+    post.mockResolvedValue(apiFail(400, "eco"));
+    const result = await createProductAction(productForm({ priceCents: "0" }));
+    expect(post).toHaveBeenCalled();
+    expect(result).toMatchObject({ ok: false, reason: "invalid", message: expect.stringContaining("Serviço") });
   });
 });
 
@@ -473,7 +482,7 @@ describe("saveProductPricesAction", () => {
     ["lista vazia", []],
     ["acima de 300", Array.from({ length: 301 }, (_, i) => ({ id: `p${i}`, priceCents: 1, expectedPriceCents: 1 }))],
     ["preço zero", [{ id: "a", priceCents: 0, expectedPriceCents: 1 }]],
-    ["preço com fração", [{ id: "a", priceCents: 4.1, expectedPriceCents: 1 }]],
+    ["preço com 3 casas em centavos", [{ id: "a", priceCents: 4.105, expectedPriceCents: 1 }]],
     ["id com barra", [{ id: "../x", priceCents: 1, expectedPriceCents: 1 }]],
   ])("lista inválida (%s) → recusa sem API", async (_l, list) => {
     role.mockResolvedValue("ADMIN");

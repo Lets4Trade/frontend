@@ -24,11 +24,16 @@ describe("parsePriceInput", () => {
     ["99.999,99", 9999999],
     ["0,29", 29],
     [" 15.936,00 ", 1593600],
+    // Até 4 casas em reais (2026-11-09).
+    ["0,035", 3.5],
+    ["4,105", 410.5],
+    ["0.035", 3.5],
+    ["0,0035", 0.35],
   ])("%s → %i centavos", (raw, cents) => {
     expect(parsePriceInput(raw)).toBe(cents);
   });
 
-  it.each(["", "abc", "4,105", "-4", "0", "0,00", "4,,1", "20000000,01"])("%s é inválido", (raw) => {
+  it.each(["", "abc", "4,10555", "-4", "0", "0,00", "4,,1", "20000000,01"])("%s é inválido", (raw) => {
     expect(parsePriceInput(raw)).toBeNull();
   });
 

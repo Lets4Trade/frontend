@@ -1,5 +1,6 @@
 import { formatQuantity } from "@/features/game/configurator";
 import { giftFor, MAX_GIFT_LABEL, MAX_GIFT_TOTAL, type GiftResult, type GiftRule } from "@/features/pricing/gift";
+import { lineTotalCents } from "@/features/pricing/quote";
 
 /**
  * Brinde por jogo (2026-10-12) — a parte PURA do lado da loja: a regra como a
@@ -108,7 +109,7 @@ export function cartGifts(
   items.forEach((item, index) => {
     const rule = bySlug.get(item.gameSlug);
     if (!rule) return;
-    const line = Math.max(0, item.unitPriceCents * item.quantity - (discountCents[index] ?? 0));
+    const line = Math.max(0, lineTotalCents(item.unitPriceCents, item.quantity) - (discountCents[index] ?? 0));
     const group = groups.get(item.gameSlug) ?? { rule, paid: 0, servers: [] };
     group.paid += line;
     if (!group.servers.some((server) => server.label === item.platform)) {

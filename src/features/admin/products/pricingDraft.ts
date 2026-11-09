@@ -38,6 +38,10 @@ export type AddonDraft = {
   /** FIXED: centavos. */
   cents: number;
   extraHours: string;
+  /** Subserviços (2026-11-09). Só no 1º nível; num subserviço fica vazio. */
+  children: AddonDraft[];
+  /** Quantos subserviços o cliente pode marcar, como digitado. Vazio = todos. */
+  maxChildren: string;
 };
 
 export type PricingDraft = {
@@ -64,6 +68,10 @@ export type PricingDraft = {
   bands: BandDraft[];
   baseHours: string;
   addons: AddonDraft[];
+  /** Título da lista de serviços na loja (2026-11-09). Vazio = o padrão do modo. */
+  addonsTitle: string;
+  /** Quantos serviços o cliente pode marcar, como digitado. Vazio = sem limite. */
+  maxAddons: string;
 };
 
 export const PRICING_MODES: readonly { value: PricingMode; label: string; hint: string }[] = [
@@ -102,6 +110,35 @@ export function emptyDraft(mode: PricingMode = "FIXED"): PricingDraft {
     bands: mode === "LEVEL_RANGE" ? [{ key: newKey(), from: "1", to: "100", pricePerLevelCents: 0, hoursPerLevel: "0" }] : [],
     baseHours: "",
     addons: [],
+    addonsTitle: "",
+    maxAddons: "",
+  };
+}
+
+/** Serviço/subserviço novo, vazio (percentual, como antes). */
+export function emptyAddon(): AddonDraft {
+  return { key: newKey(), id: null, label: "", kind: "PERCENT", percent: "", cents: 0, extraHours: "", children: [], maxChildren: "" };
+}
+
+function addonToDraft(addon: {
+  id: string;
+  label: string;
+  kind: "PERCENT" | "FIXED";
+  value: number;
+  extraHours?: number;
+  children?: { id: string; label: string; kind: "PERCENT" | "FIXED"; value: number; extraHours?: number }[];
+  maxChildren?: number;
+}): AddonDraft {
+  return {
+    key: newKey(),
+    id: addon.id,
+    label: addon.label,
+    kind: addon.kind,
+    percent: addon.kind === "PERCENT" ? String(addon.value) : "",
+    cents: addon.kind === "FIXED" ? addon.value : 0,
+    extraHours: numText(addon.extraHours),
+    children: (addon.children ?? []).map((child) => addonToDraft(child)),
+    maxChildren: addon.maxChildren ? String(addon.maxChildren) : "",
   };
 }
 
@@ -110,15 +147,9 @@ export function pricingToDraft(pricing: Pricing | null | undefined): PricingDraf
   if (!pricing) return emptyDraft("FIXED");
   const draft = emptyDraft(pricing.mode);
   draft.baseHours = numText(pricing.baseHours);
-  draft.addons = (pricing.addons ?? []).map((addon) => ({
-    key: newKey(),
-    id: addon.id,
-    label: addon.label,
-    kind: addon.kind,
-    percent: addon.kind === "PERCENT" ? String(addon.value) : "",
-    cents: addon.kind === "FIXED" ? addon.value : 0,
-    extraHours: numText(addon.extraHours),
-  }));
+  draft.addons = (pricing.addons ?? []).map((addon) => addonToDraft(addon));
+  draft.addonsTitle = pricing.addonsTitle ?? "";
+  draft.maxAddons = pricing.maxAddons ? String(pricing.maxAddons) : "";
   if (pricing.mode === "QUANTITY") {
     draft.unitLabel = pricing.unitLabel;
     draft.min = String(pricing.min);
@@ -151,14 +182,37 @@ export function pricingToDraft(pricing: Pricing | null | undefined): PricingDraf
 }
 
 /**
+ * Sobe (`-1`) ou desce (`+1`) a linha `index` de uma lista (faixas de nível e
+ * adicionais, 2026-11-09: "preciso colocar outro valor num nível intermediário
+ * e só consigo na última linha"). Fora dos limites devolve a MESMA lista.
+ */
+export function moveItem<T>(list: readonly T[], index: number, delta: -1 | 1): T[] {
+  const target = index + delta;
+  if (index < 0 || index >= list.length || target < 0 || target >= list.length) return [...list];
+  const next = [...list];
+  [next[index], next[target]] = [next[target], next[index]];
+  return next;
+}
+
+/**
  * Id do adicional: o GRAVADO quando existe (carrinhos abertos e pedidos citam
  * o id — renomear o rótulo não pode quebrá-los), senão derivado do rótulo.
  * Repetidos ganham sufixo `-2`, `-3`.
  */
 export function addonIds(addons: readonly Pick<AddonDraft, "id" | "label">[]): string[] {
+  return addonIdTree(addons).parents;
+}
+
+/**
+ * Ids de serviços E subserviços (2026-11-09), únicos entre todos — a escolha do
+ * cliente é uma lista só. Mesma regra: o gravado vence, senão sai do rótulo.
+ */
+export function addonIdTree(
+  addons: readonly (Pick<AddonDraft, "id" | "label"> & { children?: readonly Pick<AddonDraft, "id" | "label">[] })[],
+): { parents: string[]; children: string[][] } {
   const used = new Set<string>();
-  return addons.map((addon, index) => {
-    const base = addon.id ?? (slugify(addon.label).slice(0, 36) || `adicional-${index + 1}`);
+  const take = (addon: Pick<AddonDraft, "id" | "label">, fallback: string) => {
+    const base = addon.id ?? (slugify(addon.label).slice(0, 36) || fallback);
     let id = base;
     let n = 2;
     while (used.has(id)) {
@@ -167,7 +221,25 @@ export function addonIds(addons: readonly Pick<AddonDraft, "id" | "label">[]): s
     }
     used.add(id);
     return id;
+  };
+  // Os GRAVADOS primeiro: um novo nunca pode roubar o id de um salvo.
+  for (const addon of addons) {
+    if (addon.id) used.add(addon.id);
+    for (const child of addon.children ?? []) if (child.id) used.add(child.id);
+  }
+  const parents: string[] = [];
+  const children: string[][] = [];
+  addons.forEach((addon, index) => {
+    if (addon.id) used.delete(addon.id);
+    parents.push(take(addon, `adicional-${index + 1}`));
+    children.push(
+      (addon.children ?? []).map((child, childIndex) => {
+        if (child.id) used.delete(child.id);
+        return take(child, `${parents[index]}-sub-${childIndex + 1}`.slice(0, 40));
+      }),
+    );
   });
+  return { parents, children };
 }
 
 /**
@@ -177,16 +249,25 @@ export function addonIds(addons: readonly Pick<AddonDraft, "id" | "label">[]): s
 export function draftToPricing(
   draft: PricingDraft,
 ): { ok: true; pricing: Pricing } | { ok: false; message: string } {
-  const ids = addonIds(draft.addons);
-  const addons = draft.addons.map((addon, index) => ({
-    id: ids[index],
+  const ids = addonIdTree(draft.addons);
+  const toAddon = (addon: AddonDraft, id: string) => ({
+    id,
     label: addon.label.trim(),
     kind: addon.kind,
     value: addon.kind === "PERCENT" ? toInt(addon.percent) : addon.cents,
     ...(addon.extraHours.trim() === "" ? {} : { extraHours: toNumber(addon.extraHours) }),
+  });
+  const addons = draft.addons.map((addon, index) => ({
+    ...toAddon(addon, ids.parents[index]),
+    ...(addon.children.length > 0
+      ? { children: addon.children.map((child, childIndex) => toAddon(child, ids.children[index][childIndex])) }
+      : {}),
+    ...(addon.children.length > 0 && addon.maxChildren.trim() !== "" ? { maxChildren: toInt(addon.maxChildren) } : {}),
   }));
   const common = {
     ...(addons.length > 0 ? { addons } : {}),
+    ...(draft.addonsTitle.trim() === "" ? {} : { addonsTitle: draft.addonsTitle.trim() }),
+    ...(addons.length > 0 && draft.maxAddons.trim() !== "" ? { maxAddons: toInt(draft.maxAddons) } : {}),
     ...(draft.baseHours.trim() === "" ? {} : { baseHours: toNumber(draft.baseHours) }),
   };
 
@@ -249,6 +330,10 @@ const FIELD_NAMES: Record<string, string> = {
   tiers: "Faixas de quantidade",
   bands: "Faixas de nível",
   addons: "Adicionais",
+  addonsTitle: "Título da lista",
+  maxAddons: "Máximo de serviços",
+  maxChildren: "Máximo de subserviços",
+  children: "Subserviços",
 };
 
 /**

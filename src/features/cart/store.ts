@@ -6,6 +6,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Selection } from "@/features/pricing/quote";
 import { cartLineId } from "./lineId";
+import { lineTotalCents } from "@/features/pricing/quote";
 
 /**
  * Carrinho (Figma 2501:3626).
@@ -194,7 +195,7 @@ export function useCartHydrated() {
 
 /** Soma das linhas, em centavos. */
 export function subtotalCents(items: CartItem[]) {
-  return items.reduce((total, line) => total + line.unitPriceCents * line.quantity, 0);
+  return items.reduce((total, line) => total + lineTotalCents(line.unitPriceCents, line.quantity), 0);
 }
 
 /** Quantidade total de unidades — o número da bolinha do cabeçalho. */
@@ -206,6 +207,8 @@ export function formatCents(cents: number) {
   return (cents / 100).toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
+    // Unitário com fração de centavo (2026-11-09); totais são inteiros (2 casas).
+    maximumFractionDigits: 4,
   });
 }
 

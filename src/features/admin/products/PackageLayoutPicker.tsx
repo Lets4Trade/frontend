@@ -41,7 +41,7 @@ export function PackageLayoutPicker({
     if (mode === draft.mode) return;
     // Mesma regra do editor: trocar de modo mantém horas base e adicionais.
     const fresh = emptyDraft(mode);
-    onChange({ ...fresh, baseHours: draft.baseHours, addons: draft.addons });
+    onChange({ ...fresh, baseHours: draft.baseHours, addons: draft.addons, addonsTitle: draft.addonsTitle, maxAddons: draft.maxAddons });
   }
 
   return (

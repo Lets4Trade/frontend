@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { pricingSchema, quantityDiscountPercent, quote, type Pricing } from "./quote";
+import {
+  addonsTitle,
+  isPriceCents,
+  lineTotalCents,
+  MAX_PRICE_CENTS,
+  priceCentsToPoints,
+  pricingSchema,
+  quantityDiscountPercent,
+  quote,
+  type Pricing,
+} from "./quote";
 
 const LEVELS: Pricing = {
   mode: "LEVEL_RANGE",
@@ -243,5 +253,133 @@ describe("quote — desconto por quantidade (2026-10-27)", () => {
     expect(withDiscounts([{ from: 100, percent: 3 }, { from: 100, percent: 5 }])).toBe(false);
     expect(withDiscounts([{ from: 2000, percent: 5 }])).toBe(false);
     expect(withDiscounts([{ from: 100, percent: 3 }])).toBe(true);
+  });
+});
+
+describe("preço com fração de centavo e base 0 (2026-11-09)", () => {
+  const QTY: Pricing = { mode: "QUANTITY", unitLabel: "Gold", min: 1, max: 100_000, step: 1 };
+
+  it("isPriceCents: até 2 casas em centavos, sem negativo nem acima do teto", () => {
+    expect(isPriceCents(0)).toBe(true);
+    expect(isPriceCents(3.5)).toBe(true);
+    expect(isPriceCents(3.51)).toBe(true);
+    expect(isPriceCents(3.512)).toBe(false);
+    expect(isPriceCents(-1)).toBe(false);
+    expect(isPriceCents(MAX_PRICE_CENTS + 1)).toBe(false);
+    expect(priceCentsToPoints(3.51)).toBe(351);
+  });
+
+  it("linha de catálogo desce ao centavo: R$ 0,035 × 3 = R$ 0,105 → R$ 0,10", () => {
+    expect(lineTotalCents(3.5, 3)).toBe(10);
+    expect(lineTotalCents(3.5, 1)).toBe(3);
+    // Preço inteiro: igual a antes.
+    expect(lineTotalCents(1290, 3)).toBe(3870);
+    // R$ 10,9256 → R$ 10,92 (o exemplo do pedido).
+    expect(lineTotalCents(1092.56, 1)).toBe(1092);
+    expect(lineTotalCents(3.5, 0)).toBe(0);
+  });
+
+  it("quantidade com unitário de R$ 0,035: total para baixo, linha com a fração", () => {
+    const result = quote(3.5, QTY, { quantity: 1001 });
+    // 1001 × 0,035 = R$ 35,035 → R$ 35,03.
+    expect(result).toMatchObject({ ok: true, totalCents: 3503 });
+    if (result.ok) expect(result.lines[0].cents).toBeCloseTo(3503.5, 6);
+  });
+
+  it("total abaixo de R$ 0,01 é recusado", () => {
+    expect(quote(0.5, QTY, { quantity: 1 })).toMatchObject({ ok: false });
+  });
+
+  it("base 0 em faixa de nível: o preço vem das faixas", () => {
+    const levels: Pricing = {
+      mode: "LEVEL_RANGE",
+      unitLabel: "Nível",
+      min: 1,
+      max: 10,
+      bands: [{ from: 1, to: 10, pricePerLevelCents: 100, hoursPerLevel: 1 }],
+    };
+    expect(quote(0, levels, { levelFrom: 1, levelTo: 4 })).toMatchObject({ ok: true, totalCents: 300 });
+  });
+
+  it("base 0 em preço fixo sem adicional: sem preço; com adicional em R$, cobra o adicional", () => {
+    const fixed: Pricing = {
+      mode: "FIXED",
+      addons: [{ id: "prio", label: "Prioridade", kind: "FIXED", value: 500 }],
+    };
+    expect(quote(0, fixed, {})).toMatchObject({ ok: false });
+    expect(quote(0, fixed, { addonIds: ["prio"] })).toMatchObject({ ok: true, totalCents: 500 });
+  });
+
+  it("preço base inválido (3 casas em centavos ou negativo) é recusado", () => {
+    expect(quote(3.512, QTY, { quantity: 1 })).toMatchObject({ ok: false });
+    expect(quote(-1, QTY, { quantity: 1 })).toMatchObject({ ok: false });
+  });
+});
+
+describe("serviços: título, limite e subserviços (2026-11-09)", () => {
+  const services: Pricing = {
+    mode: "FIXED",
+    addonsTitle: "Escolha suas campanhas:",
+    maxAddons: 2,
+    addons: [
+      {
+        id: "campanha",
+        label: "Campanha",
+        kind: "FIXED",
+        value: 1000,
+        maxChildren: 1,
+        children: [
+          { id: "ato-1", label: "Ato 1", kind: "FIXED", value: 200 },
+          { id: "ato-2", label: "Ato 2", kind: "FIXED", value: 300 },
+        ],
+      },
+      { id: "mapas", label: "Mapas", kind: "FIXED", value: 500 },
+      { id: "chefes", label: "Chefes", kind: "FIXED", value: 700 },
+    ],
+  };
+
+  it("título do painel e padrão por modo", () => {
+    expect(addonsTitle(services)).toBe("Escolha suas campanhas:");
+    expect(addonsTitle({ mode: "FIXED" })).toBe("Selecionar serviços:");
+    expect(addonsTitle({ mode: "QUANTITY" })).toBe("Adicionais:");
+  });
+
+  it("serviço + subserviço somam, e a linha mostra o caminho", () => {
+    const result = quote(0, services, { addonIds: ["ato-2", "campanha"] });
+    expect(result).toMatchObject({ ok: true, totalCents: 1300 });
+    if (result.ok) {
+      expect(result.selection.addonIds).toEqual(["campanha", "ato-2"]);
+      expect(result.lines.map((line) => line.label)).toEqual(["Serviço", "Campanha", "Campanha › Ato 2"]);
+    }
+  });
+
+  it("recusa mais serviços que o limite", () => {
+    expect(quote(0, services, { addonIds: ["campanha", "mapas", "chefes"] })).toMatchObject({ ok: false });
+    expect(quote(0, services, { addonIds: ["mapas", "chefes"] })).toMatchObject({ ok: true, totalCents: 1200 });
+  });
+
+  it("recusa mais subserviços que o limite do serviço, e subserviço sem o serviço", () => {
+    expect(quote(0, services, { addonIds: ["campanha", "ato-1", "ato-2"] })).toMatchObject({ ok: false });
+    expect(quote(0, services, { addonIds: ["ato-1"] })).toMatchObject({ ok: false });
+  });
+
+  it("id repetido entre serviço e subserviço é recusado no schema", () => {
+    const bad = {
+      mode: "FIXED",
+      addons: [
+        { id: "x", label: "X", kind: "FIXED", value: 1, children: [{ id: "x", label: "Y", kind: "FIXED", value: 1 }] },
+      ],
+    };
+    expect(pricingSchema.safeParse(bad).success).toBe(false);
+  });
+
+  it("subserviço em R$ negativo é recusado; limite fora de 1..20 também", () => {
+    const negative = {
+      mode: "FIXED",
+      addons: [{ id: "a", label: "A", kind: "FIXED", value: 1, children: [{ id: "b", label: "B", kind: "FIXED", value: -1 }] }],
+    };
+    expect(pricingSchema.safeParse(negative).success).toBe(false);
+    expect(pricingSchema.safeParse({ mode: "FIXED", maxAddons: 0 }).success).toBe(false);
+    expect(pricingSchema.safeParse({ mode: "FIXED", maxAddons: 21 }).success).toBe(false);
   });
 });

@@ -17,6 +17,8 @@ export const TITLE_MAX = 160;
 export const EXCERPT_MAX = 400;
 export const BODY_MAX = 50_000;
 export const SLUG_MAX = 120;
+/** "Cargo" do autor na matéria (2026-11-09) — o mesmo teto do backend. */
+export const AUTHOR_TITLE_MAX = 80;
 
 /** Capa: mesmo teto e formatos do upload de jogo/produto. */
 export const MAX_COVER_BYTES = 5 * 1024 * 1024;
@@ -52,6 +54,11 @@ export const blogPostSchema = z.object({
   gameId: z.string().trim().refine((value) => value === "" || ID_RE.test(value), {
     message: "Escolha um jogo da lista.",
   }),
+  // Vazio = sem cargo (só foto e nome na matéria).
+  authorTitle: z
+    .string()
+    .trim()
+    .max(AUTHOR_TITLE_MAX, `O cargo pode ter no máximo ${AUTHOR_TITLE_MAX} caracteres.`),
   isPublished: z.boolean(),
   // ISO já convertido no NAVEGADOR (o `datetime-local` não tem fuso; convertido
   // no servidor, que roda em UTC, a hora sairia deslocada em 3h).
@@ -77,6 +84,7 @@ export function readBlogForm(form: FormData) {
     excerpt: text(form, "excerpt"),
     body: text(form, "body").replace(/\r\n?/g, "\n"),
     gameId: gameId === NO_GAME ? "" : gameId,
+    authorTitle: text(form, "authorTitle"),
     isPublished: text(form, "isPublished") === "true",
     publishedAt: text(form, "publishedAt"),
   };

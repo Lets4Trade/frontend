@@ -23,7 +23,10 @@ export function newsArticleJsonLd(post: BlogArticleView) {
     mainEntityOfPage: { "@type": "WebPage", "@id": url },
     url,
     ...(post.game ? { about: { "@type": "VideoGame", name: post.game.name } } : {}),
-    author: { "@type": "Organization", name: "Lets4Trade", url: siteOrigin() },
+    // Autor real quando a matéria tem um (2026-11-09); senão, a loja.
+    author: post.author
+      ? { "@type": "Person", name: post.author.name, ...(post.author.title ? { jobTitle: post.author.title } : {}) }
+      : { "@type": "Organization", name: "Lets4Trade", url: siteOrigin() },
     publisher: { "@type": "Organization", name: "Lets4Trade", url: siteOrigin() },
   };
 }

@@ -12,6 +12,7 @@ const post: BlogArticleView = {
   game: { slug: "d4", name: "Diablo IV", logo: null },
   href: "/blog/x",
   body: "",
+  author: null,
   related: [],
 };
 

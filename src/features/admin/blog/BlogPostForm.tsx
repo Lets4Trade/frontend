@@ -12,12 +12,14 @@ import { TextField } from "@/components/ui/TextField";
 import { toastOk } from "@/components/ui/Toasts";
 import { AdminFieldGrid, AdminFormActions } from "@/features/admin/AdminFormCard";
 import { MarkdownTextArea } from "@/features/admin/MarkdownTextArea";
+import { accountAvatar } from "@/features/account/gender";
 import { Markdown } from "@/features/pages/blocks/markdown";
 import { ACTION_FAILED_UPLOAD_MESSAGE, runAction } from "@/lib/safeAction";
 import { slugify, slugifyDraft } from "@/lib/slugify";
 import { createBlogPostAction, updateBlogPostAction, type BlogActionResult } from "./actions";
 import {
   ACCEPTED_COVER_TYPES,
+  AUTHOR_TITLE_MAX,
   BODY_MAX,
   EXCERPT_MAX,
   isoToLocalInput,
@@ -42,6 +44,11 @@ export type BlogFormPost = {
   gameId: string;
   isPublished: boolean;
   publishedAt: string;
+  /** Cargo do autor (2026-11-09). */
+  authorTitle?: string;
+  /** Quem criou o post; ausente/vazio num post novo = quem está criando. */
+  authorName?: string;
+  authorAvatar?: string | null;
 };
 
 /**
@@ -75,6 +82,7 @@ export function BlogPostForm({
   const shownSlug = slugTouched ? slug : slugify(title);
 
   const [excerpt, setExcerpt] = useState(post?.excerpt ?? "");
+  const [authorTitle, setAuthorTitle] = useState(post?.authorTitle ?? "");
   const [body, setBody] = useState(post?.body ?? "");
   const [isPublished, setIsPublished] = useState(post?.isPublished ?? false);
   const [publishedAt, setPublishedAt] = useState(post?.publishedAt ? isoToLocalInput(post.publishedAt) : "");
@@ -284,6 +292,33 @@ export function BlogPostForm({
         </p>
       </div>
 
+      {/* Autor da matéria (2026-11-09): foto e nome de quem CRIOU o post, e o
+          cargo escrito aqui — a matéria mostra os três abaixo do título. */}
+      <div className="mt-[30px] flex max-w-[1410px] flex-wrap items-end gap-[20px]">
+        <div className="flex items-center gap-[12px] pb-[4px]">
+          <span className="relative size-[48px] shrink-0 overflow-hidden rounded-full border-2 border-brand-orange bg-[#0a0a0a]">
+            <Image src={accountAvatar(post?.authorAvatar ?? null, null)} alt="" fill sizes="48px" className="object-cover" />
+          </span>
+          <div className="flex flex-col">
+            <span className="font-poppins text-[12px] text-brand-fg-subtle">Autor</span>
+            <span className="font-poppins text-[15px] font-semibold text-white">
+              {post?.authorName || (post ? "Sem autor" : "Você (quem cria a notícia)")}
+            </span>
+          </div>
+        </div>
+        <div className="w-full max-w-[420px]">
+          <TextField
+            label="Cargo do autor (opcional)"
+            name="authorTitle"
+            placeholder="Ex.: Especialista em Diablo"
+            maxLength={AUTHOR_TITLE_MAX}
+            error={errors.authorTitle}
+            value={authorTitle}
+            onChange={(event) => setAuthorTitle(event.target.value)}
+          />
+        </div>
+      </div>
+
       <div className="mt-[30px] grid max-w-[1410px] grid-cols-1 gap-[30px] xl:grid-cols-2">
         <div>
           {/* Barra de formatação + imagem do Imgur no meio do texto (2026-10-16). */}
@@ -297,10 +332,12 @@ export function BlogPostForm({
             onChange={setBody}
             className="h-[460px] resize-y font-mono text-[14px]"
             imageLinks
+            videoLinks
           />
           <p className="mt-[6px] pl-[10px] font-helvetica text-[12px] leading-[18px] text-brand-fg-subtle">
             Aceita: ## título · ### subtítulo · **negrito** · *itálico* · - lista · 1. lista · [texto](https://…
-            ou /caminho) · ![legenda](https://i.imgur.com/….png) numa linha só. Qualquer outra coisa sai como texto.
+            ou /caminho) · ![legenda](https://i.imgur.com/….png) numa linha só · link do YouTube numa linha só (vira
+            player). Qualquer outra coisa sai como texto.
           </p>
         </div>
 
@@ -308,7 +345,7 @@ export function BlogPostForm({
           <p className="pl-[25px] font-poppins text-[16px] font-medium tracking-[0.16px] text-white">Prévia</p>
           <div className="scrollbar-orange mt-[12px] flex h-[460px] flex-col gap-[16px] overflow-y-auto rounded-[16px] border-2 border-white/10 bg-black/40 p-[20px]">
             {body.trim() ? (
-              <Markdown source={body} images />
+              <Markdown source={body} images videos />
             ) : (
               <p className="font-helvetica text-[14px] text-brand-fg-subtle">A prévia aparece aqui enquanto você escreve.</p>
             )}

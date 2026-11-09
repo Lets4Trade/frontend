@@ -7,7 +7,7 @@ import { cn } from "@/lib/cn";
 import { GiftEditor } from "../gifts/GiftEditor";
 import type { AdminGift } from "../gifts/types";
 import { NEW_TAB, centralHref, pickCentralTab, type CentralQuery } from "./central";
-import { categoriesOnStore, productGrid, storePageMap } from "./centralView";
+import { categoriesOnStore, productGrid } from "./centralView";
 import { GameEditForm } from "./GameEditForm";
 import { ReactivateProductButton } from "./ReactivateProductButton";
 import { NewTabPanel, TabDetailPanel } from "./tabs/GameTabsEditor";
@@ -21,7 +21,7 @@ import { hasTabContent, isProductTab, type GameTab, type ScopedCategoryRow } fro
  * components: cada uma lê só o que desenha, e só quando está aberta.
  */
 
-const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 4 });
 
 // ── Visão geral ─────────────────────────────────────────────────────────────
 
@@ -72,67 +72,6 @@ export function GiftSection({
           Não foi possível ler o brinde deste jogo. Recarregue a página.
         </p>
       )}
-    </section>
-  );
-}
-
-// ── Página da loja ──────────────────────────────────────────────────────────
-
-/**
- * O MAPA da página do jogo (revisão 2026-10-01): as partes na ordem em que o
- * cliente as vê, cada uma com o link para onde se edita. O conteúdo vive em
- * quatro telas; daqui a pessoa não precisa saber qual é qual.
- */
-export function StorePageSection({ game }: { game: BuilderGame }) {
-  const parts = storePageMap(game);
-  return (
-    <section aria-labelledby="pagina-titulo">
-      <div className="flex flex-wrap items-end justify-between gap-[12px]">
-        <div>
-          <SectionTitle id="pagina-titulo">Página da loja</SectionTitle>
-          <p className="mt-[8px] font-poppins text-[13px] text-brand-fg-subtle">
-            A página do jogo de cima para baixo, como o cliente vê. Clique no que quer mudar.
-          </p>
-        </div>
-        <Link
-          href={`/games/${encodeURIComponent(game.slug)}`}
-          target="_blank"
-          rel="noopener"
-          className="font-poppins text-[14px] font-bold text-brand-orange transition-opacity hover:opacity-80"
-        >
-          Ver na loja ↗
-        </Link>
-      </div>
-      <ol className="mt-[20px] flex flex-col gap-[10px]">
-        {parts.map((part, index) => (
-          <li
-            key={part.title}
-            className="flex flex-wrap items-center gap-x-[20px] gap-y-[10px] rounded-[16px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[20px] py-[16px]"
-          >
-            <span
-              aria-hidden
-              className="flex size-[30px] shrink-0 items-center justify-center rounded-full border border-white/15 font-poppins text-[13px] font-bold text-white/70"
-            >
-              {index + 1}
-            </span>
-            <div className="min-w-[200px] flex-1">
-              <p className="font-poppins text-[15px] font-bold text-white">{part.title}</p>
-              <p className="mt-[2px] font-poppins text-[12px] text-brand-fg-subtle">{part.hint}</p>
-            </div>
-            <div className="flex flex-wrap gap-[8px]">
-              {part.links.map((link) => (
-                <Link
-                  key={link.label}
-                  href={link.href}
-                  className="flex h-[36px] items-center rounded-full border border-white/15 px-[14px] font-poppins text-[12px] font-bold text-white transition-colors hover:border-brand-orange/60"
-                >
-                  {link.label} →
-                </Link>
-              ))}
-            </div>
-          </li>
-        ))}
-      </ol>
     </section>
   );
 }

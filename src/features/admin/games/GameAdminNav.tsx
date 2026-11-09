@@ -24,8 +24,8 @@ export function GameAdminNav({
   showExtras = true,
 }: {
   game: { id: string; slug: string; name: string };
-  /** Seção aberta; `null` fora da Central (no Builder). */
-  active: CentralSection | null;
+  /** Seção aberta; `"builder"` no Builder de Página; `null` em outra tela. */
+  active: CentralSection | "builder" | null;
   canManage?: boolean;
   /** Seção Brinde (promoção, só ADMIN). */
   canGift?: boolean;

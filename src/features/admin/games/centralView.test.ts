@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { categoriesOnStore, productGrid, storePageMap, tabWarnings } from "./centralView";
+import { categoriesOnStore, productGrid, tabWarnings } from "./centralView";
 
 describe("tabWarnings", () => {
   const base = { isActive: true, layout: "CATALOG" as const, productCount: 3, linkHref: null, content: null };
@@ -81,26 +81,6 @@ describe("productGrid", () => {
   it("API antiga sem serverId casa pelo rótulo", () => {
     const legacy = [{ id: "a", name: "X", serverLabel: "HC", priceCents: 1 }];
     expect(productGrid(legacy, servers).rows[0].cells.map((cell) => cell.length)).toEqual([0, 1]);
-  });
-});
-
-describe("storePageMap", () => {
-  it("segue a ordem da loja e leva cada parte ao editor certo", () => {
-    const map = storePageMap({ id: "g 1" });
-    expect(map.map((part) => part.title)).toEqual([
-      "Banner principal",
-      "Logo, título e abas",
-      "Selecionar servidor",
-      "Selecionar categoria",
-      "Lista de produtos",
-      "Descrição",
-      "Referências, notícias e dúvidas",
-      "Ordem e blocos extras",
-    ]);
-    expect(map[0].links[0].href).toBe("/admin/builder/g%201?etapa=banner");
-    expect(map[2].links[0].href).toContain("secao=visao-geral");
-    // Nenhum nome interno de tela no que a pessoa lê.
-    expect(JSON.stringify(map)).not.toMatch(/etapa \d|Builder/);
   });
 });
 

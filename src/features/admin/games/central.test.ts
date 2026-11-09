@@ -38,7 +38,9 @@ describe("parseCentralQuery", () => {
       tabId: "t1",
       serverId: "s1",
     });
-    expect(parseCentralQuery({ secao: ["pagina", "abas"] }).section).toBe("pagina");
+    expect(parseCentralQuery({ secao: ["descricao", "abas"] }).section).toBe("descricao");
+    // "pagina" saiu (2026-11-09): a página redireciona para o Builder antes de ler a seção.
+    expect(parseCentralQuery({ secao: "pagina" }).section).toBe("abas");
     expect(parseCentralQuery({ aba: NEW_TAB }).tabId).toBe(NEW_TAB);
   });
 
@@ -134,12 +136,13 @@ describe("isGameFormDirty", () => {
 describe("centralNavLinks", () => {
   const game = { id: "g1", slug: "poe" };
 
-  it("ADMIN: as quatro seções, ← Jogos e a loja", () => {
+  it("ADMIN: as seções (Descrição e Builder de Página no lugar de Página da loja, 2026-11-09), ← Jogos e a loja", () => {
     const { sections, extras } = centralNavLinks(game, true);
     expect(sections.map((link) => link.href)).toEqual([
       "/admin/jogos/g1?secao=visao-geral",
       "/admin/jogos/g1?secao=abas",
-      "/admin/jogos/g1?secao=pagina",
+      "/admin/jogos/g1?secao=descricao",
+      "/admin/builder/g1",
       "/admin/jogos/g1?secao=brinde",
     ]);
     expect(extras.map((link) => link.href)).toEqual(["/admin/jogos", "/games/poe"]);
