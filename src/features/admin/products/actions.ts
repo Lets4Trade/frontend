@@ -367,7 +367,7 @@ export async function saveProductOrderAction(
     typeof gameId !== "string" ||
     !Array.isArray(ids) ||
     ids.length === 0 ||
-    ids.length > 300 ||
+    ids.length > MAX_PRICE_BATCH ||
     !ids.every((id) => typeof id === "string")
   ) {
     return { ok: false, message: "Lista de produtos inválida." };

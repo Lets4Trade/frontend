@@ -336,7 +336,7 @@ describe("saveProductOrderAction", () => {
 
   it.each([
     ["lista vazia", []],
-    ["acima de 300", Array.from({ length: 301 }, (_, i) => `p${i}`)],
+    ["acima de 1000", Array.from({ length: 1001 }, (_, i) => `p${i}`)],
     ["id que não é texto", [1, 2] as unknown as string[]],
   ])("lista inválida (%s) → recusa sem API", async (_l, ids) => {
     expect(await saveProductOrderAction("g1", "tab1", ids)).toEqual({
@@ -480,7 +480,7 @@ describe("saveProductPricesAction", () => {
 
   it.each([
     ["lista vazia", []],
-    ["acima de 300", Array.from({ length: 301 }, (_, i) => ({ id: `p${i}`, priceCents: 1, expectedPriceCents: 1 }))],
+    ["acima de 1000", Array.from({ length: 1001 }, (_, i) => ({ id: `p${i}`, priceCents: 1, expectedPriceCents: 1 }))],
     ["preço zero", [{ id: "a", priceCents: 0, expectedPriceCents: 1 }]],
     ["preço com 3 casas em centavos", [{ id: "a", priceCents: 4.105, expectedPriceCents: 1 }]],
     ["id com barra", [{ id: "../x", priceCents: 1, expectedPriceCents: 1 }]],

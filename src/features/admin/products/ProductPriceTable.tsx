@@ -699,7 +699,7 @@ export function ProductPriceTable({
 }
 
 /**
- * Select de categoria da linha. NATIVO: são até 300 linhas, um popover por
+ * Select de categoria da linha. NATIVO: são até 1000 linhas, um popover por
  * linha pesaria na tela, e o nativo já anda com as setas. Se a categoria
  * gravada não está entre as opções (o escopo mudou depois), ela aparece mesmo
  * assim, marcada, para a linha não fingir "Sem categoria".

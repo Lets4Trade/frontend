@@ -9,8 +9,11 @@ import { MAX_PRICE_CENTS } from "@/features/pricing/quote";
 /** Mesmo teto do `priceCents` do backend (`CreateProductDto`): R$ 20 mi. */
 export { MAX_PRICE_CENTS };
 
-/** Mesmo teto do lote no backend (`MAX_PRICE_BATCH` = uma aba inteira). */
-export const MAX_PRICE_BATCH = 300;
+/**
+ * Mesmo teto do lote no backend (`MAX_PRICE_BATCH` = `MAX_ORDERABLE` = uma aba
+ * inteira). Era 300; a aba Itens do ARC Raiders passou disso (333) em 2026-11-10.
+ */
+export const MAX_PRICE_BATCH = 1000;
 
 /**
  * Variação a partir da qual a linha ganha aviso: um zero a mais ou a menos
