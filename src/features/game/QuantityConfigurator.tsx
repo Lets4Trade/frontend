@@ -7,6 +7,7 @@ import { quantityDiscountPercent, quote, type Pricing } from "@/features/pricing
 import { formatQuantity, initialQuantity, snapQuantity, validPresets } from "./configurator";
 import { formatPrice } from "./content";
 import { DiscountBadge } from "./DiscountBadge";
+import { PriceHighlight } from "./DiscountedPrice";
 import type { ProductContext } from "./ProductCard";
 import { NumberBox, ProductSelect } from "./ServiceConfigurator";
 import type { GameProduct } from "./types";
@@ -95,6 +96,17 @@ function QuantityPanel({
     [product.priceCents, pricing, quantityPricing, quantity],
   );
 
+  // Preço cheio da MESMA escolha (2026-11-11): o `quote` sem o desconto por
+  // quantidade e com o preço de tabela do produto, quando ele tem desconto.
+  // Só serve para riscar ao lado do total — quem cobra é o `result`.
+  const fullCents = useMemo(() => {
+    const listBase =
+      product.listPriceCents && product.listPriceCents > product.priceCents ? product.listPriceCents : product.priceCents;
+    const full = quote(listBase, { ...pricing, discounts: [] } as Pricing, quantityPricing ? { quantity } : {});
+    return full.ok ? full.totalCents : null;
+  }, [product.listPriceCents, product.priceCents, pricing, quantityPricing, quantity]);
+  const hasDiscount = result.ok && fullCents !== null && fullCents > result.totalCents;
+
   const presets = quantityPricing ? validPresets(quantityPricing) : [];
   const unitLabel = quantityPricing?.unitLabel ?? "";
   // Tamanho da unidade (2026-10-23): com 1 unidade = 1Mi, a tela fala em OURO
@@ -109,7 +121,10 @@ function QuantityPanel({
 
   return (
     <div className="flex flex-col gap-[25px] desk:flex-row desk:items-stretch">
-      <section aria-labelledby={`${id}-title`} className={`${PANEL} min-w-0 desk:max-w-[1287px] desk:flex-1`}>
+      <section
+        aria-labelledby={`${id}-title`}
+        className={`${PANEL} flex min-w-0 flex-col desk:max-w-[1287px] desk:flex-1`}
+      >
         {products.length > 1 ? (
           // Mais de um produto no escopo (aba + servidor): o select substitui
           // o título. `h2` escondido mantém o nome da região para leitor de tela.
@@ -227,6 +242,28 @@ function QuantityPanel({
             </p>
           </>
         ) : null}
+
+        {/* Preço no pé do card, ao centro (2026-11-11, pedido do usuário): o
+            total em laranja grande e, com desconto, o cheio riscado ao lado —
+            o mesmo padrão do card de produto. Sem `aria-live`: o card "Preço"
+            já anuncia o total, e anunciar duas vezes só faria barulho. */}
+        {!unavailable && result.ok ? (
+          <p
+            title={hasDiscount ? `De ${formatPrice(fullCents!)} por ${formatPrice(result.totalCents)}` : undefined}
+            className="mt-auto flex flex-wrap items-baseline justify-center gap-x-[12px] pt-[20px] text-center font-poppins font-bold"
+          >
+            {hasDiscount ? (
+              <s className="text-[16px] font-medium text-white/45 decoration-white/60 desk:text-[20px]">
+                <span className="sr-only">De </span>
+                {formatPrice(fullCents!)}
+              </s>
+            ) : null}
+            <PriceHighlight className="text-[28px] leading-[36px] desk:text-[34px] desk:leading-[42px]">
+              {hasDiscount ? <span className="sr-only">por </span> : null}
+              {formatPrice(result.totalCents)}
+            </PriceHighlight>
+          </p>
+        ) : null}
       </section>
 
       {/* Card "Preço" (1666:1640, 403×352). */}
@@ -257,7 +294,7 @@ function QuantityPanel({
               label="Quantidade"
               value={
                 size > 1
-                  ? `${amount(quantity)} ${unitLabel} (${quantity.toLocaleString("pt-BR")} un.)`
+                  ? `${amount(quantity)} ${unitLabel}`
                   : `${formatQuantity(quantity)} ${unitLabel}`
               }
             />

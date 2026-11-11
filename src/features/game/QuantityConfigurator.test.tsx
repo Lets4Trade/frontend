@@ -72,13 +72,43 @@ describe("QuantityConfigurator", () => {
 
     // 5.000 × R$ 0,02
     expect(screen.getByRole("button", { name: "5K" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByText(/R\$\s?100,00/)).toBeInTheDocument();
+    // O total aparece no card "Preço" e no pé do painel (2026-11-11).
+    expect(screen.getAllByText(/R\$\s?100,00/)).toHaveLength(2);
     expect(screen.getByText("5K Gold")).toBeInTheDocument();
 
     // 10.000 × R$ 0,02 — sem desconto por quantidade (2026-10-01), mesmo com faixa salva.
     fireEvent.click(screen.getByRole("button", { name: "10K" }));
     expect(screen.getByRole("button", { name: "10K" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByText(/R\$\s?200,00/)).toBeInTheDocument();
+    expect(screen.getAllByText(/R\$\s?200,00/)).toHaveLength(2);
+    // Sem desconto, nada riscado.
+    expect(document.querySelector("s")).toBeNull();
+  });
+
+  it("com desconto por quantidade: o cheio riscado e o total com desconto no pé do painel", () => {
+    const discounted: GameProduct = {
+      ...gold,
+      pricing: { ...gold.pricing!, discounts: [{ from: 10_000, percent: 10 }] } as GameProduct["pricing"],
+    };
+    render(<QuantityConfigurator products={[discounted]} context={context} emptyMessage="vazio" />);
+    // 5.000: sem faixa de desconto ainda.
+    expect(document.querySelector("s")).toBeNull();
+
+    // 10.000 × R$ 0,02 = R$ 200,00 cheio; −10% = R$ 180,00.
+    fireEvent.click(screen.getByRole("button", { name: "10K" }));
+    expect(document.querySelector("s")).toHaveTextContent(/De R\$\s?200,00/);
+    expect(screen.getAllByText(/R\$\s?180,00/)).toHaveLength(2);
+  });
+
+  it("produto com preço de tabela: risca o cheio da quantidade escolhida", () => {
+    render(
+      <QuantityConfigurator
+        products={[{ ...gold, listPriceCents: 4, discountPercent: 50 }]}
+        context={context}
+        emptyMessage="vazio"
+      />,
+    );
+    // 5.000 × R$ 0,04 = R$ 200,00 cheio; cobrado 5.000 × R$ 0,02 = R$ 100,00.
+    expect(document.querySelector("s")).toHaveTextContent(/R\$\s?200,00/);
   });
 
   it("−/+ andam pelo passo e o campo livre é preso à regra", () => {
