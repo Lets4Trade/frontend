@@ -549,33 +549,42 @@ function AddonList({
             return <AddonRow key={addon.id} addon={addon} on={on} disabled={!on && full} onToggle={() => onToggle(addon.id)} />;
           }
           // Grupo (2026-11-11, pedido do usuário): o serviço com subserviços
-          // vira TÍTULO — sem caixinha e sem preço — com as opções sempre
-          // abertas embaixo, na largura toda e sem recuo.
+          // é a CAIXINHA GRANDE sem preço e os subserviços ficam menores e
+          // recuados embaixo, sempre abertos. A caixinha não é clicável: só
+          // ACENDE quando algum subserviço está marcado (é o grupo que não
+          // cobra — quem entra na conta são os subserviços).
           const children = addon.children ?? [];
           const chosenChildren = (addons.find((item) => item.id === addon.id)?.children ?? []).filter((child) =>
             selected.includes(child.id),
           ).length;
           const headingId = `${id}-${addon.id}`;
           return (
-            <div key={addon.id} role="group" aria-labelledby={headingId} className="mt-[10px] flex flex-col gap-[15px] first:mt-0">
-              <div>
-                <h4 id={headingId} className="font-helvetica text-[17px] leading-[22px] font-bold tracking-[0.17px] break-words text-white">
+            <div key={addon.id} role="group" aria-labelledby={headingId}>
+              <div className="flex items-center gap-[15px]">
+                <AddonBox on={chosenChildren > 0} />
+                <h4
+                  id={headingId}
+                  className="min-w-0 flex-1 font-helvetica text-[16px] leading-[20px] tracking-[0.16px] break-words text-brand-placeholder"
+                >
                   {addon.label}
                 </h4>
-                {addon.maxChildren ? <LimitHint max={addon.maxChildren} chosen={chosenChildren} /> : null}
               </div>
-              {children.map((child) => {
-                const childOn = selected.includes(child.id);
-                return (
-                  <AddonRow
-                    key={child.id}
-                    addon={child}
-                    on={childOn}
-                    disabled={!childOn && atLimit(chosenChildren, addon.maxChildren)}
-                    onToggle={() => onToggle(child.id)}
-                  />
-                );
-              })}
+              <div className="mt-[12px] ml-[16px] flex flex-col gap-[12px] border-l border-white/15 pl-[16px]">
+                {addon.maxChildren ? <LimitHint max={addon.maxChildren} chosen={chosenChildren} /> : null}
+                {children.map((child) => {
+                  const childOn = selected.includes(child.id);
+                  return (
+                    <AddonRow
+                      key={child.id}
+                      addon={child}
+                      on={childOn}
+                      small
+                      disabled={!childOn && atLimit(chosenChildren, addon.maxChildren)}
+                      onToggle={() => onToggle(child.id)}
+                    />
+                  );
+                })}
+              </div>
             </div>
           );
         })}
@@ -609,11 +618,14 @@ function AddonRow({
   addon,
   on,
   disabled,
+  small = false,
   onToggle,
 }: {
   addon: { id: string; label: string; kind: "PERCENT" | "FIXED"; value: number };
   on: boolean;
   disabled: boolean;
+  /** Subserviço dentro de um grupo: caixinha e texto menores. */
+  small?: boolean;
   onToggle: () => void;
 }) {
   // Percentual negativo é DESCONTO (2026-10-09): "− 100%", nunca "+ -100%".
@@ -625,14 +637,9 @@ function AddonRow({
       title={disabled ? "Limite de escolhas atingido: desmarque outro para trocar." : undefined}
     >
       <input type="checkbox" checked={on} disabled={disabled} onChange={onToggle} className="peer sr-only" />
+      <AddonBox on={on} small={small} />
       <span
-        aria-hidden
-        className={`h-[30px] w-[33px] shrink-0 rounded-[8px] border-2 border-white/10 backdrop-blur-[100px] peer-focus-visible:ring-2 peer-focus-visible:ring-brand-orange ${
-          on ? "bg-[image:var(--brand-orange-gradient)]" : "bg-[image:var(--brand-surface-fill)]"
-        }`}
-      />
-      <span
-        className={`min-w-0 flex-1 font-helvetica text-[16px] leading-[20px] tracking-[0.16px] break-words text-brand-placeholder`}
+        className={`min-w-0 flex-1 font-helvetica ${small ? "text-[15px]" : "text-[16px]"} leading-[20px] tracking-[0.16px] break-words text-brand-placeholder`}
       >
         {addon.label}
       </span>
@@ -640,5 +647,21 @@ function AddonRow({
         {suffix}
       </span>
     </label>
+  );
+}
+
+/**
+ * O desenho da caixinha (33×30 no Figma; 26×24 no subserviço). Só desenho: na
+ * linha marcável quem recebe foco é o `<input>` escondido antes dela (o
+ * `peer`); no grupo ela só acende (2026-11-11).
+ */
+function AddonBox({ on, small = false }: { on: boolean; small?: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={`${small ? "h-[24px] w-[26px]" : "h-[30px] w-[33px]"} shrink-0 rounded-[8px] border-2 border-white/10 backdrop-blur-[100px] peer-focus-visible:ring-2 peer-focus-visible:ring-brand-orange ${
+        on ? "bg-[image:var(--brand-orange-gradient)]" : "bg-[image:var(--brand-surface-fill)]"
+      }`}
+    />
   );
 }

@@ -224,8 +224,16 @@ describe("ServiceConfigurator", () => {
     expect(screen.getByRole("group", { name: "Modificações" })).toHaveTextContent("Pente Maior");
     expect(screen.queryByText(/Marque para ver/)).not.toBeInTheDocument();
 
+    // A caixinha grande do grupo não é clicável e só acende com um subitem marcado.
+    const groupBox = () => screen.getByRole("heading", { name: "Modificações" }).previousElementSibling;
+    expect(groupBox()?.className).not.toContain("orange-gradient");
+
     // Marcar uma opção soma só ela: base 10 + Rajada 5.
     fireEvent.click(screen.getByRole("checkbox", { name: /Rajada Carregada/ }));
+    expect(groupBox()?.className).toContain("orange-gradient");
+    expect(screen.getByRole("heading", { name: "Adicionais" }).previousElementSibling?.className).not.toContain(
+      "orange-gradient",
+    );
     expect(screen.getByText(/R\$\s?15,00/)).toBeInTheDocument();
   });
 
