@@ -382,14 +382,27 @@ function ChildAddons({
   const setChildren = (children: AddonDraft[]) => onChange({ children });
   return (
     <div className="ml-[18px] flex flex-col gap-[12px] rounded-[16px] border border-white/10 bg-black/30 p-[14px]">
-      <Mini label={`Máximo de subserviços de “${name}”`}>
-        <TextInput
-          value={parent.maxChildren}
-          numeric
-          placeholder="Todos"
-          onChange={(maxChildren) => onChange({ maxChildren })}
-        />
-      </Mini>
+      <div className="flex flex-wrap items-end gap-[15px]">
+        <Mini label={`Máximo de subserviços de “${name}”`}>
+          <TextInput
+            value={parent.maxChildren}
+            numeric
+            placeholder="Todos"
+            onChange={(maxChildren) => onChange({ maxChildren })}
+          />
+        </Mini>
+        {/* Grupo obrigatório (2026-11-11): sem escolha aqui, a loja trava o
+            COMPRAR AGORA e o backend recusa o pedido. */}
+        <label className="flex h-[40px] cursor-pointer items-center gap-[8px] font-poppins text-[13px] text-white/85">
+          <input
+            type="checkbox"
+            checked={parent.required === true}
+            onChange={(event) => onChange({ required: event.target.checked })}
+            className="size-[16px] accent-[var(--brand-orange)]"
+          />
+          Obrigatório escolher pelo menos 1
+        </label>
+      </div>
       <Table
         title={`Subserviços de “${name}”`}
         hint={`Na loja, “${name}” vira o título do grupo (sem caixinha e sem preço) e estes subserviços aparecem sempre abertos embaixo, para o cliente marcar.`}

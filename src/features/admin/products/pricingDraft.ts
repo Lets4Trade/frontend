@@ -42,6 +42,8 @@ export type AddonDraft = {
   children: AddonDraft[];
   /** Quantos subserviços o cliente pode marcar, como digitado. Vazio = todos. */
   maxChildren: string;
+  /** Grupo obrigatório (2026-11-11): o cliente tem que escolher pelo menos 1. */
+  required?: boolean;
 };
 
 export type PricingDraft = {
@@ -131,6 +133,7 @@ function addonToDraft(addon: {
   extraHours?: number;
   children?: { id: string; label: string; kind: "PERCENT" | "FIXED"; value: number; extraHours?: number }[];
   maxChildren?: number;
+  required?: boolean;
 }): AddonDraft {
   return {
     key: newKey(),
@@ -142,6 +145,7 @@ function addonToDraft(addon: {
     extraHours: numText(addon.extraHours),
     children: (addon.children ?? []).map((child) => addonToDraft(child)),
     maxChildren: addon.maxChildren ? String(addon.maxChildren) : "",
+    required: addon.required === true,
   };
 }
 
@@ -271,6 +275,7 @@ export function draftToPricing(
       ? { children: addon.children.map((child, childIndex) => toAddon(child, ids.children[index][childIndex])) }
       : {}),
     ...(addon.children.length > 0 && addon.maxChildren.trim() !== "" ? { maxChildren: toInt(addon.maxChildren) } : {}),
+    ...(addon.children.length > 0 && addon.required ? { required: true } : {}),
   }));
   const common = {
     ...(addons.length > 0 ? { addons } : {}),

@@ -576,9 +576,14 @@ function AddonList({
           ).length;
           const headingId = `${id}-${addon.id}`;
           return (
-            // Respiro entre um grupo e o que vem antes (2026-11-11: "tá tudo
-            // colado"): os 15px do `gap` da lista + 15px aqui.
-            <div key={addon.id} role="group" aria-labelledby={headingId} className="[&:not(:first-child)]:mt-[15px]">
+            // Entre um grupo e o que vem antes (2026-11-11): respiro ("tá tudo
+            // colado") e uma linha horizontal separando as categorias pais.
+            <div
+              key={addon.id}
+              role="group"
+              aria-labelledby={headingId}
+              className="[&:not(:first-child)]:mt-[5px] [&:not(:first-child)]:border-t [&:not(:first-child)]:border-white/10 [&:not(:first-child)]:pt-[20px]"
+            >
               <div className="flex items-center gap-[15px]">
                 <AddonBox on={chosenChildren > 0} />
                 <h4
@@ -586,6 +591,12 @@ function AddonList({
                   className="min-w-0 flex-1 font-helvetica text-[16px] leading-[20px] tracking-[0.16px] break-words text-brand-placeholder"
                 >
                   {addon.label}
+                  {/* Grupo obrigatório (2026-11-11): avisado antes do clique. */}
+                  {addon.required ? (
+                    <span className="ml-[8px] font-helvetica text-[12px] font-bold tracking-[0.12px] text-brand-orange">
+                      Obrigatório
+                    </span>
+                  ) : null}
                 </h4>
               </div>
               <div className="mt-[12px] flex flex-col gap-[12px]">

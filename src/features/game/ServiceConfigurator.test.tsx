@@ -279,6 +279,36 @@ describe("ServiceConfigurator", () => {
     expect(screen.queryByRole("button", { name: "Aumentar a quantidade" })).not.toBeInTheDocument();
   });
 
+  it("grupo obrigatório (2026-11-11): COMPRAR AGORA travado até escolher um subitem", () => {
+    const pricing = {
+      mode: "FIXED" as const,
+      addons: [
+        {
+          id: "rota",
+          label: "Rota",
+          kind: "FIXED" as const,
+          value: 0,
+          required: true,
+          children: [{ id: "campanha", label: "Campanha", kind: "FIXED" as const, value: 500 }],
+        },
+      ],
+    };
+    render(
+      <ServiceConfigurator
+        products={[{ ...product, pricing, priceCents: 1000 }]}
+        context={context}
+        filters={null}
+        emptyMessage="vazio"
+      />,
+    );
+    expect(screen.getByRole("heading", { name: /Rota/ })).toHaveTextContent("Obrigatório");
+    expect(screen.getByRole("button", { name: "COMPRAR AGORA" })).toBeDisabled();
+    expect(screen.getByRole("alert")).toHaveTextContent('Escolha pelo menos uma opção em "Rota".');
+
+    fireEvent.click(screen.getByRole("checkbox", { name: /Campanha/ }));
+    expect(screen.getByRole("button", { name: "COMPRAR AGORA" })).toBeEnabled();
+  });
+
   it("até 6 adicionais não mostra a busca", () => {
     render(<ServiceConfigurator products={[product]} context={context} filters={null} emptyMessage="vazio" />);
     expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();

@@ -143,6 +143,13 @@ const addonSchema = z
     children: z.array(childAddonSchema).max(MAX_ADDON_CHOICES).optional(),
     /** Quantos subserviços deste serviço o cliente pode marcar. Ausente = todos. */
     maxChildren: z.number().int().min(1).max(MAX_ADDON_CHOICES).optional(),
+    /**
+     * Grupo OBRIGATÓRIO (2026-11-11, pedido do usuário: "nos levelings preciso
+     * que ele selecione algo pra gente saber como prosseguir"): sem pelo menos
+     * um subserviço escolhido, o `quote` recusa — a loja trava o COMPRAR AGORA
+     * e o checkout não passa. Só vale em grupo (serviço com subserviços).
+     */
+    required: z.boolean().optional(),
   })
   .refine(fixedNotNegative.check, fixedNotNegative.params);
 
@@ -523,6 +530,9 @@ export function pickAddons(
       continue;
     }
     const children = (addon.children ?? []).filter((child) => chosen.has(child.id));
+    if (addon.required && children.length === 0) {
+      return { ok: false, message: `Escolha pelo menos uma opção em "${addon.label}".` };
+    }
     if (addon.maxChildren && children.length > addon.maxChildren) {
       return { ok: false, message: `Em "${addon.label}", escolha no máximo ${addon.maxChildren}.` };
     }

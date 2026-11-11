@@ -373,6 +373,29 @@ describe("serviços: título, limite e subserviços (2026-11-09)", () => {
     expect(quote(0, services, { addonIds: ["ato-1"] })).toMatchObject({ ok: true, totalCents: 200 });
   });
 
+  it("grupo obrigatório (2026-11-11): sem subserviço escolhido recusa; com um, passa", () => {
+    const required: Pricing = {
+      mode: "FIXED",
+      addons: [
+        {
+          id: "rota",
+          label: "Rota",
+          kind: "FIXED",
+          value: 0,
+          required: true,
+          children: [
+            { id: "campanha-a", label: "Campanha", kind: "FIXED", value: 100 },
+            { id: "mapas-a", label: "Mapas", kind: "FIXED", value: 200 },
+          ],
+        },
+        { id: "extra", label: "Extra", kind: "FIXED", value: 50 },
+      ],
+    };
+    expect(quote(1000, required, {})).toMatchObject({ ok: false, message: 'Escolha pelo menos uma opção em "Rota".' });
+    expect(quote(1000, required, { addonIds: ["extra"] })).toMatchObject({ ok: false });
+    expect(quote(1000, required, { addonIds: ["mapas-a"] })).toMatchObject({ ok: true, totalCents: 1200 });
+  });
+
   it("id repetido entre serviço e subserviço é recusado no schema", () => {
     const bad = {
       mode: "FIXED",

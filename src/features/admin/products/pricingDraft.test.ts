@@ -92,6 +92,34 @@ describe("máximo de unidades por compra (2026-11-11)", () => {
   });
 });
 
+describe("grupo obrigatório no painel (2026-11-11)", () => {
+  it("marcado no grupo grava required e volta ao rascunho; em serviço sem subserviços não grava", () => {
+    const draft = emptyDraft("FIXED");
+    draft.addons = [
+      {
+        key: "g",
+        id: null,
+        label: "Rota",
+        kind: "FIXED",
+        percent: "",
+        cents: 0,
+        extraHours: "",
+        maxChildren: "",
+        required: true,
+        children: [{ key: "c", id: null, label: "Campanha", kind: "FIXED", percent: "", cents: 500, extraHours: "", children: [], maxChildren: "" }],
+      },
+      { key: "s", id: null, label: "Solto", kind: "FIXED", percent: "", cents: 100, extraHours: "", children: [], maxChildren: "", required: true },
+    ];
+    const result = draftToPricing(draft);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.pricing.addons?.[0]).toMatchObject({ label: "Rota", required: true });
+      expect(result.pricing.addons?.[1]).not.toHaveProperty("required");
+      expect(pricingToDraft(result.pricing).addons[0].required).toBe(true);
+    }
+  });
+});
+
 describe("grupo de subserviços no painel (2026-11-11)", () => {
   it("serviço com subserviços grava R$ 0 sem horas, mesmo com valor no rascunho", () => {
     const draft = emptyDraft("FIXED");
