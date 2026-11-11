@@ -576,7 +576,9 @@ function AddonList({
           ).length;
           const headingId = `${id}-${addon.id}`;
           return (
-            <div key={addon.id} role="group" aria-labelledby={headingId}>
+            // Respiro entre um grupo e o que vem antes (2026-11-11: "tá tudo
+            // colado"): os 15px do `gap` da lista + 15px aqui.
+            <div key={addon.id} role="group" aria-labelledby={headingId} className="[&:not(:first-child)]:mt-[15px]">
               <div className="flex items-center gap-[15px]">
                 <AddonBox on={chosenChildren > 0} />
                 <h4
@@ -671,15 +673,23 @@ function AddonRow({
  * O desenho da caixinha (33×30 no Figma; 26×24 no subserviço). Só desenho: na
  * linha marcável quem recebe foco é o `<input>` escondido antes dela (o
  * `peer`); no grupo ela só acende (2026-11-11).
+ *
+ * Subserviço marcado ganha o ✓ branco dentro (2026-11-11, pedido do usuário).
  */
 function AddonBox({ on, small = false }: { on: boolean; small?: boolean }) {
   return (
     <span
       aria-hidden
-      className={`${small ? "h-[24px] w-[26px]" : "h-[30px] w-[33px]"} shrink-0 rounded-[8px] border-2 border-white/10 backdrop-blur-[100px] peer-focus-visible:ring-2 peer-focus-visible:ring-brand-orange ${
+      className={`flex ${small ? "h-[24px] w-[26px]" : "h-[30px] w-[33px]"} shrink-0 items-center justify-center rounded-[8px] border-2 border-white/10 backdrop-blur-[100px] peer-focus-visible:ring-2 peer-focus-visible:ring-brand-orange ${
         on ? "bg-[image:var(--brand-orange-gradient)]" : "bg-[image:var(--brand-surface-fill)]"
       }`}
-    />
+    >
+      {on && small ? (
+        <svg viewBox="0 0 16 16" fill="none" className="size-[14px]" data-testid="addon-check">
+          <path d="M3.5 8.5l3 3 6-7" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ) : null}
+    </span>
   );
 }
 

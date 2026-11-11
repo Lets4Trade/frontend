@@ -231,6 +231,9 @@ describe("ServiceConfigurator", () => {
     // Marcar uma opção soma só ela: base 10 + Rajada 5.
     fireEvent.click(screen.getByRole("checkbox", { name: /Rajada Carregada/ }));
     expect(groupBox()?.className).toContain("orange-gradient");
+    // O subitem marcado ganha o ✓; a caixinha grande do grupo, não.
+    expect(screen.getAllByTestId("addon-check")).toHaveLength(1);
+    expect(screen.getByRole("checkbox", { name: /Rajada Carregada/ }).closest("label")?.querySelector("svg")).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Adicionais" }).previousElementSibling?.className).not.toContain(
       "orange-gradient",
     );
