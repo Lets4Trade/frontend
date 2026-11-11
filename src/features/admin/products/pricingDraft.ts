@@ -258,7 +258,11 @@ export function draftToPricing(
     ...(addon.extraHours.trim() === "" ? {} : { extraHours: toNumber(addon.extraHours) }),
   });
   const addons = draft.addons.map((addon, index) => ({
-    ...toAddon(addon, ids.parents[index]),
+    // Grupo (2026-11-11): serviço com subserviços é só título na loja e não
+    // cobra — grava R$ 0 sem horas, seja o que for que tenha ficado no rascunho.
+    ...(addon.children.length > 0
+      ? { id: ids.parents[index], label: addon.label.trim(), kind: "FIXED" as const, value: 0 }
+      : toAddon(addon, ids.parents[index])),
     ...(addon.children.length > 0
       ? { children: addon.children.map((child, childIndex) => toAddon(child, ids.children[index][childIndex])) }
       : {}),

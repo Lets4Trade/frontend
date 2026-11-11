@@ -192,6 +192,43 @@ describe("ServiceConfigurator", () => {
     expect(screen.getByText(/R\$\s?20,00/)).toBeInTheDocument();
   });
 
+  it("grupo (2026-11-11): título sem caixinha nem preço, opções abertas e marcadas sozinhas", () => {
+    const pricing = {
+      mode: "FIXED" as const,
+      addons: [
+        {
+          id: "mods",
+          label: "Modificações",
+          kind: "FIXED" as const,
+          value: 0,
+          children: [
+            { id: "pente", label: "Pente Maior", kind: "FIXED" as const, value: 400 },
+            { id: "rajada", label: "Rajada Carregada", kind: "FIXED" as const, value: 500 },
+          ],
+        },
+        { id: "adds", label: "Adicionais", kind: "FIXED" as const, value: 0, children: [{ id: "conv", label: "Conversor Cinético", kind: "FIXED" as const, value: 500 }] },
+      ],
+    };
+    render(
+      <ServiceConfigurator
+        products={[{ ...product, pricing, priceCents: 1000 }]}
+        context={context}
+        filters={null}
+        emptyMessage="vazio"
+      />,
+    );
+    // Os títulos são cabeçalhos, sem caixinha; as 3 opções já aparecem abertas.
+    expect(screen.getByRole("heading", { name: "Modificações" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Adicionais" })).toBeInTheDocument();
+    expect(screen.getAllByRole("checkbox")).toHaveLength(3);
+    expect(screen.getByRole("group", { name: "Modificações" })).toHaveTextContent("Pente Maior");
+    expect(screen.queryByText(/Marque para ver/)).not.toBeInTheDocument();
+
+    // Marcar uma opção soma só ela: base 10 + Rajada 5.
+    fireEvent.click(screen.getByRole("checkbox", { name: /Rajada Carregada/ }));
+    expect(screen.getByText(/R\$\s?15,00/)).toBeInTheDocument();
+  });
+
   it("até 6 adicionais não mostra a busca", () => {
     render(<ServiceConfigurator products={[product]} context={context} filters={null} emptyMessage="vazio" />);
     expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();

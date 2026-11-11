@@ -886,7 +886,16 @@ export function ProductForm({
 
               <FileField
                 key={`image-${entryKey}`}
-                label={isPackages ? "Imagem do card e do topo da página do pacote (526×552)" : "Imagem do produto (526×552)"}
+                // O tamanho é o do lugar onde a arte aparece no layout da aba, em
+                // dobro para telas de alta densidade (2026-11-11, pedido do
+                // usuário: na aba Quantidade pedia 526×552, o do card comum).
+                label={
+                  isPackages
+                    ? "Imagem do card e do topo da página do pacote (526×552)"
+                    : selectedTab?.layout === "QUANTITY"
+                      ? "Imagem do produto (190×130, aparece ao lado do preço)"
+                      : "Imagem do produto (526×552)"
+                }
                 // Editando sem anexar nada, o backend mantém a arte atual — o texto diz
                 // isso para ninguém achar que salvar vai apagar a imagem que já existe.
                 placeholder={isEditing ? "Trocar imagem (opcional)" : "Anexar imagem"}

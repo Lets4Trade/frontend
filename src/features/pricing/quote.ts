@@ -136,8 +136,9 @@ const addonSchema = z
   .object({
     ...addonFields,
     /**
-     * Subserviços (2026-11-09, pedido do usuário): aparecem sob o serviço
-     * quando ele é marcado. Só podem ser escolhidos COM o serviço.
+     * Subserviços (2026-11-09, pedido do usuário). Desde 2026-11-11 o serviço
+     * que os tem é um GRUPO (`isAddonGroup`): título sem preço, subserviços
+     * sempre abertos e escolhidos sozinhos.
      */
     children: z.array(childAddonSchema).max(MAX_ADDON_CHOICES).optional(),
     /** Quantos subserviços deste serviço o cliente pode marcar. Ausente = todos. */
@@ -453,11 +454,26 @@ export function quote(basePriceCents: number, pricing: Pricing, rawSelection: Se
 }
 
 /**
+ * Serviço COM subserviços é um GRUPO (2026-11-11, pedido do usuário: "como se
+ * fosse um título para a categoria, que não precisa ser selecionado e não tem
+ * preço"). Na loja vira título com os subserviços sempre abertos; na conta, o
+ * valor e as horas dele não entram — só os dos subserviços escolhidos.
+ */
+export function isAddonGroup(addon: { children?: readonly unknown[] }): boolean {
+  return (addon.children?.length ?? 0) > 0;
+}
+
+/**
  * A escolha de serviços e subserviços conferida contra a regra (2026-11-09).
  * Recusa (nunca corrige — no backend, corrigir cobraria outra coisa): id que
- * não existe, mais serviços que `maxAddons`, subserviço sem o serviço dele e
- * mais subserviços que o `maxChildren` do serviço. Devolve na ordem da regra:
- * cada serviço seguido dos subserviços dele.
+ * não existe, mais serviços que `maxAddons` e mais subserviços que o
+ * `maxChildren` do grupo. Devolve na ordem da regra: os serviços soltos e,
+ * no lugar de cada grupo, os subserviços escolhidos dele.
+ *
+ * Grupos (2026-11-11): o subserviço vale SOZINHO, e o id do próprio grupo na
+ * escolha é ignorado (não cobra nem conta no limite). Ignorado e não recusado
+ * porque carrinhos montados antes guardam o id do grupo junto dos
+ * subserviços — e o grupo nunca cobra nada, então ignorar não muda o valor.
  */
 export function pickAddons(
   pricing: Pick<Pricing, "addons" | "maxAddons" | "mode" | "addonsTitle">,
@@ -472,7 +488,7 @@ export function pickAddons(
     if (!known.has(id)) return { ok: false, message: "Um dos adicionais escolhidos não existe mais." };
   }
 
-  const parents = addons.filter((addon) => chosen.has(addon.id));
+  const parents = addons.filter((addon) => !isAddonGroup(addon) && chosen.has(addon.id));
   if (pricing.maxAddons && parents.length > pricing.maxAddons) {
     return {
       ok: false,
@@ -482,17 +498,15 @@ export function pickAddons(
 
   const items: { addon: PricingAddon | PricingChildAddon; parent?: PricingAddon }[] = [];
   for (const addon of addons) {
-    const children = (addon.children ?? []).filter((child) => chosen.has(child.id));
-    if (children.length > 0 && !chosen.has(addon.id)) {
-      return { ok: false, message: `Escolha "${addon.label}" antes dos subserviços dele.` };
+    if (!isAddonGroup(addon)) {
+      if (chosen.has(addon.id)) items.push({ addon });
+      continue;
     }
+    const children = (addon.children ?? []).filter((child) => chosen.has(child.id));
     if (addon.maxChildren && children.length > addon.maxChildren) {
       return { ok: false, message: `Em "${addon.label}", escolha no máximo ${addon.maxChildren}.` };
     }
-    if (chosen.has(addon.id)) {
-      items.push({ addon });
-      for (const child of children) items.push({ addon: child, parent: addon });
-    }
+    for (const child of children) items.push({ addon: child, parent: addon });
   }
   return { ok: true, items };
 }

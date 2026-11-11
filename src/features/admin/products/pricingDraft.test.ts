@@ -73,6 +73,34 @@ describe("draftToPricing", () => {
   });
 });
 
+describe("grupo de subserviços no painel (2026-11-11)", () => {
+  it("serviço com subserviços grava R$ 0 sem horas, mesmo com valor no rascunho", () => {
+    const draft = emptyDraft("FIXED");
+    draft.addons = [
+      {
+        key: "g",
+        id: null,
+        label: "Modificações",
+        kind: "PERCENT",
+        percent: "",
+        cents: 0,
+        extraHours: "3",
+        maxChildren: "",
+        children: [
+          { key: "c", id: null, label: "Pente Maior", kind: "FIXED", percent: "", cents: 400, extraHours: "", children: [], maxChildren: "" },
+        ],
+      },
+    ];
+    const result = draftToPricing(draft);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.pricing.addons?.[0]).toMatchObject({ label: "Modificações", kind: "FIXED", value: 0 });
+      expect(result.pricing.addons?.[0]).not.toHaveProperty("extraHours");
+      expect(result.pricing.addons?.[0].children?.[0]).toMatchObject({ label: "Pente Maior", value: 400 });
+    }
+  });
+});
+
 describe("pricingToDraft ↔ draftToPricing", () => {
   it("ida e volta preserva a regra e o id gravado do adicional", () => {
     const pricing: Pricing = {

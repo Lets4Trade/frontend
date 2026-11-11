@@ -245,8 +245,11 @@ export function PricingEditor({
 /**
  * Serviços / adicionais (2026-11-09: título da lista, limite de escolhas e
  * SUBSERVIÇOS com limite próprio, pedido do usuário). Os subserviços abrem
- * numa linha embaixo do serviço ("Subserviços (N)"); na loja aparecem quando
- * o serviço é marcado.
+ * numa linha embaixo do serviço ("Subserviços (N)").
+ *
+ * Serviço com subserviços é um GRUPO (2026-11-11): na loja vira título, sem
+ * caixinha e sem preço, com os subserviços sempre abertos. Por isso a linha
+ * dele troca tipo/valor/horas por um aviso — não há o que preencher.
  */
 function AddonsTable({
   draft,
@@ -289,21 +292,31 @@ function AddonsTable({
       </div>
       <Table
         title="Serviços / adicionais (opcional)"
-        hint="O cliente marca os que quiser, até o máximo acima. Percentual incide sobre o serviço (não sobre outros adicionais). O id é gerado do nome e não muda depois de salvo. A loja mostra na ordem desta lista: use ↑ ↓ para ordenar. Cada serviço pode ter subserviços, com limite próprio."
+        hint="O cliente marca os que quiser, até o máximo acima. Percentual incide sobre o serviço (não sobre outros adicionais). O id é gerado do nome e não muda depois de salvo. A loja mostra na ordem desta lista: use ↑ ↓ para ordenar. Serviço com subserviços vira um TÍTULO de grupo na loja: sem caixinha e sem preço, com os subserviços sempre abertos embaixo (cada um com limite próprio)."
         headers={["Nome", "Tipo", "Valor", "Horas a mais", "Id", "Subserviços", ""]}
         addLabel="+ Adicionar serviço"
         canAdd={draft.addons.length < MAX_ADDON_CHOICES}
         onAdd={() => setAddons([...draft.addons, emptyAddon()])}
         rowKeys={draft.addons.map((addon) => addon.key)}
-        rows={draft.addons.map((addon, index) => [
-          ...addonCells({
+        rows={draft.addons.map((addon, index) => {
+          const cells = addonCells({
             addon,
             index,
             noun: "adicional",
             id: ids.parents[index],
             list: draft.addons,
             setList: setAddons,
-          }).slice(0, 5),
+          });
+          return [
+          cells[0],
+          ...(addon.children.length > 0
+            ? [
+                <GroupNote key="kind">Título</GroupNote>,
+                <GroupNote key="value">Sem preço</GroupNote>,
+                <GroupNote key="hours">—</GroupNote>,
+              ]
+            : cells.slice(1, 4)),
+          cells[4],
           <button
             key="children"
             type="button"
@@ -322,15 +335,9 @@ function AddonsTable({
               ? "+ Subserviços"
               : `Subserviços (${addon.children.length}) ${open.has(addon.key) ? "▴" : "▾"}`}
           </button>,
-          addonCells({
-            addon,
-            index,
-            noun: "adicional",
-            id: ids.parents[index],
-            list: draft.addons,
-            setList: setAddons,
-          })[5],
-        ])}
+          cells[5],
+          ];
+        })}
         details={draft.addons.map((addon, index) =>
           open.has(addon.key) ? (
             <ChildAddons
@@ -373,7 +380,7 @@ function ChildAddons({
       </Mini>
       <Table
         title={`Subserviços de “${name}”`}
-        hint="Na loja, ao marcar a caixinha do serviço, abrem embaixo estes subserviços para o cliente escolher. Desmarcar o serviço tira os subserviços."
+        hint={`Na loja, “${name}” vira o título do grupo (sem caixinha e sem preço) e estes subserviços aparecem sempre abertos embaixo, para o cliente marcar.`}
         headers={["Nome", "Tipo", "Valor", "Horas a mais", "Id", ""]}
         addLabel="+ Adicionar subserviço"
         canAdd={parent.children.length < MAX_ADDON_CHOICES}
@@ -520,21 +527,25 @@ function PricePreview({ draft, basePriceCents }: { draft: PricingDraft; basePric
         ) : null}
         {draft.addons.map((addon, index) => {
           const id = tree.parents[index];
-          const on = chosen.includes(id);
-          return (
-            <Fragment key={addon.key}>
+          // Grupo (2026-11-11): só o título, com os subserviços sempre abertos.
+          if (addon.children.length === 0) {
+            return (
               <PreviewCheck
+                key={addon.key}
                 label={addon.label || `Adicional ${index + 1}`}
-                checked={on}
+                checked={chosen.includes(id)}
                 onChange={(checked) =>
-                  setChosen((current) =>
-                    // Desmarcar o serviço tira os subserviços dele (como na loja).
-                    checked ? [...current, id] : current.filter((item) => item !== id && !tree.children[index].includes(item)),
-                  )
+                  setChosen((current) => (checked ? [...current, id] : current.filter((item) => item !== id)))
                 }
               />
-              {on
-                ? addon.children.map((child, childIndex) => {
+            );
+          }
+          return (
+            <Fragment key={addon.key}>
+              <span className="flex h-[40px] items-center font-poppins text-[13px] font-bold text-white">
+                {addon.label || `Adicional ${index + 1}`}:
+              </span>
+              {addon.children.map((child, childIndex) => {
                     const childId = tree.children[index][childIndex];
                     return (
                       <PreviewCheck
@@ -546,8 +557,7 @@ function PricePreview({ draft, basePriceCents }: { draft: PricingDraft; basePric
                         }
                       />
                     );
-                  })
-                : null}
+                  })}
             </Fragment>
           );
         })}
@@ -889,6 +899,11 @@ function numericText(raw: string, signed?: boolean): string {
 }
 
 /** Caixa da prévia (escolha de exemplo; não vai para o produto). */
+/** O lugar de tipo/valor/horas na linha de um grupo (2026-11-11). */
+function GroupNote({ children }: { children: ReactNode }) {
+  return <span className="block font-poppins text-[12px] whitespace-nowrap text-white/50">{children}</span>;
+}
+
 function PreviewCheck({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
   return (
     <label className="flex h-[40px] items-center gap-[8px] font-poppins text-[13px] text-white/80">

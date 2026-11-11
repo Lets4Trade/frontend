@@ -63,9 +63,32 @@ describe("filterAddons", () => {
   it("marcados continuam na lista", () => {
     expect(filterAddons(addons, "epica", ["c"]).map((addon) => addon.id)).toEqual(["b", "c"]);
   });
+
+  it("grupo (2026-11-11): o nome do grupo mostra tudo; senão só os subserviços que casam", () => {
+    const groups = [
+      {
+        id: "mods",
+        label: "Modificações",
+        kind: "FIXED" as const,
+        value: 0,
+        children: [
+          { id: "pente", label: "Pente Maior", kind: "FIXED" as const, value: 400 },
+          { id: "rajada", label: "Rajada Carregada", kind: "FIXED" as const, value: 500 },
+        ],
+      },
+      ...addons,
+    ];
+    expect(filterAddons(groups, "modificacoes")[0].children).toHaveLength(2);
+    expect(filterAddons(groups, "pente").map((addon) => [addon.id, addon.children?.map((child) => child.id)])).toEqual([
+      ["mods", ["pente"]],
+    ]);
+    // Marcado continua, mesmo sem casar.
+    expect(filterAddons(groups, "pente", ["rajada"])[0].children?.map((child) => child.id)).toEqual(["pente", "rajada"]);
+    expect(filterAddons(groups, "stream").map((addon) => addon.id)).toEqual(["c"]);
+  });
 });
 
-describe("toggleAddon (limites de serviços e subserviços, 2026-11-09)", () => {
+describe("toggleAddon (limites de serviços e subserviços, 2026-11-09; grupos, 2026-11-11)", () => {
   const pricing: Pricing = {
     mode: "FIXED",
     maxAddons: 2,
@@ -86,32 +109,30 @@ describe("toggleAddon (limites de serviços e subserviços, 2026-11-09)", () => 
     ],
   };
 
-  it("no limite (máximo 2) o terceiro é ignorado", () => {
-    expect(toggleAddon(pricing, ["campanha", "mapas"], "chefes")).toEqual(["campanha", "mapas"]);
-    expect(toggleAddon(pricing, ["mapas"], "chefes")).toEqual(["mapas", "chefes"]);
+  it("no limite (máximo 2) o terceiro é ignorado; o grupo não conta", () => {
+    expect(toggleAddon(pricing, ["mapas", "chefes"], "chefes")).toEqual(["mapas"]);
+    expect(toggleAddon(pricing, ["mapas", "ato-1"], "chefes")).toEqual(["mapas", "ato-1", "chefes"]);
+    const twoMore = { ...pricing, addons: [...pricing.addons!, { id: "extra", label: "Extra", kind: "FIXED" as const, value: 1 }] };
+    expect(toggleAddon(twoMore, ["mapas", "chefes"], "extra")).toEqual(["mapas", "chefes"]);
   });
 
   it("máximo 1 TROCA a escolha (subserviço)", () => {
-    expect(toggleAddon(pricing, ["campanha", "ato-1"], "ato-2")).toEqual(["campanha", "ato-2"]);
+    expect(toggleAddon(pricing, ["ato-1"], "ato-2")).toEqual(["ato-2"]);
   });
 
-  it("máximo 1 de serviços troca e leva junto os subserviços do antigo", () => {
+  it("máximo 1 de serviços troca o serviço solto e mantém os subserviços dos grupos", () => {
     const one = { ...pricing, maxAddons: 1 };
-    expect(toggleAddon(one, ["campanha", "ato-1"], "mapas")).toEqual(["mapas"]);
+    expect(toggleAddon(one, ["mapas", "ato-1"], "chefes")).toEqual(["ato-1", "chefes"]);
   });
 
-  it("caixinha do serviço com subserviços: marcar abre (entra na escolha); desmarcar tira os subserviços", () => {
-    expect(toggleAddon(pricing, ["mapas"], "campanha")).toEqual(["mapas", "campanha"]);
-    expect(toggleAddon(pricing, ["campanha", "ato-1", "mapas"], "campanha")).toEqual(["mapas"]);
+  it("grupo (2026-11-11): clicar no título não faz nada", () => {
+    expect(toggleAddon(pricing, ["mapas"], "campanha")).toEqual(["mapas"]);
+    expect(toggleAddon(pricing, ["ato-1"], "campanha")).toEqual(["ato-1"]);
   });
 
-  it("subserviço sem o serviço marcado é ignorado; desmarcar o último mantém o serviço", () => {
-    expect(toggleAddon(pricing, ["mapas"], "ato-1")).toEqual(["mapas"]);
-    expect(toggleAddon(pricing, ["campanha", "ato-1"], "ato-1")).toEqual(["campanha"]);
-  });
-
-  it("no limite de serviços (máx 2), marcar outro serviço é ignorado", () => {
-    expect(toggleAddon(pricing, ["mapas", "chefes"], "campanha")).toEqual(["mapas", "chefes"]);
+  it("subserviço é marcado e desmarcado sozinho, sem o grupo", () => {
+    expect(toggleAddon(pricing, ["mapas"], "ato-1")).toEqual(["mapas", "ato-1"]);
+    expect(toggleAddon(pricing, ["mapas", "ato-1"], "ato-1")).toEqual(["mapas"]);
   });
 
   it("atLimit só apaga os outros com máximo acima de 1", () => {

@@ -1,4 +1,4 @@
-import type { Pricing, PricingAddon } from "@/features/pricing/quote";
+import { isAddonGroup, type Pricing, type PricingAddon } from "@/features/pricing/quote";
 
 /**
  * Lógica PURA dos configuradores (serviço, quantidade/gold, pacote) — fora dos
@@ -83,6 +83,10 @@ function fold(text: string): string {
  * Filtro da busca de adicionais. Busca VAZIA mostra tudo; os ESCOLHIDOS
  * continuam na lista mesmo sem casar — esconder um adicional marcado deixaria a
  * pessoa pagando por algo que ela não vê na tela.
+ *
+ * Grupo (2026-11-11): o nome do grupo casando mostra o grupo inteiro; senão o
+ * grupo fica só com os subserviços que casam (ou estão marcados) e some se
+ * não sobrar nenhum.
  */
 export function filterAddons(
   addons: readonly PricingAddon[],
@@ -91,7 +95,13 @@ export function filterAddons(
 ): PricingAddon[] {
   const needle = fold(search.trim());
   if (!needle) return [...addons];
-  return addons.filter((addon) => selected.includes(addon.id) || fold(addon.label).includes(needle));
+  const matches = (addon: { id: string; label: string }) => selected.includes(addon.id) || fold(addon.label).includes(needle);
+  return addons.flatMap((addon) => {
+    if (!isAddonGroup(addon)) return matches(addon) ? [addon] : [];
+    if (fold(addon.label).includes(needle)) return [addon];
+    const children = (addon.children ?? []).filter(matches);
+    return children.length > 0 ? [{ ...addon, children }] : [];
+  });
 }
 
 /**
@@ -99,10 +109,10 @@ export function filterAddons(
  * (2026-11-09). A mesma conferência que o `quote` faz na cobrança, aplicada ANTES
  * no clique para o cliente nunca montar uma escolha que seria recusada.
  *
- * Serviço COM subserviços é uma caixinha que ABRE a "pasta" (pedido do usuário,
- * 2026-11-09: "tem que ficar como checkbox; se ativa a checkbox abre a pasta"):
- * marcar o serviço mostra os subserviços embaixo; desmarcar fecha e tira os
- * subserviços escolhidos. Subserviço só com o serviço marcado.
+ * Serviço COM subserviços é um GRUPO (2026-11-11, pedido do usuário): título
+ * sem caixinha, com os subserviços sempre abertos e marcados sozinhos — clicar
+ * no id do grupo não faz nada. (Antes, 2026-11-09, era uma caixinha que abria
+ * a "pasta" e o subserviço só valia com ela marcada.)
  *  - no limite: com máximo 1 o clique TROCA (como um botão de opção); acima de
  *    1, o clique é ignorado (a tela mostra os outros apagados).
  */
@@ -115,21 +125,14 @@ export function toggleAddon(
   const parent = addons.find((addon) => addon.id === id);
   const on = selected.includes(id);
 
-  /** Abre espaço para mais um serviço no 1º nível; `null` = não cabe. */
-  const roomForParent = (current: readonly string[]): string[] | null => {
-    const chosenParents = addons.filter((addon) => current.includes(addon.id));
-    if (!pricing.maxAddons || chosenParents.length < pricing.maxAddons) return [...current];
-    if (pricing.maxAddons !== 1) return null;
-    const drop = new Set(chosenParents.flatMap((addon) => [addon.id, ...(addon.children ?? []).map((child) => child.id)]));
-    return current.filter((item) => !drop.has(item));
-  };
-
   if (parent) {
-    const childIds = (parent.children ?? []).map((child) => child.id);
-    // Desmarcar fecha a "pasta" e leva os subserviços junto.
-    if (on) return selected.filter((item) => item !== id && !childIds.includes(item));
-    const room = roomForParent(selected);
-    return room ? [...room, id] : [...selected];
+    if (isAddonGroup(parent)) return [...selected];
+    if (on) return selected.filter((item) => item !== id);
+    // Mais um serviço solto: cabe, troca (máximo 1) ou é ignorado.
+    const chosen = addons.filter((addon) => !isAddonGroup(addon) && selected.includes(addon.id)).map((addon) => addon.id);
+    if (!pricing.maxAddons || chosen.length < pricing.maxAddons) return [...selected, id];
+    if (pricing.maxAddons !== 1) return [...selected];
+    return [...selected.filter((item) => !chosen.includes(item)), id];
   }
 
   const owner = addons.find((addon) => (addon.children ?? []).some((child) => child.id === id));
@@ -137,8 +140,6 @@ export function toggleAddon(
   const siblings = (owner.children ?? []).map((child) => child.id).filter((item) => selected.includes(item));
 
   if (on) return selected.filter((item) => item !== id);
-  // Subserviço só aparece (e só vale) com o serviço marcado.
-  if (!selected.includes(owner.id)) return [...selected];
 
   let base: string[] = [...selected];
   if (owner.maxChildren && siblings.length >= owner.maxChildren) {

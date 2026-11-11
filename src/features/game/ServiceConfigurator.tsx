@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { SelectField } from "@/components/ui/SelectField";
 import { formatHours } from "@/features/cart/store";
-import { addonsTitle, quote, type Pricing, type Selection } from "@/features/pricing/quote";
+import { addonsTitle, isAddonGroup, quote, type Pricing, type Selection } from "@/features/pricing/quote";
 import { ADDON_SEARCH_THRESHOLD, atLimit, filterAddons, snapQuantity, toggleAddon } from "./configurator";
 import { formatPrice } from "./content";
 import type { ProductContext } from "./ProductCard";
@@ -505,9 +505,12 @@ function AddonList({
 }) {
   const id = useId();
   const [search, setSearch] = useState("");
-  const searchable = addons.length > ADDON_SEARCH_THRESHOLD;
+  // A busca conta OPÇÕES marcáveis: os serviços soltos e os subserviços dos
+  // grupos (o grupo em si é só título).
+  const options = addons.reduce((total, addon) => total + (isAddonGroup(addon) ? addon.children!.length : 1), 0);
+  const searchable = options > ADDON_SEARCH_THRESHOLD;
   const visible = searchable ? filterAddons(addons, search, selected) : addons;
-  const chosen = addons.filter((addon) => selected.includes(addon.id)).length;
+  const chosen = addons.filter((addon) => !isAddonGroup(addon) && selected.includes(addon.id)).length;
   const full = atLimit(chosen, maxAddons);
 
   return (
@@ -541,41 +544,38 @@ function AddonList({
 
       <div role="group" aria-labelledby={id} className="mt-[15px] flex flex-col gap-[15px]">
         {visible.map((addon) => {
-          const on = selected.includes(addon.id);
+          if (!isAddonGroup(addon)) {
+            const on = selected.includes(addon.id);
+            return <AddonRow key={addon.id} addon={addon} on={on} disabled={!on && full} onToggle={() => onToggle(addon.id)} />;
+          }
+          // Grupo (2026-11-11, pedido do usuário): o serviço com subserviços
+          // vira TÍTULO — sem caixinha e sem preço — com as opções sempre
+          // abertas embaixo, na largura toda e sem recuo.
           const children = addon.children ?? [];
-          const chosenChildren = children.filter((child) => selected.includes(child.id)).length;
-          // Serviço com subserviços (2026-11-09, pedido do usuário): continua
-          // CAIXINHA; marcada, abre a "pasta" com os subserviços embaixo.
+          const chosenChildren = (addons.find((item) => item.id === addon.id)?.children ?? []).filter((child) =>
+            selected.includes(child.id),
+          ).length;
+          const headingId = `${id}-${addon.id}`;
           return (
-            <div key={addon.id}>
-              <AddonRow addon={addon} on={on} disabled={!on && full} onToggle={() => onToggle(addon.id)} />
-              {!on && children.length > 0 ? (
-                <p className="mt-[6px] ml-[48px] font-helvetica text-[13px] leading-[18px] text-white/50">
-                  Marque para ver {children.length} {children.length === 1 ? "opção" : "opções"}.
-                </p>
-              ) : null}
-              {on && children.length > 0 ? (
-                <div
-                  role="group"
-                  aria-label={`Opções de ${addon.label}`}
-                  className="mt-[12px] ml-[16px] flex flex-col gap-[12px] border-l border-white/15 pl-[16px]"
-                >
-                  {addon.maxChildren ? <LimitHint max={addon.maxChildren} chosen={chosenChildren} /> : null}
-                  {children.map((child) => {
-                    const childOn = selected.includes(child.id);
-                    return (
-                      <AddonRow
-                        key={child.id}
-                        addon={child}
-                        on={childOn}
-                        small
-                        disabled={!childOn && atLimit(chosenChildren, addon.maxChildren)}
-                        onToggle={() => onToggle(child.id)}
-                      />
-                    );
-                  })}
-                </div>
-              ) : null}
+            <div key={addon.id} role="group" aria-labelledby={headingId} className="mt-[10px] flex flex-col gap-[15px] first:mt-0">
+              <div>
+                <h4 id={headingId} className="font-helvetica text-[17px] leading-[22px] font-bold tracking-[0.17px] break-words text-white">
+                  {addon.label}
+                </h4>
+                {addon.maxChildren ? <LimitHint max={addon.maxChildren} chosen={chosenChildren} /> : null}
+              </div>
+              {children.map((child) => {
+                const childOn = selected.includes(child.id);
+                return (
+                  <AddonRow
+                    key={child.id}
+                    addon={child}
+                    on={childOn}
+                    disabled={!childOn && atLimit(chosenChildren, addon.maxChildren)}
+                    onToggle={() => onToggle(child.id)}
+                  />
+                );
+              })}
             </div>
           );
         })}
@@ -609,13 +609,11 @@ function AddonRow({
   addon,
   on,
   disabled,
-  small = false,
   onToggle,
 }: {
   addon: { id: string; label: string; kind: "PERCENT" | "FIXED"; value: number };
   on: boolean;
   disabled: boolean;
-  small?: boolean;
   onToggle: () => void;
 }) {
   // Percentual negativo é DESCONTO (2026-10-09): "− 100%", nunca "+ -100%".
@@ -629,12 +627,12 @@ function AddonRow({
       <input type="checkbox" checked={on} disabled={disabled} onChange={onToggle} className="peer sr-only" />
       <span
         aria-hidden
-        className={`${small ? "h-[24px] w-[26px]" : "h-[30px] w-[33px]"} shrink-0 rounded-[8px] border-2 border-white/10 backdrop-blur-[100px] peer-focus-visible:ring-2 peer-focus-visible:ring-brand-orange ${
+        className={`h-[30px] w-[33px] shrink-0 rounded-[8px] border-2 border-white/10 backdrop-blur-[100px] peer-focus-visible:ring-2 peer-focus-visible:ring-brand-orange ${
           on ? "bg-[image:var(--brand-orange-gradient)]" : "bg-[image:var(--brand-surface-fill)]"
         }`}
       />
       <span
-        className={`min-w-0 flex-1 font-helvetica ${small ? "text-[15px]" : "text-[16px]"} leading-[20px] tracking-[0.16px] break-words text-brand-placeholder`}
+        className={`min-w-0 flex-1 font-helvetica text-[16px] leading-[20px] tracking-[0.16px] break-words text-brand-placeholder`}
       >
         {addon.label}
       </span>

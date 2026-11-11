@@ -344,23 +344,33 @@ describe("serviços: título, limite e subserviços (2026-11-09)", () => {
     expect(addonsTitle({ mode: "QUANTITY" })).toBe("Adicionais:");
   });
 
-  it("serviço + subserviço somam, e a linha mostra o caminho", () => {
-    const result = quote(0, services, { addonIds: ["ato-2", "campanha"] });
-    expect(result).toMatchObject({ ok: true, totalCents: 1300 });
+  it("grupo (2026-11-11): o subserviço vale sozinho, sem o valor do grupo, e a linha mostra o caminho", () => {
+    const result = quote(0, services, { addonIds: ["ato-2"] });
+    expect(result).toMatchObject({ ok: true, totalCents: 300 });
     if (result.ok) {
-      expect(result.selection.addonIds).toEqual(["campanha", "ato-2"]);
-      expect(result.lines.map((line) => line.label)).toEqual(["Serviço", "Campanha", "Campanha › Ato 2"]);
+      expect(result.selection.addonIds).toEqual(["ato-2"]);
+      expect(result.lines.map((line) => line.label)).toEqual(["Serviço", "Campanha › Ato 2"]);
     }
   });
 
-  it("recusa mais serviços que o limite", () => {
-    expect(quote(0, services, { addonIds: ["campanha", "mapas", "chefes"] })).toMatchObject({ ok: false });
+  it("id do grupo na escolha (carrinho antigo) é ignorado: não cobra nem sai na escolha", () => {
+    const result = quote(0, services, { addonIds: ["campanha", "ato-2"] });
+    expect(result).toMatchObject({ ok: true, totalCents: 300 });
+    if (result.ok) expect(result.selection.addonIds).toEqual(["ato-2"]);
+    // Só o grupo: nada escolhido de fato.
+    expect(quote(0, services, { addonIds: ["campanha"] })).toMatchObject({ ok: false });
+  });
+
+  it("recusa mais serviços que o limite; o grupo e os subserviços não contam nele", () => {
+    const one = { ...services, maxAddons: 1 };
+    expect(quote(0, one, { addonIds: ["mapas", "chefes"] })).toMatchObject({ ok: false });
+    expect(quote(0, one, { addonIds: ["mapas", "ato-1"] })).toMatchObject({ ok: true, totalCents: 700 });
     expect(quote(0, services, { addonIds: ["mapas", "chefes"] })).toMatchObject({ ok: true, totalCents: 1200 });
   });
 
-  it("recusa mais subserviços que o limite do serviço, e subserviço sem o serviço", () => {
-    expect(quote(0, services, { addonIds: ["campanha", "ato-1", "ato-2"] })).toMatchObject({ ok: false });
-    expect(quote(0, services, { addonIds: ["ato-1"] })).toMatchObject({ ok: false });
+  it("recusa mais subserviços que o limite do grupo", () => {
+    expect(quote(0, services, { addonIds: ["ato-1", "ato-2"] })).toMatchObject({ ok: false });
+    expect(quote(0, services, { addonIds: ["ato-1"] })).toMatchObject({ ok: true, totalCents: 200 });
   });
 
   it("id repetido entre serviço e subserviço é recusado no schema", () => {
