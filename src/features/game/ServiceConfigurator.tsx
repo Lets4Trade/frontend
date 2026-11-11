@@ -185,7 +185,7 @@ function ProductControls({ product, context }: { product: GameProduct; context: 
     );
   }
 
-  const buy = () => buyNow(product, result, multiUnit ? units : 1);
+  const buy = () => buyNow(product, result, multiUnit ? units : 1, maxUnits);
   const shownUnits = multiUnit ? units : 1;
 
   return (

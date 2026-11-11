@@ -45,6 +45,21 @@ describe("useCart com serviço", () => {
     expect(useCart.getState().items).toHaveLength(2);
   });
 
+  it("serviço com máximo de unidades (2026-11-11): o carrinho muda a quantidade de 1 até o máximo", () => {
+    useCart.getState().add({ ...base, selection: {}, maxUnits: 3 }, 2);
+    const id = useCart.getState().items[0].id;
+    expect(useCart.getState().items[0].quantity).toBe(2);
+
+    useCart.getState().setQuantity(id, 3);
+    expect(useCart.getState().items[0].quantity).toBe(3);
+    useCart.getState().setQuantity(id, 9);
+    expect(useCart.getState().items[0].quantity).toBe(3);
+    useCart.getState().setQuantity(id, 1);
+    expect(useCart.getState().items[0].quantity).toBe(1);
+    useCart.getState().setQuantity(id, 0);
+    expect(useCart.getState().items).toHaveLength(0);
+  });
+
   it("catálogo continua somando", () => {
     useCart.getState().add(base, 2);
     useCart.getState().add(base, 3);

@@ -36,11 +36,12 @@ export type CreateProductResult =
     };
 
 /**
- * Preço 0 recusado (2026-11-09): só vale em aba SERVIÇO, e quem sabe a aba é o
+ * Preço 0 recusado (2026-11-09): só vale em aba cotada (Serviço, Pacotes,
+ * Quantidade — 2026-11-11), e quem sabe a aba é o
  * backend. A mensagem dele não é repassada (ver abaixo), então o motivo mais
  * provável de um 400 com preço 0 é dito daqui.
  */
-const ZERO_PRICE_REFUSED = "Informe o preço do produto. Preço zero só vale em aba de Serviço.";
+const ZERO_PRICE_REFUSED = "Informe o preço do produto.";
 
 export async function createProductAction(
   form: FormData,

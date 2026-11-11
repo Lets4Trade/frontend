@@ -139,11 +139,11 @@ describe("createProductAction", () => {
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 
-  it("preço 0 (2026-11-09): passa para a API; recusado, diz que só vale em Serviço", async () => {
+  it("preço 0 (2026-11-09): passa para a API; recusado, pede o preço", async () => {
     post.mockResolvedValue(apiFail(400, "eco"));
     const result = await createProductAction(productForm({ priceCents: "0" }));
     expect(post).toHaveBeenCalled();
-    expect(result).toMatchObject({ ok: false, reason: "invalid", message: expect.stringContaining("Serviço") });
+    expect(result).toMatchObject({ ok: false, reason: "invalid", message: expect.stringContaining("preço") });
   });
 });
 

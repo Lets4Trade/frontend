@@ -76,9 +76,9 @@ describe("quote — quantidade", () => {
 });
 
 describe("quote — fixo", () => {
-  it("é o preço do produto; zero é recusado", () => {
+  it("é o preço do produto; zero é grátis (2026-11-11)", () => {
     expect(quote(2500, { mode: "FIXED" }, {})).toMatchObject({ ok: true, totalCents: 2500 });
-    expect(quote(0, { mode: "FIXED" }, {}).ok).toBe(false);
+    expect(quote(0, { mode: "FIXED" }, {})).toMatchObject({ ok: true, totalCents: 0 });
   });
 });
 
@@ -130,9 +130,25 @@ describe("adicional percentual NEGATIVO (desconto, 2026-10-09)", () => {
     expect(result).toMatchObject({ ok: true, totalCents: 1500 });
   });
 
-  it("total zerado pelo desconto é recusado com motivo (não dá para cobrar R$ 0)", () => {
+  it("total zerado por −100% configurado é grátis (2026-11-11)", () => {
     const result = quote(0, WITH_DISCOUNT, { levelFrom: 1, levelTo: 11, addonIds: ["gratis"] });
-    expect(result).toMatchObject({ ok: false, message: "Com esses adicionais o valor fica zerado. Escolha outra combinação." });
+    expect(result).toMatchObject({ ok: true, totalCents: 0 });
+  });
+
+  it("preço 0 sem adicionais é grátis; fração que só arredonda a R$ 0 segue recusada (2026-11-11)", () => {
+    expect(quote(0, { mode: "FIXED" }, {})).toMatchObject({ ok: true, totalCents: 0 });
+    expect(quote(0.5, { mode: "FIXED" }, {})).toMatchObject({ ok: false });
+  });
+
+  it("descontos somados passando de 100% são recusados", () => {
+    const twice: Pricing = {
+      mode: "FIXED",
+      addons: [
+        { id: "a", label: "A", kind: "PERCENT", value: -60 },
+        { id: "b", label: "B", kind: "PERCENT", value: -60 },
+      ],
+    };
+    expect(quote(1000, twice, { addonIds: ["a", "b"] })).toMatchObject({ ok: false, message: "Com esses adicionais o valor fica negativo. Escolha outra combinação." });
   });
 });
 
@@ -301,12 +317,12 @@ describe("preço com fração de centavo e base 0 (2026-11-09)", () => {
     expect(quote(0, levels, { levelFrom: 1, levelTo: 4 })).toMatchObject({ ok: true, totalCents: 300 });
   });
 
-  it("base 0 em preço fixo sem adicional: sem preço; com adicional em R$, cobra o adicional", () => {
+  it("base 0 em preço fixo sem adicional: grátis (2026-11-11); com adicional em R$, cobra o adicional", () => {
     const fixed: Pricing = {
       mode: "FIXED",
       addons: [{ id: "prio", label: "Prioridade", kind: "FIXED", value: 500 }],
     };
-    expect(quote(0, fixed, {})).toMatchObject({ ok: false });
+    expect(quote(0, fixed, {})).toMatchObject({ ok: true, totalCents: 0 });
     expect(quote(0, fixed, { addonIds: ["prio"] })).toMatchObject({ ok: true, totalCents: 500 });
   });
 
@@ -357,8 +373,8 @@ describe("serviços: título, limite e subserviços (2026-11-09)", () => {
     const result = quote(0, services, { addonIds: ["campanha", "ato-2"] });
     expect(result).toMatchObject({ ok: true, totalCents: 300 });
     if (result.ok) expect(result.selection.addonIds).toEqual(["ato-2"]);
-    // Só o grupo: nada escolhido de fato.
-    expect(quote(0, services, { addonIds: ["campanha"] })).toMatchObject({ ok: false });
+    // Só o grupo: nada escolhido de fato — com base 0, sai grátis (2026-11-11).
+    expect(quote(0, services, { addonIds: ["campanha"] })).toMatchObject({ ok: true, totalCents: 0, selection: {} });
   });
 
   it("recusa mais serviços que o limite; o grupo e os subserviços não contam nele", () => {

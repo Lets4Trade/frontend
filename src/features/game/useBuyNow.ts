@@ -21,7 +21,8 @@ export function useBuyNow(context: ProductContext) {
   const closeCart = useCart((state) => state.close);
 
   // `units`: quantas vezes a mesma escolha (2026-11-11, só preço fixo).
-  return (product: GameProduct, result: Quote, units = 1) => {
+  // `maxUnits`: até quanto o carrinho deixa mudar a quantidade depois.
+  return (product: GameProduct, result: Quote, units = 1, maxUnits = 1) => {
     if (!result.ok) return;
     addToCart(
       {
@@ -35,6 +36,7 @@ export function useBuyNow(context: ProductContext) {
         selection: result.selection,
         summary: result.summary,
         hours: result.hours,
+        ...(maxUnits > 1 ? { maxUnits } : {}),
       },
       units,
     );

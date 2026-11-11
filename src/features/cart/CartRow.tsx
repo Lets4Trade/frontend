@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { formatCents, formatHours, isServiceItem, useCart, type CartItem } from "./store";
+import { formatCents, formatHours, isServiceItem, maxQuantityOf, useCart, type CartItem } from "./store";
 import { lineTotalCents } from "@/features/pricing/quote";
 
 /**
@@ -15,6 +15,9 @@ export function CartRow({ item }: { item: CartItem }) {
   const setQuantity = useCart((state) => state.setQuantity);
   const remove = useCart((state) => state.remove);
   const service = isServiceItem(item);
+  const max = maxQuantityOf(item);
+  // Serviço com "Máximo de unidades por compra" também ganha contador (2026-11-11).
+  const editable = !service || max > 1;
 
   return (
     <li className="flex gap-[14px] border-b border-white/[0.07] py-[14px] last:border-b-0">
@@ -52,8 +55,8 @@ export function CartRow({ item }: { item: CartItem }) {
         ) : null}
 
         <div className="mt-auto flex items-center justify-between gap-[10px] pt-[8px]">
-          {/* Serviço: a quantidade é a da página do produto (2026-11-11). */}
-          {service ? (
+          {/* Serviço sem máximo de unidades: a quantidade é a da página. */}
+          {!editable ? (
             <span className="font-helvetica text-[12px] text-white/60">
               {item.quantity > 1 ? `${item.quantity}× · ` : ""}
               {item.hours ? `~${formatHours(item.hours * item.quantity)} h` : "Serviço"}
@@ -66,9 +69,18 @@ export function CartRow({ item }: { item: CartItem }) {
               <span aria-live="polite" className="min-w-[26px] px-[2px] text-center font-poppins text-[14px] font-bold text-white tabular-nums">
                 {item.quantity}
               </span>
-              <StepButton label={`Aumentar a quantidade de ${item.name}`} onClick={() => setQuantity(item.id, item.quantity + 1)}>
+              <StepButton
+                label={`Aumentar a quantidade de ${item.name}`}
+                disabled={item.quantity >= max}
+                onClick={() => setQuantity(item.id, item.quantity + 1)}
+              >
                 +
               </StepButton>
+              {service && item.hours ? (
+                <span className="pr-[10px] pl-[2px] font-helvetica text-[12px] text-white/60">
+                  ~{formatHours(item.hours * item.quantity)} h
+                </span>
+              ) : null}
             </div>
           )}
 
@@ -89,13 +101,24 @@ export function CartRow({ item }: { item: CartItem }) {
  * O `-` some a linha quando chega a zero em vez de travar em 1: é o gesto que
  * a pessoa já está fazendo para se livrar do item.
  */
-function StepButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
+function StepButton({
+  label,
+  onClick,
+  disabled,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-label={label}
-      className="flex size-[32px] items-center justify-center rounded-full font-poppins text-[16px] font-bold text-white transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none"
+      className="flex size-[32px] items-center justify-center rounded-full font-poppins text-[16px] font-bold text-white transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
     >
       {children}
     </button>

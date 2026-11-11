@@ -39,7 +39,7 @@ export const createProductSchema = z.object({
   // Chega do `<input type="hidden">` do `MoneyField`, sempre como string de
   // dígitos. `coerce` aqui é seguro justamente porque a origem é controlada.
   // Desde 2026-11-09: até 2 casas em centavos (R$ 0,035 = 3,5) e 0 aceito —
-  // preço zero só vale em aba SERVIÇO, e quem sabe a aba é o backend
+  // preço zero vale em qualquer aba (2026-11-11: produto grátis)
   // (`assertZeroPriceAllowed`), que devolve a mensagem.
   priceCents: z.coerce
     .number()

@@ -83,11 +83,11 @@ describe("máximo de unidades por compra (2026-11-11)", () => {
     if (result.ok) expect(pricingToDraft(result.pricing).maxUnits).toBe("5");
   });
 
-  it("zero ou acima de 999 é recusado", () => {
+  it("zero ou acima de 9999 é recusado", () => {
     const draft = emptyDraft("FIXED");
     draft.maxUnits = "0";
     expect(draftToPricing(draft).ok).toBe(false);
-    draft.maxUnits = "1000";
+    draft.maxUnits = "10000";
     expect(draftToPricing(draft).ok).toBe(false);
   });
 });

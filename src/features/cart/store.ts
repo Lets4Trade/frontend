@@ -46,7 +46,8 @@ export type CartItem = {
    * Só SERVIÇO (abas por jogo, 2026-09-28): a escolha do configurador. Vai ao
    * checkout, onde o BACKEND recalcula o preço — `unitPriceCents` aqui é só a
    * prévia. Presente = linha de serviço: a quantidade vem da página do
-   * produto (mais de 1 só no preço fixo, 2026-11-11) e não muda no carrinho.
+   * produto (mais de 1 só no preço fixo, 2026-11-11) e só muda no carrinho
+   * até `maxUnits`.
    *
    * Opcional para o carrinho salvo por versões anteriores continuar abrindo.
    */
@@ -55,11 +56,22 @@ export type CartItem = {
   summary?: string;
   /** Horas estimadas do serviço. */
   hours?: number;
+  /**
+   * Serviço de preço fixo com "Máximo de unidades por compra" (2026-11-11):
+   * o contador do carrinho vai de 1 até aqui. Ausente/1 = sem contador. É só
+   * conforto de tela — o backend recusa `units` acima do máximo do banco.
+   */
+  maxUnits?: number;
 };
 
-/** Linha de serviço: tem escolha, e a quantidade não muda no carrinho. */
+/** Linha de serviço: tem escolha (a quantidade só muda se `maxUnits` > 1). */
 export function isServiceItem(item: Pick<CartItem, "selection">): boolean {
   return Boolean(item.selection);
+}
+
+/** Até quanto a quantidade da linha vai no carrinho. */
+export function maxQuantityOf(item: Pick<CartItem, "selection" | "maxUnits">): number {
+  return isServiceItem(item) ? Math.max(1, item.maxUnits ?? 1) : MAX_QUANTITY;
 }
 
 /**
@@ -105,7 +117,7 @@ export const useCart = create<CartState>()(
             const line: CartItem = {
               ...item,
               id,
-              quantity: Math.min(Math.max(1, Math.floor(quantity)), MAX_QUANTITY),
+              quantity: Math.min(Math.max(1, Math.floor(quantity)), maxQuantityOf(item)),
               addedAt: existing?.addedAt ?? new Date().toISOString(),
             };
             return {
@@ -152,8 +164,9 @@ export const useCart = create<CartState>()(
                   line.id === id
                     ? {
                         ...line,
-                        // Serviço não muda no carrinho: a quantidade é a da página.
-                        quantity: isServiceItem(line) ? line.quantity : Math.min(quantity, MAX_QUANTITY),
+                        // Serviço: só até o máximo de unidades do produto
+                        // (sem máximo, fica a quantidade da página).
+                        quantity: Math.min(quantity, maxQuantityOf(line)),
                       }
                     : line,
                 ),

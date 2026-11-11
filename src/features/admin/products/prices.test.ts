@@ -33,7 +33,12 @@ describe("parsePriceInput", () => {
     expect(parsePriceInput(raw)).toBe(cents);
   });
 
-  it.each(["", "abc", "4,10555", "-4", "0", "0,00", "4,,1", "20000000,01"])("%s é inválido", (raw) => {
+  it("0 é grátis (2026-11-11)", () => {
+    expect(parsePriceInput("0")).toBe(0);
+    expect(parsePriceInput("0,00")).toBe(0);
+  });
+
+  it.each(["", "abc", "4,10555", "-4", "4,,1", "20000000,01"])("%s é inválido", (raw) => {
     expect(parsePriceInput(raw)).toBeNull();
   });
 

@@ -46,7 +46,8 @@ export function parsePriceInput(raw: string): number | null {
   if (!match) return null;
   // Décimos-milésimos de real (= centésimos de centavo), inteiros.
   const points = Number(match[1]) * 10_000 + Number((match[2] ?? "").padEnd(4, "0"));
-  if (!Number.isSafeInteger(points) || points < 1 || points > MAX_PRICE_CENTS * 100) return null;
+  // 0 vale (2026-11-11): produto grátis.
+  if (!Number.isSafeInteger(points) || points < 0 || points > MAX_PRICE_CENTS * 100) return null;
   return points / 100;
 }
 

@@ -170,8 +170,8 @@ const common = {
   baseHours: hours.optional(),
 };
 
-/** Teto do "máximo de unidades por compra" do preço fixo (2026-11-11). */
-export const MAX_UNITS_PER_ORDER = 999;
+/** Teto do "máximo de unidades por compra" do preço fixo (2026-11-11; 9999 a pedido do usuário). */
+export const MAX_UNITS_PER_ORDER = 9999;
 
 const fixedSchema = z.object({
   mode: z.literal("FIXED"),
@@ -461,15 +461,17 @@ export function quote(basePriceCents: number, pricing: Pricing, rawSelection: Se
     summary = summary ? `${summary} · ${names}` : names;
   }
 
-  // Desconto (adicional percentual negativo) pode zerar o total; pedido de
-  // R$ 0 não tem como ser cobrado, então a combinação é recusada com motivo.
-  if (total <= 0 && subtotal > 0) {
-    return { ok: false, message: "Com esses adicionais o valor fica zerado. Escolha outra combinação." };
+  // GRÁTIS (2026-11-11, pedido do usuário: "o produto pode sair de graça se o
+  // admin deixar 0"): conta que dá ZERO EXATO — preço 0, ou −100% configurado
+  // — vale, e o pedido nasce pago. Abaixo de zero (descontos somados passando
+  // de 100%) é recusado. Fração que só ARREDONDA para R$ 0 (0,5 centavo × 1)
+  // continua recusada logo abaixo: isso não é grátis, é preço mal escolhido.
+  if (total < 0) {
+    return { ok: false, message: "Com esses adicionais o valor fica negativo. Escolha outra combinação." };
   }
-  if (total <= 0) return { ok: false, message: "Este serviço está sem preço configurado." };
   // O que vai ser COBRADO: centavo inteiro, sempre para baixo (2026-11-09).
   const totalCents = Math.floor(total / C);
-  if (totalCents <= 0) {
+  if (total > 0 && totalCents <= 0) {
     return { ok: false, message: "O valor fica abaixo de R$ 0,01. Escolha uma quantidade maior." };
   }
   if (totalCents > MAX_SERVICE_TOTAL_CENTS) return { ok: false, message: "Valor acima do limite de um pedido." };
