@@ -120,8 +120,12 @@ const addonFields = {
    * sobre o subtotal do serviço (2026-10-09). FIXED: centavos, só positivo.
    */
   value: z.number().int().min(MIN_ADDON_PERCENT).max(MAX_SERVICE_TOTAL_CENTS),
-  /** Horas a mais que o adicional custa (ex.: "jogar junto" +2h). */
-  extraHours: hours.optional(),
+  /**
+   * Horas a mais que o adicional custa (ex.: "jogar junto" +2h). NEGATIVO
+   * (2026-11-11, pedido do usuário) é entrega mais rápida: "entrega em até
+   * 12h" = −12. O prazo total nunca fica abaixo de 0 (ver `quote`).
+   */
+  extraHours: z.number().finite().optional(),
 };
 
 const fixedNotNegative = {
@@ -473,7 +477,8 @@ export function quote(basePriceCents: number, pricing: Pricing, rawSelection: Se
   return {
     ok: true,
     totalCents,
-    hours: Math.round(totalHours * 100) / 100,
+    // Adicional de entrega rápida (horas negativas) não leva o prazo abaixo de 0.
+    hours: Math.max(0, Math.round(totalHours * 100) / 100),
     summary: summary || "Serviço",
     lines,
     selection,

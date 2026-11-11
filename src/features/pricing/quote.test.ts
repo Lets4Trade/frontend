@@ -396,6 +396,19 @@ describe("serviços: título, limite e subserviços (2026-11-09)", () => {
     expect(quote(1000, required, { addonIds: ["mapas-a"] })).toMatchObject({ ok: true, totalCents: 1200 });
   });
 
+  it("adicional com horas negativas (2026-11-11): entrega mais rápida, prazo nunca abaixo de 0", () => {
+    const fast: Pricing = {
+      mode: "FIXED",
+      baseHours: 24,
+      addons: [
+        { id: "expressa", label: "Entrega em até 12h", kind: "FIXED", value: 500, extraHours: -12 },
+        { id: "turbo", label: "Turbo", kind: "FIXED", value: 100, extraHours: -30 },
+      ],
+    };
+    expect(quote(1000, fast, { addonIds: ["expressa"] })).toMatchObject({ ok: true, totalCents: 1500, hours: 12 });
+    expect(quote(1000, fast, { addonIds: ["expressa", "turbo"] })).toMatchObject({ ok: true, hours: 0 });
+  });
+
   it("id repetido entre serviço e subserviço é recusado no schema", () => {
     const bad = {
       mode: "FIXED",

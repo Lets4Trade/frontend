@@ -92,6 +92,22 @@ describe("máximo de unidades por compra (2026-11-11)", () => {
   });
 });
 
+describe("adicional de entrega rápida (2026-11-11)", () => {
+  it("horas negativas são gravadas e voltam ao rascunho", () => {
+    const draft = emptyDraft("FIXED");
+    draft.baseHours = "24";
+    draft.addons = [
+      { key: "e", id: null, label: "Entrega em até 12h", kind: "FIXED", percent: "", cents: 500, extraHours: "-12", children: [], maxChildren: "" },
+    ];
+    const result = draftToPricing(draft);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.pricing.addons?.[0]).toMatchObject({ extraHours: -12 });
+      expect(pricingToDraft(result.pricing).addons[0].extraHours).toBe("-12");
+    }
+  });
+});
+
 describe("grupo obrigatório no painel (2026-11-11)", () => {
   it("marcado no grupo grava required e volta ao rascunho; em serviço sem subserviços não grava", () => {
     const draft = emptyDraft("FIXED");

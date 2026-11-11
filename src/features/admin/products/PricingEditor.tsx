@@ -481,7 +481,9 @@ function addonCells({
       ariaLabel={`${label}: horas a mais`}
       value={addon.extraHours}
       numeric
-      placeholder="0"
+      // Negativo (2026-11-11) = entrega mais rápida, ex.: −12.
+      signed
+      placeholder="0 ou -12"
       onChange={(extraHours) => set({ extraHours })}
     />,
     <code key="id" className="block truncate font-mono text-[12px] text-brand-fg-subtle">
