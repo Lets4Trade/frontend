@@ -36,7 +36,8 @@ export type CheckoutLine = {
   units: number;
   /**
    * Só SERVIÇO: a escolha do configurador. O backend recalcula o preço com ela
-   * (`quote`) — nenhum valor viaja daqui. Presente = `units` tem que ser 1.
+   * (`quote`) — nenhum valor viaja daqui. Mais de 1 unidade só no preço fixo
+   * (2026-11-11); quem decide é o backend, que conhece a regra do produto.
    */
   selection?: Selection;
 };
@@ -108,7 +109,7 @@ function cleanLines(lines: CheckoutLine[]): { ok: true; items: CleanLine[] } | {
     // sempre 1 unidade — o backend recusaria outra quantidade.
     if (line.selection !== undefined && line.selection !== null) {
       const parsed = selectionSchema.safeParse(line.selection);
-      if (!parsed.success || units !== 1) return { ok: false, reason: "invalid" };
+      if (!parsed.success) return { ok: false, reason: "invalid" };
       items.push({ productId, units, selection: parsed.data });
       continue;
     }

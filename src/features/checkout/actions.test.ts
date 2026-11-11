@@ -54,8 +54,8 @@ describe("checkoutAction", () => {
     });
   });
 
-  it("recusa serviço com mais de 1 unidade ou escolha inválida, sem chamar a API", async () => {
-    expect(await checkoutAction([{ productId: "srv", units: 2, selection: {} }])).toEqual({
+  it("recusa serviço com escolha inválida, sem chamar a API (unidades quem confere é o backend)", async () => {
+    expect(await checkoutAction([{ productId: "srv", units: 0, selection: {} }])).toEqual({
       ok: false,
       reason: "invalid",
     });

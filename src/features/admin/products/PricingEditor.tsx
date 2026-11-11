@@ -227,6 +227,18 @@ export function PricingEditor({
             onChange={(baseHours) => patch({ baseHours })}
           />
         </Mini>
+        {/* Seletor de quantidade na loja (2026-11-11): só no preço fixo, e só
+            aparece com um máximo acima de 1. Cada unidade repete a escolha toda. */}
+        {draft.mode === "FIXED" ? (
+          <Mini label="Máximo de unidades por compra">
+            <TextInput
+              value={draft.maxUnits}
+              numeric
+              placeholder="Vazio = 1, sem seletor"
+              onChange={(maxUnits) => patch({ maxUnits })}
+            />
+          </Mini>
+        ) : null}
       </div>
 
       <AddonsTable draft={draft} patch={patch} />

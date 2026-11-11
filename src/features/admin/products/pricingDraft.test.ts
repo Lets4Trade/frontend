@@ -73,6 +73,25 @@ describe("draftToPricing", () => {
   });
 });
 
+describe("máximo de unidades por compra (2026-11-11)", () => {
+  it("vazio não grava; número vira maxUnits e volta ao rascunho", () => {
+    const draft = emptyDraft("FIXED");
+    expect(draftToPricing(draft)).toEqual({ ok: true, pricing: { mode: "FIXED" } });
+    draft.maxUnits = "5";
+    const result = draftToPricing(draft);
+    expect(result).toEqual({ ok: true, pricing: { mode: "FIXED", maxUnits: 5 } });
+    if (result.ok) expect(pricingToDraft(result.pricing).maxUnits).toBe("5");
+  });
+
+  it("zero ou acima de 999 é recusado", () => {
+    const draft = emptyDraft("FIXED");
+    draft.maxUnits = "0";
+    expect(draftToPricing(draft).ok).toBe(false);
+    draft.maxUnits = "1000";
+    expect(draftToPricing(draft).ok).toBe(false);
+  });
+});
+
 describe("grupo de subserviços no painel (2026-11-11)", () => {
   it("serviço com subserviços grava R$ 0 sem horas, mesmo com valor no rascunho", () => {
     const draft = emptyDraft("FIXED");

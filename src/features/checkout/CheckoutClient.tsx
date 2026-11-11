@@ -264,10 +264,12 @@ export function CheckoutClient({
     // Só id e quantidade: nome, arte, servidor e PREÇO são lidos do catálogo
     // no backend (ver `actions.ts`). O que o carrinho guarda no `localStorage`
     // serve para desenhar a tela — nada dali vira valor de pedido.
-    // Serviço leva a ESCOLHA (o backend refaz o `quote` com ela) e sempre 1.
+    // Serviço leva a ESCOLHA (o backend refaz o `quote` com ela) e as
+    // unidades da linha — mais de 1 só vale no preço fixo (2026-11-11), e quem
+    // confere é o backend.
     const lines: CheckoutLine[] = items.map((item) =>
       item.selection
-        ? { productId: item.productId, units: 1, selection: item.selection }
+        ? { productId: item.productId, units: item.quantity, selection: item.selection }
         : { productId: item.productId, units: item.quantity },
     );
 
@@ -385,7 +387,7 @@ export function CheckoutClient({
     setCouponNote(null);
     const lines: CheckoutLine[] = items.map((item) =>
       item.selection
-        ? { productId: item.productId, units: 1, selection: item.selection }
+        ? { productId: item.productId, units: item.quantity, selection: item.selection }
         : { productId: item.productId, units: item.quantity },
     );
     const result = await runAction(() => previewCouponAction(code, lines), {

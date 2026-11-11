@@ -72,6 +72,8 @@ export type PricingDraft = {
   addonsTitle: string;
   /** Quantos serviços o cliente pode marcar, como digitado. Vazio = sem limite. */
   maxAddons: string;
+  /** Só preço fixo (2026-11-11): até quantas unidades por compra. Vazio = 1, sem seletor. */
+  maxUnits: string;
 };
 
 export const PRICING_MODES: readonly { value: PricingMode; label: string; hint: string }[] = [
@@ -112,6 +114,7 @@ export function emptyDraft(mode: PricingMode = "FIXED"): PricingDraft {
     addons: [],
     addonsTitle: "",
     maxAddons: "",
+    maxUnits: "",
   };
 }
 
@@ -150,6 +153,7 @@ export function pricingToDraft(pricing: Pricing | null | undefined): PricingDraf
   draft.addons = (pricing.addons ?? []).map((addon) => addonToDraft(addon));
   draft.addonsTitle = pricing.addonsTitle ?? "";
   draft.maxAddons = pricing.maxAddons ? String(pricing.maxAddons) : "";
+  if (pricing.mode === "FIXED" && pricing.maxUnits) draft.maxUnits = String(pricing.maxUnits);
   if (pricing.mode === "QUANTITY") {
     draft.unitLabel = pricing.unitLabel;
     draft.min = String(pricing.min);
@@ -277,7 +281,11 @@ export function draftToPricing(
 
   let raw: unknown;
   if (draft.mode === "FIXED") {
-    raw = { mode: "FIXED", ...common };
+    raw = {
+      mode: "FIXED",
+      ...common,
+      ...(draft.maxUnits.trim() === "" ? {} : { maxUnits: toInt(draft.maxUnits) }),
+    };
   } else if (draft.mode === "QUANTITY") {
     raw = {
       mode: "QUANTITY",
@@ -336,6 +344,7 @@ const FIELD_NAMES: Record<string, string> = {
   addons: "Adicionais",
   addonsTitle: "Título da lista",
   maxAddons: "Máximo de serviços",
+  maxUnits: "Máximo de unidades por compra",
   maxChildren: "Máximo de subserviços",
   children: "Subserviços",
 };

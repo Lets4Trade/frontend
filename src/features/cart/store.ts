@@ -45,7 +45,8 @@ export type CartItem = {
   /**
    * Só SERVIÇO (abas por jogo, 2026-09-28): a escolha do configurador. Vai ao
    * checkout, onde o BACKEND recalcula o preço — `unitPriceCents` aqui é só a
-   * prévia. Presente = linha de serviço, quantidade fixa em 1.
+   * prévia. Presente = linha de serviço: a quantidade vem da página do
+   * produto (mais de 1 só no preço fixo, 2026-11-11) e não muda no carrinho.
    *
    * Opcional para o carrinho salvo por versões anteriores continuar abrindo.
    */
@@ -56,7 +57,7 @@ export type CartItem = {
   hours?: number;
 };
 
-/** Linha de serviço: tem escolha, e a quantidade não muda. */
+/** Linha de serviço: tem escolha, e a quantidade não muda no carrinho. */
 export function isServiceItem(item: Pick<CartItem, "selection">): boolean {
   return Boolean(item.selection);
 }
@@ -98,12 +99,13 @@ export const useCart = create<CartState>()(
           const existing = state.items.find((line) => line.id === id);
 
           // Serviço: a MESMA escolha de novo substitui a linha (preço de prévia
-          // atualizado), sem somar — um boosting 1 → 50 não vira "2x".
+          // e quantidade da página), sem somar — um boosting 1 → 50 não vira
+          // "2x" por clicar duas vezes.
           if (item.selection) {
             const line: CartItem = {
               ...item,
               id,
-              quantity: 1,
+              quantity: Math.min(Math.max(1, Math.floor(quantity)), MAX_QUANTITY),
               addedAt: existing?.addedAt ?? new Date().toISOString(),
             };
             return {
@@ -150,8 +152,8 @@ export const useCart = create<CartState>()(
                   line.id === id
                     ? {
                         ...line,
-                        // Serviço é sempre 1: o backend recusa outra quantidade.
-                        quantity: isServiceItem(line) ? 1 : Math.min(quantity, MAX_QUANTITY),
+                        // Serviço não muda no carrinho: a quantidade é a da página.
+                        quantity: isServiceItem(line) ? line.quantity : Math.min(quantity, MAX_QUANTITY),
                       }
                     : line,
                 ),

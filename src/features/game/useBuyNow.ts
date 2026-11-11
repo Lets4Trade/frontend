@@ -20,7 +20,8 @@ export function useBuyNow(context: ProductContext) {
   const addToCart = useCart((state) => state.add);
   const closeCart = useCart((state) => state.close);
 
-  return (product: GameProduct, result: Quote) => {
+  // `units`: quantas vezes a mesma escolha (2026-11-11, só preço fixo).
+  return (product: GameProduct, result: Quote, units = 1) => {
     if (!result.ok) return;
     addToCart(
       {
@@ -35,7 +36,7 @@ export function useBuyNow(context: ProductContext) {
         summary: result.summary,
         hours: result.hours,
       },
-      1,
+      units,
     );
     // "Comprar agora" vai direto ao checkout; a gaveta aberta por cima dele
     // seria um passo a mais.

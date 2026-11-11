@@ -237,6 +237,45 @@ describe("ServiceConfigurator", () => {
     expect(screen.getByText(/R\$\s?15,00/)).toBeInTheDocument();
   });
 
+  it("preço fixo com máximo de unidades (2026-11-11): seletor multiplica o total e vai ao carrinho", () => {
+    render(
+      <ServiceConfigurator
+        products={[{ ...product, pricing: { mode: "FIXED", maxUnits: 3 }, priceCents: 1500 }]}
+        context={context}
+        filters={null}
+        emptyMessage="vazio"
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Diminuir a quantidade" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Aumentar a quantidade" }));
+    fireEvent.click(screen.getByRole("button", { name: "Aumentar a quantidade" }));
+    // 3 × R$ 15,00
+    expect(screen.getByText(/R\$\s?45,00/)).toBeInTheDocument();
+    expect(screen.getByText(/3 × R\$\s?15,00/)).toBeInTheDocument();
+    // No máximo do painel, o + trava.
+    expect(screen.getByRole("button", { name: "Aumentar a quantidade" })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "COMPRAR AGORA" }));
+    expect(useCart.getState().items[0]).toMatchObject({ productId: "p1", quantity: 3, unitPriceCents: 1500 });
+  });
+
+  it("sem máximo de unidades (ou faixa de nível) não tem seletor de quantidade", () => {
+    const { unmount } = render(
+      <ServiceConfigurator products={[product]} context={context} filters={null} emptyMessage="vazio" />,
+    );
+    expect(screen.queryByRole("button", { name: "Aumentar a quantidade" })).not.toBeInTheDocument();
+    unmount();
+    render(
+      <ServiceConfigurator
+        products={[{ ...product, pricing: { mode: "FIXED" }, priceCents: 1500 }]}
+        context={context}
+        filters={null}
+        emptyMessage="vazio"
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "Aumentar a quantidade" })).not.toBeInTheDocument();
+  });
+
   it("até 6 adicionais não mostra a busca", () => {
     render(<ServiceConfigurator products={[product]} context={context} filters={null} emptyMessage="vazio" />);
     expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();

@@ -52,10 +52,11 @@ export function CartRow({ item }: { item: CartItem }) {
         ) : null}
 
         <div className="mt-auto flex items-center justify-between gap-[10px] pt-[8px]">
-          {/* Serviço tem quantidade fixa em 1 (a escolha já diz o tamanho). */}
+          {/* Serviço: a quantidade é a da página do produto (2026-11-11). */}
           {service ? (
             <span className="font-helvetica text-[12px] text-white/60">
-              {item.hours ? `~${formatHours(item.hours)} h` : "Serviço"}
+              {item.quantity > 1 ? `${item.quantity}× · ` : ""}
+              {item.hours ? `~${formatHours(item.hours * item.quantity)} h` : "Serviço"}
             </span>
           ) : (
             <div className="flex items-center rounded-full border border-white/10 bg-white/[0.03]">

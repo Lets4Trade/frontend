@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { SelectField } from "@/components/ui/SelectField";
 import { formatHours } from "@/features/cart/store";
-import { addonsTitle, isAddonGroup, quote, type Pricing, type Selection } from "@/features/pricing/quote";
+import { addonsTitle, isAddonGroup, maxUnitsOf, quote, type Pricing, type Selection } from "@/features/pricing/quote";
 import { ADDON_SEARCH_THRESHOLD, atLimit, filterAddons, snapQuantity, toggleAddon } from "./configurator";
 import { formatPrice } from "./content";
 import type { ProductContext } from "./ProductCard";
@@ -166,6 +166,11 @@ function ProductControls({ product, context }: { product: GameProduct; context: 
   const pricing = product.pricing ?? FIXED;
   const [selection, setSelection] = useState<Selection>(() => initialSelection(pricing));
   const [addonIds, setAddonIds] = useState<string[]>([]);
+  // Quantas vezes a mesma escolha (2026-11-11, pedido do usuário). Só no preço
+  // fixo com "máximo de unidades por compra" no painel; vazio = sem seletor.
+  const maxUnits = maxUnitsOf(pricing);
+  const multiUnit = maxUnits > 1;
+  const [units, setUnits] = useState(1);
 
   const result = useMemo(
     () => quote(product.priceCents, pricing, { ...selection, addonIds }),
@@ -180,7 +185,8 @@ function ProductControls({ product, context }: { product: GameProduct; context: 
     );
   }
 
-  const buy = () => buyNow(product, result);
+  const buy = () => buyNow(product, result, multiUnit ? units : 1);
+  const shownUnits = multiUnit ? units : 1;
 
   return (
     <>
@@ -219,23 +225,34 @@ function ProductControls({ product, context }: { product: GameProduct; context: 
 
       <div aria-hidden className="mt-[26px] h-px w-full bg-white/20" />
 
-      <div aria-live="polite" className="mt-[25px]">
-        {result.ok ? (
-          <>
-            <p className="font-poppins text-[18px] leading-[27px] font-bold tracking-[0.36px] text-white">
-              {formatPrice(result.totalCents)}
-            </p>
-            {result.hours > 0 ? (
-              <p className="mt-[5px] font-helvetica text-[14px] leading-none font-bold tracking-[0.14px] text-white/80">
-                Total de Horas: {formatHours(result.hours)}
+      {/* Preço à esquerda e, no preço fixo, o seletor de quantidade à direita,
+          logo acima do COMPRAR AGORA (2026-11-11). O total já é × quantidade —
+          a mesma conta que o backend faz (`quote` de uma × unidades). */}
+      <div className="mt-[25px] flex items-center justify-between gap-[15px]">
+        <div aria-live="polite" className="min-w-0">
+          {result.ok ? (
+            <>
+              <p className="font-poppins text-[18px] leading-[27px] font-bold tracking-[0.36px] break-words text-white">
+                {formatPrice(result.totalCents * shownUnits)}
               </p>
-            ) : null}
-          </>
-        ) : (
-          <p role="alert" className="font-helvetica text-[15px] leading-[22px] text-[#ff6b6b]">
-            {result.message}
-          </p>
-        )}
+              {shownUnits > 1 ? (
+                <p className="mt-[2px] font-helvetica text-[13px] leading-[18px] text-white/60">
+                  {shownUnits} × {formatPrice(result.totalCents)}
+                </p>
+              ) : null}
+              {result.hours > 0 ? (
+                <p className="mt-[5px] font-helvetica text-[14px] leading-none font-bold tracking-[0.14px] text-white/80">
+                  Total de Horas: {formatHours(result.hours * shownUnits)}
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <p role="alert" className="font-helvetica text-[15px] leading-[22px] text-[#ff6b6b]">
+              {result.message}
+            </p>
+          )}
+        </div>
+        {multiUnit ? <UnitStepper value={units} max={maxUnits} onChange={setUnits} label={product.name} /> : null}
       </div>
 
       <Button variant="cta" fullWidth className="mt-[15px]" disabled={!result.ok} onClick={buy}>
@@ -549,8 +566,8 @@ function AddonList({
             return <AddonRow key={addon.id} addon={addon} on={on} disabled={!on && full} onToggle={() => onToggle(addon.id)} />;
           }
           // Grupo (2026-11-11, pedido do usuário): o serviço com subserviços
-          // é a CAIXINHA GRANDE sem preço e os subserviços ficam menores e
-          // recuados embaixo, sempre abertos. A caixinha não é clicável: só
+          // é a CAIXINHA GRANDE sem preço e os subserviços ficam menores,
+          // alinhados com ela (sem recuo nem linha), sempre abertos. A caixinha não é clicável: só
           // ACENDE quando algum subserviço está marcado (é o grupo que não
           // cobra — quem entra na conta são os subserviços).
           const children = addon.children ?? [];
@@ -569,7 +586,7 @@ function AddonList({
                   {addon.label}
                 </h4>
               </div>
-              <div className="mt-[12px] ml-[16px] flex flex-col gap-[12px] border-l border-white/15 pl-[16px]">
+              <div className="mt-[12px] flex flex-col gap-[12px]">
                 {addon.maxChildren ? <LimitHint max={addon.maxChildren} chosen={chosenChildren} /> : null}
                 {children.map((child) => {
                   const childOn = selected.includes(child.id);
@@ -663,5 +680,51 @@ function AddonBox({ on, small = false }: { on: boolean; small?: boolean }) {
         on ? "bg-[image:var(--brand-orange-gradient)]" : "bg-[image:var(--brand-surface-fill)]"
       }`}
     />
+  );
+}
+
+/**
+ * Seletor de quantidade do preço fixo (2026-11-11): − N +, no estilo dos
+ * botões do card de produto. 1 a `max` (o `maxUnits` do painel); o backend
+ * confere de novo.
+ */
+function UnitStepper({
+  value,
+  max,
+  onChange,
+  label,
+}: {
+  value: number;
+  max: number;
+  /** Recebe a ATUALIZAÇÃO (não o número): dois cliques seguidos somam dois. */
+  onChange: (update: (current: number) => number) => void;
+  label: string;
+}) {
+  const STEP_BUTTON =
+    "flex size-[40px] items-center justify-center rounded-[8px] border border-white/10 bg-[image:var(--brand-surface-fill)] font-poppins text-[18px] font-bold text-white transition-opacity outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-brand-orange disabled:cursor-not-allowed disabled:opacity-40";
+  return (
+    <div role="group" aria-label={`Quantidade de ${label}`} className="flex shrink-0 items-center gap-[10px]">
+      <button
+        type="button"
+        className={STEP_BUTTON}
+        aria-label="Diminuir a quantidade"
+        disabled={value <= 1}
+        onClick={() => onChange((current) => Math.max(1, current - 1))}
+      >
+        −
+      </button>
+      <span aria-live="polite" className="min-w-[24px] text-center font-poppins text-[18px] font-bold text-white tabular-nums">
+        {value}
+      </span>
+      <button
+        type="button"
+        className={STEP_BUTTON}
+        aria-label="Aumentar a quantidade"
+        disabled={value >= max}
+        onClick={() => onChange((current) => Math.min(max, current + 1))}
+      >
+        +
+      </button>
+    </div>
   );
 }
