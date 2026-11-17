@@ -61,9 +61,16 @@ const STYLE: Record<
 export function SectionContentView({
   section,
   variant = "page",
+  titleBar = false,
 }: {
   section: ServiceSection;
   variant?: Variant;
+  /**
+   * Título com a barrinha laranja e o texto recuado, como no card de Dúvidas
+   * (`GameFaqSection`) — o visual das descrições de aba na loja (2026-11-17).
+   * Só a aparência: o conteúdo e o editor são os mesmos.
+   */
+  titleBar?: boolean;
 }) {
   const style = STYLE[variant];
   const markerColor = section.markerColor ? MARKER_COLOR_CLASS[section.markerColor] : style.markerColor;
@@ -147,6 +154,36 @@ export function SectionContentView({
     : null;
 
   const hasItems = section.items.length > 0;
+
+  if (titleBar) {
+    return (
+      <>
+        {/* Mesmas medidas do título de grupo do FAQ: barrinha 4×31 no meio do
+            título, inclusive quando ele quebra em mais de uma linha. */}
+        {section.title ? (
+          <div className="flex items-center gap-[14px] desk:gap-[22px]">
+            <span
+              aria-hidden
+              className="h-[31px] w-[4px] shrink-0 rounded-[29px] bg-[image:var(--brand-orange-gradient)]"
+            />
+            <h2 className="min-w-0 font-helvetica text-[20px] leading-[1.15] font-bold tracking-[0.25px] break-words text-white desk:text-[25px] desk:leading-none">
+              {section.title}
+            </h2>
+          </div>
+        ) : null}
+        {hasItems || body ? (
+          <div
+            className={`flex flex-col gap-[12px] pl-[18px] desk:pl-[26px] ${
+              section.title ? "mt-[18px] desk:mt-[24px]" : ""
+            }`}
+          >
+            {hasItems ? list(section.items, false) : null}
+            {body}
+          </div>
+        ) : null}
+      </>
+    );
+  }
 
   return (
     <>

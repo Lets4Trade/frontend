@@ -13,3 +13,9 @@ export function pillClassName(active: boolean, extra = "") {
       : "border border-brand-border bg-[image:var(--brand-surface-fill)] text-white/80"
   } ${extra}`.trim();
 }
+
+/**
+ * Rótulo da opção "sem filtro" que vem PRIMEIRO nas categorias, subcategorias
+ * e no blog (2026-11-17). Não é categoria do banco: vale em todo jogo.
+ */
+export const ALL_LABEL = "Todos";

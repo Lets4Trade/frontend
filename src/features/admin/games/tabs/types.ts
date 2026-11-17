@@ -64,11 +64,24 @@ export function isProductTab(tab: Pick<GameTab, "layout">): boolean {
   return PRODUCT_LAYOUTS.includes(tab.layout);
 }
 
-/** Layouts com os textos da coluna esquerda (`content`). */
-export const CONTENT_LAYOUTS: readonly TabLayout[] = ["SERVICE", "QUANTITY", "PACKAGES"];
+/**
+ * Layouts com os textos da aba (`content`). CATÁLOGO entrou em 2026-11-17
+ * (pedido do usuário): o texto aparece embaixo da grade de produtos.
+ */
+export const CONTENT_LAYOUTS: readonly TabLayout[] = ["CATALOG", "SERVICE", "QUANTITY", "PACKAGES"];
 
 export function hasTabContent(layout: TabLayout): boolean {
   return CONTENT_LAYOUTS.includes(layout);
+}
+
+/**
+ * Abas de preço COTADO (configurador + `pricing`). Antes de 2026-11-17 era o
+ * mesmo conjunto de `CONTENT_LAYOUTS`; o Catálogo ganhou textos sem virar cotado.
+ */
+export const QUOTED_LAYOUTS: readonly TabLayout[] = ["SERVICE", "QUANTITY", "PACKAGES"];
+
+export function isQuotedLayout(layout: TabLayout): boolean {
+  return QUOTED_LAYOUTS.includes(layout);
 }
 
 /**
@@ -201,7 +214,7 @@ export const createTabSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["content"],
-        message: "Só abas de Serviço, Quantidade e Pacotes têm textos.",
+        message: "Abas de link e de venda não têm textos.",
       });
     }
   });
@@ -243,7 +256,7 @@ export const updateTabSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["content"],
-        message: "Só abas de Serviço, Quantidade e Pacotes têm textos.",
+        message: "Abas de link e de venda não têm textos.",
       });
     }
   });

@@ -76,8 +76,8 @@ export function GameIdentity({ page, server = "" }: { page: GamePage; server?: s
 const LOGO_BOX = { width: 199.435, height: 163.82 };
 
 /**
- * O logo tem uma cópia borrada atrás fazendo o halo — mesmo tratamento que os
- * cards do hero da home.
+ * O logo tinha uma cópia borrada atrás fazendo um halo (como os cards do hero
+ * da home); saiu em 2026-11-17 a pedido do usuário ("sombra" no logo).
  *
  * A arte vem do painel e NÃO tem proporção conhecida: antes as medidas de cada
  * um dos cinco jogos estavam escritas no conteúdo semente, e o primeiro jogo
@@ -101,25 +101,20 @@ function GameLogo({ logo, name }: { logo?: { src: string; alt?: string }; name: 
       className="relative h-[79px] w-[96px] shrink-0 desk:h-[var(--logo-h)] desk:w-[var(--logo-w)]"
       style={{ "--logo-w": `${LOGO_BOX.width}px`, "--logo-h": `${LOGO_BOX.height}px` } as CSSProperties}
     >
-      {[true, false].map((blurred) => (
-        <Image
-          key={String(blurred)}
-          src={logo.src}
-          // A cópia borrada é decoração: só a de cima descreve o jogo, e
-          // duplicar o texto alternativo faria o leitor de tela repetir.
-          alt={blurred ? "" : (logo.alt || name)}
-          fill
-          sizes="200px"
-          // Acima da dobra em TODA página de jogo, e é a arte que identifica a
-          // página. Com o `lazy` padrão a caixa fica vazia até o carregamento
-          // preguiçoso disparar — medido no navegador: `naturalWidth` era 0 na
-          // primeira leitura, e o topo da página aparecia sem o logo.
-          priority
-          aria-hidden={blurred || undefined}
-          className="object-contain"
-          style={{ filter: blurred ? "blur(5.92px)" : undefined }}
-        />
-      ))}
+      {/* Um logo só, sem a cópia borrada atrás (2026-11-17, pedido do
+          usuário: "remover sombra no logo do jogo"). */}
+      <Image
+        src={logo.src}
+        alt={logo.alt || name}
+        fill
+        sizes="200px"
+        // Acima da dobra em TODA página de jogo, e é a arte que identifica a
+        // página. Com o `lazy` padrão a caixa fica vazia até o carregamento
+        // preguiçoso disparar — medido no navegador: `naturalWidth` era 0 na
+        // primeira leitura, e o topo da página aparecia sem o logo.
+        priority
+        className="object-contain"
+      />
     </div>
   );
 }

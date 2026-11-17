@@ -54,7 +54,7 @@ export function MobileMenu({
 
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-[2px]" />
-        <Dialog.Content className="fixed inset-y-0 right-0 z-50 flex w-[min(100vw,380px)] flex-col overflow-y-auto border-l border-brand-border bg-brand-bg px-[25px] pt-[20px] pb-[40px] outline-none">
+        <Dialog.Content className="fixed inset-y-0 right-0 z-50 flex w-[min(var(--vw),380px)] flex-col overflow-y-auto border-l border-brand-border bg-brand-bg px-[25px] pt-[20px] pb-[40px] outline-none">
           <div className="flex items-center justify-between">
             <Dialog.Title className="font-poppins text-[16px] font-bold text-white">Menu</Dialog.Title>
             <Dialog.Close

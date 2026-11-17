@@ -15,7 +15,7 @@ import { catalogBlockFor, showsGenericFilters } from "./layouts";
 import { PackagesSection } from "./PackagesSection";
 import { ProductGrid } from "./ProductGrid";
 import { QuantitySection } from "./QuantitySection";
-import { ServiceSection } from "./ServiceSection";
+import { ServiceSection, ServiceText } from "./ServiceSection";
 import { DEFAULT_GAP, DEFAULT_SECTION_ORDER, gapBefore, type GameSectionKey } from "./sections";
 import { activeTab, scopedCategories, type CatalogQuery } from "./catalog";
 import type { GamePage } from "./types";
@@ -179,6 +179,13 @@ function renderSection(
           <div className="mt-[25px]">
             <ProductGrid page={page} query={query} />
           </div>
+          {/* Descrição da aba de Catálogo (2026-11-17): embaixo da grade, como
+              em Quantidade e Pacotes. */}
+          {tab?.content ? (
+            <div className="mt-[50px] flex">
+              <ServiceText content={tab.content} />
+            </div>
+          ) : null}
         </>
       );
 

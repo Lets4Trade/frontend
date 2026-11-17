@@ -51,7 +51,7 @@ export function BlockLibrary({
           // inteira até ele (fica no fim da lista), e o bloco recém-criado já
           // está selecionado com o formulário aberto — é lá que o foco importa.
           onCloseAutoFocus={(event) => event.preventDefault()}
-          className="z-50 max-h-[70dvh] w-[340px] overflow-y-auto rounded-[20px] border border-brand-border bg-brand-surface p-[8px] shadow-[0_16px_40px_rgba(0,0,0,.5)]"
+          className="z-50 max-h-[calc(70*var(--dvh)/100)] w-[340px] overflow-y-auto rounded-[20px] border border-brand-border bg-brand-surface p-[8px] shadow-[0_16px_40px_rgba(0,0,0,.5)]"
         >
           <p className="px-[10px] pt-[6px] pb-[4px] font-poppins text-[11px] font-bold tracking-[1px] text-brand-fg-subtle uppercase">
             Blocos

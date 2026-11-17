@@ -12,6 +12,7 @@ import Image from "next/image";
 import { createPortal } from "react-dom";
 import { SectionContentView } from "./SectionContentView";
 import type { ServiceContent } from "./types";
+import { cssZoom } from "@/lib/siteZoom";
 
 const WIDTH = 440;
 /** Distância entre o cursor e o canto do painel. */
@@ -82,9 +83,13 @@ export function PackageDescriptionPopover({
 
   /** Onde o painel deve ficar para o cursor atual, já dentro da janela. */
   function targetFor({ x, y }: Point) {
-    const height = outerRef.current?.offsetHeight ?? 0;
-    const flipX = x + OFFSET + WIDTH > window.innerWidth - MARGIN;
-    const left = flipX ? x - OFFSET - WIDTH : x + OFFSET;
+    // Contas na escala da TELA (a do cursor): altura e largura do painel,
+    // medidas no desenho, passam pelo zoom do site (2026-11-17).
+    const zoom = cssZoom(outerRef.current);
+    const height = (outerRef.current?.offsetHeight ?? 0) * zoom;
+    const width = WIDTH * zoom;
+    const flipX = x + OFFSET + width > window.innerWidth - MARGIN;
+    const left = flipX ? x - OFFSET - width : x + OFFSET;
     const top = y + OFFSET;
     return {
       point: {
@@ -100,7 +105,9 @@ export function PackageDescriptionPopover({
 
   function place(point: Point) {
     if (outerRef.current) {
-      outerRef.current.style.transform = `translate3d(${point.x}px, ${point.y}px, 0)`;
+      // Tela → px do desenho: o `translate` é multiplicado pelo zoom do site.
+      const zoom = cssZoom(outerRef.current);
+      outerRef.current.style.transform = `translate3d(${point.x / zoom}px, ${point.y / zoom}px, 0)`;
     }
   }
 
@@ -196,7 +203,7 @@ export function PackageDescriptionPopover({
                 ref={innerRef}
                 data-state={phase === "open" ? "open" : "closed"}
                 className="package-popover relative flex flex-col overflow-hidden rounded-[20px] border border-white/10 bg-[#0d0d0d]/95 px-[24px] pt-[24px] shadow-[0_24px_70px_rgba(0,0,0,0.65),0_0_0_1px_rgba(255,115,0,0.08)] backdrop-blur-md"
-                style={{ maxHeight: `calc(100vh - ${MARGIN * 2}px)` }}
+                style={{ maxHeight: `calc(var(--vh) - ${MARGIN * 2}px)` }}
               >
                 {/* Filete laranja no topo: a assinatura da marca no painel. */}
                 <span

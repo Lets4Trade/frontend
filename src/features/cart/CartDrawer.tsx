@@ -63,7 +63,7 @@ export function CartDrawer({ tiers, gifts }: { tiers: LoyaltyTierRule[]; gifts: 
         <Drawer.Overlay className="fixed inset-0 z-40 bg-black/60 backdrop-blur-[2px]" />
         <Drawer.Content
           aria-describedby={undefined}
-          className="fixed top-0 right-0 bottom-0 z-50 flex w-[480px] max-w-[100vw] flex-col border-l border-white/15 bg-[#070707] outline-none"
+          className="fixed top-0 right-0 bottom-0 z-50 flex w-[480px] max-w-[var(--vw)] flex-col border-l border-white/15 bg-[#070707] outline-none"
         >
           <header className="flex shrink-0 items-center justify-between gap-[12px] border-b border-white/10 px-[20px] py-[18px] sm:px-[28px] sm:py-[22px]">
             <Drawer.Title className="flex items-baseline gap-[10px] font-poppins text-[20px] font-semibold tracking-[-0.4px] text-white">

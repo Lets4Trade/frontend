@@ -68,7 +68,7 @@ export default async function FidelidadePage() {
     : LOYALTY_ORDER.map((key) => ({ key, gap: nodes[key]!.gap, node: nodes[key]!.node }));
 
   return (
-    <div className="flex min-h-dvh flex-col bg-brand-bg">
+    <div className="flex min-h-[var(--dvh)] flex-col bg-brand-bg">
       <SiteHeader />
 
       {/* Largura do Figma vira TETO, não medida (regra do projeto): era

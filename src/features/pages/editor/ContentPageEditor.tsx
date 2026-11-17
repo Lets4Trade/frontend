@@ -109,7 +109,7 @@ export function ContentPageEditor({
         className={cn(
           "grid gap-[16px]",
           page.previewPath
-            ? "lg:h-[calc(100dvh-230px)] lg:min-h-[560px] lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_400px]"
+            ? "lg:h-[calc(var(--dvh)-230px)] lg:min-h-[560px] lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_400px]"
             : "lg:grid-cols-[300px_minmax(0,1fr)]",
         )}
       >

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { LogoHalo } from "@/features/game/GameIdentity";
-import { pillClassName } from "@/features/game/pill";
+import { ALL_LABEL, pillClassName } from "@/features/game/pill";
 import { cn } from "@/lib/cn";
 import { BLOG_PARAM, BLOG_SEARCH_MAX, blogListHref, type BlogQuery } from "./query";
 import type { BlogGameRef } from "./types";
@@ -11,8 +11,8 @@ import type { BlogGameRef } from "./types";
  *
  * Cada jogo é a LOGO (altura ~50, halo borrado igual ao `GameLogo`) seguida da
  * pílula 170×50 — mesma peça da página de jogo (`pill.ts`), ativa em laranja.
- * Clicar no ativo DESLIGA o filtro: é um toggle, e dispensa a pílula "Todos"
- * que o arquivo não desenha.
+ * Clicar no ativo DESLIGA o filtro (toggle) e, desde 2026-11-17 (pedido do
+ * usuário), a pílula "Todos" vem PRIMEIRO — o toggle sozinho ninguém descobria.
  *
  * Tudo link/`<form method="get">`: server component, zero JS, e trocar de
  * filtro volta para a página 1 (a página 3 de um jogo não existe no outro).
@@ -40,6 +40,14 @@ export function BlogFilters({
           aria-label="Filtrar posts por jogo"
           className="scrollbar-orange -mx-4 flex min-w-0 items-center gap-[15px] overflow-x-auto px-4 pb-[6px] lg:mx-0 lg:px-0 lg:pb-0"
         >
+          <Link
+            href={blogListHref(query, { game: "", page: 1 })}
+            aria-current={!query.game ? "page" : undefined}
+            aria-label="Posts de todos os jogos"
+            className="shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg"
+          >
+            <span className={cn(pillClassName(!query.game), "px-[24px] whitespace-nowrap lg:px-[24px]")}>{ALL_LABEL}</span>
+          </Link>
           {games.map((game) => {
             const active = game.slug === query.game;
             return (

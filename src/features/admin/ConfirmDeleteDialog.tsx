@@ -32,7 +32,7 @@ export function ConfirmDeleteDialog({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[90] bg-black/70 backdrop-blur-[2px]" />
         <Dialog.Content
-          className="fixed top-1/2 left-1/2 z-[91] w-[calc(100vw-32px)] max-w-[460px] -translate-x-1/2 -translate-y-1/2 rounded-[20px] border border-red-9/40 bg-brand-surface p-[24px] shadow-[0_20px_60px_rgba(0,0,0,0.6)]"
+          className="fixed top-1/2 left-1/2 z-[91] w-[calc(var(--vw)-32px)] max-w-[460px] -translate-x-1/2 -translate-y-1/2 rounded-[20px] border border-red-9/40 bg-brand-surface p-[24px] shadow-[0_20px_60px_rgba(0,0,0,0.6)]"
           onOpenAutoFocus={(event) => {
             event.preventDefault();
             (event.currentTarget as HTMLElement).querySelector<HTMLButtonElement>("[data-cancel]")?.focus();

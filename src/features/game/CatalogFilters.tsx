@@ -7,7 +7,7 @@ import {
   scopedCategories,
   type CatalogQuery,
 } from "./catalog";
-import { pillClassName } from "./pill";
+import { ALL_LABEL, pillClassName } from "./pill";
 import { CatalogSearch } from "./CatalogSearch";
 import type { GamePage } from "./types";
 import { gameHref } from "@/features/game/href";
@@ -49,6 +49,10 @@ export function ServerPicker({
             <Link
               key={server.slug}
               href={buildHref(page.slug, query, { server: server.slug })}
+              // Trocar filtro NÃO sobe a página (2026-11-17, pedido do
+              // usuário): é a mesma tela, só a lista muda. Vale para servidor,
+              // categoria/subcategoria e ordenação.
+              scroll={false}
               aria-current={active ? "true" : undefined}
               className={pillClassName(active)}
             >
@@ -91,6 +95,15 @@ export function CategoryPanel({
   return (
     <div className="flex flex-col gap-[25px]">
       <CategoryBox title={page.categories.label}>
+        {/* "Todos" fixo e PRIMEIRO (2026-11-17, pedido do usuário): sem ele a
+            única forma de tirar o filtro era clicar de novo na marcada, o que
+            ninguém descobre. Não é categoria do banco — é "sem filtro" —, por
+            isso vale em todo jogo sem cadastro e não pode ser apagado. */}
+        <CategoryOption
+          label={ALL_LABEL}
+          checked={!active}
+          href={buildHref(page.slug, query, { categories: [] })}
+        />
         {items.map((category) => (
           <CategoryOption
             key={category.id}
@@ -104,6 +117,12 @@ export function CategoryPanel({
 
       {active && children.length > 0 ? (
         <CategoryBox title={`Subcategorias de ${active.label}`}>
+          {/* "Todos" das subcategorias = a mãe inteira, sem subfiltro. */}
+          <CategoryOption
+            label={ALL_LABEL}
+            checked={query.categories[0] === active.id}
+            href={buildHref(page.slug, query, { categories: [active.id] })}
+          />
           {children.map((child) => (
             <CategoryOption
               key={child.id}
@@ -170,6 +189,7 @@ export function CatalogToolbar({
                 // como voltar à ordem natural do catálogo.
                 sort: active ? null : option.key,
               })}
+              scroll={false}
               role="radio"
               aria-checked={active}
               className="flex items-center gap-[10px] transition-opacity hover:opacity-90"
@@ -212,6 +232,7 @@ function CategoryOption({
   return (
     <Link
       href={href}
+      scroll={false}
       // Escolha única por quadro: rádio para quem usa leitor de tela; o href
       // faz funcionar (e clicar de novo na marcada desfaz).
       role="radio"

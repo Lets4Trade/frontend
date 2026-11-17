@@ -4,7 +4,7 @@ import { getBuilderGame } from "@/features/admin/builder/list";
 import { getAdminGames } from "@/features/admin/catalog";
 import { CENTRAL_PARAM, centralHref } from "@/features/admin/games/central";
 import { getGameTabs } from "@/features/admin/games/tabs/list";
-import { hasTabContent, isProductTab } from "@/features/admin/games/tabs/types";
+import { isProductTab, isQuotedLayout } from "@/features/admin/games/tabs/types";
 import { requirePanelArea } from "@/features/admin/guard";
 import { ADMIN_SHELL } from "@/features/admin/layout";
 import { PARAM } from "@/features/admin/products/catalog";
@@ -119,7 +119,7 @@ export default async function ProductPricesPage({ searchParams }: PageProps) {
               key={`${game.id}|${tab.id}`}
               gameId={game.id}
               tabId={tab.id}
-              quoted={hasTabContent(tab.layout)}
+              quoted={isQuotedLayout(tab.layout)}
               packages={tab.layout === "PACKAGES"}
               servers={servers.map(({ id, label }) => ({ id, label }))}
               categories={listed.categories ?? []}

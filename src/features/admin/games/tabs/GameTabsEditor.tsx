@@ -28,6 +28,7 @@ import {
 import {
   TAB_LAYOUTS,
   hasTabContent,
+  isQuotedLayout,
   isProductTab,
   layoutLabel,
   defaultTabIcon,
@@ -220,7 +221,7 @@ export const FAILED = { ok: false, reason: "error", message: ACTION_FAILED_MESSA
 
 export function LayoutBadge({ layout }: { layout: TabLayout }) {
   // Laranja = aba de preço cotado; branco = aba sem produto; cinza = catálogo.
-  const tone = hasTabContent(layout)
+  const tone = isQuotedLayout(layout)
     ? "border-brand-orange/50 text-brand-orange"
     : layout === "LINK" || layout === "SELL"
       ? "border-white/40 text-white"
@@ -539,7 +540,7 @@ export function NewTabForm({
     // O endereço sai do nome, aqui e no backend (que resolve colisão com 409).
     // Só o que o layout ESCOLHIDO tem: textos digitados num layout e
     // abandonados ao trocar para outro ficam no rascunho, mas não viajam (o
-    // schema recusaria `content` num Catálogo). Sem seção nenhuma, nem vai.
+    // schema recusaria `content` num Link ou Venda). Sem seção nenhuma, nem vai.
     const content = hasTabContent(layout) ? fromSectionDrafts(sections) : [];
     const input = {
       label,

@@ -14,7 +14,7 @@ import { NewTabPanel, TabDetailPanel } from "./tabs/GameTabsEditor";
 import { getTabCategories } from "./tabs/list";
 import { ScopedCategoriesEditor } from "./tabs/ScopedCategoriesEditor";
 import { TabsMasterList } from "./tabs/TabsMasterList";
-import { hasTabContent, isProductTab, type GameTab, type ScopedCategoryRow } from "./tabs/types";
+import { isProductTab, isQuotedLayout, type GameTab, type ScopedCategoryRow } from "./tabs/types";
 
 /**
  * As três seções da Central do jogo (admin-games-ux.md, Etapa 2) — server
@@ -196,7 +196,7 @@ async function TabProductsAndCategories({
   // edição de produto traz a pessoa de volta para esta aba e este servidor.
   const here = centralHref(game.id, { section: "abas", tabId: tab.id, serverId: server?.id ?? "" });
   const grid = ordering.ok ? productGrid(ordering.items, servers) : null;
-  const quoted = hasTabContent(tab.layout);
+  const quoted = isQuotedLayout(tab.layout);
   const editorCategories = server ? serverCategories : tabCategories;
   const pricesHref = `/admin/produtos/precos?${new URLSearchParams({
     jogo: game.id,

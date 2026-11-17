@@ -55,7 +55,10 @@ export function HomeBackdrop() {
         alt=""
         width={700}
         height={1663}
-        className="absolute top-[2614.97px] left-[1220.5px] h-[1663px] w-[700px] max-w-none"
+        // Preso à borda DIREITA (2026-11-17): era `left-[1220.5px]`, que só
+        // encostava na borda num frame de exatamente 1920. Na home o fundo
+        // ocupa a tela toda (ver `app/page.tsx`); 1220,5 + 700 ≈ 1920.
+        className="absolute top-[2614.97px] right-0 h-[1663px] w-[700px] max-w-none"
       />
 
       {/* O botão de contato flutuante (269:488) SAIU daqui em 2026-09-15: virou

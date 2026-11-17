@@ -152,7 +152,7 @@ export function CookieConsent() {
       <Dialog.Root open={prefsOpen} onOpenChange={setPrefsOpen}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-[60] bg-black/75 backdrop-blur-[2px]" />
-          <Dialog.Content className="fixed top-1/2 left-1/2 z-[60] flex max-h-[calc(100dvh-32px)] w-[520px] max-w-[calc(100vw-24px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[26px] border border-brand-border bg-brand-surface shadow-[0_24px_60px_rgba(0,0,0,.6)] outline-none">
+          <Dialog.Content className="fixed top-1/2 left-1/2 z-[60] flex max-h-[calc(var(--dvh)-32px)] w-[520px] max-w-[calc(var(--vw)-24px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[26px] border border-brand-border bg-brand-surface shadow-[0_24px_60px_rgba(0,0,0,.6)] outline-none">
             <div className="overflow-y-auto px-[22px] pt-[24px] pb-[8px] sm:px-[28px]">
               <Dialog.Title className="pr-[36px] font-poppins text-[20px] leading-[26px] font-bold text-white">
                 Preferências de cookies

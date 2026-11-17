@@ -238,7 +238,7 @@ export function ExitIntentCoupon({ offer, config }: { offer: ExitOffer; config: 
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[60] bg-black/75 backdrop-blur-[2px]" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 z-[60] w-[440px] max-w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[28px] border border-brand-orange/50 bg-brand-surface shadow-[0_24px_60px_rgba(0,0,0,.6)] outline-none">
+        <Dialog.Content className="fixed top-1/2 left-1/2 z-[60] w-[440px] max-w-[calc(var(--vw)-32px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[28px] border border-brand-orange/50 bg-brand-surface shadow-[0_24px_60px_rgba(0,0,0,.6)] outline-none">
           {config.imageUrl ? (
             <div className="relative h-[200px] w-full bg-black/40">
               <Image src={config.imageUrl} alt="" fill sizes="440px" className="object-cover" />

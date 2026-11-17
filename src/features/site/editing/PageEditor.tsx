@@ -27,6 +27,7 @@ import { useScaledPreview } from "./useScaledPreview";
 import type { RichAlign } from "../richText";
 import { finalValue } from "./richDom";
 import { RichToolbar } from "./RichToolbar";
+import { cssZoom } from "@/lib/siteZoom";
 
 /**
  * Edição da página no PRÓPRIO desenho dela (2026-09-15) — substitui o
@@ -265,10 +266,11 @@ export function PageEditor({
       // moldura do player, que é o primeiro filho.
       const frame = videoBlock.firstElementChild ?? videoBlock;
       const rect = frame.getBoundingClientRect();
+      const zoom = cssZoom();
       const current = videoBlock.dataset.videoCurrent;
       setVideo({
         key: videoBlock.dataset.editVideo ?? "",
-        rect: { top: rect.top, left: rect.left, width: rect.width },
+        rect: { top: rect.top / zoom, left: rect.left / zoom, width: rect.width / zoom },
         current: current === "file" || current === "link" ? current : "none",
         link: videoBlock.dataset.videoLink ?? "",
       });
@@ -320,6 +322,8 @@ export function PageEditor({
       if (!label) return;
 
       const rect = element.getBoundingClientRect();
+      // Escala da tela → px do desenho (as barras são `fixed`, zoom do site).
+      const zoom = cssZoom();
       setConfirmingRemove(false);
       setSelection({
         sectionKey,
@@ -327,7 +331,7 @@ export function PageEditor({
         itemLabel: label,
         index: Math.max(0, ids.indexOf(id)),
         total: ids.length,
-        rect: { top: rect.top, left: rect.left, width: rect.width },
+        rect: { top: rect.top / zoom, left: rect.left / zoom, width: rect.width / zoom },
         imageField,
       });
     },
@@ -641,7 +645,7 @@ export function PageEditor({
           // `sticky`: a lista acompanha a rolagem da página em vez de exigir uma
           // rolagem própria — foi o que tirou a segunda barra de rolagem.
           <aside className="sticky top-[84px] w-[290px] shrink-0">
-            <div className="scrollbar-orange max-h-[calc(100dvh-140px)] overflow-y-auto rounded-[20px] border border-brand-border bg-[image:var(--brand-surface-fill)] p-[16px]">
+            <div className="scrollbar-orange max-h-[calc(var(--dvh)-140px)] overflow-y-auto rounded-[20px] border border-brand-border bg-[image:var(--brand-surface-fill)] p-[16px]">
               <h2 className="font-helvetica text-[15px] font-bold text-white">Seções</h2>
               <p className="mt-[6px] font-helvetica text-[12px] leading-[17px] text-brand-fg-subtle">
                 Arraste para reordenar; o olho esconde da loja. Na página, clique no texto para editar

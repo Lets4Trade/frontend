@@ -38,7 +38,7 @@ export async function LegalDocument({
   const clauses = items(sectionKey);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-brand-bg">
+    <div className="flex min-h-[var(--dvh)] flex-col bg-brand-bg">
       <SiteHeader />
 
       <main className="flex-1">

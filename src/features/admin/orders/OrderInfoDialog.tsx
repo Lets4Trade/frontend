@@ -72,8 +72,8 @@ export function OrderInfoDialog({
 
         <Dialog.Content
           className={cn(
-            "fixed top-1/2 left-1/2 z-50 w-[680px] max-w-[calc(100vw-40px)]",
-            "max-h-[calc(100vh-80px)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto",
+            "fixed top-1/2 left-1/2 z-50 w-[680px] max-w-[calc(var(--vw)-40px)]",
+            "max-h-[calc(var(--vh)-80px)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto",
             "scrollbar-orange rounded-[30px] border border-brand-border bg-brand-surface p-[24px] sm:p-[40px]",
             "shadow-[0_24px_60px_rgba(0,0,0,0.6)]",
           )}

@@ -140,14 +140,16 @@ export function CoverGameLogo({ logo, size = "card" }: { logo: string; size?: "c
         className={`pointer-events-none absolute ${
           page
             ? "top-[18px] left-[18px] h-[56px] w-[170px] lg:top-[30px] lg:left-[34px] lg:h-[86px] lg:w-[260px]"
-            : "top-[16px] left-[18px] h-[48px] w-[150px] lg:top-[22px] lg:left-[24px] lg:h-[62px] lg:w-[190px]"
+            : // Card (2026-11-17, pedido do usuário): MESMO tamanho do logo nos
+              // cards de notícias da home — 80×44 no celular, 90×58 no desktop.
+              "top-[20px] left-[25px] h-[44px] w-[80px] lg:top-[25px] lg:left-[25px] lg:h-[58px] lg:w-[90px]"
         }`}
       >
         <Image
           src={logo}
           alt=""
           fill
-          sizes={page ? "260px" : "190px"}
+          sizes={page ? "260px" : "90px"}
           className="object-contain object-left-top drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]"
         />
       </span>

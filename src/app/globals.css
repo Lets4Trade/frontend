@@ -47,7 +47,11 @@
    * ENCOLHIDO por `zoom` (no mínimo 80%, ver `.fit-frame`), e abaixo disso vale
    * a versão fluida. Só os componentes da página do jogo usam `desk:`.
    */
-  --breakpoint-desk: 87rem;
+  /* Valores em tela REAL com o site a 80% (ver `--site-zoom`):
+     desk 1392 → 1118px; xl 1280 → 1025px (1px acima do lg, para o xl vir DEPOIS do lg no CSS); 2xl 1536 → 1229px. */
+  --breakpoint-desk: 69.875rem;
+  --breakpoint-xl: 64.0625rem;
+  --breakpoint-2xl: 76.8125rem;
 
   --font-family-manrope: var(--font-manrope);
   --font-family-dm-sans: var(--font-dm-sans);
@@ -2631,52 +2635,106 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
  * comprimento por comprimento ainda não funciona em todos os navegadores.
  * Largura útil = tela − 20px (barra de rolagem vertical + folga).
  */
-@media (min-width: 1392px) { .fit-1714 { zoom: 0.80; } }
-@media (min-width: 1409px) { .fit-1714 { zoom: 0.81; } }
-@media (min-width: 1426px) { .fit-1714 { zoom: 0.82; } }
-@media (min-width: 1443px) { .fit-1714 { zoom: 0.83; } }
-@media (min-width: 1460px) { .fit-1714 { zoom: 0.84; } }
-@media (min-width: 1477px) { .fit-1714 { zoom: 0.85; } }
-@media (min-width: 1495px) { .fit-1714 { zoom: 0.86; } }
-@media (min-width: 1512px) { .fit-1714 { zoom: 0.87; } }
-@media (min-width: 1529px) { .fit-1714 { zoom: 0.88; } }
-@media (min-width: 1546px) { .fit-1714 { zoom: 0.89; } }
-@media (min-width: 1563px) { .fit-1714 { zoom: 0.90; } }
-@media (min-width: 1580px) { .fit-1714 { zoom: 0.91; } }
-@media (min-width: 1597px) { .fit-1714 { zoom: 0.92; } }
-@media (min-width: 1615px) { .fit-1714 { zoom: 0.93; } }
-@media (min-width: 1632px) { .fit-1714 { zoom: 0.94; } }
-@media (min-width: 1649px) { .fit-1714 { zoom: 0.95; } }
-@media (min-width: 1666px) { .fit-1714 { zoom: 0.96; } }
-@media (min-width: 1683px) { .fit-1714 { zoom: 0.97; } }
-@media (min-width: 1700px) { .fit-1714 { zoom: 0.98; } }
-@media (min-width: 1717px) { .fit-1714 { zoom: 0.99; } }
-@media (min-width: 1734px) { .fit-1714 { zoom: 1; } }
-@media (min-width: 1476px) { .fit-1820 { zoom: 0.80; } }
-@media (min-width: 1495px) { .fit-1820 { zoom: 0.81; } }
-@media (min-width: 1513px) { .fit-1820 { zoom: 0.82; } }
-@media (min-width: 1531px) { .fit-1820 { zoom: 0.83; } }
-@media (min-width: 1549px) { .fit-1820 { zoom: 0.84; } }
-@media (min-width: 1567px) { .fit-1820 { zoom: 0.85; } }
-@media (min-width: 1586px) { .fit-1820 { zoom: 0.86; } }
-@media (min-width: 1604px) { .fit-1820 { zoom: 0.87; } }
-@media (min-width: 1622px) { .fit-1820 { zoom: 0.88; } }
-@media (min-width: 1640px) { .fit-1820 { zoom: 0.89; } }
-@media (min-width: 1658px) { .fit-1820 { zoom: 0.90; } }
-@media (min-width: 1677px) { .fit-1820 { zoom: 0.91; } }
-@media (min-width: 1695px) { .fit-1820 { zoom: 0.92; } }
-@media (min-width: 1713px) { .fit-1820 { zoom: 0.93; } }
-@media (min-width: 1731px) { .fit-1820 { zoom: 0.94; } }
-@media (min-width: 1749px) { .fit-1820 { zoom: 0.95; } }
-@media (min-width: 1768px) { .fit-1820 { zoom: 0.96; } }
-@media (min-width: 1786px) { .fit-1820 { zoom: 0.97; } }
-@media (min-width: 1804px) { .fit-1820 { zoom: 0.98; } }
-@media (min-width: 1822px) { .fit-1820 { zoom: 0.99; } }
-@media (min-width: 1840px) { .fit-1820 { zoom: 1; } }
+@media (min-width: 1118px) { .fit-1714 { zoom: 0.80; } }
+@media (min-width: 1132px) { .fit-1714 { zoom: 0.81; } }
+@media (min-width: 1145px) { .fit-1714 { zoom: 0.82; } }
+@media (min-width: 1159px) { .fit-1714 { zoom: 0.83; } }
+@media (min-width: 1172px) { .fit-1714 { zoom: 0.84; } }
+@media (min-width: 1186px) { .fit-1714 { zoom: 0.85; } }
+@media (min-width: 1200px) { .fit-1714 { zoom: 0.86; } }
+@media (min-width: 1214px) { .fit-1714 { zoom: 0.87; } }
+@media (min-width: 1228px) { .fit-1714 { zoom: 0.88; } }
+@media (min-width: 1241px) { .fit-1714 { zoom: 0.89; } }
+@media (min-width: 1255px) { .fit-1714 { zoom: 0.90; } }
+@media (min-width: 1268px) { .fit-1714 { zoom: 0.91; } }
+@media (min-width: 1282px) { .fit-1714 { zoom: 0.92; } }
+@media (min-width: 1296px) { .fit-1714 { zoom: 0.93; } }
+@media (min-width: 1310px) { .fit-1714 { zoom: 0.94; } }
+@media (min-width: 1324px) { .fit-1714 { zoom: 0.95; } }
+@media (min-width: 1337px) { .fit-1714 { zoom: 0.96; } }
+@media (min-width: 1351px) { .fit-1714 { zoom: 0.97; } }
+@media (min-width: 1364px) { .fit-1714 { zoom: 0.98; } }
+@media (min-width: 1378px) { .fit-1714 { zoom: 0.99; } }
+@media (min-width: 1392px) { .fit-1714 { zoom: 1; } }
+@media (min-width: 1185px) { .fit-1820 { zoom: 0.80; } }
+@media (min-width: 1200px) { .fit-1820 { zoom: 0.81; } }
+@media (min-width: 1215px) { .fit-1820 { zoom: 0.82; } }
+@media (min-width: 1229px) { .fit-1820 { zoom: 0.83; } }
+@media (min-width: 1244px) { .fit-1820 { zoom: 0.84; } }
+@media (min-width: 1258px) { .fit-1820 { zoom: 0.85; } }
+@media (min-width: 1273px) { .fit-1820 { zoom: 0.86; } }
+@media (min-width: 1288px) { .fit-1820 { zoom: 0.87; } }
+@media (min-width: 1302px) { .fit-1820 { zoom: 0.88; } }
+@media (min-width: 1316px) { .fit-1820 { zoom: 0.89; } }
+@media (min-width: 1331px) { .fit-1820 { zoom: 0.90; } }
+@media (min-width: 1346px) { .fit-1820 { zoom: 0.91; } }
+@media (min-width: 1360px) { .fit-1820 { zoom: 0.92; } }
+@media (min-width: 1375px) { .fit-1820 { zoom: 0.93; } }
+@media (min-width: 1389px) { .fit-1820 { zoom: 0.94; } }
+@media (min-width: 1404px) { .fit-1820 { zoom: 0.95; } }
+@media (min-width: 1419px) { .fit-1820 { zoom: 0.96; } }
+@media (min-width: 1433px) { .fit-1820 { zoom: 0.97; } }
+@media (min-width: 1448px) { .fit-1820 { zoom: 0.98; } }
+@media (min-width: 1462px) { .fit-1820 { zoom: 0.99; } }
+@media (min-width: 1476px) { .fit-1820 { zoom: 1; } }
 
 /* Blocos da home dentro da página do jogo (`HomeBleed`): a faixa de 1820 não
    cabe na tela abaixo de 1840px — encolhe para os 1714 da coluna (1714/1820),
    alinhada à esquerda dela, em vez de ser cortada nas bordas. */
-@media (min-width: 1392px) and (max-width: 1839.98px) {
+@media (min-width: 1118px) and (max-width: 1475.98px) {
   .home-bleed { zoom: 0.9418; left: 0; translate: none; }
+}
+
+/*
+ * SITE EM 80% NO COMPUTADOR (2026-11-17, pedido do usuário: "o site todo em
+ * 80% do tamanho de hoje", como o zoom de 80% do navegador).
+ *
+ * `zoom` no <html> encolhe TUDO (texto, espaços, imagens, o espaço ocupado)
+ * sem refazer tela nenhuma. Só a partir de 1024px: no celular, encolher
+ * deixaria texto e botões pequenos demais para o dedo.
+ *
+ * O que o zoom do CSS NÃO faz sozinho, e por isso foi ajustado à mão:
+ *  - As media queries continuam medindo a tela REAL. Os pontos de troca acima
+ *    de 1024 (Tailwind xl/2xl/desk, `min-[1185px]` da home e as escadinhas
+ *    `.fit-*`) foram recalculados: tela real = 0,8 × a largura antiga.
+ *  - `100vw`/`100dvh` passam a valer 80% da tela. Use `var(--vw)` / `var(--dvh)`
+ *    (já descontam o zoom) em vez deles.
+ *  - Posição calculada em JS a partir de `getBoundingClientRect`/`clientX`
+ *    (que vêm na escala da TELA) precisa ser dividida por `cssZoom()`
+ *    (`lib/siteZoom.ts`) antes de virar `left`/`top` em px. Os menus do
+ *    Radix já são corrigidos aqui embaixo, só com CSS.
+ *
+ * Para mudar a escala: troque 0.8 (e o 1.25 dos menus) aqui e recalcule os
+ * pontos de troca (script do commit de 2026-11-17).
+ */
+:root {
+  --site-zoom: 1;
+  --vw: calc(100vw / var(--site-zoom));
+  --vh: calc(100vh / var(--site-zoom));
+  --dvh: calc(100dvh / var(--site-zoom));
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --site-zoom: 0.8;
+  }
+
+  html {
+    zoom: 0.8;
+  }
+
+  /*
+   * Menus, selects e popovers do Radix: o posicionador (floating-ui) mede o
+   * botão na escala da TELA e escreve o `translate` em px, que o zoom do site
+   * encolhia — o menu abria em 80% do lugar (medido: 136 em vez de 170, e
+   * centenas de px fora no canto direito). A caixa posicionada volta a 100%
+   * (0,8 × 1,25 = 1) e o conteúdo dentro dela, a 80%.
+   */
+  [data-radix-popper-content-wrapper] {
+    zoom: 1.25;
+  }
+
+  [data-radix-popper-content-wrapper] > * {
+    zoom: 0.8;
+  }
 }

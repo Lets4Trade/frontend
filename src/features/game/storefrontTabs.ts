@@ -40,8 +40,8 @@ export type ApiCategory = {
 
 const LAYOUTS = new Set<GameTabLayout>(["CATALOG", "SERVICE", "QUANTITY", "PACKAGES", "SELL", "LINK"]);
 
-/** Layouts que levam os textos da esquerda (`content`) — contrato v2. */
-const CONTENT_LAYOUTS = new Set<GameTabLayout>(["SERVICE", "QUANTITY", "PACKAGES"]);
+/** Layouts que levam os textos da aba (`content`) — contrato v2; CATALOG desde 2026-11-17. */
+const CONTENT_LAYOUTS = new Set<GameTabLayout>(["CATALOG", "SERVICE", "QUANTITY", "PACKAGES"]);
 const SLUG = /^[a-z0-9-]{1,60}$/;
 
 /** Ícone de reserva: o do modelo com esse slug; aba nova sem ícone usa o do layout. */

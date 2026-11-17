@@ -62,7 +62,8 @@ describe("NewTabForm", () => {
     const onCreated = vi.fn();
     render(<NewTabForm gameId="g1" onCreated={onCreated} />);
 
-    expect(screen.queryByText("+ Adicionar seção de texto")).toBeNull();
+    // Catálogo (o layout inicial) também tem textos desde 2026-11-17.
+    expect(screen.getByText("+ Adicionar seção de texto")).toBeInTheDocument();
     fireEvent.click(screen.getByLabelText(/^Serviço/));
     fireEvent.click(screen.getByText("+ Adicionar seção de texto"));
     fireEvent.change(screen.getByLabelText("Título da seção 1"), { target: { value: "Como funciona" } });
@@ -79,27 +80,46 @@ describe("NewTabForm", () => {
     });
     expect(onCreated).toHaveBeenCalledWith(expect.objectContaining({ id: "t9" }));
     // Rascunho limpo para a próxima aba.
-    await waitFor(() => expect(screen.queryByText("+ Adicionar seção de texto")).toBeNull());
+    await waitFor(() => expect(screen.queryByLabelText("Título da seção 1")).toBeNull());
   // 1º teste do arquivo: paga o carregamento do editor de seções (formatado,
   // 2026-10-16). Sozinho leva ~0,6 s; com a suíte inteira em paralelo e os
   // servidores de dev no ar passou de 5 s — teto maior para não falhar à toa.
   }, 15_000);
 
-  it("textos digitados e depois trocados para Catálogo não viajam", async () => {
-    createTabAction.mockResolvedValue({ ok: true, data: tab("t9", "Moedas", "CATALOG") });
+  it("textos digitados e depois trocados para Venda pra nós não viajam", async () => {
+    createTabAction.mockResolvedValue({ ok: true, data: tab("t9", "Moedas", "SELL") });
     render(<NewTabForm gameId="g1" onCreated={vi.fn()} />);
 
     fireEvent.click(screen.getByLabelText(/^Serviço/));
     fireEvent.click(screen.getByText("+ Adicionar seção de texto"));
     fireEvent.change(screen.getByLabelText("Título da seção 1"), { target: { value: "X" } });
-    fireEvent.click(screen.getByLabelText(/^Catálogo/));
+    fireEvent.click(screen.getByLabelText(/^Venda pra nós/));
     fireEvent.change(screen.getByPlaceholderText("Boosting"), { target: { value: "Moedas" } });
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "+ CRIAR ABA" }));
     });
     await waitFor(() => expect(createTabAction).toHaveBeenCalledTimes(1));
-    expect(createTabAction).toHaveBeenCalledWith("g1", { label: "Moedas", layout: "CATALOG" });
+    expect(createTabAction).toHaveBeenCalledWith("g1", { label: "Moedas", layout: "SELL" });
+  });
+
+  it("aba de Catálogo grava os textos (2026-11-17)", async () => {
+    createTabAction.mockResolvedValue({ ok: true, data: tab("t9", "Moedas", "CATALOG") });
+    render(<NewTabForm gameId="g1" onCreated={vi.fn()} />);
+
+    fireEvent.click(screen.getByText("+ Adicionar seção de texto"));
+    fireEvent.change(screen.getByLabelText("Título da seção 1"), { target: { value: "Como comprar" } });
+    fireEvent.change(screen.getByPlaceholderText("Boosting"), { target: { value: "Moedas" } });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "+ CRIAR ABA" }));
+    });
+    await waitFor(() => expect(createTabAction).toHaveBeenCalledTimes(1));
+    expect(createTabAction).toHaveBeenCalledWith("g1", {
+      label: "Moedas",
+      layout: "CATALOG",
+      content: { sections: [{ title: "Como comprar", items: [] }] },
+    });
   });
 
   it("nome de modelo sugere o layout dele: 'Mentoria' nasce Pacotes, como o Boosting (2026-10-28)", async () => {
@@ -198,7 +218,7 @@ describe("TabDetailPanel", () => {
   it("configurações começam FECHADAS; o layout só troca a pedido", () => {
     render(<TabDetailPanel gameId="g1" gameSlug="poe" tab={tab("t1", "Moedas", "CATALOG")} />);
     expect(screen.queryByLabelText("Nome da aba")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Editar nome e layout" }));
+    fireEvent.click(screen.getByRole("button", { name: "Editar nome, layout e textos" }));
     expect(screen.getByLabelText("Nome da aba")).toBeInTheDocument();
     // Os 6 cartões não ficam abertos de passagem.
     expect(screen.queryByRole("radio")).toBeNull();

@@ -5,6 +5,7 @@ import { safeHref } from "@/features/pages/blocks/markdown";
 import { cn } from "@/lib/cn";
 import type { RichAlign } from "../richText";
 import { toggleHighlight } from "./richDom";
+import { cssZoom } from "@/lib/siteZoom";
 
 /** O que a barra precisa saber do campo em edição (ver `RichEditing`). */
 export type RichToolbarTarget = {
@@ -51,12 +52,15 @@ export function RichToolbar({
     if (!floating) return;
     const place = () => {
       const box = target.element.getBoundingClientRect();
-      const height = ref.current?.offsetHeight ?? 44;
-      const width = ref.current?.offsetWidth ?? 320;
+      // Contas na escala da tela; o resultado volta para px do desenho (zoom
+      // do site, 2026-11-17).
+      const zoom = cssZoom(ref.current);
+      const height = (ref.current?.offsetHeight ?? 44) * zoom;
+      const width = (ref.current?.offsetWidth ?? 320) * zoom;
       const above = box.top - height - 8;
       setPosition({
-        top: above > 8 ? above : box.bottom + 8,
-        left: Math.min(Math.max(8, box.left), window.innerWidth - width - 8),
+        top: (above > 8 ? above : box.bottom + 8) / zoom,
+        left: Math.min(Math.max(8, box.left), window.innerWidth - width - 8) / zoom,
       });
     };
     place();

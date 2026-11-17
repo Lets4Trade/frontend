@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { buildHref, scopedCategories, type CatalogQuery } from "./catalog";
 import { getServiceProducts } from "./content";
-import { pillClassName } from "./pill";
+import { ALL_LABEL, pillClassName } from "./pill";
 import { ServiceConfigurator } from "./ServiceConfigurator";
 import { withEffectivePricing } from "./storefrontTabs";
 import { SectionContentView } from "./SectionContentView";
@@ -30,9 +30,9 @@ export async function ServiceSection({
 }) {
   const categories = scopedCategories(page, query);
   // Uma categoria por vez no card (pílulas de escolha única). Sem nenhuma na
-  // URL, vale a primeira do escopo — o card nunca abre "sem categoria" quando
-  // o serviço é dividido em categorias.
-  const selectedCategory = query.categories[0] ?? categories[0]?.id ?? "";
+  // URL vale "Todos" (2026-11-17, pedido do usuário; antes abria na primeira
+  // do escopo): o card lista os serviços de todas as categorias.
+  const selectedCategory = query.categories[0] ?? "";
 
   // A regra que VALE (`effectivePricing`): a mesma decisão que o backend usa
   // para cobrar — produto sem regra salva vira FIXED aqui e lá.
@@ -92,6 +92,15 @@ export async function ServiceSection({
             Categoria de {tabName}:
           </h3>
           <div role="radiogroup" aria-labelledby={categoriesTitleId} className="mt-[15px] flex flex-wrap gap-[25px]">
+            <Link
+              href={buildHref(page.slug, query, { categories: [] })}
+              scroll={false}
+              role="radio"
+              aria-checked={!selectedCategory}
+              className={pillClassName(!selectedCategory, "max-w-full truncate")}
+            >
+              {ALL_LABEL}
+            </Link>
             {categories.map((category) => {
               const active = category.id === selectedCategory;
               return (
@@ -146,10 +155,13 @@ export function ServiceText({ content }: { content?: ServiceContent }) {
   if (!content || content.sections.length === 0) return null;
 
   return (
-    <div className="min-w-0 flex-1 desk:max-w-[1016px] desk:pl-[29px]">
+    // Visual do card de Dúvidas (2026-11-17, pedido do usuário): fundo cinza
+    // arredondado e barrinha laranja no título de cada seção. Celular com
+    // recuos menores, como o FAQ.
+    <div className="min-w-0 flex-1 rounded-[24px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[18px] py-[28px] desk:rounded-[30px] desk:px-[24px] desk:py-[40px]">
       {content.sections.map((section, index) => (
-        <section key={index} className={index > 0 ? "mt-[40px]" : undefined}>
-          <SectionContentView section={section} />
+        <section key={index} className={index > 0 ? "mt-[40px] desk:mt-[50px]" : undefined}>
+          <SectionContentView section={section} titleBar />
         </section>
       ))}
     </div>

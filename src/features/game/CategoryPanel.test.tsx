@@ -35,10 +35,13 @@ const query = (categories: string[]): CatalogQuery => ({
 });
 
 describe("CategoryPanel", () => {
-  it("sem escolha: só o quadro das categorias, nenhuma marcada", () => {
+  it("sem escolha: só o quadro das categorias, com \"Todos\" primeiro e marcado", () => {
     render(<CategoryPanel page={page} query={query([])} />);
     expect(screen.getAllByRole("radiogroup")).toHaveLength(1);
-    expect(screen.queryByRole("radio", { checked: true })).toBeNull();
+    const radios = screen.getAllByRole("radio");
+    expect(radios.map((radio) => radio.textContent)).toEqual(["Todos", "Orbs", "Itens"]);
+    expect(screen.getByRole("radio", { checked: true }).textContent).toBe("Todos");
+    expect(radios[0].getAttribute("href")).not.toContain("categoria=");
     // Escolher leva a UMA categoria só.
     expect(screen.getByRole("radio", { name: "Orbs" }).getAttribute("href")).toContain("categoria=orbs");
   });
@@ -48,12 +51,18 @@ describe("CategoryPanel", () => {
     const [top, sub] = screen.getAllByRole("radiogroup");
     expect(sub.getAttribute("aria-label")).toBe("Subcategorias de Orbs");
     expect(within(top).queryByRole("radio", { name: "Divine" })).toBeNull();
-    expect(within(sub).getAllByRole("radio").map((radio) => radio.textContent)).toEqual(["Divine", "Chaos"]);
+    expect(within(sub).getAllByRole("radio").map((radio) => radio.textContent)).toEqual(["Todos", "Divine", "Chaos"]);
+    // "Todos" das subcategorias = só a mãe, e marcado enquanto nenhuma filha é escolhida.
+    const subAll = within(sub).getByRole("radio", { name: "Todos" });
+    expect(subAll.getAttribute("aria-checked")).toBe("true");
+    expect(subAll.getAttribute("href")).toContain("categoria=orbs");
+    expect(within(top).getByRole("radio", { name: "Todos" }).getAttribute("aria-checked")).toBe("false");
 
     const orbs = within(top).getByRole("radio", { name: "Orbs" });
     expect(orbs.getAttribute("aria-checked")).toBe("true");
     expect(orbs.querySelector("svg")).not.toBeNull();
-    expect(container.querySelectorAll("svg")).toHaveLength(1);
+    // Check verde: a mãe e o "Todos" das subcategorias.
+    expect(container.querySelectorAll("svg")).toHaveLength(2);
     // Clicar de novo na escolhida desmarca (link sem categoria).
     expect(orbs.getAttribute("href")).not.toContain("categoria=");
     // Outra categoria SUBSTITUI a escolhida.
@@ -71,6 +80,7 @@ describe("CategoryPanel", () => {
     expect(orbs.querySelector("svg")).not.toBeNull();
     expect(divine.getAttribute("aria-checked")).toBe("true");
     expect(divine.querySelector("svg")).not.toBeNull();
+    expect(within(sub).getByRole("radio", { name: "Todos" }).getAttribute("aria-checked")).toBe("false");
     // Clicar de novo na subcategoria volta para só a mãe.
     expect(divine.getAttribute("href")).toContain("categoria=orbs");
     expect(divine.getAttribute("href")).not.toContain("categoria=divine");

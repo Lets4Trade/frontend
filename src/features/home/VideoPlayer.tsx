@@ -119,7 +119,7 @@ export function VideoPlayer({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 backdrop-blur-[2px]" />
 
-        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 w-[1146px] max-w-[calc(100vw-40px)] -translate-x-1/2 -translate-y-1/2 outline-none">
+        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 w-[1146px] max-w-[calc(var(--vw)-40px)] -translate-x-1/2 -translate-y-1/2 outline-none">
           <Dialog.Title className="sr-only">Vídeo de apresentação</Dialog.Title>
           <Dialog.Description className="sr-only">
             {videoFile ? "Vídeo" : "Vídeo do YouTube"}. Pressione Esc para

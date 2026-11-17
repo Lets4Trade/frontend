@@ -38,7 +38,7 @@ export default async function VendaPage() {
   const shared = page && usesHomeShared(page.blocks) ? await homeSharedNodes() : {};
 
   return (
-    <div className="flex min-h-dvh flex-col bg-brand-bg">
+    <div className="flex min-h-[var(--dvh)] flex-col bg-brand-bg">
       <SiteHeader />
 
       <main className="flex-1">

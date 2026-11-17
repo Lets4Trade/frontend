@@ -152,7 +152,7 @@ export function ContactBubble({
           role="dialog"
           aria-label="Atendimento Lets4Trade"
           className={cn(
-            "chat-panel contact-float fixed bottom-[96px] z-40 flex h-[min(620px,calc(100dvh-128px))] w-[380px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-[22px] border border-brand-border bg-brand-surface shadow-[0_24px_60px_rgba(0,0,0,.6)] sm:bottom-[104px]",
+            "chat-panel contact-float fixed bottom-[96px] z-40 flex h-[min(620px,calc(var(--dvh)-128px))] w-[380px] max-w-[calc(var(--vw)-32px)] flex-col overflow-hidden rounded-[22px] border border-brand-border bg-brand-surface shadow-[0_24px_60px_rgba(0,0,0,.6)] sm:bottom-[104px]",
             "right-[16px] sm:right-[24px]",
           )}
         >
@@ -277,7 +277,7 @@ export function ContactBubble({
             : "right-[16px] sm:right-[24px]",
           withText
             ? cn(
-                "h-[64px] max-w-[min(320px,calc(100vw-32px))] sm:h-[72px]",
+                "h-[64px] max-w-[min(320px,calc(var(--vw)-32px))] sm:h-[72px]",
                 // Foto à direita = a fileira invertida (pontinho · texto · foto).
                 // Do lado da foto a borda é curta (a foto redonda enche a ponta);
                 // sem foto, o ícone solto pede um pouco mais de respiro.

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { cssZoom } from "@/lib/siteZoom";
 import { editItem } from "@/features/site/editing/attrs";
 import {
   useCallback,
@@ -190,7 +191,7 @@ export function HeroDeck({ slides }: { slides: HeroSlide[] }) {
     const gesture = drag.current;
     if (!gesture || gesture.id !== event.pointerId || !trackRef.current) return;
 
-    const dx = event.clientX - gesture.x;
+    const dx = (event.clientX - gesture.x) / cssZoom(trackRef.current);
     gesture.moved = Math.max(gesture.moved, Math.abs(dx));
     const at = clamp(gesture.base - dx, 0, MAX_OFFSET);
     trackRef.current.style.transform = `translate3d(${-at}px, 0, 0)`;
@@ -204,7 +205,7 @@ export function HeroDeck({ slides }: { slides: HeroSlide[] }) {
     setDragging(false);
     swallowClick.current = gesture.moved > DRAG_SLOP;
 
-    setOffset(clamp(gesture.base - (event.clientX - gesture.x), 0, MAX_OFFSET));
+    setOffset(clamp(gesture.base - (event.clientX - gesture.x) / cssZoom(trackRef.current), 0, MAX_OFFSET));
   }
 
   return (

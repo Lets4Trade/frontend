@@ -7,8 +7,9 @@ describe("imageHintFor", () => {
   });
 
   it("arte de item usa os rótulos da lista (image e secondaryImage)", () => {
-    expect(imageHintFor({ editItem: "home:guias|g1|image" })).toContain("834×876");
-    expect(imageHintFor({ editItem: "home:guias|g1|secondaryImage" })).toContain("180×116");
+    // "guias" virou notícias automáticas do blog (2026-11-17) e não tem mais lista.
+    expect(imageHintFor({ editItem: "home:hero|s1|image" })).toContain("336×758");
+    expect(imageHintFor({ editItem: "home:hero|s1|secondaryImage" })).toContain("400×200");
   });
 
   it("banner do hero e foto do CEO têm texto próprio", () => {

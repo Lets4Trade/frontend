@@ -57,7 +57,7 @@ export function RevisionsPanel({
         <Popover.Content
           align="end"
           sideOffset={8}
-          className="z-50 max-h-[60dvh] w-[320px] overflow-y-auto rounded-[20px] border border-brand-border bg-brand-surface p-[8px] shadow-[0_16px_40px_rgba(0,0,0,.5)]"
+          className="z-50 max-h-[calc(60*var(--dvh)/100)] w-[320px] overflow-y-auto rounded-[20px] border border-brand-border bg-brand-surface p-[8px] shadow-[0_16px_40px_rgba(0,0,0,.5)]"
         >
           {revisions === null ? (
             <p className="px-[12px] py-[10px] font-poppins text-[13px] text-brand-fg-subtle">Carregando…</p>

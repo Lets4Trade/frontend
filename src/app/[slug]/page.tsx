@@ -117,7 +117,7 @@ export default async function GamePage({ params, searchParams }: PageProps) {
   const published = game?.id ? await getPublishedPage(`jogo-${game.id}`) : null;
 
   return (
-    <div className="flex min-h-dvh flex-col bg-brand-bg">
+    <div className="flex min-h-[var(--dvh)] flex-col bg-brand-bg">
       <SiteHeader />
 
       {/*

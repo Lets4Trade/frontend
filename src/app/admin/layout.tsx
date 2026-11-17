@@ -49,7 +49,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   if (!isPanelRole(role)) notFound();
 
   return (
-    <div className="flex min-h-dvh flex-col bg-brand-bg">
+    <div className="flex min-h-[var(--dvh)] flex-col bg-brand-bg">
       {/* Registra cada tela do painel aberta — é a prova de quem acessou dado
           pessoal de terceiros, e quando. */}
       <PageViewTracker surface="admin" />

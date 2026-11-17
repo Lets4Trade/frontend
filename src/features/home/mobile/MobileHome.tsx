@@ -524,11 +524,11 @@ function GuideCard({ guide, compact = false }: { guide: SectionItemView; compact
 
       <div className="absolute inset-x-[25px] bottom-[20px]">
         {guide.title ? (
-          <h3 className="font-poppins text-[16px] font-semibold text-white">
+          <h3 className="line-clamp-2 font-poppins text-[16px] font-semibold text-white">
             <RichText value={guide.title} />
           </h3>
         ) : null}
-        <p className={cn("mt-[8px] font-helvetica text-[14px] leading-[1.2] text-brand-placeholder", compact && "line-clamp-3")}>
+        <p className={cn("mt-[8px] font-helvetica text-[14px] leading-[1.2] text-brand-placeholder", compact ? "line-clamp-2" : "line-clamp-3")}>
           <RichText value={guide.body} />
         </p>
       </div>

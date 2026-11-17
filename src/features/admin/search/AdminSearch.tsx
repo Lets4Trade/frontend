@@ -80,8 +80,8 @@ export function AdminSearch({ role }: { role: Role }) {
         aria-label="Buscar no painel (Ctrl+K)"
       >
         <SearchIcon />
-        <span className="hidden min-[2000px]:inline">Buscar</span>
-        <kbd className="hidden rounded-[6px] border border-white/15 px-[6px] py-[1px] text-[11px] text-white/60 min-[2000px]:inline">
+        <span className="hidden min-[1600px]:inline">Buscar</span>
+        <kbd className="hidden rounded-[6px] border border-white/15 px-[6px] py-[1px] text-[11px] text-white/60 min-[1600px]:inline">
           Ctrl K
         </kbd>
       </Dialog.Trigger>
@@ -89,7 +89,7 @@ export function AdminSearch({ role }: { role: Role }) {
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-[2px]" />
         <Dialog.Content
-          className="fixed top-[10vh] left-1/2 z-50 flex max-h-[75vh] w-[min(640px,calc(100vw-32px))] -translate-x-1/2 flex-col overflow-hidden rounded-[20px] border border-brand-border bg-brand-surface shadow-[0_24px_60px_rgba(0,0,0,.6)] outline-none"
+          className="fixed top-[calc(10*var(--vh)/100)] left-1/2 z-50 flex max-h-[calc(75*var(--vh)/100)] w-[min(640px,calc(var(--vw)-32px))] -translate-x-1/2 flex-col overflow-hidden rounded-[20px] border border-brand-border bg-brand-surface shadow-[0_24px_60px_rgba(0,0,0,.6)] outline-none"
           onOpenAutoFocus={(event) => {
             event.preventDefault();
             (event.currentTarget as HTMLElement).querySelector("input")?.focus();

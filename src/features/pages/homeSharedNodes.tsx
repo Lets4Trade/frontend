@@ -1,6 +1,7 @@
 import { buildHomeBlocks } from "@/features/home/homeBlocks";
 import { buildMobileHomeBlocks } from "@/features/home/mobile/MobileHome";
-import { getSectionItemsFor, getSectionsFor } from "@/features/site/content";
+import { getSectionsFor } from "@/features/site/content";
+import { getHomeItems } from "@/features/home/homeNews";
 import type { LegacyNodes } from "./compose";
 import { FitWidth } from "./FitWidth";
 import { HOME_SHARED, HOME_SHARED_KEYS } from "./homeShared";
@@ -20,7 +21,7 @@ const SHARED_GAP = 60;
  * na coluna da página (a da home tem 1820px fixos).
  */
 export async function homeSharedNodes(): Promise<LegacyNodes> {
-  const [section, items] = await Promise.all([getSectionsFor("home"), getSectionItemsFor("home")]);
+  const [section, items] = await Promise.all([getSectionsFor("home"), getHomeItems()]);
   const desktop = new Map(buildHomeBlocks(section, items).map((block) => [block.key, block.node]));
   const mobile = new Map(buildMobileHomeBlocks(section, items).map((block) => [block.key, block.node]));
 

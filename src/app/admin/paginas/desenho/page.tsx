@@ -1,6 +1,7 @@
 import { getAdminGames } from "@/features/admin/catalog";
 import type { Metadata } from "next";
 import { buildHomeBlocks } from "@/features/home/homeBlocks";
+import { getHomeItems } from "@/features/home/homeNews";
 import {
   getSectionItemsFor,
   getSectionLayout,
@@ -46,7 +47,8 @@ export default async function AdminPagesPage({ searchParams }: PageProps) {
 
   const [section, items, layout, games] = await Promise.all([
     getSectionsFor(pageKey),
-    getSectionItemsFor(pageKey),
+    // Na home, as notícias do blog no lugar dos cards de "guias" (2026-11-17).
+    pageKey === "home" ? getHomeItems() : getSectionItemsFor(pageKey),
     getSectionLayout(pageKey),
     // Para o botão "jogo" dos slides do hero: escolhe-se entre os cadastrados.
     getAdminGames(),

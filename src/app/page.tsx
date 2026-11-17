@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import {
-  getSectionItemsFor,
   getSectionLayout,
   getSectionsFor,
 } from "@/features/site/content";
@@ -10,6 +9,7 @@ import { buildHomeBlocks, orderBlocks } from "@/features/home/homeBlocks";
 import { buildMobileHomeBlocks } from "@/features/home/mobile/MobileHome";
 import { HomeBackdrop } from "@/features/home/HomeBackdrop";
 import { HomeMotion } from "@/features/home/HomeMotion";
+import { getHomeItems } from "@/features/home/homeNews";
 import { composeBlocks, legacyNodesFrom } from "@/features/pages/compose";
 import { getPublishedPage } from "@/features/pages/public";
 
@@ -58,7 +58,8 @@ export default async function Home() {
    */
   const [section, items, layout, page] = await Promise.all([
     getSectionsFor("home"),
-    getSectionItemsFor("home"),
+    // Os itens da sessão + as notícias do blog no lugar dos cards de "guias".
+    getHomeItems(),
     // A ordem (e o que está escondido) vem do banco desde 2026-09-15 — é o que
     // a tela `/admin/paginas` arrasta. Sem personalização, a ordem é a do código.
     getSectionLayout("home"),
@@ -81,7 +82,7 @@ export default async function Home() {
     : orderBlocks(mobileLegacy, layout.visible);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-brand-bg">
+    <div className="flex min-h-[var(--dvh)] flex-col bg-brand-bg">
       <SiteHeader />
 
       {/*
@@ -111,7 +112,7 @@ export default async function Home() {
           vêm no HTML e o CSS escolhe — sem detectar aparelho no servidor, o que
           quebraria o cache da página e erraria em tela girada. */}
       <main className="flex flex-1 flex-col">
-        <div className="flex-1 overflow-x-clip px-[25px] pt-[20px] pb-[60px] min-[1476px]:hidden">
+        <div className="flex-1 overflow-x-clip px-[25px] pt-[20px] pb-[60px] min-[1185px]:hidden">
           <div className="mx-auto max-w-[560px] lg:max-w-[720px]">
             {mobileBlocks.map((block, index) => (
               <div
@@ -124,9 +125,15 @@ export default async function Home() {
           </div>
         </div>
 
-        <div className="hidden flex-1 min-[1476px]:block">
+        {/* O fundo (brilhos) ocupa a TELA inteira, não a moldura de 1920
+            (2026-11-17): os brilhos são luz entrando pela BORDA DA TELA — os
+            SVGs vêm cortados na borda de propósito. Presos à moldura, em tela
+            mais larga que ela (com o site a 80%, já num monitor de 1920) a
+            borda caía no meio da página e o brilho aparecia cortado ao meio.
+            `overflow-x-clip` aqui para nada criar rolagem lateral. */}
+        <div className="relative hidden flex-1 overflow-x-clip min-[1185px]:block">
+          <HomeBackdrop />
           <div className="relative mx-auto w-full max-w-[1920px] overflow-x-clip">
-            <HomeBackdrop />
 
             <div className="fit-1820 mx-auto w-[1820px] pt-[37px] pb-[100px]">
               {/* Os blocos vêm de `homeBlocks`, na ordem do banco. O vão acompanha

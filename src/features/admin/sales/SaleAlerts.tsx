@@ -79,7 +79,7 @@ export function SaleAlerts({ canOpenUsers = false }: { canOpenUsers?: boolean } 
         <div
           role="status"
           aria-live="polite"
-          className="fixed top-[96px] right-[16px] z-[60] flex w-[360px] max-w-[calc(100vw-32px)] flex-col gap-[10px]"
+          className="fixed top-[96px] right-[16px] z-[60] flex w-[360px] max-w-[calc(var(--vw)-32px)] flex-col gap-[10px]"
         >
           {cards.map((sale) => (
             <SaleCard key={sale.paymentId} sale={sale} canOpenUsers={canOpenUsers} />

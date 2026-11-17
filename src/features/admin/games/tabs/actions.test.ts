@@ -118,7 +118,7 @@ describe("createTabAction", () => {
     ["LINK //externo", { label: "X", layout: "LINK", linkHref: "//evil.com" }],
     ["LINK http://", { label: "X", layout: "LINK", linkHref: "http://evil.com" }],
     ["CATALOG com link", { label: "X", layout: "CATALOG", linkHref: "/venda" }],
-    ["CATALOG com textos", { label: "X", layout: "CATALOG", content: { sections: [] } }],
+    ["SELL com textos", { label: "X", layout: "SELL", content: { sections: [] } }],
     ["layout inventado", { label: "X", layout: "HTML" }],
     [
       "31 seções",
@@ -319,7 +319,7 @@ describe("layouts v2 (QUANTITY, PACKAGES, SELL)", () => {
   it.each([
     ["layout inventado", { layout: "HTML" }],
     ["virar LINK limpando o link", { layout: "LINK", linkHref: null }],
-    ["virar CATALOG com textos", { layout: "CATALOG", content: { sections: [] } }],
+    ["virar SELL com textos", { layout: "SELL", content: { sections: [] } }],
     ["virar SELL com link", { layout: "SELL", linkHref: "/venda" }],
   ])("PATCH %s → invalid, sem API", async (_l, input) => {
     expect(await updateTabAction("g1", "t1", input as never)).toMatchObject({ ok: false, reason: "invalid" });

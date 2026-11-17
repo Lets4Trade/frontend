@@ -293,20 +293,15 @@ export const SITE_PAGES: readonly SitePageDef[] = [
       // Mesmo caso da equipe: o render tem 157×171.
       {
         key: "guias",
-        label: "Guias",
+        // Desde 2026-11-17 os cards são os 4 posts mais recentes do blog, de
+        // todos os jogos, e se atualizam sozinhos (`features/home/homeNews.ts`):
+        // a lista de cards manuais saiu do painel. Os cards antigos continuam
+        // no banco, só não aparecem mais.
+        label: "Guias (últimas notícias do blog)",
         defaultTitle: "GUIAS POPULARES",
         hasImage: false,
         rich: ["title"],
         extraFields: blogCardExtraFields("Vazio leva a /blog (todas as notícias)."),
-        list: {
-          itemLabel: "guia",
-          title: "Título do guia",
-          body: "Texto",
-          image: "Arte de fundo (834×876)",
-          secondaryImage: "Logo do jogo (180×116, PNG transparente)",
-          href: "Link do guia",
-          rich: ["title", "body"],
-        },
       },
       {
         key: "faq",

@@ -60,7 +60,7 @@ export default async function NoticiaPage({ params }: { params: Promise<RoutePar
   if (!post) notFound();
 
   return (
-    <div className="flex min-h-dvh flex-col bg-brand-bg">
+    <div className="flex min-h-[var(--dvh)] flex-col bg-brand-bg">
       <SiteHeader />
 
       {/* JSON-LD: `<script>` é a recomendação do Next 16 (guia json-ld). O

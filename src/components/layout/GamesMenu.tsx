@@ -49,7 +49,7 @@ export function GamesMenu({ label, games }: { label: string; games: MenuGame[] }
         <DropdownMenu.Content
           align="start"
           sideOffset={12}
-          className="z-50 max-h-[min(480px,var(--radix-dropdown-menu-content-available-height))] w-[min(560px,calc(100vw-32px))] overflow-y-auto rounded-[20px] border border-brand-border bg-brand-surface p-[8px] shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
+          className="z-50 max-h-[min(480px,var(--radix-dropdown-menu-content-available-height))] w-[min(560px,calc(var(--vw)-32px))] overflow-y-auto rounded-[20px] border border-brand-border bg-brand-surface p-[8px] shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
         >
           {games.length === 0 ? (
             <p className="px-[12px] py-[10px] font-poppins text-[14px] text-brand-fg-subtle">

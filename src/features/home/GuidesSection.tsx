@@ -8,6 +8,7 @@ import type { SectionItemView } from "@/features/site/content";
 import { reveal, revealDelay } from "./reveal";
 import { blogCardTexts, type BlogCardTexts } from "./blogCard";
 import { VisitBlogCard } from "./VisitBlogCard";
+import { isAutoNewsItem } from "./homeNews";
 
 /** Card do arquivo: 417×438, com vão de 40px entre colunas (457 − 417). */
 const GUIDE_CARD_WIDTH = 417;
@@ -134,10 +135,10 @@ function GuideCard({
   compact?: boolean;
 }) {
   const height = compact ? COMPACT_HEIGHT : GUIDE_CARD_HEIGHT;
-  // Card baixo: sem título no arquivo, resumo a 147px. Se o admin der um
-  // título, ele entra acima do resumo e os dois sobem juntos.
-  const titleTop = compact ? 105 : 308;
-  const bodyTop = compact ? (guide.title ? 135 : 147) : guide.title ? 345 : 147;
+  // Notícia automática do blog (2026-11-17): não é item da sessão, então o
+  // editor da home não a oferece para edição (não há o que salvar).
+  // Sem id, `editItem` não marca nada.
+  const edit: typeof editItem = (key, id, field) => editItem(key, isAutoNewsItem(guide) ? undefined : id, field);
 
   return (
     <li
@@ -150,7 +151,7 @@ function GuideCard({
           degradês por cima só fazem sentido sobre alguma coisa. */}
       {guide.image ? (
         <Image
-          {...editItem("home:guias", guide.id, "image")}
+          {...edit("home:guias", guide.id, "image")}
           src={guide.image}
           alt=""
           width={GUIDE_CARD_WIDTH}
@@ -160,7 +161,7 @@ function GuideCard({
         />
       ) : (
         <span
-          {...editItem("home:guias", guide.id, "image")}
+          {...edit("home:guias", guide.id, "image")}
           aria-hidden
           className="pointer-events-none absolute inset-0 bg-brand-surface"
         />
@@ -203,7 +204,7 @@ function GuideCard({
           sem deformar. */}
       {guide.secondaryImage ? (
         <Image
-          {...editItem("home:guias", guide.id, "secondaryImage")}
+          {...edit("home:guias", guide.id, "secondaryImage")}
           src={guide.secondaryImage}
           alt=""
           width={90}
@@ -215,32 +216,35 @@ function GuideCard({
         // Sem logo, um espaço marcado no mesmo lugar: na loja ele é invisível e
         // não recebe clique; no editor é onde se arrasta a arte do jogo.
         <span
-          {...editItem("home:guias", guide.id, "secondaryImage")}
+          {...edit("home:guias", guide.id, "secondaryImage")}
           aria-hidden
           className="pointer-events-none absolute top-[25px] left-[25px] h-[58px] w-[90px]"
         />
       )}
 
-      {guide.title ? (
-        <h3
-          {...editItem("home:guias", guide.id, "title")}
-          data-edit-rich=""
-          style={{ top: titleTop }}
-          className="guide-text absolute left-[26px] font-poppins text-[18px] leading-[normal] font-semibold tracking-[0.09px] text-white"
-        >
-          <RichText value={guide.title} />
-        </h3>
-      ) : null}
+      {/* Título e resumo PRESOS AO RODAPÉ (2026-11-17): com as notícias do blog
+          o tamanho do título varia, e posições fixas (título a 308, resumo a
+          345) encavalavam um título de duas linhas no resumo. O título corta
+          em duas linhas; o resumo em duas (card baixo) ou três. */}
+      <div className={`guide-text absolute left-[26px] w-[365px] ${compact ? "bottom-[20px]" : "bottom-[34px]"}`}>
+        {guide.title ? (
+          <h3
+            {...edit("home:guias", guide.id, "title")}
+            data-edit-rich=""
+            className={`font-poppins text-[18px] leading-[normal] font-semibold tracking-[0.09px] text-white ${compact ? "line-clamp-1" : "line-clamp-2"}`}
+          >
+            <RichText value={guide.title} />
+          </h3>
+        ) : null}
 
-      <p
-        {...editItem("home:guias", guide.id, "body")}
-        data-edit-rich=""
-        // No card baixo o resumo corta em duas linhas: não há altura para mais.
-        className={`guide-text absolute left-[26px] w-[365px] font-helvetica text-[16px] leading-[normal] tracking-[0.16px] text-brand-placeholder ${compact ? "line-clamp-2" : ""}`}
-        style={{ top: bodyTop }}
-      >
-        <RichText value={guide.body} />
-      </p>
+        <p
+          {...edit("home:guias", guide.id, "body")}
+          data-edit-rich=""
+          className={`font-helvetica text-[16px] leading-[normal] tracking-[0.16px] text-brand-placeholder ${guide.title ? "mt-[8px]" : ""} ${compact ? "line-clamp-2" : "line-clamp-3"}`}
+        >
+          <RichText value={guide.body} />
+        </p>
+      </div>
       </GuideLink>
     </li>
   );

@@ -1,6 +1,7 @@
 import { settingsHref } from "@/features/admin/settings/catalog";
 import { siteSection } from "@/features/site/sections";
 import { STATIC_PAGES, type ContentPageDef } from "../registry";
+import { cssZoom } from "@/lib/siteZoom";
 
 /**
  * Clicar na PRÉVIA abre o campo daquele pedaço (2026-10-01).
@@ -124,12 +125,14 @@ export function installPreviewPicker(
       box.style.display = "none";
       return;
     }
+    // A caixa vem na escala da tela; o contorno é escrito em px do desenho.
+    const zoom = cssZoom(box);
     Object.assign(box.style, {
       display: "block",
-      left: `${rect.left - 6}px`,
-      top: `${rect.top - 6}px`,
-      width: `${rect.width + 12}px`,
-      height: `${rect.height + 12}px`,
+      left: `${rect.left / zoom - 6}px`,
+      top: `${rect.top / zoom - 6}px`,
+      width: `${rect.width / zoom + 12}px`,
+      height: `${rect.height / zoom + 12}px`,
     });
     // Sem espaço acima (pedaço colado no topo), o rótulo vai para baixo.
     box.toggleAttribute("data-below", rect.top < 40);

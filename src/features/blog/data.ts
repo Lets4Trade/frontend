@@ -144,6 +144,18 @@ export async function getGameNews(gameSlug: string, limit = 4): Promise<BlogCard
 }
 
 /**
+ * As últimas notícias de TODOS os jogos (filtro "Todos"), para a seção de
+ * notícias da home (2026-11-17). Mesmo cache e mesma etiqueta do blog: salvar
+ * ou excluir um post no painel já atualiza a home. Lista vazia em qualquer falha.
+ */
+export async function getLatestNews(limit = 4): Promise<BlogCardView[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  const data = await publicApiGet<RawList>(`/blog?${params.toString()}`, CACHE);
+  if (!data || typeof data !== "object") return [];
+  return toCards(data.items).slice(0, limit);
+}
+
+/**
  * Autor da matéria (2026-11-09). O backend apaga campo nulo da resposta, então
  * foto e cargo podem simplesmente não vir. Foto só servida pela API (`/uploads`).
  */

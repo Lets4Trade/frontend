@@ -183,7 +183,12 @@ function WorldMap() {
         alt=""
         width={962}
         height={986}
-        className="map-drift absolute top-[297px] left-[959px] h-[986px] w-[962px] max-w-none"
+        // Ponta direita ESMAECIDA (2026-11-17): o SVG é um recorte que acaba
+        // na borda do frame de 1920. Em tela mais larga essa borda fica no
+        // meio da página e o mapa terminava numa linha reta; agora some no
+        // escuro. Num monitor de 1920 a ponta está na borda da tela e o
+        // esmaecimento quase não aparece.
+        className="map-drift absolute top-[297px] left-[959px] h-[986px] w-[962px] max-w-none [mask-image:linear-gradient(to_right,#000_70%,transparent)]"
       />
     </div>
   );

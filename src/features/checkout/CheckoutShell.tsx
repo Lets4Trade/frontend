@@ -29,7 +29,7 @@ export async function CheckoutShell({ children }: { children: ReactNode }) {
   const brand = (await getLayoutContent()).text("marca");
 
   return (
-    <div className="flex min-h-dvh flex-col bg-brand-bg">
+    <div className="flex min-h-[var(--dvh)] flex-col bg-brand-bg">
       {/* Celular (2026-10-09): a faixa elástica de 1600–1920 e o cabeçalho de
           1077 só existem a partir de `lg`; abaixo disso as colunas empilham
           (ver `CheckoutColumns`) e a página não rola de lado. */}

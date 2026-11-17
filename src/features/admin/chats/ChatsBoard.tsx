@@ -122,8 +122,8 @@ export function ChatsBoard({
     // altura da tela e a conversa tem "← Conversas" para voltar.
     <div
       className={cn(
-        "grid grid-cols-1 overflow-hidden rounded-[20px] border border-brand-border bg-[image:var(--brand-surface-fill)] lg:h-[calc(100dvh-260px)] lg:min-h-[640px] lg:grid-cols-[minmax(300px,420px)_1fr] lg:rounded-[30px]",
-        conversation ? "h-[calc(100dvh-90px)] min-h-[480px]" : "min-h-[320px]",
+        "grid grid-cols-1 overflow-hidden rounded-[20px] border border-brand-border bg-[image:var(--brand-surface-fill)] lg:h-[calc(var(--dvh)-260px)] lg:min-h-[640px] lg:grid-cols-[minmax(300px,420px)_1fr] lg:rounded-[30px]",
+        conversation ? "h-[calc(var(--dvh)-90px)] min-h-[480px]" : "min-h-[320px]",
       )}
     >
       <aside
@@ -390,7 +390,7 @@ function ConversationPane({
                 order={order}
                 controls={orderControls}
                 hideHeading
-                className="scrollbar-orange max-h-[34vh] overflow-y-auto px-[16px] pb-[18px] lg:px-[30px]"
+                className="scrollbar-orange max-h-[calc(34*var(--vh)/100)] overflow-y-auto px-[16px] pb-[18px] lg:px-[30px]"
               />
             </details>
           ) : null}

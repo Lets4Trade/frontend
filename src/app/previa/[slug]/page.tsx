@@ -17,7 +17,8 @@ import { PreviewCanvas } from "@/features/pages/editor/PreviewCanvas";
 import { homeSharedNodes } from "@/features/pages/homeSharedNodes";
 import { builderPage, type BlocksPageDef } from "@/features/pages/registry";
 import { SellPageBody } from "@/features/sell/SellPageBody";
-import { getSectionItemsFor, getSectionsFor } from "@/features/site/content";
+import { getSectionsFor } from "@/features/site/content";
+import { getHomeItems } from "@/features/home/homeNews";
 import { gameSlugFromHref } from "@/features/game/href";
 
 export const metadata: Metadata = {
@@ -50,7 +51,7 @@ export default async function PreviewPage({ params }: PageProps) {
   if (!draft) notFound();
 
   return (
-    <div className="flex min-h-dvh flex-col bg-brand-bg">
+    <div className="flex min-h-[var(--dvh)] flex-col bg-brand-bg">
       <SiteHeader />
       <PreviewCanvas
         frame={page.frame}
@@ -70,7 +71,7 @@ export default async function PreviewPage({ params }: PageProps) {
 async function legacyFor(page: BlocksPageDef): Promise<{ desktop: LegacyNodes; mobile?: LegacyNodes }> {
   switch (page.frame) {
     case "home": {
-      const [section, items] = await Promise.all([getSectionsFor("home"), getSectionItemsFor("home")]);
+      const [section, items] = await Promise.all([getSectionsFor("home"), getHomeItems()]);
       return {
         desktop: legacyNodesFrom(buildHomeBlocks(section, items)),
         mobile: legacyNodesFrom(buildMobileHomeBlocks(section, items)),

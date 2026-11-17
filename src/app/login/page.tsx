@@ -33,7 +33,7 @@ export default async function LoginPage({
   const redirect = typeof query.redirect === "string" ? query.redirect : null;
 
   return (
-    <div className="flex min-h-dvh flex-col bg-brand-bg">
+    <div className="flex min-h-[var(--dvh)] flex-col bg-brand-bg">
       <SiteHeader />
 
       <main className="flex flex-1 items-center justify-center px-4 py-16">

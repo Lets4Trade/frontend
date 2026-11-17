@@ -268,7 +268,7 @@ export function PageBuilder({
           </button>
       </EditorHeader>
 
-      <div className="grid h-[calc(100dvh-210px)] min-h-[560px] grid-cols-[320px_minmax(0,1fr)] gap-[16px] xl:grid-cols-[320px_minmax(0,1fr)_380px]">
+      <div className="grid h-[calc(var(--dvh)-210px)] min-h-[560px] grid-cols-[320px_minmax(0,1fr)] gap-[16px] xl:grid-cols-[320px_minmax(0,1fr)_380px]">
         <aside className="scrollbar-orange min-h-0 overflow-y-auto rounded-[20px] border border-brand-border bg-[image:var(--brand-surface-fill)] p-[14px]">
           {/* Abaixo de xl não há terceira coluna: o formulário toma o lugar da lista. */}
           {inspector ? <div className="xl:hidden">{inspector}</div> : null}

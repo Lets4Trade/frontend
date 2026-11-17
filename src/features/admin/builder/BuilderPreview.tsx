@@ -17,6 +17,7 @@ import { gapBefore, type GameSectionKey } from "@/features/game/sections";
 import { defaultTabIcon, tabIconSrc, type GameTab } from "@/features/admin/games/tabs/types";
 import type { BuilderShared, Draft } from "./types";
 import { PriceHighlight } from "@/features/game/DiscountedPrice";
+import { cssZoom } from "@/lib/siteZoom";
 
 /**
  * A pré-visualização do builder (Figma 3916:2867) — a página do jogo desenhada
@@ -136,7 +137,9 @@ function useScaledPreview() {
     };
 
     // Mede JÁ — sem depender de o observador ser entregue.
-    apply(outer.getBoundingClientRect().width);
+    // `clientWidth` (px do desenho), como o `contentRect` do observador: a
+    // caixa da tela já vem encolhida pelo zoom do site e encolheria duas vezes.
+    apply(outer.clientWidth);
 
     const observer = new ResizeObserver(([entry]) => apply(entry.contentRect.width));
     observer.observe(outer);
@@ -150,7 +153,7 @@ function useScaledPreview() {
     // `getBoundingClientRect` já vem com a transformação aplicada, então este
     // valor é a altura VISÍVEL — que é a que o invólucro precisa.
     const measure = () => {
-      const visible = inner.getBoundingClientRect().height;
+      const visible = inner.getBoundingClientRect().height / cssZoom(inner);
       if (visible > 0) setHeight(Math.ceil(visible));
     };
 
@@ -165,7 +168,7 @@ function useScaledPreview() {
   // isto, aumentar a janela deixaria um vão até o observador de altura reagir.
   useEffect(() => {
     const inner = innerRef.current;
-    if (inner) setHeight(Math.ceil(inner.getBoundingClientRect().height));
+    if (inner) setHeight(Math.ceil(inner.getBoundingClientRect().height / cssZoom(inner)));
   }, [scale]);
 
   return { outerRef, innerRef, scale, height };
