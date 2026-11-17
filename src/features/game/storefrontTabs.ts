@@ -24,6 +24,8 @@ export type ApiGameTab = {
   layout: string;
   linkHref?: string | null;
   content?: unknown;
+  /** Servidores onde aparece (2026-11-17); vazio = todos. */
+  serverSlugs?: unknown;
 };
 
 export type ApiCategory = {
@@ -125,6 +127,10 @@ export function tabsFromApi(gameSlug: string, raw: readonly ApiGameTab[]): GameT
       href,
       layout,
       content: CONTENT_LAYOUTS.has(layout) ? parseServiceContent(tab.content) : undefined,
+      // Dado da API: só slugs no formato de sempre; lista vazia = todos.
+      ...(Array.isArray(tab.serverSlugs) && tab.serverSlugs.length > 0
+        ? { serverSlugs: tab.serverSlugs.filter((slug): slug is string => typeof slug === "string" && SLUG.test(slug)) }
+        : {}),
     });
   }
 

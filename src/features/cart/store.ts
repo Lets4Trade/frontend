@@ -62,6 +62,12 @@ export type CartItem = {
    * conforto de tela — o backend recusa `units` acima do máximo do banco.
    */
   maxUnits?: number;
+  /**
+   * Catálogo com "Quantidade mínima por compra" (2026-11-17): a linha não
+   * desce abaixo disto. Ausente = 1. Conforto de tela — o backend recusa
+   * `units` menor que o mínimo do banco.
+   */
+  minUnits?: number;
 };
 
 /** Linha de serviço: tem escolha (a quantidade só muda se `maxUnits` > 1). */
@@ -72,6 +78,11 @@ export function isServiceItem(item: Pick<CartItem, "selection">): boolean {
 /** Até quanto a quantidade da linha vai no carrinho. */
 export function maxQuantityOf(item: Pick<CartItem, "selection" | "maxUnits">): number {
   return isServiceItem(item) ? Math.max(1, item.maxUnits ?? 1) : MAX_QUANTITY;
+}
+
+/** O mínimo da linha (catálogo com quantidade mínima); 1 sem mínimo. */
+export function minQuantityOf(item: Pick<CartItem, "selection" | "minUnits">): number {
+  return isServiceItem(item) ? 1 : Math.max(1, Math.floor(item.minUnits ?? 1));
 }
 
 /**
@@ -136,7 +147,9 @@ export const useCart = create<CartState>()(
                 line.id === id
                   ? {
                       ...line,
-                      quantity: Math.min(line.quantity + quantity, MAX_QUANTITY),
+                      // O mínimo novo vale também para a linha que já estava lá.
+                      minUnits: item.minUnits,
+                      quantity: Math.min(Math.max(line.quantity + quantity, minQuantityOf(item)), MAX_QUANTITY),
                     }
                   : line,
               )
@@ -145,7 +158,7 @@ export const useCart = create<CartState>()(
                 {
                   ...item,
                   id,
-                  quantity: Math.min(Math.max(quantity, 1), MAX_QUANTITY),
+                  quantity: Math.min(Math.max(quantity, minQuantityOf(item)), MAX_QUANTITY),
                   addedAt: new Date().toISOString(),
                 },
               ];
@@ -166,7 +179,8 @@ export const useCart = create<CartState>()(
                         ...line,
                         // Serviço: só até o máximo de unidades do produto
                         // (sem máximo, fica a quantidade da página).
-                        quantity: Math.min(quantity, maxQuantityOf(line)),
+                        // Catálogo: nunca abaixo da quantidade mínima.
+                        quantity: Math.max(Math.min(quantity, maxQuantityOf(line)), minQuantityOf(line)),
                       }
                     : line,
                 ),

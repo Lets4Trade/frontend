@@ -49,7 +49,8 @@ export function ProductGridBlock({
                 <span className="flex flex-1 flex-col gap-[8px] p-[16px]">
                   <span className="line-clamp-2 font-poppins text-[14px] font-bold text-white">{product.name}</span>
                   <span className="text-brand-gradient mt-auto font-helvetica text-[18px] font-bold">
-                    {formatPriceCents(product.priceCents)}
+                    {/* "Consulte aqui" (2026-11-17): sem preço; o card leva à loja do jogo. */}
+                    {product.consultOnly ? "Sob consulta" : formatPriceCents(product.priceCents)}
                   </span>
                 </span>
               </Link>

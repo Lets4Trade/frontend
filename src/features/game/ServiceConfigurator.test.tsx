@@ -98,14 +98,20 @@ describe("ServiceConfigurator", () => {
     expect(push).toHaveBeenCalledWith("/checkout");
   });
 
-  it("sem banner mostra só o texto (nem a arte do card); com banner, a imagem (2026-11-04)", () => {
+  it("aba SERVIÇO: banner no topo; sem banner, a imagem do card inteira; sem as duas, só o texto (2026-11-17)", () => {
     const image = { src: "/card.webp", alt: "", width: 263, height: 276 };
     const { container, rerender } = render(
+      <ServiceConfigurator products={[product]} context={context} filters={null} emptyMessage="vazio" />,
+    );
+    // Sem arte nenhuma: nem quadro cinza no lugar.
+    expect(container.querySelector(".rounded-t-\\[30px\\]")).toBeNull();
+
+    // Sem banner, a imagem do card, no formato da página do pacote (inteira).
+    rerender(
       <ServiceConfigurator products={[{ ...product, image }]} context={context} filters={null} emptyMessage="vazio" />,
     );
-    // Só os ícones do controle de nível: nem a arte do card, nem o cinza no lugar.
-    expect(container.querySelector('img[src="/card.webp"]')).toBeNull();
-    expect(container.querySelector(".rounded-t-\\[30px\\]")).toBeNull();
+    // (o dublê do `next/image` não repassa a classe; o formato é conferido na web)
+    expect(container.querySelector('img[src="/card.webp"]')).not.toBeNull();
 
     const banner = { src: "/banner.webp", alt: "", width: 551, height: 327 };
     rerender(

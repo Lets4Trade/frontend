@@ -5,6 +5,7 @@ import { buttonVariants } from "@/components/ui/Button";
 import { AdminSearchBox } from "@/features/admin/AdminFilters";
 import { DeleteGameButton } from "@/features/admin/builder/DeleteGameButton";
 import { GameMenuOrderButtons } from "@/features/admin/games/GameMenuOrderButtons";
+import { GameVisibilityButton } from "@/features/admin/games/GameVisibilityButton";
 import { getBuilderGames } from "@/features/admin/builder/list";
 import { centralHref } from "@/features/admin/games/central";
 import { requirePanelArea } from "@/features/admin/guard";
@@ -105,7 +106,7 @@ export default async function AdminGamesPage({
                     <th scope="col" className="w-[120px] px-[12px] py-[12px] text-right">
                       Produtos
                     </th>
-                    <th scope="col" className="w-[110px] py-[12px] pr-[18px] pl-[12px] text-right">
+                    <th scope="col" className="w-[156px] py-[12px] pr-[18px] pl-[12px] text-right">
                       <span className="sr-only">Ações</span>
                     </th>
                   </tr>
@@ -114,7 +115,10 @@ export default async function AdminGamesPage({
                   {visible.map((game) => {
                     const art = backendAsset(game.imageUrl);
                     return (
-                      <tr key={game.id} className="transition-colors hover:bg-white/[0.03]">
+                      <tr
+                        key={game.id}
+                        className={cn("transition-colors hover:bg-white/[0.03]", game.isHidden && "bg-white/[0.02]")}
+                      >
                         <td className="py-[10px] pr-[12px] pl-[18px]">
                           {search ? (
                             <span className="font-poppins text-[14px] font-bold text-white/60">
@@ -130,12 +134,21 @@ export default async function AdminGamesPage({
                               {art ? <Image src={art} alt="" fill sizes="44px" className="object-contain" /> : null}
                             </span>
                             {/* O nome leva à Central: é onde se clica por instinto. */}
-                            <Link
-                              href={centralHref(game.id)}
-                              className="min-w-0 truncate font-poppins text-[15px] font-semibold text-white hover:underline"
-                            >
-                              {game.name}
-                            </Link>
+                            <span className="flex min-w-0 flex-col">
+                              <Link
+                                href={centralHref(game.id)}
+                                className={cn(
+                                  "min-w-0 truncate font-poppins text-[15px] font-semibold hover:underline",
+                                  game.isHidden ? "text-white/50" : "text-white",
+                                )}
+                              >
+                                {game.name}
+                              </Link>
+                              {/* Escondido do site (2026-11-17). */}
+                              {game.isHidden ? (
+                                <span className="font-poppins text-[11px] font-bold text-brand-orange">Escondido do site</span>
+                              ) : null}
+                            </span>
                           </div>
                         </td>
                         <td className="hidden truncate px-[12px] md:table-cell">
@@ -158,6 +171,7 @@ export default async function AdminGamesPage({
                         </td>
                         <td className="py-[10px] pr-[18px] pl-[12px]">
                           <div className="flex items-center justify-end gap-[8px]">
+                            <GameVisibilityButton id={game.id} name={game.name} hidden={game.isHidden} />
                             <Link
                               href={centralHref(game.id)}
                               aria-label={`Abrir ${game.name}`}

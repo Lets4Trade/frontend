@@ -39,6 +39,8 @@ export type GameTab = {
   position: number;
   isActive: boolean;
   productCount: number;
+  /** Servidores onde aparece (2026-11-17); vazio/ausente = todos. */
+  serverIds?: string[];
 };
 
 /** Os 6 layouts, com o nome em português e uma linha do que a aba mostra na loja. */
@@ -185,6 +187,8 @@ export const createTabSchema = z
     linkHref: linkHref.optional(),
     content: tabContentSchema.optional(),
     isActive: z.boolean().optional(),
+    // Criada com um servidor escolhido na Central = nasce só nele (2026-11-17).
+    serverIds: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,100}$/, "Servidor inválido.")).max(200).optional(),
   })
   .superRefine((value, ctx) => {
     if (value.layout === "LINK" && !value.linkHref) {
@@ -224,6 +228,8 @@ export const updateTabSchema = z
     linkHref: linkHref.nullable().optional(),
     content: tabContentSchema.nullable().optional(),
     isActive: z.boolean().optional(),
+    // Servidores onde a aba aparece (2026-11-17); quem confere se são do jogo é o backend.
+    serverIds: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,100}$/, "Servidor inválido.")).max(200).optional(),
   })
   .superRefine((value, ctx) => {
     if (value.layout === undefined) return;

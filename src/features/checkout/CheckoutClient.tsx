@@ -431,6 +431,10 @@ export function CheckoutClient({
       setFormError(`${message ?? "O cupom não vale mais."} O total foi atualizado sem ele.`);
       return;
     }
+    if (reason === "minimum") {
+      setFormError(message ?? "Algum item está abaixo da quantidade mínima. Ajuste o carrinho.");
+      return;
+    }
     if (reason === "coins") {
       // O saldo mudou entre a tela e o envio (outra aba, outro aparelho). Com
       // "usar tudo", basta reler o saldo: o `refresh` traz o `loyalty` novo

@@ -1,3 +1,4 @@
+import { splitName } from "./nameBreak";
 import { backendAsset, publicApiGet } from "@/lib/publicApi";
 import { getGameNews } from "@/features/blog/data";
 import { blogCardTexts, gameBlogHref } from "@/features/home/blogCard";
@@ -97,12 +98,18 @@ type StorefrontProductPage = {
     id: string;
     name: string;
     nameEn?: string | null;
+    /** Quebra do título no card (2026-11-17). */
+    nameBreak?: number | null;
     priceCents: number;
     /** Desconto do pacote (2026-10-27); ausentes sem desconto. */
     discountPercent?: number | null;
     listPriceCents?: number | null;
     /** Selo do card ("Novo", "Em alta"…), 2026-11-04. Ausente = sem selo. */
     badgeText?: string | null;
+    /** "Consulte aqui" (2026-11-17). Ausente = falso. */
+    consultOnly?: boolean | null;
+    /** Quantidade mínima por compra (2026-11-17). Ausente = 1. */
+    minUnits?: number | null;
     /** Nome no "Selecionar serviço" (2026-11-04). Ausente = usa o `name`. */
     serviceLabel?: string | null;
     tabSlug?: string | null;
@@ -475,9 +482,16 @@ function toProduct(item: StorefrontProductPage["items"][number]): GameProduct {
     id: item.id,
     name: item.name,
     nameEn: item.nameEn?.trim() || undefined,
+    // Quebra do título (2026-11-17): só se cair num espaço do nome.
+    ...(splitName(item.name, item.nameBreak) ? { nameBreak: item.nameBreak! } : {}),
     // Selo do card (2026-11-04). Teto aqui também: é texto de API num card.
     badgeText: typeof item.badgeText === "string" ? item.badgeText.trim().slice(0, 24) || undefined : undefined,
     serviceLabel: typeof item.serviceLabel === "string" ? item.serviceLabel.trim() || undefined : undefined,
+    ...(item.consultOnly === true ? { consultOnly: true } : {}),
+    // Inteiro de 2 a 1.000.000; qualquer outra coisa = sem mínimo.
+    ...(Number.isInteger(item.minUnits) && item.minUnits! > 1 && item.minUnits! <= 1_000_000
+      ? { minUnits: item.minUnits! }
+      : {}),
     priceCents: item.priceCents,
     ...readDiscount(item),
     // As medidas são só a proporção que o `next/image` usa para reservar o

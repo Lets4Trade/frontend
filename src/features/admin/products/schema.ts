@@ -20,6 +20,9 @@ export { MAX_PRICE_CENTS };
 
 /** Selo do card e categorias extras (2026-11-04): tetos do backend. */
 export const MAX_BADGE_CHARS = 24;
+
+/** Teto da quantidade mínima por compra (2026-11-17) — o mesmo do backend. */
+export const MAX_MIN_UNITS = 1_000_000;
 export const MAX_EXTRA_CATEGORIES = 20;
 /** Atalhos do selo (o campo aceita qualquer texto). */
 export const BADGE_PRESETS = ["Novo", "Em alta"] as const;
@@ -57,6 +60,17 @@ export const createProductSchema = z.object({
     .min(0, "O desconto não pode ser negativo.")
     .max(MAX_DISCOUNT_PERCENT, `O desconto vai até ${MAX_DISCOUNT_PERCENT}%.`)
     .default(0),
+
+  /**
+   * Quantidade mínima por compra (2026-11-17), aba de catálogo. Vazio = 1
+   * (sem mínimo). O card da loja começa nela; o backend recusa abaixo.
+   */
+  minUnits: z.coerce
+    .number()
+    .int("A quantidade mínima é um número inteiro (ex.: 100).")
+    .min(1, "A quantidade mínima é pelo menos 1.")
+    .max(MAX_MIN_UNITS, "A quantidade mínima vai até 1.000.000.")
+    .default(1),
 
 
   /**

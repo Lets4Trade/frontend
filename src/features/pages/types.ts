@@ -123,7 +123,7 @@ export type PageRefs = {
   games: Record<string, { id: string; name: string; slug: string; imageUrl: string | null }>;
   products: Record<
     string,
-    { id: string; name: string; priceCents: number; imageUrl: string | null; gameSlug: string }[]
+    { id: string; name: string; priceCents: number; consultOnly?: boolean; imageUrl: string | null; gameSlug: string }[]
   >;
 };
 

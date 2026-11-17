@@ -88,6 +88,19 @@ describe("cupom (2026-10-12)", () => {
     });
   });
 
+  it("checkout: quantidade mínima recusada vira reason minimum com a mensagem (2026-11-17)", async () => {
+    const message = 'Compra mínima de 100 unidades em "Orb". Ajuste a quantidade no carrinho.';
+    apiPost.mockResolvedValue({ ok: false, status: 400, reason: "error", message });
+    expect(await checkoutAction([{ productId: "a", units: 1 }], 0, [], "")).toEqual({
+      ok: false,
+      reason: "minimum",
+      message,
+    });
+    // Outro texto do backend não é repassado à tela.
+    apiPost.mockResolvedValue({ ok: false, status: 400, reason: "error", message: "<b>qualquer</b>" });
+    expect(await checkoutAction([{ productId: "a", units: 1 }], 0, [], "")).toEqual({ ok: false, reason: "error" });
+  });
+
   it("prévia: lê a regra (falso apagado pelo backend = falso) e trata 429 e 401", async () => {
     apiPost.mockResolvedValue({
       ok: true,

@@ -12,6 +12,7 @@ import { resolveSectionOrder } from "@/features/game/sections";
 import { toCategoryTree } from "@/features/game/categoryTree";
 import { toGameDescription } from "@/features/game/description";
 import { savePageAction } from "./actions";
+import { ConfirmDeleteDialog, blockedProductCount } from "@/features/admin/ConfirmDeleteDialog";
 import { draftCategoriesToPayload } from "./payload";
 import {
   BannerPanel,
@@ -91,6 +92,8 @@ export function BuilderShell({
   const [draft, setDraft] = useState<Draft>(() => toDraft(game));
   const [saved, setSaved] = useState<Draft>(() => toDraft(game));
   const [pending, startTransition] = useTransition();
+  // "Apagar tudo" (2026-11-17): a recusa por produto abre a confirmação.
+  const [confirm, setConfirm] = useState<{ count: number } | null>(null);
 
   const patch = useCallback((next: Partial<Draft>) => {
     setDraft((current) => ({ ...current, ...next }));
@@ -116,7 +119,7 @@ export function BuilderShell({
     return `Compre ${what} De ${draft.name}`;
   }, [draft.name, tabs]);
 
-  function publish() {
+  function publish(deleteProducts = false) {
     startTransition(async () => {
       const result = await runAction(
         () =>
@@ -135,6 +138,7 @@ export function BuilderShell({
             servers: draft.servers.map((item) => ({ id: item.id, label: item.label })),
             categories: draftCategoriesToPayload(draft.categories),
             sectionOrder: draft.sectionOrder,
+            deleteProducts,
           }),
         { ok: false, reason: "error", message: ACTION_FAILED_MESSAGE },
       );
@@ -146,6 +150,7 @@ export function BuilderShell({
         const fresh = toDraft(result.data);
         setDraft(fresh);
         setSaved(fresh);
+        setConfirm(null);
         toastOk("Página publicada. A loja já mostra as alterações.");
         router.refresh();
         return;
@@ -155,6 +160,13 @@ export function BuilderShell({
         router.push("/login?redirect=/admin/builder");
         return;
       }
+      // Servidor/categoria removidos com produto: pergunta antes de apagar tudo.
+      const blocked = blockedProductCount(result.message);
+      if (blocked !== null && !deleteProducts) {
+        setConfirm({ count: blocked });
+        return;
+      }
+      setConfirm(null);
       toastError(result.message ?? "Não foi possível publicar a página.");
     });
   }
@@ -185,7 +197,7 @@ export function BuilderShell({
 
           <button
             type="button"
-            onClick={publish}
+            onClick={() => publish()}
             // Sem alteração o botão fica inerte: publicar de novo o que já está
             // publicado não faz nada e ainda geraria uma linha na auditoria.
             disabled={pending || !isDirty}
@@ -232,6 +244,21 @@ export function BuilderShell({
           )}
         </div>
       </div>
+      <ConfirmDeleteDialog
+        open={confirm !== null}
+        title="Apagar com os produtos dentro?"
+        description={
+          confirm ? (
+              <>
+                {confirm.count} produto{confirm.count === 1 ? " está" : "s estão"} em servidores ou categorias que você tirou da lista. Ao confirmar,
+                eles vão para a lixeira junto (dá para reativar na Central do jogo) e o resto é salvo.
+              </>
+          ) : null
+        }
+        pending={pending}
+        onConfirm={() => publish(true)}
+        onCancel={() => setConfirm(null)}
+      />
     </div>
   );
 }

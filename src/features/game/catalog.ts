@@ -97,11 +97,23 @@ export function parseCatalogQuery(
   const rawSort = first(params[PARAM.sort]);
   const rawPage = Number.parseInt(first(params[PARAM.page]) ?? "1", 10);
 
-  const tab = rawTab && tabIds.has(rawTab) ? rawTab : page.activeTabId;
+  // Abas por servidor (2026-11-17). A ABA manda: o servidor tem de ser um dos
+  // dela (senão vale o primeiro dela). Sem `?aba=` mas com servidor, a aba
+  // padrão é a primeira que aparece NAQUELE servidor.
+  const validServer = rawServer && serverSlugs.has(rawServer) ? rawServer : null;
+  const productTabs = page.tabs.filter((item) => item.layout !== "LINK");
+  const tab =
+    rawTab && tabIds.has(rawTab)
+      ? rawTab
+      : validServer
+        ? (productTabs.find((item) => tabShowsOnServer(item, validServer))?.id ?? page.activeTabId)
+        : page.activeTabId;
+  const tabEntry = productTabs.find((item) => item.id === tab);
+  const allowed = page.servers.items.filter((item) => !tabEntry || tabShowsOnServer(tabEntry, item.slug));
   const server =
-    rawServer && serverSlugs.has(rawServer)
-      ? rawServer
-      : (page.servers.items[0]?.slug ?? "");
+    validServer && allowed.some((item) => item.slug === validServer)
+      ? validServer
+      : (allowed[0]?.slug ?? page.servers.items[0]?.slug ?? "");
   // Pais E filhas (contrato C da FASE 4), mas só as do ESCOPO escolhido: uma
   // categoria de outro servidor/aba na URL não filtra nada aqui.
   const categoryIds = new Set(
@@ -145,6 +157,36 @@ export function scopeCategories(
     ...root,
     children: root.children.filter(fits),
   }));
+}
+
+/**
+ * A aba aparece neste servidor? (2026-11-17) Sem lista = em todos. O backend
+ * já tira a aba cujos servidores foram todos apagados.
+ */
+export function tabShowsOnServer(tab: Pick<GameTab, "serverSlugs">, server: string): boolean {
+  if (!tab.serverSlugs || tab.serverSlugs.length === 0) return true;
+  return tab.serverSlugs.includes(server);
+}
+
+/**
+ * Recorta a página para a escolha atual (2026-11-17): a fileira de abas só
+ * com as que aparecem no SERVIDOR escolhido, e os servidores só os da ABA
+ * aberta. Feito uma vez, depois do `parseCatalogQuery` — as seções recebem a
+ * página recortada e nenhuma precisa saber da regra. Jogo sem servidor: igual.
+ */
+export function scopePageToQuery(page: GamePage, query: CatalogQuery): GamePage {
+  if (page.servers.items.length === 0) return page;
+  const current = page.tabs.find((item) => item.id === query.tab && item.layout !== "LINK");
+  return {
+    ...page,
+    tabs: page.tabs.filter((item) => tabShowsOnServer(item, query.server)),
+    servers: {
+      ...page.servers,
+      items: current
+        ? page.servers.items.filter((item) => tabShowsOnServer(current, item.slug))
+        : page.servers.items,
+    },
+  };
 }
 
 /** A aba ativa da query (nunca uma LINK). */

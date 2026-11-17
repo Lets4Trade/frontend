@@ -126,7 +126,7 @@ export async function createTabAction(
     return { ok: false, reason: "invalid", message: parsed.error.issues[0]?.message };
   }
 
-  const { label, slug, layout, linkHref, content, isActive } = parsed.data;
+  const { label, slug, layout, linkHref, content, isActive, serverIds } = parsed.data;
   const result = await apiPost<GameTab>(base(gameId), {
     label,
     ...(slug ? { slug } : {}),
@@ -134,6 +134,7 @@ export async function createTabAction(
     ...(layout === "LINK" ? { linkHref } : {}),
     ...(hasTabContent(layout) && content ? { content: copyContent(content) } : {}),
     ...(isActive === undefined ? {} : { isActive }),
+    ...(serverIds && serverIds.length > 0 ? { serverIds: [...new Set(serverIds)] } : {}),
   });
   if (!result.ok) return failure(result);
 
@@ -166,6 +167,7 @@ export async function updateTabAction(
     body.content = data.content === null ? null : copyContent(data.content);
   }
   if (data.isActive !== undefined) body.isActive = data.isActive;
+  if (data.serverIds !== undefined) body.serverIds = [...new Set(data.serverIds)];
   if (Object.keys(body).length === 0) {
     return { ok: false, reason: "invalid", message: "Nada para salvar." };
   }
@@ -277,6 +279,8 @@ export async function saveTabCategoriesAction(
   tabId: string,
   serverId: string | null,
   categories: unknown,
+  /** "Apagar tudo" (2026-11-17): confirma apagar categoria com produto. */
+  deleteProducts = false,
 ): Promise<TabsResult<ScopedCategoryRow[]>> {
   const denied = await requireAdmin();
   if (denied) return denied;
@@ -294,7 +298,7 @@ export async function saveTabCategoriesAction(
 
   const result = await apiPut<ScopedCategoryRow[]>(
     `${base(gameId)}/${encodeURIComponent(tabId)}/categories`,
-    { serverId, categories: cleaned.data },
+    { serverId, categories: cleaned.data, ...(deleteProducts === true ? { deleteProducts: true } : {}) },
   );
   if (!result.ok) return failure(result);
 

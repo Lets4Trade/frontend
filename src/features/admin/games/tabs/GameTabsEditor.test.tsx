@@ -152,7 +152,8 @@ describe("TabsMasterList", () => {
     expect(links.map((link) => link.getAttribute("href"))).toEqual([
       "/admin/jogos/g1?secao=abas&aba=t1&servidor=s1",
       "/admin/jogos/g1?secao=abas&aba=t2&servidor=s1",
-      "/admin/jogos/g1?secao=abas&aba=nova",
+      // "+ Nova aba" também leva o servidor: a aba nasce nele (2026-11-17).
+      "/admin/jogos/g1?secao=abas&aba=nova&servidor=s1",
     ]);
     expect(links[0]).toHaveAttribute("aria-current", "page");
   });

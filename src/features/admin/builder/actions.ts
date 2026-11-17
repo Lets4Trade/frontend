@@ -61,6 +61,8 @@ export type SavePagePayload = {
   /** Dois níveis: categoria → subcategoria (contrato C da FASE 4). */
   categories: SavePageCategory[];
   sectionOrder: string[];
+  /** "Apagar tudo" (2026-11-17): confirma apagar servidor/categoria com produto. */
+  deleteProducts?: boolean;
 };
 
 
@@ -129,6 +131,8 @@ export async function savePageAction(
     servers: cleanList(payload.servers),
     categories: categories.data,
     sectionOrder: payload.sectionOrder,
+    // Só `true` viaja: é a confirmação explícita do modal.
+    ...(payload.deleteProducts === true ? { deleteProducts: true } : {}),
   };
 
   const result = await apiPut<BuilderGame>(

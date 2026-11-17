@@ -34,6 +34,8 @@ export type UpdateGameInput = {
   name: string;
   slug: string;
   servers: { id?: string; label: string }[];
+  /** "Apagar tudo" (2026-11-17): confirma apagar servidor com produto. */
+  deleteProducts?: boolean;
 };
 
 export async function updateGameAction(
@@ -93,6 +95,8 @@ export async function updateGameAction(
     // SEMPRE a ordem atual: o backend grava `dto.sectionOrder ?? []`, então
     // omitir o campo apagaria a ordem montada no Builder.
     sectionOrder: game.sectionOrder ?? [],
+    // Só a confirmação explícita do modal viaja.
+    ...(input.deleteProducts === true ? { deleteProducts: true } : {}),
   });
 
   if (result.ok) revalidatePath("/admin/jogos", "layout");

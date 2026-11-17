@@ -29,7 +29,9 @@ const pct = new Intl.NumberFormat("pt-BR", { style: "percent", maximumFractionDi
 type Server = { id: string; label: string };
 type Category = AdminGame["categories"][number];
 type Option = { value: string; label: string };
-type Saved = { priceCents: number; name: string; categoryId: string | null };
+type Saved = { priceCents: number; name: string; categoryId: string | null; hidden: boolean };
+/** Filtro "Na loja" (2026-11-17). */
+type StoreFilter = "" | "visible" | "hidden";
 /** Colunas de texto navegáveis por Enter / ↑ / ↓. */
 type Column = "name" | "price";
 
@@ -86,13 +88,25 @@ export function ProductPriceTable({
       new Map<string, Saved>(
         initial.map((item) => [
           item.id,
-          { priceCents: item.priceCents, name: item.name, categoryId: item.categoryId ?? null },
+          {
+            priceCents: item.priceCents,
+            name: item.name,
+            categoryId: item.categoryId ?? null,
+            hidden: Boolean(item.hidden),
+          },
         ]),
       ),
   );
   const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({});
   const [nameDrafts, setNameDrafts] = useState<Record<string, string>>({});
   const [categoryDrafts, setCategoryDrafts] = useState<Record<string, string>>({});
+  // Oculto do site (o olho) e excluir (a lixeira), 2026-11-17: rascunhos como
+  // o resto — nada muda na loja até "SALVAR".
+  const [hiddenDrafts, setHiddenDrafts] = useState<Record<string, boolean>>({});
+  const [removeDrafts, setRemoveDrafts] = useState<Record<string, boolean>>({});
+  // Excluídos no último salvar: somem da tabela sem esperar o refresh.
+  const [removedIds, setRemovedIds] = useState<Set<string>>(() => new Set());
+  const [storeFilter, setStoreFilter] = useState<StoreFilter>("");
   const [checked, setChecked] = useState<Set<string>>(() => new Set());
   const [serverId, setServerId] = useState(
     servers.some((server) => server.id === initialServerId) ? initialServerId : "",
@@ -144,8 +158,14 @@ export function ProductPriceTable({
   const rowOptions = (rowServerId: string | null | undefined) => optionsByServer.get(rowServerId ?? "") ?? [];
 
   const rows = useMemo(
-    () => initial.map((item) => ({ ...item, ...(current.get(item.id) ?? { categoryId: item.categoryId ?? null }) })),
-    [initial, current],
+    () =>
+      initial
+        .filter((item) => !removedIds.has(item.id))
+        .map((item) => ({
+          ...item,
+          ...(current.get(item.id) ?? { categoryId: item.categoryId ?? null, hidden: Boolean(item.hidden) }),
+        })),
+    [initial, current, removedIds],
   );
   const visible = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("pt-BR");
@@ -158,9 +178,11 @@ export function ProductPriceTable({
             : // Principal OU extra (2026-11-04), como na loja.
               (!!row.categoryId && !!filterIds?.has(row.categoryId)) ||
               !!row.extraCategoryIds?.some((id) => filterIds?.has(id)))) &&
+        // "Na loja" filtra pelo valor GRAVADO, como os outros filtros.
+        (!storeFilter || (storeFilter === "hidden") === Boolean(row.hidden)) &&
         (!term || row.name.toLocaleLowerCase("pt-BR").includes(term)),
     );
-  }, [rows, serverId, activeCategoryFilter, filterIds, search]);
+  }, [rows, serverId, activeCategoryFilter, filterIds, search, storeFilter]);
 
   // Filtros na URL, sem navegar: recarregar ou mandar o link abre no mesmo
   // recorte. `replaceState` não cria uma entrada no histórico a cada clique.
@@ -180,7 +202,10 @@ export function ProductPriceTable({
     price: priceDrafts,
     name: nameDrafts,
     category: categoryDrafts,
+    hidden: hiddenDrafts,
+    remove: removeDrafts,
   });
+  const removeCount = changes.filter((change) => change.remove).length;
   const invalidSet = new Set(invalid);
   const dirty = changes.length > 0 || invalid.length > 0;
   const visibleChecked = visible.filter((row) => checked.has(row.id));
@@ -208,6 +233,51 @@ export function ProductPriceTable({
   function setCategoryDraft(id: string, value: string) {
     setCategoryDrafts((prev) => ({ ...prev, [id]: value }));
     setMessage(null);
+  }
+
+  /** O olho: troca o estado da linha; voltar ao gravado apaga o rascunho. */
+  function setHidden(ids: readonly { id: string; hidden?: boolean }[], hidden: boolean) {
+    setHiddenDrafts((prev) => {
+      const next = { ...prev };
+      for (const row of ids) {
+        if (hidden === Boolean(row.hidden)) delete next[row.id];
+        else next[row.id] = hidden;
+      }
+      return next;
+    });
+    setMessage(null);
+  }
+
+  /** A lixeira: marca/desmarca a linha para exclusão no salvar. */
+  function setRemove(ids: readonly string[], remove: boolean) {
+    setRemoveDrafts((prev) => {
+      const next = { ...prev };
+      for (const id of ids) {
+        if (remove) next[id] = true;
+        else delete next[id];
+      }
+      return next;
+    });
+    setMessage(null);
+  }
+
+  function hideChecked(hidden: boolean) {
+    if (visibleChecked.length === 0) {
+      setMessage({ tone: "error", text: "Marque os produtos primeiro." });
+      return;
+    }
+    setHidden(visibleChecked, hidden);
+  }
+
+  function removeChecked() {
+    if (visibleChecked.length === 0) {
+      setMessage({ tone: "error", text: "Marque os produtos que devem ser excluídos." });
+      return;
+    }
+    setRemove(
+      visibleChecked.map((row) => row.id),
+      true,
+    );
   }
 
   function toggle(id: string) {
@@ -294,6 +364,8 @@ export function ProductPriceTable({
     setPriceDrafts({});
     setNameDrafts({});
     setCategoryDrafts({});
+    setHiddenDrafts({});
+    setRemoveDrafts({});
     setMessage(null);
   }
 
@@ -345,16 +417,27 @@ export function ProductPriceTable({
             priceCents: change.priceCents ?? saved.priceCents,
             name: change.name ?? saved.name,
             categoryId: change.categoryId === undefined ? saved.categoryId : change.categoryId,
+            hidden: change.hidden ?? saved.hidden,
           });
         }
         return next;
       });
+      const removed = changes.filter((change) => change.remove).map((change) => change.id);
+      if (removed.length > 0) {
+        setRemovedIds((prev) => new Set([...prev, ...removed]));
+        setChecked((prev) => new Set([...prev].filter((id) => !removed.includes(id))));
+      }
       setPriceDrafts({});
       setNameDrafts({});
       setCategoryDrafts({});
+      setHiddenDrafts({});
+      setRemoveDrafts({});
       setMessage({
         tone: "ok",
-        text: `${result.saved} produto${result.saved === 1 ? "" : "s"} salvo${result.saved === 1 ? "" : "s"}. A loja já mostra as mudanças.`,
+        text:
+          removed.length > 0
+            ? `${result.saved} produto${result.saved === 1 ? "" : "s"} salvo${result.saved === 1 ? "" : "s"} (${removed.length} excluído${removed.length === 1 ? "" : "s"}; dá para reativar na Central do jogo).`
+            : `${result.saved} produto${result.saved === 1 ? "" : "s"} salvo${result.saved === 1 ? "" : "s"}. A loja já mostra as mudanças.`,
       });
       router.refresh();
     });
@@ -377,6 +460,19 @@ export function ProductPriceTable({
           </nav>
         ) : null}
         <div className="ml-auto flex w-full flex-wrap items-center gap-[10px] sm:w-auto">
+          <select
+            value={storeFilter}
+            onChange={(event) => setStoreFilter(event.target.value as StoreFilter)}
+            aria-label="Filtrar por visibilidade na loja"
+            className={cn(
+              "h-[36px] min-w-0 rounded-full border bg-black/30 px-[14px] font-poppins text-[12px] font-bold text-white",
+              storeFilter ? "border-brand-orange" : "border-white/10",
+            )}
+          >
+            <option value="">Na loja: todos</option>
+            <option value="visible">Só visíveis</option>
+            <option value="hidden">Só ocultos</option>
+          </select>
           {filterOptions.length > 0 ? (
             <select
               value={activeCategoryFilter}
@@ -473,6 +569,37 @@ export function ProductPriceTable({
           </div>
         ) : null}
 
+        {/* Oculto do site e excluir em lote (2026-11-17). */}
+        <div className={cn("flex flex-wrap items-center gap-[8px]", visibleChecked.length === 0 && "hidden sm:flex")}>
+          <button
+            type="button"
+            onClick={() => hideChecked(true)}
+            disabled={visibleChecked.length === 0}
+            className="flex h-[36px] items-center gap-[6px] rounded-full border border-white/15 px-[12px] font-poppins text-[12px] font-bold text-white/85 transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <EyeIcon off className="size-[16px]" />
+            OCULTAR
+          </button>
+          <button
+            type="button"
+            onClick={() => hideChecked(false)}
+            disabled={visibleChecked.length === 0}
+            className="flex h-[36px] items-center gap-[6px] rounded-full border border-white/15 px-[12px] font-poppins text-[12px] font-bold text-white/85 transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <EyeIcon className="size-[16px]" />
+            MOSTRAR
+          </button>
+          <button
+            type="button"
+            onClick={removeChecked}
+            disabled={visibleChecked.length === 0}
+            className="flex h-[36px] items-center gap-[6px] rounded-full border border-red-9/50 px-[12px] font-poppins text-[12px] font-bold text-red-9 transition-colors hover:bg-red-9/10 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <TrashIcon className="size-[15px]" />
+            EXCLUIR
+          </button>
+        </div>
+
         <div className="ml-auto flex flex-wrap items-center gap-[10px]">
           {message ? (
             <span
@@ -484,6 +611,7 @@ export function ProductPriceTable({
           ) : dirty ? (
             <span className="font-helvetica text-[13px] text-brand-orange">
               {changes.length} alterado{changes.length === 1 ? "" : "s"}
+              {removeCount ? ` · ${removeCount} para excluir` : ""}
               {invalid.length ? ` · ${invalid.length} inválido${invalid.length === 1 ? "" : "s"}` : ""}
             </span>
           ) : null}
@@ -523,20 +651,27 @@ export function ProductPriceTable({
                   className="size-[16px] accent-brand-orange"
                 />
               </th>
-              <th className="py-[10px] font-bold">Produto</th>
+              <th className="w-[36px] py-[10px] font-bold" title="Na loja: visível ou oculto">
+                <span className="sr-only">Na loja</span>
+                <EyeIcon className="mx-auto size-[16px] opacity-60" />
+              </th>
+              <th className="py-[10px] pl-[6px] font-bold">Produto</th>
               <th className="hidden w-[220px] px-[10px] py-[10px] font-bold sm:table-cell">Categoria</th>
               <th className="hidden py-[10px] font-bold lg:table-cell">Servidor</th>
               <th className="hidden py-[10px] text-right font-bold sm:table-cell">
                 {quoted ? "Base atual" : "Preço atual"}
               </th>
               <th className="w-[124px] px-[6px] py-[10px] text-right font-bold sm:w-[140px] sm:px-[14px]">Novo (R$)</th>
-              <th className="w-[58px] py-[10px] pr-[10px] text-right font-bold sm:w-[80px] sm:pr-[14px]">Var.</th>
+              <th className="hidden w-[80px] py-[10px] pr-[14px] text-right font-bold sm:table-cell">Var.</th>
+              <th className="hidden w-[40px] py-[10px] pr-[8px] sm:table-cell">
+                <span className="sr-only">Excluir</span>
+              </th>
             </tr>
           </thead>
           <tbody>
             {visible.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-[40px] text-center text-brand-fg-subtle">
+                <td colSpan={9} className="py-[40px] text-center text-brand-fg-subtle">
                   Nenhum produto com esse filtro.
                 </td>
               </tr>
@@ -567,13 +702,35 @@ export function ProductPriceTable({
                   />
                 );
 
+                // Oculto do site (o olho) e excluir (a lixeira), 2026-11-17.
+                const hiddenNow = hiddenDrafts[row.id] ?? Boolean(row.hidden);
+                const hiddenChanged = hiddenNow !== Boolean(row.hidden);
+                const willRemove = Boolean(removeDrafts[row.id]);
+                const rowLabel = `${row.name}${row.serverLabel ? ` (${row.serverLabel})` : ""}`;
+                const removeButton = (
+                  <button
+                    type="button"
+                    onClick={() => setRemove([row.id], !willRemove)}
+                    aria-pressed={willRemove}
+                    aria-label={willRemove ? `Desfazer exclusão de ${rowLabel}` : `Excluir ${rowLabel}`}
+                    title={willRemove ? "Desfazer (não exclui)" : "Excluir (vai para a lixeira ao salvar)"}
+                    className={cn(
+                      "inline-flex size-[32px] items-center justify-center rounded-full transition-colors",
+                      willRemove ? "bg-red-9/20 text-white hover:bg-red-9/30" : "text-white/50 hover:bg-red-9/15 hover:text-red-9",
+                    )}
+                  >
+                    {willRemove ? <UndoIcon className="size-[16px]" /> : <TrashIcon className="size-[16px]" />}
+                  </button>
+                );
+
                 return (
                   <tr
                     key={row.id}
                     className={cn(
                       "border-b border-white/5 last:border-b-0",
-                      (changed || nameChanged || categoryChanged) && "bg-brand-orange/[0.07]",
+                      (changed || nameChanged || categoryChanged || hiddenChanged) && "bg-brand-orange/[0.07]",
                       invalidSet.has(row.id) && "bg-red-9/10",
+                      willRemove && "bg-red-9/[0.12]",
                     )}
                   >
                     <td className="px-[10px] py-[6px] sm:px-[14px]">
@@ -586,13 +743,40 @@ export function ProductPriceTable({
                         className="size-[16px] accent-brand-orange"
                       />
                     </td>
-                    <td className="py-[6px] pr-[6px] text-white sm:min-w-[200px] sm:pr-[10px]">
+                    <td className="py-[6px] text-center">
+                      <button
+                        type="button"
+                        disabled={willRemove}
+                        onClick={() => setHidden([row], !hiddenNow)}
+                        aria-pressed={hiddenNow}
+                        aria-label={hiddenNow ? `Mostrar ${rowLabel} na loja` : `Ocultar ${rowLabel} da loja`}
+                        title={hiddenNow ? "Oculto da loja (clique para mostrar)" : "Visível na loja (clique para ocultar)"}
+                        className={cn(
+                          "inline-flex size-[32px] items-center justify-center rounded-full border transition-colors disabled:opacity-30",
+                          hiddenChanged ? "border-brand-orange/70" : "border-transparent",
+                          hiddenNow ? "text-white/40 hover:text-white/70" : "text-white hover:bg-white/10",
+                        )}
+                      >
+                        <EyeIcon off={hiddenNow} className="size-[18px]" />
+                      </button>
+                      {/* Celular: a lixeira mora aqui, embaixo do olho — a coluna
+                          própria tirava a largura do campo de preço. */}
+                      <div className="mt-[4px] sm:hidden">{removeButton}</div>
+                    </td>
+                    <td
+                      className={cn(
+                        "py-[6px] pr-[6px] pl-[6px] text-white sm:min-w-[200px] sm:pr-[10px]",
+                        hiddenNow && !willRemove && "opacity-60",
+                        willRemove && "opacity-70",
+                      )}
+                    >
                       <input
                         ref={(element) => {
                           if (element) inputs.current.set(`name:${row.id}`, element);
                           else inputs.current.delete(`name:${row.id}`);
                         }}
                         autoComplete="off"
+                        disabled={willRemove}
                         maxLength={NAME_MAX}
                         value={nameDraft ?? row.name}
                         onChange={(event) => setNameDraft(row.id, event.target.value)}
@@ -603,6 +787,7 @@ export function ProductPriceTable({
                         title={nameInvalid ? "O nome precisa ter de 2 a 160 caracteres." : undefined}
                         className={cn(
                           "h-[34px] w-full min-w-0 rounded-[10px] border bg-black/30 px-[10px] text-white",
+                          willRemove && "line-through",
                           nameInvalid
                             ? "border-red-9"
                             : nameChanged
@@ -621,6 +806,17 @@ export function ProductPriceTable({
                       <span className="mt-[2px] hidden truncate text-[11px] text-brand-fg-subtle sm:block lg:hidden">
                         {row.serverLabel ?? "Sem servidor"}
                       </span>
+                      {willRemove ? (
+                        <span className="mt-[2px] block text-[11px] font-bold text-red-9">
+                          Será excluído ao salvar
+                        </span>
+                      ) : hiddenNow ? (
+                        <span className="mt-[2px] block text-[11px] font-bold text-white/70">
+                          {hiddenChanged ? "Será ocultado da loja" : "Oculto da loja"}
+                        </span>
+                      ) : hiddenChanged ? (
+                        <span className="mt-[2px] block text-[11px] font-bold text-brand-orange">Volta para a loja</span>
+                      ) : null}
                     </td>
                     <td className="hidden px-[10px] py-[6px] sm:table-cell">{category}</td>
                     <td className="hidden py-[6px] text-brand-fg-subtle lg:table-cell">
@@ -634,7 +830,9 @@ export function ProductPriceTable({
                     >
                       {brl.format(row.priceCents / 100)}
                     </td>
-                    <td className="px-[6px] py-[6px] align-top sm:px-[14px] sm:align-middle">
+                    {/* Largura mínima no celular: com o olho na linha, a coluna do
+                        nome tomava o espaço e "8.256,00" virava "8.25". */}
+                    <td className="min-w-[96px] px-[6px] py-[6px] align-top sm:min-w-0 sm:px-[14px] sm:align-middle">
                       <input
                         ref={(element) => {
                           if (element) inputs.current.set(`price:${row.id}`, element);
@@ -642,6 +840,7 @@ export function ProductPriceTable({
                         }}
                         inputMode="decimal"
                         autoComplete="off"
+                        disabled={willRemove}
                         value={draft ?? formatPriceInput(row.priceCents)}
                         onChange={(event) => setPriceDraft(row.id, event.target.value)}
                         onFocus={(event) => {
@@ -660,10 +859,22 @@ export function ProductPriceTable({
                               : "border-white/10",
                         )}
                       />
+                      {/* Celular: a variação mora embaixo do preço (a coluna
+                          "Var." some para o preço caber inteiro). */}
+                      {priceInvalid || changed ? (
+                        <span
+                          className={cn(
+                            "mt-[2px] block text-right text-[11px] sm:hidden",
+                            priceInvalid || big ? "font-bold text-red-9" : "text-brand-orange",
+                          )}
+                        >
+                          {priceInvalid ? "inválido" : pct.format(ratio)}
+                        </span>
+                      ) : null}
                     </td>
                     <td
                       className={cn(
-                        "py-[6px] pr-[10px] text-right align-top text-[12px] sm:pr-[14px] sm:align-middle",
+                        "hidden py-[6px] pr-[10px] text-right align-top text-[12px] sm:table-cell sm:pr-[14px] sm:align-middle",
                         priceInvalid
                           ? "text-red-9"
                           : big
@@ -678,6 +889,7 @@ export function ProductPriceTable({
                         {priceInvalid ? "inválido" : changed ? pct.format(ratio) : "-"}
                       </span>
                     </td>
+                    <td className="hidden py-[6px] pr-[8px] text-center sm:table-cell">{removeButton}</td>
                   </tr>
                 );
               })
@@ -688,7 +900,8 @@ export function ProductPriceTable({
       <p className="font-poppins text-[12px] text-brand-fg-subtle">
         Enter ou ↓ vai para o próximo campo da mesma coluna (nome ou preço), ↑ volta. O ajuste em % é sobre o preço
         atual e, como o &quot;Mover para&quot;, vale só para os marcados que estão na tela. Cada produto só aceita as
-        categorias do servidor dele. Nada muda na loja até salvar.
+        categorias do servidor dele. O olho oculta o produto da loja (ele continua aqui); a lixeira exclui (dá para
+        reativar na Central do jogo). Nada muda na loja até salvar.
         {quoted ? " Nesta aba o valor é a base da regra de preço de cada produto." : ""}
         {packages
           ? " Nesta aba, o MESMO nome em servidores diferentes forma um pacote só: ao renomear, renomeie em todos os servidores."
@@ -741,6 +954,34 @@ function CategorySelect({
         </option>
       ))}
     </select>
+  );
+}
+
+/** Olho aberto (visível) / riscado (oculto). Traço em `currentColor`. */
+export function EyeIcon({ off = false, className }: { off?: boolean; className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+      <circle cx="12" cy="12" r="3" />
+      {off ? <path d="M3 3l18 18" /> : null}
+    </svg>
+  );
+}
+
+function TrashIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>
+      <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" />
+    </svg>
+  );
+}
+
+function UndoIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>
+      <path d="M9 14 4 9l5-5" />
+      <path d="M4 9h10a6 6 0 0 1 0 12h-3" />
+    </svg>
   );
 }
 

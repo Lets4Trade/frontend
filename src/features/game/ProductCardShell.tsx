@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
+import { CardTitleLines, splitName } from "./nameBreak";
 import { PackageDescriptionPopover } from "./PackageDescriptionPopover";
 import type { ServiceContent } from "./types";
 
@@ -31,6 +32,7 @@ const ART_BOX =
  */
 export function ProductCardShell({
   name,
+  nameBreak,
   nameEn,
   price,
   image,
@@ -40,6 +42,8 @@ export function ProductCardShell({
   badge,
 }: {
   name: string;
+  /** Onde o título quebra em duas linhas (2026-11-17): índice do espaço do nome. */
+  nameBreak?: number | null;
   /** Nome em inglês, numa segunda linha abaixo do português (2026-10-08). */
   nameEn?: string;
   /** Já formatado em BRL — quem formata é quem tem a fonte do valor. */
@@ -70,6 +74,17 @@ export function ProductCardShell({
       className="size-full object-contain px-[16px] pt-[14px] pb-[10px] desk:px-[28px] desk:pt-[24px] desk:pb-[40px]"
     />
   ) : null;
+
+  // Título em duas linhas (2026-11-17): no computador ele sobe 20px (uma
+  // linha) para o preço continuar no mesmo lugar.
+  const twoLines = splitName(name, nameBreak) !== null;
+  const titleTop = nameEn
+    ? twoLines
+      ? "desk:top-[239px]"
+      : "desk:top-[259px]"
+    : twoLines
+      ? "desk:top-[255px]"
+      : "desk:top-[275px]";
 
   return (
     <article
@@ -104,9 +119,10 @@ export function ProductCardShell({
           caber o português e o inglês, um por linha, acima do preço. Só com o
           português, a linha fica no meio do espaço que o nome tinha. */}
       <h3
-        className={`mt-[8px] w-full truncate px-[10px] text-center font-poppins text-[13px] leading-[18px] font-semibold tracking-[0.3px] text-white desk:absolute desk:mt-0 desk:left-0 desk:text-[15px] desk:leading-[20px] ${nameEn ? "desk:top-[259px]" : "desk:top-[275px]"}`}
+        title={twoLines ? name : undefined}
+        className={`mt-[8px] w-full truncate px-[10px] text-center font-poppins text-[13px] leading-[18px] font-semibold tracking-[0.3px] text-white desk:absolute desk:mt-0 desk:left-0 desk:text-[15px] desk:leading-[20px] ${titleTop}`}
       >
-        {name}
+        <CardTitleLines name={name} nameBreak={nameBreak} />
       </h3>
       {nameEn ? (
         <p

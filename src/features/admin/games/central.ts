@@ -76,7 +76,8 @@ export function centralHref(gameId: string, query: Partial<CentralQuery> = {}): 
   if (section === "abas") {
     const tab = query.tabId ?? "";
     if (tab === NEW_TAB || isValidId(tab)) search.set(CENTRAL_PARAM.tab, tab);
-    if (tab !== NEW_TAB && isValidId(query.serverId)) search.set(CENTRAL_PARAM.server, query.serverId);
+    // O servidor vai junto também para "+ Nova aba" (2026-11-17): a aba nasce nele.
+    if (isValidId(query.serverId)) search.set(CENTRAL_PARAM.server, query.serverId);
   }
   return `/admin/jogos/${encodeURIComponent(gameId)}?${search.toString()}`;
 }

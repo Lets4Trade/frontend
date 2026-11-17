@@ -100,6 +100,8 @@ export type BuilderGameSummary = {
   name: string;
   imageUrl?: string | null;
   productCount: number;
+  /** Escondido do site (2026-11-17): continua aqui no painel. */
+  isHidden: boolean;
 };
 
 /** Teto de banners por jogo (slider) — espelha o `MAX_BANNERS` do backend. */

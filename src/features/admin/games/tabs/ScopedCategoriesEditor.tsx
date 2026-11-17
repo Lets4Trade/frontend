@@ -9,6 +9,7 @@ import type { BuilderCategory, BuilderListItem } from "@/features/admin/builder/
 import { toCategoryTree } from "@/features/game/categoryTree";
 import { ACTION_FAILED_MESSAGE, runAction } from "@/lib/safeAction";
 import { saveTabCategoriesAction } from "./actions";
+import { ConfirmDeleteDialog, blockedProductCount } from "@/features/admin/ConfirmDeleteDialog";
 import type { ScopedCategoryRow } from "./types";
 
 /**
@@ -37,20 +38,29 @@ export function ScopedCategoriesEditor({
   const [saved, setSaved] = useState(() => toDraft(initial));
   const [draft, setDraft] = useState(saved);
   const [pending, startTransition] = useTransition();
+  // "Apagar tudo" (2026-11-17): a recusa por produto abre a confirmação.
+  const [confirm, setConfirm] = useState<{ count: number } | null>(null);
 
   const dirty =
     JSON.stringify(draftCategoriesToPayload(draft)) !== JSON.stringify(draftCategoriesToPayload(saved));
 
-  function save() {
+  function save(deleteProducts = false) {
     startTransition(async () => {
       const result = await runAction(
-        () => saveTabCategoriesAction(gameId, tabId, serverId, draftCategoriesToPayload(draft)),
+        () => saveTabCategoriesAction(gameId, tabId, serverId, draftCategoriesToPayload(draft), deleteProducts),
         { ok: false, reason: "error", message: ACTION_FAILED_MESSAGE },
       );
       if (!result.ok) {
+        const blocked = blockedProductCount(result.message);
+        if (blocked !== null && !deleteProducts) {
+          setConfirm({ count: blocked });
+          return;
+        }
+        setConfirm(null);
         toastError(result.message ?? "Não foi possível salvar as categorias.");
         return;
       }
+      setConfirm(null);
       // Recarregado da resposta: as linhas novas ganham id, e sem ele o próximo
       // salvamento tentaria criá-las de novo.
       const fresh = toDraft(result.data);
@@ -75,7 +85,7 @@ export function ScopedCategoriesEditor({
       <div className="flex flex-wrap items-center gap-[15px]">
         <button
           type="button"
-          onClick={save}
+          onClick={() => save()}
           disabled={pending || !dirty}
           className="h-[50px] w-[315px] rounded-full bg-[image:var(--brand-orange-gradient)] font-poppins text-[14px] font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         >
@@ -85,6 +95,21 @@ export function ScopedCategoriesEditor({
           <p className="font-poppins text-[13px] text-brand-orange">Alterações ainda não salvas.</p>
         ) : null}
       </div>
+      <ConfirmDeleteDialog
+        open={confirm !== null}
+        title="Apagar com os produtos dentro?"
+        description={
+          confirm ? (
+              <>
+                {confirm.count} produto{confirm.count === 1 ? " está" : "s estão"} em categorias que você tirou da lista. Ao confirmar,
+                eles vão para a lixeira junto (dá para reativar na Central do jogo) e o resto é salvo.
+              </>
+          ) : null
+        }
+        pending={pending}
+        onConfirm={() => save(true)}
+        onCancel={() => setConfirm(null)}
+      />
     </div>
   );
 }

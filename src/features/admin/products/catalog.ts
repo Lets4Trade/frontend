@@ -18,6 +18,8 @@ export type AdminProduct = {
   name: string;
   /** Nome em inglês (2026-10-08). Nulo/ausente = o card mostra só o `name`. */
   nameEn?: string | null;
+  /** Quebra do título no card (2026-11-17): índice do espaço do nome. */
+  nameBreak?: number | null;
   /** Sempre CENTAVOS inteiros — o backend converte o `Decimal` na saída. */
   priceCents: number;
   /** Desconto do pacote em % inteiro (2026-10-27). Ausente = 0. Só vale em aba de catálogo. */
@@ -42,6 +44,12 @@ export type AdminProduct = {
   extraCategoryIds?: string[];
   /** Selo do card ("Novo", "Em alta"…), 2026-11-04. Ausente = sem selo. */
   badgeText?: string | null;
+  /** "Consulte aqui" (2026-11-17): sem preço na loja, botão do WhatsApp. */
+  consultOnly?: boolean;
+  /** Quantidade mínima por compra (2026-11-17). Ausente = 1. */
+  minUnits?: number;
+  /** Oculto do site (2026-11-17): continua no painel, some da loja. */
+  isHidden?: boolean;
   /** Nome no "Selecionar serviço" (2026-11-04). Ausente = usa o `name`. */
   serviceLabel?: string | null;
   createdAt: string;

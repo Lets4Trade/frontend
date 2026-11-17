@@ -74,6 +74,12 @@ function Row({ product, returnTo }: { product: AdminProduct; returnTo?: string |
             >
               {product.name}
             </Link>
+            {/* Oculto do site (2026-11-17): continua aqui, some da loja. */}
+            {product.isHidden ? (
+              <span className="mt-[2px] inline-block rounded-full border border-white/20 px-[8px] font-poppins text-[11px] font-bold text-white/70">
+                Oculto da loja
+              </span>
+            ) : null}
             {/* Telas estreitas: o que as colunas escondidas diriam. */}
             <span className="block truncate font-helvetica text-[12px] text-brand-fg-subtle md:hidden">{where}</span>
             {product.tabLabel ? (

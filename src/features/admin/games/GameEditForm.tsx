@@ -14,6 +14,7 @@ import { ACTION_FAILED_UPLOAD_MESSAGE, runAction } from "@/lib/safeAction";
 import { slugify, slugifyDraft } from "@/lib/slugify";
 import { isGameFormDirty } from "./central";
 import { duplicateServerAction, updateGameAction } from "./editActions";
+import { ConfirmDeleteDialog, blockedProductCount } from "@/features/admin/ConfirmDeleteDialog";
 import { ACCEPTED_IMAGE_TYPES, MAX_IMAGE_BYTES } from "./options";
 
 const ERROR_MESSAGES = {
@@ -46,6 +47,8 @@ const ERROR_MESSAGES = {
 export function GameEditForm({ game }: { game: BuilderGame }) {
   const router = useRouter();
   const [isSaving, startSave] = useTransition();
+  // "Apagar tudo" (2026-11-17): a recusa por produto abre a confirmação.
+  const [confirm, setConfirm] = useState<{ count: number } | null>(null);
   const [isDuplicating, startDuplicate] = useTransition();
   const [name, setName] = useState(game.name);
   const [slug, setSlug] = useState(game.slug);
@@ -101,10 +104,18 @@ export function GameEditForm({ game }: { game: BuilderGame }) {
       return;
     }
 
+    save(false);
+  }
+
+  /**
+   * `deleteProducts` (2026-11-17): a 2ª chamada, depois do "APAGAR TUDO" do
+   * modal. Ela não reenvia o logo — ele já subiu na 1ª tentativa.
+   */
+  function save(deleteProducts: boolean) {
     startSave(async () => {
       // A arte primeiro: se ela falhar, nada foi gravado e a pessoa tenta de
       // novo com o formulário intacto.
-      if (image) {
+      if (image && !deleteProducts) {
         const form = new FormData();
         form.set("image", image, image.name);
         const uploaded = await runAction(() => uploadLogoAction(game.id, form), {
@@ -124,14 +135,23 @@ export function GameEditForm({ game }: { game: BuilderGame }) {
             name,
             slug: slugify(slug),
             servers: servers.map((server) => ({ id: server.id, label: server.label })),
+            deleteProducts,
           }),
         { ok: false, reason: "error", message: ERROR_MESSAGES.error },
       );
 
       if (!result.ok) {
+        // Servidor removido com produto: pergunta antes de apagar tudo.
+        const blocked = blockedProductCount(result.message);
+        if (blocked !== null && !deleteProducts) {
+          setConfirm({ count: blocked });
+          return;
+        }
+        setConfirm(null);
         setError(result.message ?? ERROR_MESSAGES[result.reason]);
         return;
       }
+      setConfirm(null);
       toastOk("Jogo salvo.");
       router.refresh();
     });
@@ -222,6 +242,22 @@ export function GameEditForm({ game }: { game: BuilderGame }) {
           </p>
         ) : null}
       </div>
+      <ConfirmDeleteDialog
+        open={confirm !== null}
+        title="Apagar servidor com os produtos dentro?"
+        description={
+          confirm ? (
+            <>
+              {confirm.count} produto{confirm.count === 1 ? " está" : "s estão"} em servidores que você tirou da
+              lista. Ao confirmar, eles vão para a lixeira junto (dá para reativar na Central do jogo) e o servidor
+              é apagado.
+            </>
+          ) : null
+        }
+        pending={isSaving}
+        onConfirm={() => save(true)}
+        onCancel={() => setConfirm(null)}
+      />
     </form>
   );
 }

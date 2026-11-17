@@ -9,7 +9,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
-import { parseCatalogQuery } from "@/features/game/catalog";
+import { parseCatalogQuery, scopePageToQuery } from "@/features/game/catalog";
 import { getGamePage, withActiveTab } from "@/features/game/content";
 import { GamePageSections } from "@/features/game/GamePageSections";
 import { GAME_SLUG, gameHref, isReservedGameSlug } from "@/features/game/href";
@@ -106,7 +106,8 @@ export default async function GamePage({ params, searchParams }: PageProps) {
   // página só sabe qual aba está ativa depois disso. Daí a ordem: lê, valida,
   // e então aplica a escolha — ver `withActiveTab`.
   const query = parseCatalogQuery(await searchParams, base);
-  const page = withActiveTab(base, query.tab);
+  // Abas por servidor (2026-11-17): a página sai recortada para a escolha.
+  const page = scopePageToQuery(withActiveTab(base, query.tab), query);
 
   // Construtor de páginas (2026-09-25): a página DESTE jogo publicada por
   // blocos manda na ordem das seções e nos blocos novos. O id vem da mesma

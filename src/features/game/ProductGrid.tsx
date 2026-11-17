@@ -1,5 +1,6 @@
 import { Pagination } from "@/components/ui/Pagination";
 import { buildHref, type CatalogQuery } from "./catalog";
+import { getContacts } from "@/features/site/contacts";
 import { getCatalog } from "./content";
 import { ProductCard } from "./ProductCard";
 import type { GamePage } from "./types";
@@ -25,7 +26,8 @@ export async function ProductGrid({
   page: GamePage;
   query: CatalogQuery;
 }) {
-  const result = await getCatalog(page, query);
+  // Em paralelo: o contato é a mesma leitura cacheada do cabeçalho/rodapé.
+  const [result, contacts] = await Promise.all([getCatalog(page, query), getContacts()]);
 
   // O carrinho mostra o NOME do servidor e o logo do jogo. O produto já traz o
   // rótulo do seu próprio servidor; o do filtro entra como reserva para o
@@ -35,6 +37,10 @@ export async function ProductGrid({
     gameSlug: page.slug,
     platform: server?.label ?? page.name,
     gameLogo: page.identity.logo?.src,
+    // "Consulte aqui" (2026-11-17): a mensagem do WhatsApp e o link da loja.
+    gameName: page.name,
+    serverLabel: server?.label,
+    whatsappHref: contacts.whatsapp?.href,
   };
 
   if (result.items.length === 0) {

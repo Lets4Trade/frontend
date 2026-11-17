@@ -35,6 +35,7 @@ export function TabsMasterList({
   tabs,
   selectedId,
   serverId,
+  servers = [],
 }: {
   gameId: string;
   tabs: GameTab[];
@@ -42,6 +43,8 @@ export function TabsMasterList({
   selectedId: string;
   /** Servidor do filtro — mantido ao trocar de aba. `""` = todos. */
   serverId: string;
+  /** Servidores do jogo — para o "só Temporada" das abas restritas (2026-11-17). */
+  servers?: readonly { id: string; label: string }[];
 }) {
   const router = useRouter();
   const [order, setOrder] = useState<string[] | null>(null);
@@ -104,6 +107,10 @@ export function TabsMasterList({
                   <span className="mt-[4px] flex flex-wrap items-center gap-[6px]">
                     <LayoutBadge layout={tab.layout} />
                     {tab.isActive ? null : <HiddenBadge />}
+                    {/* Abas por servidor (2026-11-17). */}
+                    {tabServersNote(tab, servers) ? (
+                      <span className="font-poppins text-[11px] text-brand-orange">{tabServersNote(tab, servers)}</span>
+                    ) : null}
                     {isProductTab(tab) ? (
                       <span className="font-poppins text-[11px] text-brand-fg-subtle">
                         {tab.productCount} produto{tab.productCount === 1 ? "" : "s"}
@@ -189,13 +196,20 @@ export function TabsMasterList({
                 "relative flex h-[44px] items-center gap-[8px] rounded-full border pr-[16px] pl-[8px] font-poppins text-[13px] font-bold transition-colors focus-visible:outline-2 focus-visible:outline-brand-orange",
                 active ? "border-brand-orange bg-brand-orange/15 text-white" : "border-white/10 text-white/80 hover:border-white/30",
                 tab.isActive ? null : "opacity-60",
+                // Servidor escolhido (2026-11-17): aba que NÃO aparece nele fica apagada.
+                !showsOn(tab, serverId) && "border-dashed opacity-40",
               )}
             >
               <span className="flex size-[30px] shrink-0 items-center justify-center rounded-full bg-black/40">
                 {icon ? <Image src={icon} alt="" width={20} height={20} className="size-[20px] object-contain" /> : null}
               </span>
               {tab.label}
+              {/* Abas por servidor (2026-11-17): onde a aba restrita aparece. */}
+              {tabServersNote(tab, servers) ? (
+                <span className="font-poppins text-[11px] font-medium text-brand-orange">{tabServersNote(tab, servers)}</span>
+              ) : null}
               {tab.isActive ? null : <span className="sr-only"> (oculta na loja)</span>}
+              {showsOn(tab, serverId) ? null : <span className="sr-only"> (não aparece neste servidor)</span>}
               {warnings.length > 0 ? (
                 <>
                   <span aria-hidden className="size-[7px] rounded-full bg-brand-orange" />
@@ -252,4 +266,24 @@ function OrderButton({
       {children}
     </button>
   );
+}
+
+/**
+ * "só Temporada" / "2 servidores" na aba restrita (2026-11-17); vazio = em
+ * todos (nada a dizer). Id de servidor apagado não conta.
+ */
+function tabServersNote(
+  tab: Pick<GameTab, "serverIds">,
+  servers: readonly { id: string; label: string }[],
+): string | null {
+  const ids = (tab.serverIds ?? []).filter((id) => servers.some((server) => server.id === id));
+  if (ids.length === 0) return null;
+  if (ids.length === 1) return `só ${servers.find((server) => server.id === ids[0])?.label ?? ""}`;
+  return `${ids.length} servidores`;
+}
+
+/** A aba aparece no servidor escolhido? Sem servidor escolhido ("Todos") = sim. */
+function showsOn(tab: Pick<GameTab, "serverIds">, serverId: string): boolean {
+  if (!serverId || !tab.serverIds || tab.serverIds.length === 0) return true;
+  return tab.serverIds.includes(serverId);
 }

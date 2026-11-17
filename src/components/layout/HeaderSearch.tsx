@@ -53,6 +53,8 @@ type RawProduct = {
   id: string;
   name: string;
   priceCents: number;
+  /** "Consulte aqui" (2026-11-17): sem preço na sugestão. */
+  consultOnly?: boolean;
   /** Aba do jogo em que o produto está (abas por jogo, 2026-09-28). */
   tabSlug?: string;
   imageUrl?: string;
@@ -114,7 +116,11 @@ function toSuggestions(results: Results): { games: Suggestion[]; products: Sugge
       key: `p:${product.id}`,
       href: productHref(product),
       title: product.name,
-      detail: [product.gameName, product.serverLabel, price.format(product.priceCents / 100)]
+      detail: [
+        product.gameName,
+        product.serverLabel,
+        product.consultOnly ? "Sob consulta" : price.format(product.priceCents / 100),
+      ]
         .filter(Boolean)
         .join(" · "),
       image: asset(product.imageUrl),

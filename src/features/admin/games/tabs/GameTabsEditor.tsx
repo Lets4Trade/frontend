@@ -37,6 +37,7 @@ import {
 } from "./types";
 import { cn } from "@/lib/cn";
 import { TAB_TEMPLATES } from "@/features/game/tabs";
+import { TabServersPicker } from "./TabServersPicker";
 
 /**
  * Peças do editor das ABAS de um jogo (contrato `game-tabs.md`, 2026-09-28),
@@ -54,10 +55,16 @@ export function TabDetailPanel({
   gameId,
   gameSlug,
   tab,
+  servers = [],
+  server = null,
 }: {
   gameId: string;
   gameSlug: string;
   tab: GameTab;
+  /** Servidores do jogo, na ordem — "Aparece nos servidores" (2026-11-17). */
+  servers?: readonly { id: string; label: string }[];
+  /** Servidor escolhido no alto da Central: vira uma caixinha só "Aparece em X". */
+  server?: { id: string; label: string } | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -137,6 +144,8 @@ export function TabDetailPanel({
           }}
         />
       </div>
+
+      <TabServersPicker gameId={gameId} tab={tab} servers={servers} server={server} />
 
       {warnings.length > 0 ? (
         <ul className="mt-[15px] flex flex-col gap-[6px]">
@@ -490,7 +499,16 @@ function modelLayoutFor(label: string): TabLayout | null {
   return (TAB_TEMPLATES.find((tab) => tab.slug === key)?.layout as TabLayout | undefined) ?? null;
 }
 
-export function NewTabForm({ gameId, onCreated }: { gameId: string; onCreated: (tab: GameTab) => void }) {
+export function NewTabForm({
+  gameId,
+  onCreated,
+  server = null,
+}: {
+  gameId: string;
+  onCreated: (tab: GameTab) => void;
+  /** Servidor escolhido na Central (2026-11-17): a aba nasce só nele. */
+  server?: { id: string; label: string } | null;
+}) {
   const [label, setLabel] = useState("");
   const [layout, setLayout] = useState<TabLayout>("CATALOG");
   // Escolheu o layout nos cartões? Então o nome não mexe mais nele.
@@ -528,6 +546,7 @@ export function NewTabForm({ gameId, onCreated }: { gameId: string; onCreated: (
       layout,
       ...(layout === "LINK" ? { linkHref: linkHref.trim() } : {}),
       ...(content.length > 0 ? { content: { sections: content } } : {}),
+      ...(server ? { serverIds: [server.id] } : {}),
     };
     startTransition(async () => {
       const result = await runAction(() => createTabAction(gameId, input), FAILED);
@@ -692,12 +711,21 @@ export function DeleteTabButton({
  * "+ Nova aba" da Central: criada a aba, a Central já a abre à direita (com
  * "+ Produto nesta aba" e categorias) — o passo seguinte natural.
  */
-export function NewTabPanel({ gameId }: { gameId: string }) {
+export function NewTabPanel({
+  gameId,
+  server = null,
+}: {
+  gameId: string;
+  server?: { id: string; label: string } | null;
+}) {
   const router = useRouter();
   return (
     <NewTabForm
       gameId={gameId}
-      onCreated={(tab) => router.push(centralHref(gameId, { section: "abas", tabId: tab.id }), { scroll: false })}
+      server={server}
+      onCreated={(tab) =>
+        router.push(centralHref(gameId, { section: "abas", tabId: tab.id, serverId: server?.id ?? "" }), { scroll: false })
+      }
     />
   );
 }

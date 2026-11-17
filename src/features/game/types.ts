@@ -83,6 +83,11 @@ export type GameTab = {
   layout: GameTabLayout;
   /** SERVICE, QUANTITY e PACKAGES. */
   content?: ServiceContent;
+  /**
+   * Servidores (slugs) onde a aba aparece (2026-11-17). Ausente/vazio = em
+   * todos. Ver `tabShowsOnServer`.
+   */
+  serverSlugs?: string[];
 };
 
 /**
@@ -122,6 +127,8 @@ export type GameProduct = {
   name: string;
   /** Nome em inglês (2026-10-08): segunda linha do card. Ausente = só o `name`. */
   nameEn?: string;
+  /** Onde o título do card quebra em duas linhas (2026-11-17). Ausente = uma linha. */
+  nameBreak?: number;
   /** Em centavos: dinheiro não passa por `float`. Já COM o desconto do pacote. */
   priceCents: number;
   /**
@@ -132,6 +139,10 @@ export type GameProduct = {
   listPriceCents?: number;
   /** Selo do card no canto superior ESQUERDO ("Novo", "Em alta"…), 2026-11-04. */
   badgeText?: string;
+  /** "Consulte aqui" (2026-11-17): sem preço; o card leva ao WhatsApp. */
+  consultOnly?: boolean;
+  /** Quantidade mínima por compra (2026-11-17). Ausente = 1. */
+  minUnits?: number;
   /** Nome no menu "Selecionar serviço" (2026-11-04). Ausente = o `name`. */
   serviceLabel?: string;
   image?: ImageRef;

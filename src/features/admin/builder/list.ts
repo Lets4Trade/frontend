@@ -16,6 +16,8 @@ type RawSummary = {
   slug: string;
   name: string;
   imageUrl?: string | null;
+  /** Escondido do site (2026-11-17). Ausente (API antiga) = visível. */
+  isHidden?: boolean;
   _count?: { products?: number };
 };
 
@@ -32,6 +34,7 @@ export async function getBuilderGames(): Promise<BuilderGameSummary[]> {
     // O backend apaga campo nulo da resposta, então um jogo sem produto vem
     // sem `_count.products` em vez de com zero. Falsy, nunca `=== null`.
     productCount: row._count?.products ?? 0,
+    isHidden: row.isHidden === true,
   }));
 }
 

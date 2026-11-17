@@ -112,11 +112,33 @@ export function TabsSection({
 
   return (
     <div className="flex flex-col gap-[25px]">
+      {/* Abas por servidor (2026-11-17, "o mais simples possível pro admin"):
+          escolhe o servidor e mexe nas abas DELE. O mesmo `?servidor=` das
+          categorias lá embaixo. */}
+      {servers.length > 0 ? (
+        <nav aria-label="Servidor" className="flex flex-wrap items-center gap-[8px]">
+          <span className="mr-[4px] font-poppins text-[13px] font-bold text-white">Servidor:</span>
+          <Pill href={centralHref(game.id, { section: "abas", tabId: tab?.id ?? query.tabId })} active={server === null}>
+            Todos
+          </Pill>
+          {servers.map((item) => (
+            <Pill
+              key={item.id}
+              href={centralHref(game.id, { section: "abas", tabId: tab?.id ?? query.tabId, serverId: item.id })}
+              active={item.id === server?.id}
+            >
+              {item.label}
+            </Pill>
+          ))}
+        </nav>
+      ) : null}
+
       <TabsMasterList
         gameId={game.id}
         tabs={tabs}
         selectedId={tab?.id ?? NEW_TAB}
         serverId={server?.id ?? ""}
+        servers={servers}
       />
 
       <div className="flex min-w-0 flex-col gap-[25px]">
@@ -125,12 +147,12 @@ export function TabsSection({
             {tabs.length === 0 ? (
               <Notice>Este jogo ainda não tem abas. Sem nenhuma, a página dele abre sem catálogo.</Notice>
             ) : null}
-            <NewTabPanel gameId={game.id} />
+            <NewTabPanel gameId={game.id} server={server} />
           </>
         ) : (
           <>
             {/* `key`: outra aba abre com as configurações fechadas. */}
-            <TabDetailPanel key={tab.id} gameId={game.id} gameSlug={game.slug} tab={tab} />
+            <TabDetailPanel key={tab.id} gameId={game.id} gameSlug={game.slug} tab={tab} servers={servers} server={server} />
             {isProductTab(tab) ? (
               <TabProductsAndCategories game={game} tab={tab} servers={servers} server={server} />
             ) : (

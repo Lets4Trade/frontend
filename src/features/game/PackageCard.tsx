@@ -3,6 +3,7 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { LabelBadge } from "./DiscountBadge";
+import { CardTitleLines } from "./nameBreak";
 import { PackageDescriptionPopover } from "./PackageDescriptionPopover";
 import type { GameProduct, ServiceContent } from "./types";
 
@@ -50,52 +51,57 @@ export function PackageCard({
   );
 
   return (
-    <article className="relative flex min-h-[417px] w-full max-w-[265px] flex-col overflow-hidden rounded-[30px] border border-white/10 bg-black/10">
-      {/* Selo livre ("Novo", "Em alta"…), 2026-11-04 — o mesmo do card de catálogo. */}
-      {product.badgeText ? <LabelBadge text={product.badgeText} /> : null}
-      {hasDescription ? (
-        <PackageDescriptionPopover
-          title={product.name}
-          content={description!}
-          // Só o banner (2026-11-04, pedido do usuário): sem banner, o painel
-          // mostra só o texto — a imagem do card já está no próprio card.
-          image={product.banner?.src}
-          className={ART_BOX}
-        >
-          {art}
-        </PackageDescriptionPopover>
-      ) : (
-        <div className={ART_BOX}>{art}</div>
-      )}
+    // Invólucro SEM `overflow-hidden` (2026-11-17): o selo fica na borda de
+    // cima, metade fora e metade dentro — o card corta o que passa da borda.
+    <div className="relative w-full max-w-[265px]">
+      {/* Selo livre ("Novo", "Em alta"…), 2026-11-04; na borda desde 2026-11-17
+          (pedido do usuário: "não ficar dentro da arte"). */}
+      {product.badgeText ? <LabelBadge text={product.badgeText} placement="edge" /> : null}
+      <article className="relative flex h-full min-h-[417px] w-full flex-col overflow-hidden rounded-[30px] border border-white/10 bg-black/10">
+        {hasDescription ? (
+          <PackageDescriptionPopover
+            title={product.name}
+            content={description!}
+            // Só o banner (2026-11-04, pedido do usuário): sem banner, o painel
+            // mostra só o texto — a imagem do card já está no próprio card.
+            image={product.banner?.src}
+            className={ART_BOX}
+          >
+            {art}
+          </PackageDescriptionPopover>
+        ) : (
+          <div className={ART_BOX}>{art}</div>
+        )}
 
-      {/* Faixa preta: sobe 36px sobre a arte (o nome fica dentro do degradê,
+        {/* Faixa preta: sobe 36px sobre a arte (o nome fica dentro do degradê,
           como no arquivo) e vai até o pé do card. */}
-      <div className="relative -mt-[36px] flex flex-1 flex-col bg-[linear-gradient(to_bottom,transparent,black_36px)] px-[25px] pb-[20px]">
-        <h3 className="font-poppins text-[18px] leading-[27px] font-bold tracking-[0.36px] break-words text-white">
-          {product.name}
-        </h3>
+        <div className="relative -mt-[36px] flex flex-1 flex-col bg-[linear-gradient(to_bottom,transparent,black_36px)] px-[25px] pb-[20px]">
+          <h3 className="font-poppins text-[18px] leading-[27px] font-bold tracking-[0.36px] break-words text-white">
+            {/* Quebra escolhida no painel (2026-11-17). */}
+            <CardTitleLines name={product.name} nameBreak={product.nameBreak} />
+          </h3>
 
-        {product.highlights.length > 0 ? (
-          <ul className="mt-[8px] list-disc pl-[20px] font-helvetica text-[14px] leading-[25px] tracking-[0.14px] text-brand-placeholder marker:text-brand-placeholder">
-            {product.highlights.map((item, index) => (
-              <li key={index} className="break-words">
-                {item}
-              </li>
-            ))}
-          </ul>
-        ) : null}
+          {product.highlights.length > 0 ? (
+            <ul className="mt-[8px] list-disc pl-[20px] font-helvetica text-[14px] leading-[25px] tracking-[0.14px] text-brand-placeholder marker:text-brand-placeholder">
+              {product.highlights.map((item, index) => (
+                <li key={index} className="break-words">
+                  {item}
+                </li>
+              ))}
+            </ul>
+          ) : null}
 
-        {/* Empurra o botão para o pé do card, com 15px no mínimo. */}
-        <div aria-hidden className="min-h-[15px] flex-1" />
-        <Link
-          href={href}
-          aria-label={`Continuar: ${product.name}`}
-          className={cn(buttonVariants({ variant: "primary" }), "h-[40px] w-full max-w-[215px] self-center px-0")}
-        >
-          CONTINUAR
-        </Link>
-      </div>
-    </article>
+          {/* Empurra o botão para o pé do card, com 15px no mínimo. */}
+          <div aria-hidden className="min-h-[15px] flex-1" />
+          <Link
+            href={href}
+            aria-label={`Continuar: ${product.name}`}
+            className={cn(buttonVariants({ variant: "primary" }), "h-[40px] w-full max-w-[215px] self-center px-0")}
+          >
+            CONTINUAR
+          </Link>
+        </div>
+      </article>
+    </div>
   );
 }
-

@@ -46,21 +46,26 @@ export function ServiceConfigurator({
 }) {
   const [productId, setProductId] = useState(products[0]?.id ?? "");
   const product = products.find((item) => item.id === productId) ?? products[0];
-  const art = topArt === "image" ? product?.image : product?.banner;
+  // Aba SERVIÇO sem banner usa a imagem do card (2026-11-17, pedido do
+  // usuário: a mentoria tem de mostrar imagem "igual os outros de layout
+  // parecido" — a página do pacote). Revoga o "sem banner = só texto" de
+  // 2026-11-04. A arte escolhida decide o formato do quadro.
+  const art = topArt === "image" ? product?.image : (product?.banner ?? product?.image);
+  const artKind: "banner" | "image" = topArt === "image" || !product?.banner ? "image" : "banner";
 
   return (
     <div className="relative w-full shrink-0 overflow-hidden rounded-[30px] border border-brand-hairline bg-black desk:w-[554px]">
       {/* Banner do serviço escolhido no topo (Mentoria 4222:1160: 551×327,
-          cantos 30). SEM banner, a tela mostra só o texto (2026-11-04, pedido
-          do usuário) — antes caía na arte do card ou num retângulo cinza.
-          Proporção no celular para a foto não virar uma faixa fina. */}
+          cantos 30). Sem banner, a imagem do card (2026-11-17); sem nenhuma
+          das duas, só o texto. Proporção no celular para a foto não virar
+          uma faixa fina. */}
       {art ? (
         <div
           className={cn(
             "relative w-full overflow-hidden rounded-t-[30px] desk:aspect-auto",
             // Imagem do card: quadro mais alto (4:3 no celular, 420 no
             // computador) para a arte inteira não ficar pequena.
-            topArt === "image"
+            artKind === "image"
               ? "aspect-[4/3] bg-black desk:h-[420px]"
               : "aspect-[551/327] bg-[#2f2f2f] desk:h-[327px]",
           )}
@@ -74,7 +79,7 @@ export function ServiceConfigurator({
             alt=""
             fill
             sizes="(min-width: 1392px) 554px, 100vw"
-            className={topArt === "image" ? "object-contain" : "object-cover"}
+            className={artKind === "image" ? "object-contain" : "object-cover"}
           />
           {/* Degradê preto no pé da foto: garante leitura do primeiro título
               sobre qualquer arte que o admin subir. Mais curto na imagem do
@@ -83,7 +88,7 @@ export function ServiceConfigurator({
             aria-hidden
             className={cn(
               "pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-b from-transparent to-black",
-              topArt === "image" ? "h-[40px]" : "h-[121px]",
+              artKind === "image" ? "h-[40px]" : "h-[121px]",
             )}
           />
         </div>

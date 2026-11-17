@@ -1,5 +1,6 @@
 "use server";
 
+import { splitName } from "@/features/game/nameBreak";
 import { getSessionRole } from "@/features/auth/session";
 import { canAccess } from "@/features/admin/permissions";
 import { revalidatePath } from "next/cache";
@@ -56,6 +57,7 @@ export async function createProductAction(
     nameEn: form.get("nameEn") ?? "",
     priceCents: form.get("priceCents"),
     discountPercent: form.get("discountPercent") || 0,
+    minUnits: form.get("minUnits") || 1,
     tabId: form.get("tabId"),
     serverId: form.get("serverId") ?? "",
     categoryId: form.get("categoryId") ?? "",
@@ -83,9 +85,18 @@ export async function createProductAction(
   payload.set("gameId", parsed.data.gameId);
   payload.set("name", parsed.data.name);
   if (parsed.data.nameEn) payload.set("nameEn", parsed.data.nameEn);
+  // Quebra do título (2026-11-17): no cadastro, só quando há.
+  const createBreak = readNameBreak(form, parsed.data.name);
+  if (createBreak !== null) payload.set("nameBreak", String(createBreak));
   // Selo e categorias extras (2026-11-04): no cadastro, só quando há.
   if (parsed.data.badgeText) payload.set("badgeText", parsed.data.badgeText);
   if (parsed.data.serviceLabel) payload.set("serviceLabel", parsed.data.serviceLabel);
+  // "Consulte aqui" (2026-11-17): no cadastro, só quando marcado.
+  if (readConsultOnly(form)) payload.set("consultOnly", "true");
+  // Oculto do site (2026-11-17): no cadastro, só quando marcado.
+  if (form.get("isHidden") === "true") payload.set("isHidden", "true");
+  // Quantidade mínima (2026-11-17): no cadastro, só quando passa de 1.
+  if (parsed.data.minUnits > 1) payload.set("minUnits", String(parsed.data.minUnits));
   if (parsed.data.extraCategoryIds.length > 0) {
     payload.set("extraCategoryIds", JSON.stringify(parsed.data.extraCategoryIds));
   }
@@ -256,6 +267,7 @@ export async function updateProductAction(
       nameEn: form.get("nameEn") ?? "",
       priceCents: form.get("priceCents"),
       discountPercent: form.get("discountPercent") || 0,
+      minUnits: form.get("minUnits") || 1,
       tabId: form.get("tabId"),
       serverId: form.get("serverId") ?? "",
       categoryId: form.get("categoryId") ?? "",
@@ -279,9 +291,18 @@ export async function updateProductAction(
   payload.set("name", parsed.data.name);
   // Sempre vai na edição: vazio APAGA o nome em inglês (o backend grava null).
   payload.set("nameEn", parsed.data.nameEn);
+  // Quebra do título vai SEMPRE na edição: vazio tira (o card volta a uma linha).
+  const editBreak = readNameBreak(form, parsed.data.name);
+  payload.set("nameBreak", editBreak === null ? "" : String(editBreak));
   // Selo e extras (2026-11-04) vão SEMPRE na edição: vazio tira o selo, lista
   // vazia tira todas as extras (o backend substitui a lista inteira).
   payload.set("badgeText", parsed.data.badgeText);
+  // "Consulte aqui" vai SEMPRE na edição: desmarcar (ou mudar de aba) desliga.
+  payload.set("consultOnly", readConsultOnly(form) ? "true" : "false");
+  // Oculto do site (2026-11-17) vai SEMPRE na edição: desmarcar mostra de novo.
+  payload.set("isHidden", form.get("isHidden") === "true" ? "true" : "false");
+  // Quantidade mínima vai SEMPRE na edição: vazio (ou aba sem o campo) volta a 1.
+  payload.set("minUnits", String(parsed.data.minUnits));
   // Vazio volta o menu ao nome do produto.
   payload.set("serviceLabel", parsed.data.serviceLabel);
   payload.set("extraCategoryIds", JSON.stringify(parsed.data.extraCategoryIds));
@@ -432,6 +453,9 @@ export async function saveProductPricesAction(
       ...(item.categoryId === undefined
         ? {}
         : { categoryId: item.categoryId, expectedCategoryId: item.expectedCategoryId ?? null }),
+      // Oculto do site e excluir (2026-11-17).
+      ...(item.hidden === undefined ? {} : { hidden: item.hidden }),
+      ...(item.remove === true ? { remove: true } : {}),
     })),
   });
   if (!response.ok) {
@@ -466,7 +490,15 @@ function isValidRowChange(value: unknown): value is RowChange {
     if (!optionalId(item.categoryId)) return false;
     if (item.expectedCategoryId !== undefined && !optionalId(item.expectedCategoryId)) return false;
   }
-  return item.priceCents !== undefined || item.name !== undefined || item.categoryId !== undefined;
+  if (item.hidden !== undefined && typeof item.hidden !== "boolean") return false;
+  if (item.remove !== undefined && item.remove !== true) return false;
+  return (
+    item.priceCents !== undefined ||
+    item.name !== undefined ||
+    item.categoryId !== undefined ||
+    item.hidden !== undefined ||
+    item.remove === true
+  );
 }
 
 /**
@@ -588,4 +620,26 @@ function attachBanner(form: FormData, payload: FormData) {
   }
   payload.set("banner", banner, banner.name);
   return null;
+}
+
+/**
+ * "Consulte aqui" (2026-11-17). O formulário manda um `<input type="hidden">`
+ * com "true" só quando a caixinha está marcada E a aba é de catálogo; qualquer
+ * outro valor (ou ausência) é falso — fail secure: na dúvida, o produto segue
+ * com preço e compra normais.
+ */
+function readConsultOnly(form: FormData): boolean {
+  return form.get("consultOnly") === "true";
+}
+
+/**
+ * Quebra do título no card (2026-11-17): o índice que o formulário mandou,
+ * conferido contra o nome JÁ aparado (o mesmo `splitName` da vitrine). Fora
+ * de um espaço do nome = sem quebra.
+ */
+function readNameBreak(form: FormData, name: string): number | null {
+  const raw = form.get("nameBreak");
+  if (typeof raw !== "string" || raw === "") return null;
+  const at = Number(raw);
+  return splitName(name, at) ? at : null;
 }

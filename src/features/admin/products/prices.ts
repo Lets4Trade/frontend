@@ -96,6 +96,8 @@ export type EditableRow = {
   priceCents: number;
   name: string;
   categoryId?: string | null;
+  /** Oculto do site (2026-11-17). */
+  hidden?: boolean;
 };
 
 /**
@@ -106,6 +108,10 @@ export type RowDrafts = {
   price: Readonly<Record<string, string>>;
   name: Readonly<Record<string, string>>;
   category: Readonly<Record<string, string>>;
+  /** Oculto do site (2026-11-17): o estado escolhido na tela (o olho). */
+  hidden?: Readonly<Record<string, boolean>>;
+  /** Excluir (2026-11-17): marcadas para a lixeira no salvar. */
+  remove?: Readonly<Record<string, boolean>>;
 };
 
 export type RowChange = {
@@ -118,6 +124,10 @@ export type RowChange = {
   /** `null` = tirar a categoria. */
   categoryId?: string | null;
   expectedCategoryId?: string | null;
+  /** Oculto do site (2026-11-17): ausente = não mexe. */
+  hidden?: boolean;
+  /** Excluir (2026-11-17): manda para a lixeira (reativável na Central). */
+  remove?: true;
 };
 
 /** Nome digitado → nome a gravar, ou `null` se não couber nas regras. */
@@ -164,8 +174,23 @@ export function buildRowChanges(rows: readonly EditableRow[], drafts: RowDrafts)
       change.expectedCategoryId = currentCategory;
     }
 
+    const hiddenDraft = drafts.hidden?.[row.id];
+    if (hiddenDraft !== undefined && hiddenDraft !== Boolean(row.hidden)) change.hidden = hiddenDraft;
+
+    // Excluir vence o resto: a linha vai para a lixeira, e um preço inválido
+    // digitado nela antes não bloqueia o salvar.
+    if (drafts.remove?.[row.id]) {
+      changes.push({ id: row.id, expectedPriceCents: row.priceCents, remove: true });
+      continue;
+    }
+
     if (bad) invalid.push(row.id);
-    else if (change.priceCents !== undefined || change.name !== undefined || change.categoryId !== undefined) {
+    else if (
+      change.priceCents !== undefined ||
+      change.name !== undefined ||
+      change.categoryId !== undefined ||
+      change.hidden !== undefined
+    ) {
       changes.push(change);
     }
   }

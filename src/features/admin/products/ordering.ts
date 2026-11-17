@@ -18,6 +18,8 @@ export type OrderableProduct = {
   extraCategoryIds?: string[];
   /** Já tem posição manual. Os outros estão, por enquanto, em ordem A–Z. */
   ordered: boolean;
+  /** Oculto do site (2026-11-17). Ausente = visível. */
+  hidden?: boolean;
 };
 
 export type ProductOrdering =

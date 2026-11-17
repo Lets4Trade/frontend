@@ -64,8 +64,8 @@ describe("centralHref", () => {
     );
   });
 
-  it("nova aba não carrega servidor; id inválido não entra", () => {
-    expect(centralHref("g1", { tabId: NEW_TAB, serverId: "s1" })).toBe("/admin/jogos/g1?secao=abas&aba=nova");
+  it("nova aba leva o servidor escolhido (nasce nele, 2026-11-17); id inválido não entra", () => {
+    expect(centralHref("g1", { tabId: NEW_TAB, serverId: "s1" })).toBe("/admin/jogos/g1?secao=abas&aba=nova&servidor=s1");
     expect(centralHref("g1", { tabId: "../x" })).toBe("/admin/jogos/g1?secao=abas");
   });
 

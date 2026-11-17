@@ -9,6 +9,7 @@ import { cn } from "@/lib/cn";
 import { formatPrice } from "./content";
 import { DiscountBadge, LabelBadge } from "./DiscountBadge";
 import { DiscountedPrice, PriceHighlight } from "./DiscountedPrice";
+import { ConsultButton, consultHref, consultMessage, ConsultPrice } from "./consult";
 import { ProductCardShell } from "./ProductCardShell";
 import type { GameProduct } from "./types";
 import { lineTotalCents } from "@/features/pricing/quote";
@@ -26,6 +27,14 @@ export type ProductContext = {
   /** Rótulo do servidor do filtro, para o produto que não tem um. */
   platform: string;
   gameLogo?: string;
+  /**
+   * "Consulte aqui" (2026-11-17): o que a mensagem do WhatsApp cita e o link
+   * da loja (já montado por `getContacts`). Só o catálogo passa.
+   */
+  gameName?: string;
+  /** Servidor do FILTRO — reserva para o produto sem servidor próprio. */
+  serverLabel?: string;
+  whatsappHref?: string;
 };
 
 /**
@@ -46,7 +55,9 @@ export function ProductCard({
   product: GameProduct;
   context: ProductContext;
 }) {
-  const [quantity, setQuantity] = useState(1);
+  // Quantidade mínima (2026-11-17): o contador já começa nela e não desce dela.
+  const min = Math.max(1, product.minUnits ?? 1);
+  const [quantity, setQuantity] = useState(min);
   const addToCart = useCart((state) => state.add);
   const closeCart = useCart((state) => state.close);
   const router = useRouter();
@@ -61,12 +72,13 @@ export function ProductCard({
         gameLogo: context.gameLogo,
         platform: product.serverLabel ?? context.platform,
         unitPriceCents: product.priceCents,
+        ...(min > 1 ? { minUnits: min } : {}),
       },
       quantity,
     );
     // Volta para 1 depois de adicionar: o card não mostra o que já está
     // no carrinho, então manter "5" sugeriria que há cinco ali.
-    setQuantity(1);
+    setQuantity(min);
   }
 
   // "COMPRE AQUI" (2026-10-08): o mesmo que o carrinho, mas direto ao
@@ -83,9 +95,47 @@ export function ProductCard({
   const hasDiscount =
     !!product.discountPercent && !!product.listPriceCents && product.listPriceCents > product.priceCents;
 
+  // "Consulte aqui" (2026-11-17): sem preço, sem contador, sem carrinho — um
+  // botão do WhatsApp com a mensagem pronta. Selo e descrição continuam.
+  if (product.consultOnly) {
+    const href = consultHref(
+      context.whatsappHref,
+      consultMessage({
+        productName: product.name,
+        gameName: context.gameName ?? context.platform,
+        serverLabel: product.serverLabel ?? context.serverLabel,
+      }),
+    );
+    return (
+      <ProductCardShell
+        name={product.name}
+        nameBreak={product.nameBreak}
+        nameEn={product.nameEn}
+        price={<ConsultPrice />}
+        image={product.image}
+        badge={product.badgeText ? <LabelBadge text={product.badgeText} /> : undefined}
+        hoverDescription={
+          product.content && product.content.sections.length > 0
+            ? { title: product.name, content: product.content }
+            : undefined
+        }
+        actions={
+          // Mesma largura da fileira do contador + carrinho (32px → 249px).
+          <div className="px-[10px] desk:px-[32px]">
+            <ConsultButton href={href} productName={product.name} />
+          </div>
+        }
+        // Linha do COMPRE AQUI vazia: o card fica com a MESMA altura dos
+        // vizinhos (467px no computador) e a grade não "dente".
+        cta={<span aria-hidden />}
+      />
+    );
+  }
+
   return (
     <ProductCardShell
       name={product.name}
+      nameBreak={product.nameBreak}
       nameEn={product.nameEn}
       // O preço acompanha o contador (2026-09-28, relato do usuário: "escolho 5
       // e o preço continua como se fosse 1"). Com mais de uma unidade, o total
@@ -145,8 +195,8 @@ export function ProductCard({
         <div className="flex items-center justify-center gap-[6px] desk:justify-start desk:gap-[15px] desk:pl-[32px]">
         <StepButton
           label={`Diminuir a quantidade de ${product.name}`}
-          onClick={() => setQuantity((value) => Math.max(1, value - 1))}
-          disabled={quantity <= 1}
+          onClick={() => setQuantity((value) => Math.max(min, value - 1))}
+          disabled={quantity <= min}
         >
           −
         </StepButton>

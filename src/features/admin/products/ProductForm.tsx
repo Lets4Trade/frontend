@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
@@ -10,7 +11,7 @@ import { SelectField } from "@/components/ui/SelectField";
 import { TextAreaField } from "@/components/ui/TextAreaField";
 import { TextField } from "@/components/ui/TextField";
 import { toastOk } from "@/components/ui/Toasts";
-import { QUOTED_LAYOUTS, effectivePricing } from "@/features/pricing/quote";
+import { QUOTED_LAYOUTS, effectivePricing, lineTotalCents } from "@/features/pricing/quote";
 import type { AdminGame } from "@/features/admin/catalog";
 import { ACCEPTED_IMAGE_TYPES, MAX_IMAGE_BYTES } from "../games/options";
 import { listGameTabsAction } from "../games/tabs/actions";
@@ -31,6 +32,7 @@ import {
   MAX_EXTRA_CATEGORIES,
   MAX_HIGHLIGHT_CHARS,
   MAX_HIGHLIGHTS,
+  MAX_MIN_UNITS,
   MAX_PRICE_CENTS,
   createProductSchema,
   parseHighlights,
@@ -38,6 +40,9 @@ import {
 import { productImage, type AdminProduct } from "./catalog";
 import { formatPrice } from "@/features/game/content";
 import { PackageCard } from "@/features/game/PackageCard";
+import { ConsultButton, ConsultPrice } from "@/features/game/consult";
+import { nameToText, textToName } from "@/features/game/nameBreak";
+import { EyeIcon } from "./ProductPriceTable";
 import { ProductCardShell } from "@/features/game/ProductCardShell";
 import { DiscountBadge, LabelBadge } from "@/features/game/DiscountBadge";
 import { DiscountedPrice, PriceHighlight } from "@/features/game/DiscountedPrice";
@@ -54,6 +59,7 @@ type ErrorField =
   | "nameEn"
   | "priceCents"
   | "discountPercent"
+  | "minUnits"
   | "tabId"
   | "serverId"
   | "categoryId"
@@ -170,7 +176,7 @@ export function ProductForm({
     (seed?.serverId || (initialGame?.servers.length === 1 ? initialGame.servers[0].id : ""));
 
   const formRef = useRef<HTMLFormElement>(null);
-  const nameRef = useRef<HTMLInputElement>(null);
+  const nameRef = useRef<HTMLTextAreaElement>(null);
   /**
    * Qual botão enviou: "SALVAR E ANUNCIAR" (zera tudo, como sempre) ou
    * "Salvar e cadastrar outro" (mantém o contexto). Ref e não estado: é lido
@@ -240,6 +246,15 @@ export function ProductForm({
   // Selo do card (2026-11-04): controlado, para os atalhos "Novo"/"Em alta"
   // preencherem o campo e a prévia acompanhar.
   const [badgeText, setBadgeText] = useState(product?.badgeText ?? "");
+  // "Consulte aqui" (2026-11-17): só em aba de CATÁLOGO. Fora dela a caixinha
+  // some e o envio vai falso (trocar de aba desliga).
+  const [consultOnly, setConsultOnly] = useState(product?.consultOnly ?? false);
+  const isCatalog = selectedTab?.layout === "CATALOG";
+  const showConsult = isCatalog && consultOnly;
+  // Oculto do site (2026-11-17): qualquer aba.
+  const [isHidden, setIsHidden] = useState(product?.isHidden ?? false);
+  // Quantidade mínima (2026-11-17), só para a dica embaixo do campo.
+  const [minUnits, setMinUnits] = useState(product?.minUnits ?? 1);
   // Categoria principal escolhida (só para tirá-la da lista de extras) e as
   // EXTRAS marcadas (2026-11-04).
   const [primaryCategory, setPrimaryCategory] = useState(product?.categoryId ?? "");
@@ -265,7 +280,11 @@ export function ProductForm({
 
   // Prévia do card: nome e arte acompanham o que se digita/anexa. A arte nova
   // é um `blob:` local (nada sobe antes de salvar), liberado ao trocar.
-  const [previewName, setPreviewName] = useState(product?.name ?? "");
+  // Nome com a quebra do card (2026-11-17): o campo mostra a quebra como uma
+  // linha nova (Enter). Vai para a API como nome numa linha + posição.
+  const [nameText, setNameText] = useState(() => nameToText(product?.name ?? "", product?.nameBreak));
+  const nameParts = textToName(nameText);
+  const previewName = nameParts.name;
   const [previewNameEn, setPreviewNameEn] = useState(product?.nameEn ?? "");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   useEffect(
@@ -278,8 +297,11 @@ export function ProductForm({
   function onFormChange(event: FormEvent<HTMLFormElement>) {
     dirty.current = true;
     const target = event.target as HTMLInputElement;
-    if (target.name === "name") setPreviewName(target.value);
     if (target.name === "nameEn") setPreviewNameEn(target.value);
+    if (target.name === "minUnits") {
+      const value = Number(target.value);
+      setMinUnits(Number.isInteger(value) && value > 1 ? value : 1);
+    }
     if (target.name === "discountPercent") {
       const value = Number(target.value);
       setDiscountPercent(Number.isInteger(value) && value > 0 ? value : 0);
@@ -450,6 +472,7 @@ export function ProductForm({
       nameEn: data.get("nameEn") ?? "",
       priceCents: data.get("priceCents"),
       discountPercent: data.get("discountPercent") || 0,
+      minUnits: data.get("minUnits") || 1,
       tabId: data.get("tabId") ?? "",
       serverId: data.get("serverId") ?? "",
       categoryId: data.get("categoryId") ?? "",
@@ -549,7 +572,7 @@ export function ProductForm({
         setDiscountPercent(0);
         setBadgeText("");
         setHighlightsText("");
-        setPreviewName("");
+        setNameText("");
         setImagePreview(null);
         return;
       }
@@ -569,7 +592,7 @@ export function ProductForm({
       setBadgeText("");
       setPrimaryCategory("");
       setExtraIds([]);
-      setPreviewName("");
+      setNameText("");
       setImagePreview(null);
     });
   }
@@ -838,21 +861,75 @@ export function ProductForm({
                   o backend usa a primeira plataforma do jogo no cadastro e não
                   mexe nela na edição. */}
             </div>
+
+            {/* Oculto do site (2026-11-17): qualquer aba. Some da loja, da busca
+                e do checkout; continua aqui no painel. */}
+            <label
+              className={cn(
+                "mt-[22px] flex max-w-[520px] cursor-pointer items-start gap-[10px] rounded-[14px] border px-[16px] py-[12px]",
+                isHidden ? "border-brand-orange/60 bg-brand-orange/[0.08]" : "border-white/10 bg-black/20",
+              )}
+            >
+              <input
+                type="checkbox"
+                checked={isHidden}
+                onChange={(event) => {
+                  dirty.current = true;
+                  setIsHidden(event.target.checked);
+                }}
+                className="mt-[3px] size-[16px] accent-brand-orange"
+              />
+              <span className="flex flex-col gap-[2px]">
+                <span className="flex items-center gap-[8px] font-poppins text-[14px] font-bold text-white">
+                  <EyeIcon off className="size-[16px]" />
+                  Ocultar do site
+                </span>
+                <span className="font-helvetica text-[12px] text-brand-fg-subtle">
+                  O produto some da loja, da busca e do carrinho, mas continua aqui no painel. Desmarque para mostrar de
+                  novo.
+                </span>
+              </span>
+            </label>
+            <input type="hidden" name="isHidden" value={isHidden ? "true" : "false"} />
           </FormSection>
 
           <FormSection id="card" number={2} title="Card" hint="O que o cliente vê na lista de produtos.">
             <div className="grid grid-cols-1 gap-x-[24px] gap-y-[22px] sm:grid-cols-2">
-              <TextField
-                key={`name-${entryKey}`}
-                ref={nameRef}
-                label="Nome em português"
-                name="name"
-                placeholder="500M Orbes Divinos"
-                defaultValue={product?.name}
-                autoComplete="off"
-                maxLength={160}
-                error={fieldErrors.name}
-              />
+              {/* Enter marca onde o título QUEBRA no card (2026-11-17): uma
+                  quebra só. O nome continua numa linha no resto do site. */}
+              <div>
+                <TextAreaField
+                  ref={nameRef}
+                  label="Nome em português"
+                  placeholder="500M Orbes Divinos"
+                  value={nameText}
+                  rows={nameText.includes("\n") ? 2 : 1}
+                  onChange={(event) => {
+                    dirty.current = true;
+                    // Só a 1ª linha nova vale (colar pode trazer várias).
+                    const value = event.target.value.replace(/\r/g, "");
+                    const index = value.indexOf("\n");
+                    setNameText(
+                      index === -1 ? value : value.slice(0, index + 1) + value.slice(index + 1).replace(/\n/g, " "),
+                    );
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && nameText.includes("\n")) event.preventDefault();
+                  }}
+                  autoComplete="off"
+                  maxLength={161}
+                  error={fieldErrors.name}
+                  // Altura do conteúdo: 1 linha = a mesma dos outros campos.
+                  className={nameText.includes("\n") ? "h-[72px]" : "h-[51px] rounded-[25px]"}
+                />
+                <input type="hidden" name="name" value={nameParts.name} />
+                <input type="hidden" name="nameBreak" value={nameParts.nameBreak ?? ""} />
+                <p className="mt-[6px] pl-[25px] font-helvetica text-[12px] text-brand-fg-subtle">
+                  {nameParts.nameBreak !== null
+                    ? "O card mostra o nome em duas linhas, quebrando onde você deu Enter. Apague a quebra para voltar a uma linha."
+                    : "Nome grande? Dê Enter onde o card deve passar para a 2ª linha."}
+                </p>
+              </div>
 
               {/* Segunda linha do card (2026-10-08). Opcional: vazio, o card
                   mostra só o português. */}
@@ -936,7 +1013,36 @@ export function ProductForm({
                 : "O preço do produto na loja."
             }
           >
-            <div className="max-w-[340px]">
+            {isCatalog ? (
+              <label className="mb-[22px] flex max-w-[460px] cursor-pointer items-start gap-[10px] rounded-[14px] border border-white/10 bg-black/20 px-[16px] py-[12px]">
+                <input
+                  type="checkbox"
+                  checked={consultOnly}
+                  onChange={(event) => {
+                    dirty.current = true;
+                    setConsultOnly(event.target.checked);
+                  }}
+                  className="mt-[3px] size-[16px] accent-brand-orange"
+                />
+                <span className="flex flex-col gap-[2px]">
+                  <span className="flex items-center gap-[8px] font-poppins text-[14px] font-bold text-white">
+                    <Image src="/icons/social/whatsapp.svg" alt="" width={16} height={16} aria-hidden className="size-[16px]" />
+                    Consulte aqui (WhatsApp)
+                  </span>
+                  <span className="font-helvetica text-[12px] text-brand-fg-subtle">
+                    Sem preço na loja: o card mostra o botão “CONSULTE AQUI”, que abre o WhatsApp da loja com
+                    “Salve, tenho interesse em [produto] do jogo [jogo] do servidor [servidor]”. Não vai para o carrinho.
+                  </span>
+                </span>
+              </label>
+            ) : null}
+            {/* Sempre no formulário: "true" só com a caixinha marcada E aba de catálogo. */}
+            <input type="hidden" name="consultOnly" value={showConsult ? "true" : "false"} />
+
+            {/* Com "Consulte aqui" o preço não aparece na loja: os campos ficam
+                montados (o valor guardado volta se a caixinha for desmarcada),
+                só escondidos. */}
+            <div className={cn("max-w-[340px]", showConsult && "hidden")}>
               <MoneyField
                 key={`price-${entryKey}`}
                 // Em serviço o "preço" muda de papel conforme o modo — o rótulo diz qual.
@@ -972,7 +1078,7 @@ export function ProductForm({
                 preço é preço × unidades. Nas cotadas o desconto é adicional
                 negativo da regra. A loja mostra só o selo "-5%" no card. */}
             {isQuoted ? null : (
-              <div className="mt-[22px] max-w-[340px]">
+              <div className={cn("mt-[22px] max-w-[340px]", showConsult && "hidden")}>
                 <TextField
                   key={`discount-${entryKey}`}
                   label="Desconto do pacote (%)"
@@ -993,6 +1099,31 @@ export function ProductForm({
                 </p>
               </div>
             )}
+
+            {/* Quantidade mínima por compra (2026-11-17): só em aba de CATÁLOGO
+                e escondida com "Consulte aqui" (não há compra). */}
+            {isCatalog ? (
+              <div className={cn("mt-[22px] max-w-[340px]", showConsult && "hidden")}>
+                <TextField
+                  key={`min-units-${entryKey}`}
+                  label="Quantidade mínima por compra"
+                  name="minUnits"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={MAX_MIN_UNITS}
+                  step={1}
+                  placeholder="1"
+                  defaultValue={product?.minUnits && product.minUnits > 1 ? String(product.minUnits) : ""}
+                  error={fieldErrors.minUnits}
+                />
+                <p className="mt-[6px] pl-[25px] font-helvetica text-[12px] text-brand-fg-subtle">
+                  {minUnits > 1
+                    ? `O card já começa em ${minUnits.toLocaleString("pt-BR")} unidades (${formatPrice(lineTotalCents(priceCents, minUnits))}) e o cliente não consegue comprar menos.`
+                    : "Vazio ou 1 = sem mínimo. Ex.: 100 faz o card começar em 100 unidades."}
+                </p>
+              </div>
+            ) : null}
 
             {/* Selo do card (2026-11-04): "Novo", "Em alta" ou texto livre,
                 no canto superior esquerdo, no mesmo laranja do desconto. */}
@@ -1129,6 +1260,7 @@ export function ProductForm({
                   product={{
                     id: product?.id ?? "novo",
                     name: previewName || "Nome do produto",
+                    ...(nameParts.nameBreak !== null ? { nameBreak: nameParts.nameBreak } : {}),
                     priceCents,
                     tabId: tabId,
                     highlights: highlightsPreview,
@@ -1140,10 +1272,13 @@ export function ProductForm({
                 <div className="w-full max-w-[265px]">
                   <ProductCardShell
                     name={previewName || "Nome do produto"}
+                    nameBreak={previewName ? nameParts.nameBreak : null}
                     nameEn={previewNameEn.trim() || undefined}
                     // Igual à loja (2026-11-02): com desconto, o cheio riscado ao lado.
                     price={
-                      previewDiscount > 0 && discountedCents(priceCents, previewDiscount) < priceCents ? (
+                      showConsult ? (
+                        <ConsultPrice />
+                      ) : previewDiscount > 0 && discountedCents(priceCents, previewDiscount) < priceCents ? (
                         <DiscountedPrice
                           listLabel={formatPrice(priceCents)}
                           priceLabel={formatPrice(discountedCents(priceCents, previewDiscount))}
@@ -1153,12 +1288,18 @@ export function ProductForm({
                       )
                     }
                     image={previewImage}
-                    actions={null}
+                    actions={
+                      showConsult ? (
+                        <div className="px-[10px] desk:px-[32px]">
+                          <ConsultButton href="#" productName={previewName || "Nome do produto"} />
+                        </div>
+                      ) : null
+                    }
                     badge={
-                      previewDiscount > 0 || badgeText.trim() ? (
+                      (!showConsult && previewDiscount > 0) || badgeText.trim() ? (
                         <>
                           {badgeText.trim() ? <LabelBadge text={badgeText.trim()} /> : null}
-                          {previewDiscount > 0 ? <DiscountBadge percent={previewDiscount} /> : null}
+                          {!showConsult && previewDiscount > 0 ? <DiscountBadge percent={previewDiscount} /> : null}
                         </>
                       ) : undefined
                     }

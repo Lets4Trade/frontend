@@ -4,7 +4,7 @@ import { revalidatePath, updateTag } from "next/cache";
 import { getSessionRole } from "@/features/auth/session";
 import { canAccess } from "@/features/admin/permissions";
 import { GAMES_MENU_TAG } from "@/features/game/menuGames";
-import { apiDelete, apiPostFormData, apiPut } from "@/lib/serverApi";
+import { apiDelete, apiPatch, apiPostFormData, apiPut } from "@/lib/serverApi";
 import { MAX_IMAGE_BYTES } from "./options";
 import { createGameSchema } from "./schema";
 
@@ -166,6 +166,41 @@ export async function deactivateGameAction(
 
   // O menu GAMES do cabeçalho é cacheado por etiqueta; sem isto o jogo
   // excluído seguiria no menu por até uma hora.
+  updateTag(GAMES_MENU_TAG);
+  revalidatePath("/admin/builder");
+  revalidatePath("/admin/jogos");
+  return { ok: true };
+}
+
+/**
+ * Esconder/mostrar a página do jogo no site (2026-11-17, Painel → Jogos). O
+ * jogo some de toda a loja (página, menu GAMES, busca, blocos, checkout) e
+ * continua aqui no painel. Mesma permissão e revalidação de excluir.
+ */
+export async function setGameHiddenAction(
+  id: string,
+  hidden: boolean,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const role = await getSessionRole();
+  if (!canAccess(role, "catalog")) {
+    return { ok: false, message: "Sua conta não tem permissão para esconder games." };
+  }
+  if (typeof id !== "string" || !GAME_ID.test(id) || typeof hidden !== "boolean") {
+    return { ok: false, message: "Game inválido." };
+  }
+
+  const response = await apiPatch(`/admin/games/${encodeURIComponent(id)}/visibility`, { hidden });
+  if (!response.ok) {
+    return {
+      ok: false,
+      message:
+        response.status === 404
+          ? "Este game já não existe."
+          : "Não conseguimos salvar agora. Tente novamente em instantes.",
+    };
+  }
+
+  // Menu GAMES cacheado por etiqueta: sem isto o jogo escondido seguiria nele.
   updateTag(GAMES_MENU_TAG);
   revalidatePath("/admin/builder");
   revalidatePath("/admin/jogos");

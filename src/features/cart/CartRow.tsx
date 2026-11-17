@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { formatCents, formatHours, isServiceItem, maxQuantityOf, useCart, type CartItem } from "./store";
+import { formatCents, formatHours, isServiceItem, maxQuantityOf, minQuantityOf, useCart, type CartItem } from "./store";
 import { lineTotalCents } from "@/features/pricing/quote";
 
 /**
@@ -16,6 +16,9 @@ export function CartRow({ item }: { item: CartItem }) {
   const remove = useCart((state) => state.remove);
   const service = isServiceItem(item);
   const max = maxQuantityOf(item);
+  // Quantidade mínima (2026-11-17): com mínimo, o "−" trava nele (tirar a
+  // linha é na lixeira); sem mínimo, segue o gesto antigo de zerar.
+  const min = minQuantityOf(item);
   // Serviço com "Máximo de unidades por compra" também ganha contador (2026-11-11).
   const editable = !service || max > 1;
 
@@ -63,7 +66,12 @@ export function CartRow({ item }: { item: CartItem }) {
             </span>
           ) : (
             <div className="flex items-center rounded-full border border-white/10 bg-white/[0.03]">
-              <StepButton label={`Diminuir a quantidade de ${item.name}`} onClick={() => setQuantity(item.id, item.quantity - 1)}>
+              <StepButton
+                label={`Diminuir a quantidade de ${item.name}`}
+                disabled={min > 1 && item.quantity <= min}
+                title={min > 1 ? `Compra mínima: ${min.toLocaleString("pt-BR")} unidades` : undefined}
+                onClick={() => setQuantity(item.id, item.quantity - 1)}
+              >
                 −
               </StepButton>
               <span aria-live="polite" className="min-w-[26px] px-[2px] text-center font-poppins text-[14px] font-bold text-white tabular-nums">
@@ -105,11 +113,13 @@ function StepButton({
   label,
   onClick,
   disabled,
+  title,
   children,
 }: {
   label: string;
   onClick: () => void;
   disabled?: boolean;
+  title?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -117,6 +127,7 @@ function StepButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
+      title={title}
       aria-label={label}
       className="flex size-[32px] items-center justify-center rounded-full font-poppins text-[16px] font-bold text-white transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent"
     >

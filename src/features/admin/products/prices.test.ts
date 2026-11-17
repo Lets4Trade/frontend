@@ -77,6 +77,36 @@ describe("applyPercent / parsePercent", () => {
   });
 });
 
+describe("buildRowChanges — ocultar e excluir (2026-11-17)", () => {
+  const rows = [
+    { id: "a", priceCents: 100, name: "A" },
+    { id: "b", priceCents: 200, name: "B", hidden: true },
+    { id: "c", priceCents: 300, name: "C" },
+  ];
+  const empty = { price: {}, name: {}, category: {} };
+
+  it("o olho só vira alteração quando difere do gravado", () => {
+    const { changes } = buildRowChanges(rows, { ...empty, hidden: { a: true, b: true } });
+    expect(changes).toEqual([{ id: "a", expectedPriceCents: 100, hidden: true }]);
+  });
+
+  it("mostrar de novo um oculto", () => {
+    const { changes } = buildRowChanges(rows, { ...empty, hidden: { b: false } });
+    expect(changes).toEqual([{ id: "b", expectedPriceCents: 200, hidden: false }]);
+  });
+
+  it("excluir vence o resto da linha, inclusive preço inválido", () => {
+    const { changes, invalid } = buildRowChanges(rows, {
+      ...empty,
+      price: { c: "abc" },
+      name: { c: "Novo" },
+      remove: { c: true },
+    });
+    expect(invalid).toEqual([]);
+    expect(changes).toEqual([{ id: "c", expectedPriceCents: 300, remove: true }]);
+  });
+});
+
 describe("buildRowChanges", () => {
   const rows = [
     { id: "a", priceCents: 390, name: "1K Chaos", categoryId: "moedas" },

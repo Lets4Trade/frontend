@@ -4,7 +4,7 @@ import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { getAdminGames } from "@/features/admin/catalog";
 import { canEditContent, getSessionRole } from "@/features/auth/session";
-import { parseCatalogQuery } from "@/features/game/catalog";
+import { parseCatalogQuery, scopePageToQuery } from "@/features/game/catalog";
 import { getGamePage, withActiveTab } from "@/features/game/content";
 import { gameSectionNodes } from "@/features/game/GamePageSections";
 import { buildHomeBlocks } from "@/features/home/homeBlocks";
@@ -95,7 +95,7 @@ async function legacyFor(page: BlocksPageDef): Promise<{ desktop: LegacyNodes; m
       const base = await getGamePage(gameSlugFromHref(page.href) ?? "");
       if (!base) return { desktop: {} };
       const query = parseCatalogQuery({}, base);
-      return { desktop: gameSectionNodes(withActiveTab(base, query.tab), query) };
+      return { desktop: gameSectionNodes(scopePageToQuery(withActiveTab(base, query.tab), query), query) };
     }
   }
 }

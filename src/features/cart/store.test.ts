@@ -25,6 +25,32 @@ describe("cartLineId", () => {
   });
 });
 
+describe("useCart com quantidade mínima (2026-11-17)", () => {
+  beforeEach(() => {
+    useCart.setState({ items: [], isOpen: false });
+  });
+
+  it("entra no mínimo, não desce dele e a lixeira ainda remove", () => {
+    useCart.getState().add({ ...base, minUnits: 100 }, 5);
+    const id = useCart.getState().items[0].id;
+    expect(useCart.getState().items[0].quantity).toBe(100);
+
+    useCart.getState().setQuantity(id, 150);
+    expect(useCart.getState().items[0].quantity).toBe(150);
+    useCart.getState().setQuantity(id, 99);
+    expect(useCart.getState().items[0].quantity).toBe(100);
+
+    useCart.getState().remove(id);
+    expect(useCart.getState().items).toHaveLength(0);
+  });
+
+  it("linha antiga sem mínimo sobe ao mínimo quando o produto é adicionado de novo", () => {
+    useCart.getState().add({ ...base }, 3);
+    useCart.getState().add({ ...base, minUnits: 100 }, 100);
+    expect(useCart.getState().items[0]).toMatchObject({ quantity: 103, minUnits: 100 });
+  });
+});
+
 describe("useCart com serviço", () => {
   beforeEach(() => {
     useCart.setState({ items: [], isOpen: false });

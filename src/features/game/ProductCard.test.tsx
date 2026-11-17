@@ -39,6 +39,42 @@ describe("ProductCard", () => {
     expect(push).toHaveBeenCalledWith("/checkout");
   });
 
+  it("Consulte aqui: sem preço nem carrinho, link do WhatsApp com a mensagem (2026-11-17)", () => {
+    render(
+      <ProductCard
+        product={{ ...product, consultOnly: true }}
+        context={{ ...context, gameName: "Path of Exile 2", whatsappHref: "https://wa.me/5511912345678" }}
+      />,
+    );
+    expect(screen.queryByText(/R\$/)).toBeNull();
+    expect(screen.queryByRole("button", { name: /carrinho|Comprar/ })).toBeNull();
+    const link = screen.getByRole("link", { name: "Consultar Divine Orb pelo WhatsApp" });
+    expect(link.getAttribute("href")).toBe(
+      "https://wa.me/5511912345678?text=" +
+        encodeURIComponent("Salve, tenho interesse em Divine Orb do jogo Path of Exile 2 do servidor Standard"),
+    );
+    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+  });
+
+  it("Consulte aqui sem WhatsApp configurado: botão desabilitado, sem href", () => {
+    render(<ProductCard product={{ ...product, consultOnly: true }} context={context} />);
+    expect(screen.getByRole("link").getAttribute("aria-disabled")).toBe("true");
+    expect(screen.getByRole("link").getAttribute("href")).toBeNull();
+  });
+
+  it("quantidade mínima: começa nela, o − trava e o carrinho recebe o mínimo (2026-11-17)", () => {
+    render(<ProductCard product={{ ...product, minUnits: 100 }} context={context} />);
+    const minus = screen.getByRole("button", { name: "Diminuir a quantidade de Divine Orb" }) as HTMLButtonElement;
+    expect(minus.disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Aumentar a quantidade de Divine Orb" }));
+    expect(minus.disabled).toBe(false);
+    fireEvent.click(minus);
+    expect(minus.disabled).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "Comprar 100 × Divine Orb agora" }));
+    expect(useCart.getState().items[0]).toMatchObject({ quantity: 100, minUnits: 100 });
+  });
+
   it("mostra o nome em português e, se houver, o inglês na linha de baixo", () => {
     const { rerender } = render(<ProductCard product={product} context={context} />);
     expect(screen.getByRole("heading", { level: 3 }).textContent).toBe("Divine Orb");

@@ -56,7 +56,7 @@ export type CheckoutResult =
     }
   | {
       ok: false;
-      reason: "unauthenticated" | "empty" | "invalid" | "error" | "coins" | "coupon";
+      reason: "unauthenticated" | "empty" | "invalid" | "error" | "coins" | "coupon" | "minimum";
       /** Só em `coupon`: o motivo que o backend escreveu ("Cupom inválido ou expirado."). */
       message?: string;
     };
@@ -176,6 +176,12 @@ export async function checkoutAction(
     }
     if (result.message?.includes("Lets Coins")) {
       return { ok: false, reason: "coins" };
+    }
+    // Quantidade mínima do catálogo (2026-11-17): carrinho antigo abaixo do
+    // mínimo. A mensagem do backend diz o produto e o mínimo — repassada só
+    // quando tem o formato esperado (texto da API não vira texto livre na tela).
+    if (result.status === 400 && result.message && /^Compra mínima de \d+ unidades em "[^"]{1,200}"\./.test(result.message)) {
+      return { ok: false, reason: "minimum", message: result.message };
     }
     return { ok: false, reason: "error" };
   }
