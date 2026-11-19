@@ -10,7 +10,7 @@ import { getGameTabs } from "@/features/admin/games/tabs/list";
 import { requirePanelArea } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
-  title: "Editar produto | Lets4Trade",
+  title: "Editar produto",
   robots: { index: false, follow: false },
 };
 

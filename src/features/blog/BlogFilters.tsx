@@ -3,6 +3,7 @@ import Link from "next/link";
 import { LogoHalo } from "@/features/game/GameIdentity";
 import { ALL_LABEL, pillClassName } from "@/features/game/pill";
 import { cn } from "@/lib/cn";
+import { ServerDropdown } from "@/features/game/ServerDropdown";
 import { BLOG_PARAM, BLOG_SEARCH_MAX, blogListHref, type BlogQuery } from "./query";
 import type { BlogGameRef } from "./types";
 
@@ -19,9 +20,14 @@ import type { BlogGameRef } from "./types";
  *
  * Medidas do arquivo (2026-10-16, conferidas contra o Figma): logo → 15px →
  * pílula de 170×50, e 15px entre um jogo e o próximo; a busca fica na MESMA
- * linha, à direita. A fileira nunca quebra: quando os jogos não cabem (telas
- * menores que 1920 ou muitos jogos), ela ROLA na horizontal — duas linhas
- * desalinhavam a busca e empurravam a lista para baixo.
+ * linha, à direita.
+ *
+ * SEM ROLAGEM LATERAL (2026-11-18, pedido do usuário — a fileira rolava de lado):
+ *   - computador: os jogos QUEBRAM em mais linhas e a busca fica presa no canto
+ *     de cima, alinhada à primeira linha (`items-start`);
+ *   - celular: um botão com o filtro atual que abre a lista e fecha ao escolher
+ *     (`ServerDropdown`, o mesmo do servidor na página de jogo) — logo + pílula
+ *     ocupam uma linha inteira cada, e quebrar viraria uma pilha.
  */
 export function BlogFilters({
   games,
@@ -34,11 +40,27 @@ export function BlogFilters({
   searchPlaceholder: string;
 }) {
   return (
-    <div className="flex flex-col gap-[20px] lg:flex-row lg:items-center lg:justify-between lg:gap-[40px]">
+    <div className="flex flex-col gap-[14px] lg:flex-row lg:items-start lg:justify-between lg:gap-[40px]">
+      {games.length > 0 ? (
+        <div className="lg:hidden">
+          <ServerDropdown
+            label="Filtrar posts por jogo"
+            options={[
+              { key: "__todos", label: ALL_LABEL, href: blogListHref(query, { game: "", page: 1 }), active: !query.game },
+              ...games.map((game) => ({
+                key: game.slug,
+                label: game.name,
+                href: blogListHref(query, { game: game.slug, page: 1 }),
+                active: game.slug === query.game,
+              })),
+            ]}
+          />
+        </div>
+      ) : null}
       {games.length > 0 ? (
         <nav
           aria-label="Filtrar posts por jogo"
-          className="scrollbar-orange -mx-4 flex min-w-0 items-center gap-[15px] overflow-x-auto px-4 pb-[6px] lg:mx-0 lg:px-0 lg:pb-0"
+          className="flex min-w-0 flex-1 flex-wrap items-center gap-[15px] max-lg:hidden"
         >
           <Link
             href={blogListHref(query, { game: "", page: 1 })}

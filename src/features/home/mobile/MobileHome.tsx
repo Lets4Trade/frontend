@@ -17,6 +17,7 @@ import { TEAM_DEFAULT_BODY } from "../TeamSection";
 import { VideoPlayer } from "../VideoPlayer";
 import { videoTexts } from "../VideoSection";
 import { youtubeId, youtubeWatchUrl } from "../youtube";
+import { LogoBand } from "../LogoBand";
 import { MobileHeroBanner } from "./MobileHeroBanner";
 import { NavTiles } from "./NavTiles";
 
@@ -127,19 +128,24 @@ async function MobileNav({ stats }: { stats: SectionItemView[] }) {
       {stats.length > 0 ? (
         // Dois por linha; com 3, o último fica centrado embaixo. Mesmo teto do
         // desktop (`MAX_HOME_STATS`) — antes só os 2 primeiros apareciam.
-        <dl className="flex flex-wrap justify-center gap-y-[16px] py-[20px] text-center">
-          {stats.slice(0, MAX_HOME_STATS).map((stat) => (
-            <div key={stat.id} className="w-1/2 px-[6px]">
-              <dt className="sr-only">{stat.body}</dt>
-              <dd className="font-poppins text-[32px] leading-[40px] font-semibold text-brand-orange">
-                <CountUp value={stat.title} />
-              </dd>
-              <dd aria-hidden className="mt-[2px] font-poppins text-[12px] leading-[16px] font-bold tracking-[0.12px] text-white/80">
-                {stat.body}
-              </dd>
-            </div>
-          ))}
-        </dl>
+        // Banner de borda a borda com logos correndo ao fundo (2026-11-18),
+        // como no desktop: o `overflow-x-clip` da página corta nas bordas.
+        <div className="relative">
+          <LogoBand />
+          <dl className="relative flex flex-wrap justify-center gap-y-[16px] py-[20px] text-center">
+            {stats.slice(0, MAX_HOME_STATS).map((stat) => (
+              <div key={stat.id} className="w-1/2 px-[6px]">
+                <dt className="sr-only">{stat.body}</dt>
+                <dd className="font-poppins text-[32px] leading-[40px] font-semibold text-brand-orange">
+                  <CountUp value={stat.title} />
+                </dd>
+                <dd aria-hidden className="mt-[2px] font-poppins text-[12px] leading-[16px] font-bold tracking-[0.12px] text-white/80">
+                  {stat.body}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
       ) : null}
 
       <Divider />

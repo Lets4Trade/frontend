@@ -8,7 +8,7 @@ import { TextField } from "@/components/ui/TextField";
 import { ACCOUNT_ERROR_MESSAGES, AccountError, completeProfile } from "./accountService";
 import { GenderField } from "./GenderField";
 import type { Gender } from "./gender";
-import { completeProfileSchema, type CompleteProfileValues } from "./schema";
+import { completeProfileSchema, completeProfileWithoutGenderSchema, type CompleteProfileValues } from "./schema";
 
 type FieldErrors = Partial<Record<keyof CompleteProfileValues, string>>;
 
@@ -22,13 +22,18 @@ type FieldErrors = Partial<Record<keyof CompleteProfileValues, string>>;
  * social enquanto faltar algo.
  *
  * `next`: para onde a pessoa ia — já conferido como caminho interno pela página.
+ *
+ * `askGender` falso = entrou pelo GOOGLE (2026-11-18, pedido do usuário): o
+ * gênero não é exigido, então o campo nem aparece.
  */
 export function CompleteProfileForm({
   next,
   defaults,
+  askGender = true,
 }: {
   next: string;
   defaults: { whatsapp: string; gender: Gender | null };
+  askGender?: boolean;
 }) {
   const router = useRouter();
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -42,12 +47,14 @@ export function CompleteProfileForm({
     if (isSubmitting) return;
 
     const data = new FormData(event.currentTarget);
-    const parsed = completeProfileSchema.safeParse({
-      whatsapp: String(data.get("whatsapp") ?? ""),
-      gender: String(data.get("gender") ?? ""),
-    });
+    const parsed = askGender
+      ? completeProfileSchema.safeParse({
+          whatsapp: String(data.get("whatsapp") ?? ""),
+          gender: String(data.get("gender") ?? ""),
+        })
+      : completeProfileWithoutGenderSchema.safeParse({ whatsapp: String(data.get("whatsapp") ?? "") });
     if (!parsed.success) {
-      const errors = parsed.error.flatten().fieldErrors;
+      const errors: Partial<Record<keyof CompleteProfileValues, string[]>> = parsed.error.flatten().fieldErrors;
       setFieldErrors({ whatsapp: errors.whatsapp?.[0], gender: errors.gender?.[0] });
       setFormError(null);
       return;
@@ -94,7 +101,7 @@ export function CompleteProfileForm({
           defaultValue={defaults.whatsapp}
           error={fieldErrors.whatsapp}
         />
-        <GenderField compact defaultValue={defaults.gender} error={fieldErrors.gender} />
+        {askGender ? <GenderField compact defaultValue={defaults.gender} error={fieldErrors.gender} /> : null}
       </div>
 
       {formError ? (

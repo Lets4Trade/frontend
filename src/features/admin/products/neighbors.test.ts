@@ -60,6 +60,7 @@ describe("getProductNeighbors — Central e entradas inválidas", () => {
     ordering.mockResolvedValueOnce({
       ok: true,
       truncated: false,
+      categoryOrders: {},
       items: [
         { id: "a", name: "A", priceCents: 1, serverId: "s1", ordered: true },
         { id: "b", name: "B", priceCents: 1, serverId: "s2", ordered: true },

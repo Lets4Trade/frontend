@@ -22,7 +22,7 @@ import {
 import { formatPhone } from "@/lib/masks";
 
 export const metadata: Metadata = {
-  title: "Propostas de venda | Lets4Trade",
+  title: "Propostas de venda",
   robots: { index: false, follow: false },
 };
 

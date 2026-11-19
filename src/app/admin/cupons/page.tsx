@@ -6,6 +6,7 @@ import { getAdminCoupons } from "@/features/admin/coupons/data";
 import {
   couponStatus,
   discountLabel,
+  formatCents,
   scopeLabel,
   usageLabel,
   validityLabel,
@@ -15,7 +16,7 @@ import { ADMIN_SHELL } from "@/features/admin/layout";
 import { cn } from "@/lib/cn";
 
 export const metadata: Metadata = {
-  title: "Cupons | Lets4Trade",
+  title: "Cupons",
   robots: { index: false, follow: false },
 };
 
@@ -85,7 +86,7 @@ export default async function AdminCouponsPage({
                 <li key={coupon.id}>
                   <Link
                     href={`/admin/cupons/${coupon.id}`}
-                    className="grid items-center gap-x-[24px] gap-y-[8px] rounded-[20px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[25px] py-[16px] transition-colors hover:border-brand-orange/50 md:grid-cols-[minmax(160px,1.2fr)_110px_110px_minmax(150px,1fr)_minmax(140px,1fr)_100px]"
+                    className="grid items-center gap-x-[24px] gap-y-[8px] rounded-[20px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[25px] py-[16px] transition-colors hover:border-brand-orange/50 md:grid-cols-[minmax(160px,1.2fr)_110px_110px_minmax(150px,1fr)_minmax(140px,1fr)_120px_130px_100px]"
                   >
                     <span className="min-w-0">
                       <span className="block truncate font-poppins text-[16px] font-bold tracking-[0.4px] text-white">{coupon.code}</span>
@@ -97,6 +98,8 @@ export default async function AdminCouponsPage({
                     <Cell label="Usos">{usageLabel(coupon)}</Cell>
                     <Cell label="Validade">{validityLabel(coupon)}</Cell>
                     <Cell label="Onde vale">{scopeLabel(coupon)}</Cell>
+                    <Cell label="Descontou">{formatCents(coupon.stats.discountCents)}</Cell>
+                    <Cell label="Faturamento">{formatCents(coupon.stats.revenueCents)}</Cell>
                     <span
                       className={cn(
                         "w-fit rounded-full px-[12px] py-[4px] font-poppins text-[12px] font-bold",

@@ -180,6 +180,14 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   output: "standalone",
 
+  // Termos e Política (2026-11-18): o texto é lido de `public/docs/` no
+  // servidor (`LegalDocument`). O rastreio já pega o `join(process.cwd(), …)`;
+  // isto garante os arquivos no `standalone` mesmo se o rastreio mudar.
+  outputFileTracingIncludes: {
+    "/termos": ["./public/docs/**/*"],
+    "/politica-de-privacidade": ["./public/docs/**/*"],
+  },
+
   // Type checking roda no editor/IDE — não durante o docker build na VPS.
   // ESLint não precisa de flag: o Next 16 removeu a integração com `next build`.
   /* ATENÇÃO: erros de TS existentes — remover após corrigir */

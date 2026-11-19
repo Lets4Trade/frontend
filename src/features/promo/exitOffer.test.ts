@@ -49,4 +49,13 @@ describe("exitOfferConfig", () => {
     expect(exitOfferConfig(section({ ativo: "ligado", dias: "9999" }))?.days).toBe(365);
     expect(exitOfferConfig(section({ ativo: "ligado", dias: "abc" }))?.days).toBe(7);
   });
+
+  it("arte do celular vem da segunda imagem da seção (2026-11-18)", () => {
+    const base = section({ ativo: "ligado" });
+    expect(exitOfferConfig({ ...base, imageUrl: "/pc.webp", secondaryImageUrl: "/cel.webp" })).toMatchObject({
+      imageUrl: "/pc.webp",
+      mobileImageUrl: "/cel.webp",
+    });
+    expect(exitOfferConfig(base)?.mobileImageUrl).toBeUndefined();
+  });
 });

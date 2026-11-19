@@ -191,6 +191,23 @@ export function VideoSection({
       >
         <VideoPlayer image={image} videoId={videoId} videoFile={videoFile} revealKind="wipe" />
       </div>
+      {/* Prisma decorativo (Figma 567:1446), no pé deste bloco. Até 2026-11-18
+          era do bloco de REVIEWS, com topo negativo (−223px): aparecia aqui,
+          mas no construtor de páginas pertencia ao bloco de baixo e ia junto
+          com ele (pedido do usuário: "ele aparece no bloco acima mas na
+          verdade está no de baixo"). Mesma posição na tela: 1835 − 223 = y 1612
+          no arquivo, 1612 − 1127 (topo deste bloco) = 485. O celular já o
+          desenhava neste bloco (`MobileVideo`). No FIM do bloco para ficar por
+          cima dos textos dele, como quando vinha do bloco seguinte. */}
+      <Image
+        src="/images/home/deco-prisma.webp"
+        alt=""
+        width={186}
+        height={186}
+        aria-hidden
+        className="deco-float pointer-events-none absolute top-[485px] left-[444.95px] size-[186.12px] object-cover"
+        style={{ ["--float-dur" as string]: "7.5s", ["--float-rot" as string]: "-4deg" }}
+      />
     </section>
   );
 }

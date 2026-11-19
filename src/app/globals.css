@@ -1727,6 +1727,25 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
    exato de um ciclo da fila. Ver `REVIEW_LOOP_WIDTH` em `reviews.ts`.
    -------------------------------------------------------------------------- */
 
+/* Faixa dos contadores da home (2026-11-18): logos do site correndo para a
+   esquerda, uma peça (`--logo-tile`) por volta, em laço. Só `transform`.
+   Parada para quem pede menos movimento. Ver `features/home/LogoBand.tsx`. */
+@keyframes logo-band {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(calc(var(--logo-tile, 322px) * -1), 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .logo-band-track {
+    animation: logo-band 14s linear infinite;
+    will-change: transform;
+  }
+}
+
 @keyframes reviews-marquee {
   from {
     transform: translate3d(0, 0, 0);

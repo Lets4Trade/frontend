@@ -1,7 +1,16 @@
 import { HeroBannerSlides } from "./HeroBannerSlides";
 import { HeroDeck } from "./HeroDeck";
 import type { SectionItemView } from "@/features/site/content";
-import { HERO_BANNER_WIDTH, HERO_DEFAULT_ART, HERO_HEIGHT, type HeroSlide } from "./heroGames";
+import { HomeNavTiles } from "./HomeNav";
+import {
+  HERO_BANNER_WIDTH,
+  HERO_CAPTION_TOP,
+  HERO_DEFAULT_ART,
+  HERO_HEIGHT,
+  HERO_NAV_LEFT,
+  HERO_NAV_TOP,
+  type HeroSlide,
+} from "./heroGames";
 
 /**
  * Hero da home (Figma 131:1504) — banner de 859×758 à esquerda e o slot de
@@ -15,6 +24,11 @@ import { HERO_BANNER_WIDTH, HERO_DEFAULT_ART, HERO_HEIGHT, type HeroSlide } from
  * a linha inteira e ancora nela o recorte da esteira, a moeda e as setas. O
  * banner vem DEPOIS no DOM e com `z-10` — a esteira some na borda dele, mas o
  * card sob o cursor sobe para `z-index: 1` e sem isso poderia passar na frente.
+ *
+ * COLUNA DA ESQUERDA desde 2026-11-18 (pedido do usuário): o banner vai só até
+ * a linha dos cards da direita; abaixo dele, as barrinhas do slide e a legenda
+ * ("Sua Loja de Gamecoins"); e, embaixo de tudo, os quatro atalhos (HOME,
+ * JOGOS, FIDELIDADE, VENDA PRA NÓS), que antes ficavam na faixa dos contadores.
  */
 const HERO_ART = HERO_DEFAULT_ART;
 
@@ -70,9 +84,15 @@ function HeroBanner({
     >
       <HeroBannerSlides fallbackImage={image} items={bannerImages} />
 
-      <p data-edit-field="home:hero:title" className="absolute top-[691px] left-[50px] font-helvetica text-[18px] leading-[17px] font-bold tracking-[0.18px] text-white">
+      <p
+        data-edit-field="home:hero:title"
+        className="absolute left-0 w-full text-center font-helvetica text-[18px] leading-[17px] font-bold tracking-[0.18px] text-white"
+        style={{ top: HERO_CAPTION_TOP }}
+      >
         {caption}
       </p>
+
+      <HomeNavTiles originLeft={HERO_NAV_LEFT} top={HERO_NAV_TOP} />
     </div>
   );
 }

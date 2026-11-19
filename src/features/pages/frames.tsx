@@ -40,9 +40,14 @@ export function WideFrame({ children }: { children: ReactNode }) {
  */
 export function GameFrame({ children, glow }: { children: ReactNode; glow?: ReactNode }) {
   return (
-    <div className="flex-1">
+    // O BRILHO mora na caixa da TELA, não na moldura de 1920 (2026-11-18,
+    // pedido do usuário — o mesmo corte que a home tinha): o `overflow-x-clip`
+    // da moldura cortava o brilho numa reta onde a tela passa de 1920 (monitor
+    // de 1920 com o site a 80% = 2400 de área, borda em x=240). Aqui ele
+    // encosta na borda da tela e só a borda da tela o corta.
+    <div className="relative flex-1 overflow-x-clip">
+      {glow}
       <div className="relative mx-auto w-full max-w-[1920px] overflow-x-clip">
-        {glow}
         <div className="fit-1714 relative mx-auto w-full px-[16px] pt-[24px] pb-[60px] md:px-[32px] lg:px-[48px] desk:w-[1714px] desk:px-0 desk:pt-[50px] desk:pb-[100px]">
           {children}
         </div>

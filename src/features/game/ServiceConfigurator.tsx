@@ -1,5 +1,6 @@
 "use client";
 
+import { QuantityField } from "@/features/cart/QuantityField";
 import Image from "next/image";
 import { useId, useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
@@ -739,9 +740,14 @@ function UnitStepper({
       >
         −
       </button>
-      <span aria-live="polite" className="min-w-[24px] text-center font-poppins text-[18px] font-bold text-white tabular-nums">
-        {value}
-      </span>
+      {/* Digitável (2026-11-18, pedido do usuário), como no card de produto. */}
+      <QuantityField
+        value={value}
+        max={max}
+        onChange={(next) => onChange(() => next)}
+        label={`Quantidade de ${label}`}
+        className="h-[40px] min-w-[24px] text-[18px]"
+      />
       <button
         type="button"
         className={STEP_BUTTON}

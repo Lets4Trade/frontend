@@ -15,7 +15,7 @@ import { backendAsset } from "@/lib/publicApi";
 import { gameHref } from "@/features/game/href";
 
 export const metadata: Metadata = {
-  title: "Jogos | Lets4Trade",
+  title: "Jogos",
   robots: { index: false, follow: false },
 };
 

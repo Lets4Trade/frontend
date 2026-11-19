@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   ALL,
   applyVisibleOrder,
+  categoryOrder,
+  cutFilters,
   EMPTY_FILTERS,
+  orderScope,
+  sameOrder,
   matchesFilters,
   moveSelection,
   moveSelectionTo,
@@ -92,5 +96,54 @@ describe("moveSelectionTo / rangeBetween", () => {
   it("Shift+clique pega o intervalo nos dois sentidos", () => {
     expect(rangeBetween(list, "b", "d")).toEqual(["b", "c", "d"]);
     expect(rangeBetween(list, "d", "b")).toEqual(["b", "c", "d"]);
+  });
+});
+
+describe("ordem própria da categoria (2026-11-18)", () => {
+  const categories = [
+    { id: "armas", label: "Armas" },
+    { id: "chaves", label: "Chaves", parentId: "armas" },
+    { id: "moedas", label: "Moedas" },
+  ];
+  const products = new Map(
+    [
+      { id: "a", name: "A", categoryId: "armas" },
+      { id: "b", name: "B", categoryId: "chaves" },
+      { id: "c", name: "C", categoryId: "moedas", extraCategoryIds: ["chaves"] },
+      { id: "d", name: "D", categoryId: "chaves" },
+    ].map((product) => [product.id, product]),
+  );
+  const tab = ["a", "b", "c", "d"];
+
+  it("escolhe a lista pelo filtro: subcategoria > categoria > aba", () => {
+    expect(orderScope({ category: ALL, subcategory: ALL })).toBeNull();
+    expect(orderScope({ category: NONE, subcategory: ALL })).toBeNull();
+    expect(orderScope({ category: "armas", subcategory: ALL })).toBe("armas");
+    expect(orderScope({ category: "armas", subcategory: "chaves" })).toBe("chaves");
+    expect(cutFilters({ search: "x", server: "s1", category: "armas", subcategory: "chaves" })).toEqual({
+      search: "x",
+      server: "s1",
+      category: ALL,
+      subcategory: ALL,
+    });
+  });
+
+  it("sem ordem gravada, a categoria segue a ordem da aba (extras contam)", () => {
+    expect(categoryOrder(tab, "chaves", undefined, products, categories)).toEqual(["b", "c", "d"]);
+    // Categoria de 1º nível inclui as filhas.
+    expect(categoryOrder(tab, "armas", undefined, products, categories)).toEqual(["a", "b", "c", "d"]);
+  });
+
+  it("gravados primeiro; quem saiu da categoria some; novos vão para o fim", () => {
+    expect(categoryOrder(tab, "chaves", ["d", "a", "b"], products, categories)).toEqual(["d", "b", "c"]);
+  });
+
+  it("mexer na categoria não muda a ordem da aba", () => {
+    const list = categoryOrder(tab, "chaves", undefined, products, categories);
+    const moved = applyVisibleOrder(list, list, ["d", "b", "c"]);
+    expect(moved).toEqual(["d", "b", "c"]);
+    expect(tab).toEqual(["a", "b", "c", "d"]);
+    expect(sameOrder(moved, list)).toBe(false);
+    expect(sameOrder(list, ["b", "c", "d"])).toBe(true);
   });
 });

@@ -12,6 +12,7 @@ import {
   scopeLabel,
   toAdminCoupon,
   toAdminCouponPage,
+  toCouponStats,
   toTargetGames,
   usageLabel,
   validityLabel,
@@ -79,6 +80,26 @@ describe("toAdminCoupon", () => {
     expect(toTargetGames([{ id: "g1", name: "Diablo", tabs: [{ id: "t1", label: "Gold" }] }, { id: "!" }])).toEqual([
       { id: "g1", name: "Diablo", tabs: [{ id: "t1", label: "Gold" }] },
     ]);
+  });
+});
+
+describe("toCouponStats (métricas, 2026-11-18)", () => {
+  it("lê as métricas; ausente ou lixo = zero", () => {
+    expect(toCouponStats({ orders: 3, discountCents: 3000, revenueCents: 26000, grossCents: 30000 })).toEqual({
+      orders: 3,
+      discountCents: 3000,
+      revenueCents: 26000,
+      grossCents: 30000,
+    });
+    expect(toCouponStats(undefined)).toEqual({ orders: 0, discountCents: 0, revenueCents: 0, grossCents: 0 });
+    expect(toCouponStats({ orders: -1, discountCents: "10", revenueCents: 1.5 })).toEqual({
+      orders: 0,
+      discountCents: 0,
+      revenueCents: 0,
+      grossCents: 0,
+    });
+    // O cupom traz as métricas junto; sem elas (backend apagou os zeros), zera.
+    expect(toAdminCoupon({ id: "c1", kind: "FIXED", value: 1 })?.stats.orders).toBe(0);
   });
 });
 

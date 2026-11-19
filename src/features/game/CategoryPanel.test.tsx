@@ -1,8 +1,11 @@
-import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CategoryPanel } from "./CatalogFilters";
 import type { CatalogQuery } from "./catalog";
 import type { GameCategory, GamePage } from "./types";
+
+const push = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
 const items: GameCategory[] = [
   {
@@ -34,55 +37,63 @@ const query = (categories: string[]): CatalogQuery => ({
   page: 1,
 });
 
-describe("CategoryPanel", () => {
-  it("sem escolha: só o quadro das categorias, com \"Todos\" primeiro e marcado", () => {
+const optionLabels = (select: HTMLElement) => within(select).getAllByRole("option").map((option) => option.textContent);
+
+describe("CategoryPanel (selects, 2026-11-18)", () => {
+  beforeEach(() => push.mockClear());
+
+  it("sem escolha: um select só, com \"Todos\" primeiro e marcado", () => {
     render(<CategoryPanel page={page} query={query([])} />);
-    expect(screen.getAllByRole("radiogroup")).toHaveLength(1);
-    const radios = screen.getAllByRole("radio");
-    expect(radios.map((radio) => radio.textContent)).toEqual(["Todos", "Orbs", "Itens"]);
-    expect(screen.getByRole("radio", { checked: true }).textContent).toBe("Todos");
-    expect(radios[0].getAttribute("href")).not.toContain("categoria=");
-    // Escolher leva a UMA categoria só.
-    expect(screen.getByRole("radio", { name: "Orbs" }).getAttribute("href")).toContain("categoria=orbs");
+    const [top, ...rest] = screen.getAllByRole("combobox");
+    expect(rest).toHaveLength(0);
+    expect(screen.getByRole("combobox", { name: "Categoria" })).toBe(top);
+    expect(optionLabels(top)).toEqual(["Todos", "Orbs", "Itens"]);
+    expect((top as HTMLSelectElement).selectedOptions[0].textContent).toBe("Todos");
   });
 
-  it("categoria com filhas escolhida: quadro de subcategorias embaixo, com check verde na escolhida", () => {
-    const { container } = render(<CategoryPanel page={page} query={query(["orbs"])} />);
-    const [top, sub] = screen.getAllByRole("radiogroup");
-    expect(sub.getAttribute("aria-label")).toBe("Subcategorias de Orbs");
-    expect(within(top).queryByRole("radio", { name: "Divine" })).toBeNull();
-    expect(within(sub).getAllByRole("radio").map((radio) => radio.textContent)).toEqual(["Todos", "Divine", "Chaos"]);
-    // "Todos" das subcategorias = só a mãe, e marcado enquanto nenhuma filha é escolhida.
-    const subAll = within(sub).getByRole("radio", { name: "Todos" });
-    expect(subAll.getAttribute("aria-checked")).toBe("true");
-    expect(subAll.getAttribute("href")).toContain("categoria=orbs");
-    expect(within(top).getByRole("radio", { name: "Todos" }).getAttribute("aria-checked")).toBe("false");
+  it("escolher navega para a URL do filtro, sem subir a página", () => {
+    render(<CategoryPanel page={page} query={query([])} />);
+    fireEvent.change(screen.getByRole("combobox", { name: "Categoria" }), { target: { value: "orbs" } });
+    expect(push).toHaveBeenCalledTimes(1);
+    const [href, options] = push.mock.calls[0];
+    expect(href).toContain("categoria=orbs");
+    expect(href).toContain("servidor=sc");
+    expect(options).toEqual({ scroll: false });
+  });
 
-    const orbs = within(top).getByRole("radio", { name: "Orbs" });
-    expect(orbs.getAttribute("aria-checked")).toBe("true");
-    expect(orbs.querySelector("svg")).not.toBeNull();
-    // Check verde: a mãe e o "Todos" das subcategorias.
-    expect(container.querySelectorAll("svg")).toHaveLength(2);
-    // Clicar de novo na escolhida desmarca (link sem categoria).
-    expect(orbs.getAttribute("href")).not.toContain("categoria=");
+  it("categoria com filhas: segundo select com as subcategorias; \"Todos\" dele = só a mãe", () => {
+    render(<CategoryPanel page={page} query={query(["orbs"])} />);
+    const top = screen.getByRole("combobox", { name: "Categoria" }) as HTMLSelectElement;
+    const sub = screen.getByRole("combobox", { name: "Subcategoria de Orbs" }) as HTMLSelectElement;
+    expect(top.value).toBe("orbs");
+    expect(optionLabels(sub)).toEqual(["Todos", "Divine", "Chaos"]);
+    expect(sub.selectedOptions[0].textContent).toBe("Todos");
+
     // Outra categoria SUBSTITUI a escolhida.
-    const itens = within(top).getByRole("radio", { name: "Itens" }).getAttribute("href") ?? "";
-    expect(itens).toContain("categoria=itens");
-    expect(itens).not.toContain("categoria=orbs");
+    fireEvent.change(top, { target: { value: "itens" } });
+    expect(push.mock.calls[0][0]).toContain("categoria=itens");
+    expect(push.mock.calls[0][0]).not.toContain("categoria=orbs");
+
+    // "Todos" no de cima tira o filtro.
+    fireEvent.change(top, { target: { value: "__todos" } });
+    expect(push.mock.calls[1][0]).not.toContain("categoria=");
   });
 
-  it("subcategoria escolhida: a mãe CONTINUA marcada, as duas com check verde", () => {
+  it("subcategoria escolhida: a mãe CONTINUA no primeiro select", () => {
     render(<CategoryPanel page={page} query={query(["divine"])} />);
-    const [top, sub] = screen.getAllByRole("radiogroup");
-    const orbs = within(top).getByRole("radio", { name: "Orbs" });
-    const divine = within(sub).getByRole("radio", { name: "Divine" });
-    expect(orbs.getAttribute("aria-checked")).toBe("true");
-    expect(orbs.querySelector("svg")).not.toBeNull();
-    expect(divine.getAttribute("aria-checked")).toBe("true");
-    expect(divine.querySelector("svg")).not.toBeNull();
-    expect(within(sub).getByRole("radio", { name: "Todos" }).getAttribute("aria-checked")).toBe("false");
-    // Clicar de novo na subcategoria volta para só a mãe.
-    expect(divine.getAttribute("href")).toContain("categoria=orbs");
-    expect(divine.getAttribute("href")).not.toContain("categoria=divine");
+    const top = screen.getByRole("combobox", { name: "Categoria" }) as HTMLSelectElement;
+    const sub = screen.getByRole("combobox", { name: "Subcategoria de Orbs" }) as HTMLSelectElement;
+    expect(top.value).toBe("orbs");
+    expect(sub.value).toBe("divine");
+
+    // "Todos" das subcategorias volta para a mãe inteira.
+    fireEvent.change(sub, { target: { value: "__todos" } });
+    expect(push.mock.calls[0][0]).toContain("categoria=orbs");
+    expect(push.mock.calls[0][0]).not.toContain("categoria=divine");
+  });
+
+  it("categoria sem filhas: sem o segundo select", () => {
+    render(<CategoryPanel page={page} query={query(["itens"])} />);
+    expect(screen.getAllByRole("combobox")).toHaveLength(1);
   });
 });

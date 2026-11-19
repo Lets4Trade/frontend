@@ -26,6 +26,7 @@ function coupon(over: Partial<AdminCoupon>): AdminCoupon {
     maxUses: null,
     maxUsesPerUser: null,
     usedCount: 0,
+    stats: { orders: 0, discountCents: 0, revenueCents: 0, grossCents: 0 },
     gameIds: [],
     tabIds: [],
     productIds: [],

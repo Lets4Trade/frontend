@@ -7,7 +7,7 @@ import { getAdminGames } from "@/features/admin/catalog";
 import { requirePanelArea } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
-  title: "Editar post | Lets4Trade",
+  title: "Editar post",
   robots: { index: false, follow: false },
 };
 

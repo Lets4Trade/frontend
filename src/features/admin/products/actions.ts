@@ -377,6 +377,11 @@ export async function saveProductOrderAction(
   /** A aba do jogo (`tabId`, abas por jogo 2026-09-28). */
   tabId: string,
   ids: string[],
+  /**
+   * Ordem PRÓPRIA de uma categoria/subcategoria (2026-11-18). Ausente = a ordem
+   * da aba inteira.
+   */
+  categoryId?: string,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const role = await getSessionRole();
   if (!canAccess(role, "catalog")) {
@@ -384,6 +389,9 @@ export async function saveProductOrderAction(
   }
   if (!isValidId(tabId)) {
     return { ok: false, message: "Aba inválida." };
+  }
+  if (categoryId !== undefined && !isValidId(categoryId)) {
+    return { ok: false, message: "Categoria inválida." };
   }
   if (
     typeof gameId !== "string" ||
@@ -400,6 +408,7 @@ export async function saveProductOrderAction(
     gameId,
     tabId,
     ids: [...ids],
+    ...(categoryId ? { categoryId } : {}),
   });
   if (!response.ok) {
     return {

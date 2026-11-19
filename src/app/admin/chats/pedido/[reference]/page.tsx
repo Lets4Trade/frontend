@@ -8,7 +8,7 @@ import { ADMIN_SHELL } from "@/features/admin/layout";
 import { apiGet } from "@/lib/serverApi";
 
 export const metadata: Metadata = {
-  title: "Chat do pedido | Lets4Trade",
+  title: "Chat do pedido",
   robots: { index: false, follow: false },
 };
 

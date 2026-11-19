@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeCategory, buildHref, categoryChoice, parseCatalogQuery, scopedCategories } from "./catalog";
+import { activeCategory, buildHref, parseCatalogQuery, scopedCategories } from "./catalog";
 import { tabsFromApi, toGameCategories } from "./storefrontTabs";
 import type { GamePage } from "./types";
 
@@ -68,20 +68,6 @@ describe("categoria: seleção única (2026-10-08)", () => {
     { slug: "orbs", label: "Orbs", children: [{ slug: "divine", label: "Divine" }] },
     { slug: "itens", label: "Itens" },
   ] as never);
-
-  it("categoryChoice: topo troca/limpa; subcategoria escolhe e, de novo, volta para a mãe", () => {
-    const [orbs, itens] = items;
-    const divine = orbs.children[0];
-    expect(categoryChoice(query, orbs, null)).toEqual([orbs.id]);
-    const onOrbs = { ...query, categories: [orbs.id] };
-    expect(categoryChoice(onOrbs, itens, orbs)).toEqual([itens.id]);
-    expect(categoryChoice(onOrbs, orbs, orbs)).toEqual([]);
-    expect(categoryChoice(onOrbs, divine, orbs)).toEqual([divine.id]);
-    const onDivine = { ...query, categories: [divine.id] };
-    expect(categoryChoice(onDivine, divine, orbs)).toEqual([orbs.id]);
-    // Mãe marcada (por causa da filha): clicar nela limpa tudo.
-    expect(categoryChoice(onDivine, orbs, orbs)).toEqual([]);
-  });
 
   it("activeCategory é a escolhida ou a mãe da subcategoria escolhida", () => {
     expect(activeCategory(items, query)).toBeNull();

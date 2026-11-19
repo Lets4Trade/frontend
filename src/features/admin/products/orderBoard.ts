@@ -4,10 +4,12 @@
  * multisseleção"). Fora do componente para serem testadas.
  *
  * ── Ordem com filtro ───────────────────────────────────────────────────────
- * A ordem salva é a da ABA inteira (o backend grava a lista completa). Com um
- * filtro ligado, mexer só nos produtos visíveis NÃO pode embaralhar os
- * escondidos: os visíveis trocam de lugar ENTRE AS POSIÇÕES QUE JÁ OCUPAVAM
- * (`applyVisibleOrder`), e cada escondido fica exatamente onde estava.
+ * Desde 2026-11-18 cada CATEGORIA/SUBCATEGORIA tem a sua própria ordem
+ * (`orderScope`/`categoryOrder`): escolher uma no filtro troca a LISTA que se
+ * organiza, e a lista da aba inteira (sem categoria) não muda.
+ * Busca e servidor só recortam a lista escolhida: mexer nos visíveis NÃO pode
+ * embaralhar os escondidos — os visíveis trocam de lugar ENTRE AS POSIÇÕES QUE
+ * JÁ OCUPAVAM (`applyVisibleOrder`), e cada escondido fica onde estava.
  */
 
 /** O que o filtro precisa de cada produto (subconjunto de `OrderableProduct`). */
@@ -75,6 +77,55 @@ export function matchesFilters(
     return own.some((id) => family.has(id));
   }
   return true;
+}
+
+/**
+ * Qual LISTA o quadro está organizando (2026-11-18, pedido do usuário: mexer em
+ * "Chaves" mudava a lista sem filtro). Subcategoria escolhida = a ordem dela;
+ * categoria escolhida = a dela; sem categoria (ou "Sem categoria") = a da aba
+ * inteira (`null`). Busca e servidor só recortam a lista escolhida.
+ */
+export function orderScope(filters: Pick<OrderFilters, "category" | "subcategory">): string | null {
+  if (filters.subcategory !== ALL) return filters.subcategory;
+  if (filters.category !== ALL && filters.category !== NONE) return filters.category;
+  return null;
+}
+
+/** Os filtros de busca e servidor, sem o de categoria (que vira a lista). */
+export function cutFilters(filters: OrderFilters): OrderFilters {
+  return { ...filters, category: ALL, subcategory: ALL };
+}
+
+/**
+ * A lista de uma categoria: os produtos dela (principal ou extra; categoria de
+ * 1º nível inclui as filhas) — primeiro os que já têm posição gravada NELA, na
+ * ordem gravada; depois o resto, na ordem da aba (`tabOrder`). Espelha o
+ * `sortByCategoryPosition` do backend, que é o que a vitrine mostra.
+ */
+export function categoryOrder(
+  tabOrder: readonly string[],
+  categoryId: string,
+  savedForCategory: readonly string[] | undefined,
+  products: ReadonlyMap<string, FilterableProduct>,
+  categories: readonly OrderCategory[],
+): string[] {
+  const isSub = categories.some((category) => category.id === categoryId && category.parentId);
+  const filters: OrderFilters = isSub
+    ? { ...EMPTY_FILTERS, subcategory: categoryId }
+    : { ...EMPTY_FILTERS, category: categoryId };
+  const members = tabOrder.filter((id) => {
+    const product = products.get(id);
+    return product ? matchesFilters(product, filters, categories) : false;
+  });
+  const memberSet = new Set(members);
+  const placed = (savedForCategory ?? []).filter((id) => memberSet.has(id));
+  const placedSet = new Set(placed);
+  return [...placed, ...members.filter((id) => !placedSet.has(id))];
+}
+
+/** Duas listas iguais, na mesma ordem. */
+export function sameOrder(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((id, index) => id === b[index]);
 }
 
 /**

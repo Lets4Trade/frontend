@@ -6,7 +6,7 @@ import { getAdminLoyaltyTiers } from "@/features/admin/loyalty/data";
 import { LoyaltyTiersEditor } from "@/features/admin/loyalty/LoyaltyTiersEditor";
 
 export const metadata: Metadata = {
-  title: "Níveis de fidelidade | Lets4Trade",
+  title: "Níveis de fidelidade",
   robots: { index: false, follow: false },
 };
 

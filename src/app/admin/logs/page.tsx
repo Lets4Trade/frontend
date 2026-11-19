@@ -16,7 +16,7 @@ import { ADMIN_SHELL } from "@/features/admin/layout";
 import { requirePanelArea } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
-  title: "Logs | Lets4Trade",
+  title: "Logs",
   robots: { index: false, follow: false },
 };
 

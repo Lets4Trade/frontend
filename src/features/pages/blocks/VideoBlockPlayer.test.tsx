@@ -2,6 +2,10 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { VideoBlockPlayer } from "./VideoBlockPlayer";
 
+// YouTube só toca sozinho com "Vídeos do YouTube" aceito no aviso de cookies
+// (2026-11-03) — o teste é de quem aceitou.
+vi.mock("@/features/consent/consent", () => ({ hasConsent: () => true }));
+
 /** Vídeo que toca sozinho ao aparecer (2026-10-16). */
 
 let trigger: (ratio: number) => void = () => undefined;
@@ -42,7 +46,40 @@ describe("VideoBlockPlayer", () => {
     expect(src).toMatch(/^https:\/\/www\.youtube-nocookie\.com\/embed\/HF8sUrLFo4U\?/);
     expect(src).toContain("autoplay=1");
     expect(src).toContain("mute=1");
+
+    // Nasce invisível e sem "Ativar som" até o YouTube dizer que está tocando
+    // (2026-11-18: sem a piscada da capa para o vazio).
+    const frame = container.querySelector("iframe") as HTMLIFrameElement;
+    expect(frame.className).toContain("opacity-0");
+    expect(screen.queryByRole("button", { name: /Ativar som/ })).toBeNull();
+
+    act(() => {
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: JSON.stringify({ event: "infoDelivery", info: { playerState: 1 } }),
+          origin: "https://www.youtube-nocookie.com",
+          source: frame.contentWindow,
+        }),
+      );
+    });
+    expect(frame.className).toContain("opacity-100");
     expect(screen.getByRole("button", { name: /Ativar som/ })).toBeInTheDocument();
+  });
+
+  it("mensagem de OUTRA origem não revela o player", () => {
+    const { container } = render(<VideoBlockPlayer videoId="HF8sUrLFo4U" title="Vídeo" />);
+    act(() => trigger(0.6));
+    const frame = container.querySelector("iframe") as HTMLIFrameElement;
+    act(() => {
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: JSON.stringify({ event: "infoDelivery", info: { playerState: 1 } }),
+          origin: "https://evil.example",
+          source: frame.contentWindow,
+        }),
+      );
+    });
+    expect(frame.className).toContain("opacity-0");
   });
 
   it("quem pediu menos movimento fica com a capa; o play monta o player", () => {

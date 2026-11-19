@@ -12,8 +12,11 @@ import { HomeMotion } from "@/features/home/HomeMotion";
 import { getHomeItems } from "@/features/home/homeNews";
 import { composeBlocks, legacyNodesFrom } from "@/features/pages/compose";
 import { getPublishedPage } from "@/features/pages/public";
+import { SITE_DEFAULT_PHRASE, withSiteName } from "@/lib/siteTitle";
 
-const OG_TITLE = "Lets4Trade";
+// Título inteiro aqui: o `title.template` do layout raiz não vale para a página
+// do mesmo segmento (a home).
+const OG_TITLE = withSiteName(SITE_DEFAULT_PHRASE);
 const OG_DESCRIPTION = "Sua loja de gamecoins.";
 
 export const metadata: Metadata = {
@@ -25,7 +28,7 @@ export const metadata: Metadata = {
     description: OG_DESCRIPTION,
     url: "/",
     type: "website",
-    siteName: OG_TITLE,
+    siteName: "Lets4Trade",
   },
 };
 
@@ -131,9 +134,16 @@ export default async function Home() {
             mais larga que ela (com o site a 80%, já num monitor de 1920) a
             borda caía no meio da página e o brilho aparecia cortado ao meio.
             `overflow-x-clip` aqui para nada criar rolagem lateral. */}
-        <div className="relative hidden flex-1 overflow-x-clip min-[1185px]:block">
-          <HomeBackdrop />
-          <div className="relative mx-auto w-full max-w-[1920px] overflow-x-clip">
+        {/* Faixa dos contadores de borda a borda (2026-11-18): ela se posiciona
+            por ESTA caixa (a tela inteira), e não pela moldura de 1920 — que
+            continua cortando o resto, mas por isso deixou de ser `relative`.
+            Sem o `relative` da moldura, quem põe os brilhos ATRÁS do conteúdo
+            é o `isolate` daqui + o `-z-10` do fundo. */}
+        <div className="relative isolate hidden flex-1 overflow-x-clip min-[1185px]:block">
+          <div className="absolute inset-0 -z-10">
+            <HomeBackdrop />
+          </div>
+          <div className="mx-auto w-full max-w-[1920px] overflow-x-clip">
 
             <div className="fit-1820 mx-auto w-[1820px] pt-[37px] pb-[100px]">
               {/* Os blocos vêm de `homeBlocks`, na ordem do banco. O vão acompanha

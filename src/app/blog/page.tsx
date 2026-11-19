@@ -9,6 +9,7 @@ import { getBlogGames, getBlogList } from "@/features/blog/data";
 import { gameListTitle, getBlogTexts } from "@/features/blog/texts";
 import { blogListHref, parseBlogQuery, type BlogQuery } from "@/features/blog/query";
 import type { BlogGameRef, BlogListView } from "@/features/blog/types";
+import { withSiteName } from "@/lib/siteTitle";
 
 type RouteSearch = Record<string, string | string[] | undefined>;
 
@@ -23,7 +24,8 @@ export async function generateMetadata({
   const games = await getBlogGames();
   const gameName = games.find((game) => game.slug === query.game)?.name;
 
-  const title = gameName ? `Blog de ${gameName} | Lets4Trade` : "Blog | Lets4Trade";
+  // Só a frase: a marca entra pelo template do layout raiz.
+  const title = gameName ? `Notícias e guias de ${gameName}` : "Notícias e guias de jogos";
   const description = gameName
     ? `Guias, novidades e atualizações de ${gameName} no blog da Lets4Trade.`
     : "Blog da Lets4Trade: guias, novidades e atualizações dos seus jogos.";
@@ -36,7 +38,13 @@ export async function generateMetadata({
     // Resultado de BUSCA não é página para indexar: seria um endereço por termo
     // digitado, conteúdo duplicado da lista. Os links continuam seguidos.
     ...(query.search ? { robots: { index: false, follow: true } } : {}),
-    openGraph: { title, description, url: canonical, type: "website", siteName: "Lets4Trade" },
+    openGraph: {
+      title: withSiteName(title),
+      description,
+      url: canonical,
+      type: "website",
+      siteName: "Lets4Trade",
+    },
   };
 }
 

@@ -36,7 +36,17 @@ describe("toBlogCard", () => {
       date: "27/09/26",
       game: { slug: "path-of-exile-2", name: "Path of Exile 2", logo: "http://api.test/uploads/games/p.webp" },
       href: "/blog/nova-liga",
+      author: null,
     });
+  });
+
+  it("autor do card (2026-11-18): nome, foto absoluta e cargo", () => {
+    const card = toBlogCard({
+      slug: "nova-liga",
+      title: "Nova liga",
+      author: { name: "Daniel Souza", avatarUrl: "/uploads/avatars/d.webp", title: "Especialista" },
+    });
+    expect(card?.author).toEqual({ name: "Daniel Souza", avatar: "http://api.test/uploads/avatars/d.webp", title: "Especialista" });
   });
 
   it("campos ausentes (backend apaga nulos) viram vazio/null", () => {

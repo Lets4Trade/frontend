@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { BlogAuthor } from "./BlogAuthor";
 import type { BlogCardView } from "./types";
 
 /**
@@ -40,14 +41,17 @@ export function BlogCard({
       <article
         className={
           wide
-            ? "flex flex-col overflow-hidden rounded-[30px] border-2 border-white/10 transition-colors group-hover:border-white/20 lg:h-[376px] lg:flex-row"
+            ? "flex flex-col overflow-hidden rounded-[30px] border-2 border-white/10 transition-colors group-hover:border-white/20 lg:h-[300px] lg:flex-row xl:h-[340px] 2xl:h-[376px]"
             : "flex h-full flex-col overflow-hidden rounded-[30px] border-2 border-white/10 transition-colors group-hover:border-white/20"
         }
       >
         <div
           className={
             wide
-              ? "relative aspect-video w-full shrink-0 bg-[#2f2f2f] lg:aspect-auto lg:h-full lg:w-[513px]"
+              ? // A capa no formato DA ARTE (2026-11-18, pedido do usuário: a
+                // miniatura cortava): 16:9, o 1280×720 pedido no painel. A
+                // largura acompanha a altura do card (300/340/376 → 533/604/668).
+                "relative aspect-video w-full shrink-0 bg-[#2f2f2f] lg:aspect-auto lg:h-full lg:w-[533px] xl:w-[604px] 2xl:w-[668px]"
               : "relative aspect-video w-full shrink-0 bg-[#2f2f2f]"
           }
         >
@@ -58,7 +62,7 @@ export function BlogCard({
               fill
               // A capa é decorativa: o título logo ao lado já descreve a
               // matéria, e repeti-lo no `alt` faria o leitor de tela ler duas vezes.
-              sizes={wide ? "(min-width: 1024px) 513px, 100vw" : "(min-width: 1024px) 540px, 100vw"}
+              sizes={wide ? "(min-width: 1536px) 668px, (min-width: 1024px) 604px, 100vw" : "(min-width: 1024px) 540px, 100vw"}
               priority={priority}
               className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
             />
@@ -91,7 +95,7 @@ export function BlogCard({
         <div
           className={
             wide
-              ? "flex min-w-0 flex-1 flex-col py-[24px] pr-[20px] pl-[20px] lg:pt-[48px] lg:pr-[50px] lg:pb-0 lg:pl-[48px]"
+              ? "flex min-w-0 flex-1 flex-col py-[24px] pr-[20px] pl-[20px] lg:pt-[30px] lg:pr-[50px] lg:pb-0 lg:pl-[48px] xl:pt-[40px] 2xl:pt-[48px]"
               : "flex min-w-0 flex-1 flex-col px-[24px] py-[24px]"
           }
         >
@@ -104,14 +108,17 @@ export function BlogCard({
               // Largo: caixa de 4 linhas FIXA (80px) — a linha jogo · data fica
               // sempre em y=194 do card, como no arquivo, com resumo curto ou longo.
               className={`mt-[15px] max-w-[1099px] font-helvetica text-[16px] leading-[20px] tracking-[0.16px] text-brand-placeholder ${
-                wide ? "line-clamp-4 lg:h-[80px]" : "line-clamp-3"
+                wide ? "line-clamp-4 lg:h-[60px] lg:line-clamp-3 xl:h-[80px] xl:line-clamp-4" : "line-clamp-3"
               }`}
             >
               {post.excerpt}
             </p>
           ) : null}
 
-          <PostMeta post={post} className={wide ? (post.excerpt ? "mt-[22px]" : "mt-[117px]") : "mt-auto pt-[20px]"} />
+          <PostMeta post={post} className={wide ? "mt-[18px] xl:mt-[22px]" : "mt-auto pt-[20px]"} />
+          {/* Autor sob "jogo | data" (2026-11-18, pedido do usuário): ocupa o
+              vazio do card largo. */}
+          {wide && post.author ? <BlogAuthor author={post.author} size="sm" className="mt-[16px] xl:mt-[22px]" /> : null}
         </div>
       </article>
     </Link>

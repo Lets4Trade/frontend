@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { formatCents, formatHours, isServiceItem, maxQuantityOf, minQuantityOf, useCart, type CartItem } from "./store";
 import { lineTotalCents } from "@/features/pricing/quote";
+import { QuantityField } from "./QuantityField";
 
 /**
  * Uma linha COMPACTA: miniatura 72px, nome (até 2 linhas), servidor e — no
@@ -74,9 +75,15 @@ export function CartRow({ item }: { item: CartItem }) {
               >
                 −
               </StepButton>
-              <span aria-live="polite" className="min-w-[26px] px-[2px] text-center font-poppins text-[14px] font-bold text-white tabular-nums">
-                {item.quantity}
-              </span>
+              {/* Digitável (2026-11-18): "10000000" sem clicar no + milhões de vezes. */}
+              <QuantityField
+                value={item.quantity}
+                min={min}
+                max={max}
+                onChange={(quantity) => setQuantity(item.id, quantity)}
+                label={`Quantidade de ${item.name}`}
+                className="h-[32px] min-w-[26px] px-[2px] text-[14px]"
+              />
               <StepButton
                 label={`Aumentar a quantidade de ${item.name}`}
                 disabled={item.quantity >= max}

@@ -1,7 +1,7 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
-import Image from "next/image";
+import { getImageProps } from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -239,11 +239,7 @@ export function ExitIntentCoupon({ offer, config }: { offer: ExitOffer; config: 
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[60] bg-black/75 backdrop-blur-[2px]" />
         <Dialog.Content className="fixed top-1/2 left-1/2 z-[60] w-[440px] max-w-[calc(var(--vw)-32px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[28px] border border-brand-orange/50 bg-brand-surface shadow-[0_24px_60px_rgba(0,0,0,.6)] outline-none">
-          {config.imageUrl ? (
-            <div className="relative h-[200px] w-full bg-black/40">
-              <Image src={config.imageUrl} alt="" fill sizes="440px" className="object-cover" />
-            </div>
-          ) : null}
+          <OfferArt desktop={config.imageUrl} mobile={config.mobileImageUrl} />
 
           <div className="px-[28px] pt-[26px] pb-[24px] text-center">
             <Dialog.Title className="px-[22px] font-poppins text-[22px] leading-[28px] font-bold text-white">
@@ -258,7 +254,10 @@ export function ExitIntentCoupon({ offer, config }: { offer: ExitOffer; config: 
             </p>
 
             <div className="mt-[12px] flex items-center gap-[10px] rounded-[16px] border border-dashed border-brand-orange/70 bg-black/30 p-[8px] pl-[18px]">
-              <span className="min-w-0 flex-1 truncate text-left font-mono text-[20px] font-bold tracking-[0.12em] text-white select-all">
+              {/* Sem "…" (2026-11-18, pedido do usuário): o código é o que a
+                  pessoa digita no carrinho — cortado, não serve. Código longo
+                  quebra a linha; no celular a letra é um pouco menor. */}
+              <span className="min-w-0 flex-1 text-left font-mono text-[17px] leading-[24px] font-bold tracking-[0.06em] break-all text-white select-all sm:text-[20px] sm:tracking-[0.12em]">
                 {offer.code}
               </span>
               <button
@@ -297,5 +296,33 @@ export function ExitIntentCoupon({ offer, config }: { offer: ExitOffer; config: 
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+  );
+}
+
+/** Celular: abaixo disto entra a arte do celular, quando houver. */
+const MOBILE_ART_QUERY = "(max-width: 767px)";
+
+/**
+ * A arte do topo do aviso. Com arte de celular (2026-11-18, pedido do
+ * usuário), é um `<picture>`: o navegador baixa SÓ a que a tela usa. Faltando
+ * uma das duas, a outra vale nas duas telas.
+ */
+function OfferArt({ desktop, mobile }: { desktop?: string; mobile?: string }) {
+  const main = desktop ?? mobile;
+  if (!main) return null;
+  const { props: image } = getImageProps({ src: main, alt: "", fill: true, sizes: "440px" });
+  const small =
+    desktop && mobile
+      ? getImageProps({ src: mobile, alt: "", fill: true, sizes: "calc(100vw - 32px)" }).props
+      : null;
+
+  return (
+    <div className="relative h-[200px] w-full bg-black/40">
+      <picture>
+        {small ? <source media={MOBILE_ART_QUERY} srcSet={small.srcSet} sizes={small.sizes} /> : null}
+        {/* O <img> do next/image (getImageProps): srcset otimizado. */}
+        <img {...image} alt="" className="object-cover" />
+      </picture>
+    </div>
   );
 }

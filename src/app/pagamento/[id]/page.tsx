@@ -13,7 +13,7 @@ import { getPayment } from "@/features/payment/data";
 import { getReferencesVideoHref } from "@/features/site/content";
 
 export const metadata: Metadata = {
-  title: "Pagamento | Lets4Trade",
+  title: "Pagamento",
   description: "Acompanhe o pagamento do seu pedido na Lets4Trade.",
   // Página de conta: nada a indexar.
   robots: { index: false, follow: false },

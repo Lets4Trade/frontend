@@ -235,28 +235,6 @@ export function buildHref(
 }
 
 /**
- * O que vai no filtro ao clicar numa categoria (2026-10-08, pedido do usuário:
- * era seleção múltipla). UMA por vez na URL: a mais específica escolhida.
- *
- * - Categoria de topo: escolhe ela; se ela já é a ativa (escolhida ou mãe da
- *   subcategoria escolhida), limpa tudo.
- * - Subcategoria: escolhe ela (a mãe continua marcada na tela, por ser a
- *   ativa); clicar de novo na escolhida volta para só a mãe.
- *
- * A lista continua sendo `string[]` porque é o formato da URL e da API.
- */
-export function categoryChoice(
-  query: CatalogQuery,
-  category: GameCategory,
-  active: GameCategory | null,
-): string[] {
-  if (category.parentId) {
-    return query.categories[0] === category.id ? [category.parentId] : [category.id];
-  }
-  return active?.id === category.id ? [] : [category.id];
-}
-
-/**
  * A categoria de TOPO ativa: a escolhida, ou a mãe da subcategoria escolhida.
  * É ela que decide quais subcategorias aparecem no quadro de baixo.
  */

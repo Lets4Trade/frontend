@@ -86,8 +86,11 @@ export function VideoPlayer({
   }
 
   if (active) {
+    // A capa FICA por baixo (2026-11-18): o player nasce invisível em cima e
+    // só aparece com o vídeo já tocando — sem o vão preto entre os dois.
     return (
-      <div ref={frameRef} className={`${frame} bg-black`} {...revealAttrs}>
+      <div ref={frameRef} className={frame} {...revealAttrs}>
+        {thumb}
         <InlineVideo
           videoId={videoId}
           videoFile={videoFile}

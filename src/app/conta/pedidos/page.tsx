@@ -8,7 +8,7 @@ import { PurchaseCard } from "@/features/orders/PurchaseCard";
 import { getMyPurchases } from "@/features/orders/ordersService";
 
 export const metadata: Metadata = {
-  title: "Meus Pedidos | Lets4Trade",
+  title: "Meus Pedidos",
   description: "Acompanhe seus pedidos na Lets4Trade.",
   // Painel do usuário: conteúdo por conta, nada a indexar.
   robots: { index: false, follow: false },

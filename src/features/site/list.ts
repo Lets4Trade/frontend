@@ -20,6 +20,8 @@ export type SectionContent = {
   footnote?: string | null;
   body?: string | null;
   imageUrl?: string | null;
+  /** A segunda arte (`SiteSectionDef.secondaryImageLabel`). */
+  secondaryImageUrl?: string | null;
   /** Textos extras por nome (`SiteSectionDef.extraFields`). */
   extras?: Record<string, string> | null;
 };
@@ -58,6 +60,7 @@ export async function getSectionsAdmin(): Promise<SectionsSnapshot> {
     sections: (result.data.sections ?? []).map((section) => ({
       ...section,
       imageUrl: backendAsset(section.imageUrl),
+      secondaryImageUrl: backendAsset(section.secondaryImageUrl),
     })),
   };
 }

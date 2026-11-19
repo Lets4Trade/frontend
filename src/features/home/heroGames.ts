@@ -154,12 +154,19 @@ export const HERO_HEIGHT = 758;
 export const HERO_DEFAULT_ART = "/images/hero-banner.svg";
 
 /**
- * Altura da arte ENVIADA pelo admin no banner (pedido do usuário, 2026-10-06):
- * ela termina um pouco acima das barrinhas (top 663), em vez de ocupar o card
- * inteiro e ficar por baixo delas e da legenda. A arte padrão do desenho
- * continua com os 758 — ela já reserva esse espaço no próprio SVG.
+ * Altura do BANNER da esquerda. Desde 2026-11-18 (pedido do usuário: "o banner
+ * tem que ir até as linhas dos cards da direita") ele termina na linha dos
+ * cards (`hero-rule`, top 549 no `HeroDeck`); abaixo dele ficam as barrinhas, a
+ * legenda e os quatro atalhos (HOME, JOGOS…). Vale para a arte enviada E para
+ * a padrão. Antes: 643 (enviada) e 758 (padrão).
  */
-export const HERO_UPLOAD_HEIGHT = 643;
+export const HERO_UPLOAD_HEIGHT = 549;
+
+/** Coluna do banner, abaixo dele (2026-11-18): barrinhas, legenda e atalhos. */
+export const HERO_DOTS_TOP = HERO_UPLOAD_HEIGHT + 24;
+export const HERO_CAPTION_TOP = HERO_DOTS_TOP + 24;
+/** Atalhos com o rótulo terminando junto com os cards (55 + rótulo ≈ 79px). */
+export const HERO_NAV_TOP = HERO_HEIGHT - 79;
 
 /**
  * O banner e o vão até os cards. `HERO_DECK_LEFT` é onde a esteira começa
@@ -170,6 +177,14 @@ export const HERO_BANNER_WIDTH = 859;
 export const HERO_GAP = 25;
 export const HERO_DECK_LEFT = HERO_BANNER_WIDTH + HERO_GAP;
 export const HERO_ROW_WIDTH = HERO_DECK_LEFT + HERO_DECK_WIDTH;
+
+/**
+ * Largura do grupo dos quatro atalhos, do ícone do HOME ao fim do rótulo
+ * "VENDA PRA NÓS" (medido no navegador: 456, o mesmo 679–1135 do arquivo).
+ */
+export const HERO_NAV_SPAN = 456;
+/** O grupo CENTRADO sob o banner (2026-11-18, pedido do usuário). */
+export const HERO_NAV_LEFT = (HERO_BANNER_WIDTH - HERO_NAV_SPAN) / 2;
 
 /**
  * Moeda "4" (Figma 945:901), 150×150 — o gatilho que abre o carrossel.

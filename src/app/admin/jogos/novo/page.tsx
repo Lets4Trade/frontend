@@ -4,7 +4,7 @@ import { GameForm } from "@/features/admin/games/GameForm";
 import { requirePanelArea } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
-  title: "Cadastro de jogo | Lets4Trade",
+  title: "Cadastro de jogo",
   robots: { index: false, follow: false },
 };
 

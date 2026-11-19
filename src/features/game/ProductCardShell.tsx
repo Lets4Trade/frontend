@@ -86,9 +86,19 @@ export function ProductCardShell({
       ? "desk:top-[255px]"
       : "desk:top-[275px]";
 
+  // Fonte que ENCOLHE nos nomes longos (2026-11-18, pedido do usuário:
+  // "Fragmento de Crise Desgastado" virava "…"). Só CSS, no servidor:
+  // largura útil do card (100cqi − 20px de respiro) ÷ (letras da linha mais
+  // longa × 0,6em). Os 0,6em por letra foram medidos na Poppins 600 do card
+  // (0,54–0,59 em nomes reais), com folga. Nome curto fica no tamanho cheio
+  // (teto); muito longo para no piso — no computador o "…" ainda é a última
+  // saída, no celular o nome quebra em até 2 linhas.
+  const chars = Math.max(1, ...(splitName(name, nameBreak) ?? [name]).map((line) => line.length));
+  const fitStyle = { "--fit": `calc((100cqi - 20px) / ${chars * 0.6})` } as React.CSSProperties;
+
   return (
     <article
-      className={`relative flex w-full flex-col overflow-hidden rounded-[22px] border border-white/10 bg-black/10 pb-[14px] desk:block desk:w-[265px] desk:rounded-[30px] desk:pb-0 ${cta ? "desk:h-[467px]" : "desk:h-[417px]"}`}
+      className={`@container relative flex w-full flex-col overflow-hidden rounded-[22px] border border-white/10 bg-black/10 pb-[14px] desk:block desk:w-[265px] desk:rounded-[30px] desk:pb-0 ${cta ? "desk:h-[467px]" : "desk:h-[417px]"}`}
     >
       {/* A imagem é opcional de propósito. O arquivo desenha um retângulo
           #2f2f2f atrás dela; saiu em 2026-10-08 (pedido do usuário): a arte
@@ -118,9 +128,13 @@ export function ProductCardShell({
       {/* Nome menor que o do arquivo (15px, pedido do usuário 2026-10-08) para
           caber o português e o inglês, um por linha, acima do preço. Só com o
           português, a linha fica no meio do espaço que o nome tinha. */}
+      {/* Celular: 11–13px e até 2 linhas (sem "…" até lá); o preço e os botões
+          descem para o pé (`mt-auto`), alinhados com os do card vizinho.
+          Computador: 12–15px numa linha, nas coordenadas do arquivo. */}
       <h3
-        title={twoLines ? name : undefined}
-        className={`mt-[8px] w-full truncate px-[10px] text-center font-poppins text-[13px] leading-[18px] font-semibold tracking-[0.3px] text-white desk:absolute desk:mt-0 desk:left-0 desk:text-[15px] desk:leading-[20px] ${titleTop}`}
+        title={name}
+        style={fitStyle}
+        className={`mt-[8px] w-full px-[10px] text-center font-poppins text-[length:clamp(11px,var(--fit),13px)] leading-[16px] font-semibold tracking-[0.3px] break-words text-white max-desk:mb-[4px] max-desk:line-clamp-2 desk:absolute desk:left-0 desk:mt-0 desk:truncate desk:text-[length:clamp(12px,var(--fit),15px)] desk:leading-[20px] ${titleTop}`}
       >
         <CardTitleLines name={name} nameBreak={nameBreak} />
       </h3>
@@ -133,7 +147,7 @@ export function ProductCardShell({
         </p>
       ) : null}
 
-      <p className="mt-[4px] w-full truncate px-[10px] text-center font-poppins text-[16px] leading-[24px] font-semibold tracking-[0.36px] text-white desk:absolute desk:top-[305px] desk:left-0 desk:mt-0 desk:text-[18px] desk:leading-[27px]">
+      <p className="w-full truncate px-[10px] text-center font-poppins text-[16px] max-desk:mt-auto leading-[24px] font-semibold tracking-[0.36px] text-white desk:absolute desk:top-[305px] desk:left-0 desk:mt-0 desk:text-[18px] desk:leading-[27px]">
         {price}
       </p>
 

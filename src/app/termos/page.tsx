@@ -1,18 +1,15 @@
 import type { Metadata } from "next";
-import { LegalDocument, legalTitle } from "@/features/site/LegalDocument";
+import { LegalDocument } from "@/features/site/LegalDocument";
 
 /**
- * Termos de Uso — o link do cadastro ("ao criar sua conta, você aceita os
- * Termos de Uso") apontava para esta rota, que não existia. O texto é editado
- * em "Edição de sessões → Termos e privacidade".
+ * Termos de Uso — linkada pelo cadastro, pelo rodapé e pelo aviso de cookies. O texto
+ * é o arquivo de `public/docs/` (2026-11-18): ver `LegalDocument`.
  */
-export async function generateMetadata(): Promise<Metadata> {
-  return {
-    title: await legalTitle("termos"),
-    description: "Termos de Uso da Lets4Trade.",
-  };
-}
+export const metadata: Metadata = {
+  title: "Termos de Uso",
+  description: "Termos de Uso da Lets 4 Trade: compras, entregas, cancelamentos, reembolsos e responsabilidades.",
+};
 
-export default function TermsPage() {
-  return <LegalDocument sectionKey="termos" />;
+export default function Page() {
+  return <LegalDocument kind="termos" />;
 }

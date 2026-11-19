@@ -13,7 +13,7 @@ import { ProductPriceTable } from "@/features/admin/products/ProductPriceTable";
 import { cn } from "@/lib/cn";
 
 export const metadata: Metadata = {
-  title: "Editar preços | Lets4Trade",
+  title: "Editar preços",
   robots: { index: false, follow: false },
 };
 

@@ -9,7 +9,7 @@ import { getSectionsAdmin } from "@/features/site/list";
 import { requirePanelArea } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
-  title: "Configurações da loja | Lets4Trade",
+  title: "Configurações da loja",
   robots: { index: false, follow: false },
 };
 

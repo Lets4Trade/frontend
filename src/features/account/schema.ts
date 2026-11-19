@@ -76,4 +76,9 @@ export const completeProfileSchema = z.object({
   gender: z.enum(["MALE", "FEMALE", "UNDISCLOSED"], { message: "Escolha uma opção." }),
 });
 
-export type CompleteProfileValues = z.infer<typeof completeProfileSchema>;
+/** Quem entrou pelo Google (2026-11-18): o gênero não é perguntado. */
+export const completeProfileWithoutGenderSchema = completeProfileSchema.omit({ gender: true });
+
+export type CompleteProfileValues = Omit<z.infer<typeof completeProfileSchema>, "gender"> & {
+  gender?: z.infer<typeof completeProfileSchema>["gender"];
+};

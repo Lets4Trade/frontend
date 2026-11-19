@@ -9,7 +9,7 @@ import { getPublishedPage } from "@/features/pages/public";
 import { SellPageBody } from "@/features/sell/SellPageBody";
 
 export const metadata: Metadata = {
-  title: "Venda pra nós | Lets4Trade",
+  title: "Venda seus itens e moedas de jogos",
   description:
     "Venda suas gamecoins, contas e itens para a Lets4Trade. Envie seus dados e entramos em contato.",
 };

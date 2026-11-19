@@ -4,12 +4,10 @@ import Image from "next/image";
 import { useState } from "react";
 import { editAdd, editItem } from "@/features/site/editing/attrs";
 import type { SectionItemView } from "@/features/site/content";
-import { HERO_BANNER_WIDTH, HERO_DEFAULT_ART, HERO_HEIGHT, HERO_UPLOAD_HEIGHT } from "./heroGames";
+import { HERO_BANNER_WIDTH, HERO_DOTS_TOP, HERO_UPLOAD_HEIGHT } from "./heroGames";
 
-/** Arte enviada termina acima das barrinhas; a padrão ocupa o card todo. */
-function artHeight(src: string) {
-  return src === HERO_DEFAULT_ART ? HERO_HEIGHT : HERO_UPLOAD_HEIGHT;
-}
+// Toda arte termina na linha dos cards da direita (2026-11-18): abaixo dela
+// ficam as barrinhas, a legenda e os atalhos. Era 643 (enviada) / 758 (padrão).
 
 /**
  * As artes do banner do hero (Figma 131:1504), com os indicadores do arquivo.
@@ -50,11 +48,11 @@ export function HeroBannerSlides({
           src={fallbackImage}
           alt=""
           width={859}
-          height={artHeight(fallbackImage)}
+          height={HERO_UPLOAD_HEIGHT}
           aria-hidden
           priority
           className="absolute top-0 left-0 overflow-hidden rounded-[30px] object-cover"
-          style={{ width: HERO_BANNER_WIDTH, height: artHeight(fallbackImage) }}
+          style={{ width: HERO_BANNER_WIDTH, height: HERO_UPLOAD_HEIGHT }}
         />
       ) : (
         slides.map((item, index) => (
@@ -72,7 +70,7 @@ export function HeroBannerSlides({
             className="absolute top-0 left-0 overflow-hidden rounded-[30px] object-cover"
             style={{
               width: HERO_BANNER_WIDTH,
-              height: artHeight(item.image ?? fallbackImage),
+              height: HERO_UPLOAD_HEIGHT,
               // `visibility` e não desmontar: trocar de arte não deve custar um
               // carregamento novo a cada clique.
               visibility: index === active ? "visible" : "hidden",
@@ -83,7 +81,8 @@ export function HeroBannerSlides({
 
       {/* Indicadores: barras de 40×3 a cada 50px, como no arquivo. Sem lista,
           as três do desenho; com lista, uma por arte. */}
-      <div className="absolute top-[663px] left-[50px] flex gap-[10px]">
+      {/* Centradas sob o banner (2026-11-18, pedido do usuário). */}
+      <div className="absolute left-1/2 flex -translate-x-1/2 gap-[10px]" style={{ top: HERO_DOTS_TOP }}>
         {(slides.length > 0 ? slides : [null, null, null]).map((item, index) => {
           const isActive = slides.length > 0 ? index === active : index === 0;
           const total = slides.length > 0 ? slides.length : 3;

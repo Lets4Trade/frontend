@@ -13,7 +13,7 @@ import { getReferencesVideoHref } from "@/features/site/content";
 import { getLayoutContent } from "@/features/site/layoutContent";
 
 export const metadata: Metadata = {
-  title: "Checkout | Lets4Trade",
+  title: "Finalizar compra",
   description: "Finalize seu pedido na Lets4Trade.",
   // Página de compra, por sessão: nada a indexar.
   robots: { index: false, follow: false },

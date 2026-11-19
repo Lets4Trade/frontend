@@ -98,10 +98,12 @@ export async function saveSectionAction(
     payload.set("extras", extras);
   }
 
-  const image = form.get("image");
-  if (image instanceof File && image.size > 0) {
-    if (image.size > MAX_IMAGE_BYTES) return IMAGE_TOO_LARGE;
-    payload.set("image", image, image.name);
+  // A arte e, nas seções que têm (`secondaryImageLabel`), a segunda.
+  for (const field of ["image", "secondaryImage"]) {
+    const file = form.get(field);
+    if (!(file instanceof File) || file.size === 0) continue;
+    if (file.size > MAX_IMAGE_BYTES) return IMAGE_TOO_LARGE;
+    payload.set(field, file, file.name);
   }
 
   const result = await apiPutFormData<SectionContent>("/admin/sections", payload);
@@ -110,7 +112,11 @@ export async function saveSectionAction(
   revalidateStore();
   return {
     ok: true,
-    data: { ...result.data, imageUrl: backendAsset(result.data.imageUrl) },
+    data: {
+      ...result.data,
+      imageUrl: backendAsset(result.data.imageUrl),
+      secondaryImageUrl: backendAsset(result.data.secondaryImageUrl),
+    },
   };
 }
 

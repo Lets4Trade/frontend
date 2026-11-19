@@ -25,7 +25,7 @@ import { canAccess } from "@/features/admin/permissions";
 import { getSessionRole } from "@/features/auth/session";
 
 export const metadata: Metadata = {
-  title: "Vendas e pedidos | Lets4Trade",
+  title: "Vendas e pedidos",
   robots: { index: false, follow: false },
 };
 

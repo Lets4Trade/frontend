@@ -17,7 +17,7 @@ import { canAccess } from "@/features/admin/permissions";
 import { requirePanelArea } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
-  title: "Chats | Lets4Trade",
+  title: "Chats",
   robots: { index: false, follow: false },
 };
 

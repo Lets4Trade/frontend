@@ -194,7 +194,8 @@ export async function getGamePage(slug: string): Promise<GamePage | null> {
     slug: game.slug,
     name: game.name,
     seo: {
-      title: `${game.name} | Lets4Trade`,
+      // Só a frase (aba padrão); a marca vem do template do layout raiz.
+      title: buildTabTitle(game.name, tabs.find((tab) => tab.id === activeTabId)),
       description: `${heading} na Lets4Trade: entrega rápida, suporte e preço justo.`,
     },
 
@@ -569,6 +570,24 @@ function buildHeading(name: string, tab: { label: string; layout: string } | und
   // faz sentido. Rótulo da aba + jogo, sem verbo inventado.
   if (tab.layout === "SELL") return `${what}: ${name}`;
   return `Compre ${what} De ${name}`;
+}
+
+/**
+ * Frase do título da aba do navegador (2026-11-18, padrão MMOEXP): "Compre
+ * Moedas ARC Raiders" — a marca (" | Lets 4 Trade") entra pelo template do
+ * layout raiz. Segue a ABA ativa, inclusive a escolhida por `?aba=`, e ignora o
+ * título escrito pelo admin: aquele é o da página, este é o do Google.
+ */
+export function buildTabTitle(
+  name: string,
+  tab: { label: string; layout: string } | undefined,
+): string {
+  if (!tab) return `Compre itens de ${name}`;
+  // Aba SELL é a pessoa vendendo para a loja.
+  if (tab.layout === "SELL") return `Venda seus itens de ${name}`;
+  const label = tab.label.trim();
+  const what = label.charAt(0) + label.slice(1).toLocaleLowerCase("pt-BR");
+  return `Compre ${what} ${name}`;
 }
 
 /** Preço em centavos → "R$ 25,00". Formatação fixa em pt-BR, como o arquivo. */

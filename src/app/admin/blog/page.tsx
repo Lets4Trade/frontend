@@ -13,7 +13,7 @@ import { canAccess } from "@/features/admin/permissions";
 import { getSessionRole } from "@/features/auth/session";
 
 export const metadata: Metadata = {
-  title: "Blog | Lets4Trade",
+  title: "Blog",
   robots: { index: false, follow: false },
 };
 

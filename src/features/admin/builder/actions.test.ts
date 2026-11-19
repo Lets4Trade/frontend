@@ -7,6 +7,7 @@ import { GAMES_MENU_TAG } from "@/features/game/menuGames";
 import { apiFail, apiOk, bigImage, formEntries, smallImage } from "@/test/actionFixtures";
 import {
   removeBannerAction,
+  replaceBannerImageAction,
   reorderBannersAction,
   savePageAction,
   uploadBannerAction,
@@ -277,6 +278,30 @@ describe.each([
   ])("status %i → %s", async (status, reason) => {
     api.mockResolvedValue(apiFail(status));
     expect(await action("g1", imageForm(smallImage()))).toMatchObject({ ok: false, reason });
+  });
+});
+
+describe("replaceBannerImageAction (troca a arte do computador, 2026-11-18)", () => {
+  it("sem arquivo ou acima de 5 MB: recusa antes de subir", async () => {
+    expect(await replaceBannerImageAction("g1", "b1", imageForm(null))).toMatchObject({ ok: false, reason: "invalid" });
+    expect(await replaceBannerImageAction("g1", "b1", imageForm(bigImage()))).toMatchObject({ ok: false, reason: "invalid" });
+    expect(putForm).not.toHaveBeenCalled();
+  });
+
+  it("PUT na rota do banner com só a imagem; a URL volta absoluta", async () => {
+    putForm.mockResolvedValue(apiOk({ id: "b1", imageUrl: "/uploads/banners/novo.webp" }));
+    const result = await replaceBannerImageAction("g/1", "b?1", imageForm(smallImage()));
+    expect(result).toMatchObject({ ok: true, data: { id: "b1" } });
+    if (result.ok) expect(result.data.imageUrl).toMatch(/\/uploads\/banners\/novo\.webp$/);
+    const [calledPath, body] = putForm.mock.calls[0];
+    expect(calledPath).toBe("/admin/game-page/g%2F1/banners/b%3F1/image");
+    expect(Object.keys(formEntries(body))).toEqual(["image"]);
+  });
+
+  it("fora de ADMIN/EDITOR (atendente) não chega na API", async () => {
+    role.mockResolvedValue("SUPPORT");
+    expect(await replaceBannerImageAction("g1", "b1", imageForm(smallImage()))).toMatchObject({ ok: false });
+    expect(putForm).not.toHaveBeenCalled();
   });
 });
 

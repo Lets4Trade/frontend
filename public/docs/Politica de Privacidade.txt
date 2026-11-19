@@ -1,0 +1,360 @@
+# POLÍTICA DE PRIVACIDADE
+## LETS 4 TRADE LTDA
+
+**Última atualização: 11 de novembro de 2026**
+
+A LETS 4 TRADE LTDA valoriza a privacidade e a proteção dos dados pessoais de seus clientes e visitantes.
+
+Esta Política de Privacidade explica como coletamos, utilizamos, armazenamos, compartilhamos e protegemos informações pessoais durante a utilização do nosso site, a realização de compras e a prestação de nossos serviços.
+
+Nosso compromisso é tratar os dados pessoais com transparência, responsabilidade e respeito à legislação brasileira, especialmente à Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 — LGPD).
+
+Recomendamos a leitura deste documento antes de utilizar nosso site ou contratar nossos produtos e serviços.
+
+---
+
+## 1. IDENTIFICAÇÃO DO CONTROLADOR
+
+O responsável pelo tratamento dos dados pessoais realizados no âmbito das atividades da loja é:
+
+**Razão social:** LETS 4 TRADE LTDA  
+**CNPJ:** 50.109.140/0001-70  
+**Endereço:** Rua Rio de Janeiro, nº 243, sala 802, Centro, Belo Horizonte/MG, CEP 30160-040.  
+**Site:** https://www.lets4trade.com.br  
+**E-mail:** suporte@lets4trade.com.br  
+**WhatsApp:** +55 (19) 99582-3058
+
+Para questões relacionadas à privacidade, proteção de dados pessoais ou exercício dos direitos previstos na LGPD, o titular poderá utilizar os canais de contato informados nesta política.
+
+## 2. QUAIS DADOS PESSOAIS COLETAMOS?
+
+A LETS 4 TRADE poderá coletar diferentes tipos de informações, dependendo da forma como o cliente utiliza o site e contrata nossos produtos e serviços.
+
+### 2.1. Dados de identificação e contato
+
+Podemos coletar:
+
+- Nome completo;
+- Endereço de e-mail;
+- Número de telefone ou WhatsApp;
+- CPF ou outros dados de identificação, quando necessários;
+- Endereço de cobrança ou outras informações cadastrais, quando aplicáveis.
+
+### 2.2. Dados relacionados às compras
+
+Durante a realização de pedidos, poderemos tratar informações como:
+
+- Produtos e serviços adquiridos;
+- Valores das compras;
+- Data e horário dos pedidos;
+- Histórico de compras;
+- Situação dos pagamentos;
+- Informações necessárias para confirmação e entrega;
+- Registros de atendimento e solicitações relacionadas aos pedidos.
+
+### 2.3. Dados relacionados aos jogos
+
+Como comercializamos produtos e serviços relacionados a videogames, poderá ser necessário coletar informações específicas para realizar as entregas, como:
+
+- BattleTag;
+- ID ou identificação do jogador;
+- Nome do personagem;
+- Plataforma utilizada;
+- Servidor ou região;
+- Outras informações necessárias para localizar o cliente dentro do jogo.
+
+Essas informações serão utilizadas para viabilizar a entrega dos produtos ou a execução dos serviços contratados.
+
+### 2.4. Dados de pagamento
+
+Os pagamentos realizados em nosso site poderão ser processados pela Cielo.
+
+Durante esse procedimento, poderão ser tratados dados necessários à identificação e confirmação da transação, como:
+
+- Valor da compra;
+- Identificação da transação;
+- Forma de pagamento;
+- Situação do pagamento;
+- Informações necessárias à prevenção de fraudes;
+- Outros dados exigidos pelo processamento da operação.
+
+Os dados de cartão e demais informações financeiras poderão ser tratados diretamente pela empresa responsável pelo processamento do pagamento, conforme suas próprias políticas e procedimentos de segurança.
+
+As informações efetivamente recebidas pela LETS 4 TRADE dependerão da integração utilizada e dos dados disponibilizados pelo prestador de pagamento.
+
+### 2.5. Dados de navegação
+
+Quando você acessa nosso site, determinadas informações podem ser coletadas automaticamente, incluindo:
+
+- Endereço IP;
+- Tipo de navegador;
+- Dispositivo utilizado;
+- Sistema operacional;
+- Páginas acessadas;
+- Data e horário de acesso;
+- Origem da visita;
+- Interações realizadas no site;
+- Informações coletadas por meio de cookies e tecnologias semelhantes.
+
+Essas informações ajudam a compreender como o site é utilizado, melhorar sua funcionalidade e avaliar nossas campanhas de publicidade.
+
+## 3. PARA QUAIS FINALIDADES UTILIZAMOS OS DADOS?
+
+Os dados pessoais coletados poderão ser utilizados para:
+
+- Realizar cadastros e identificar clientes;
+- Processar compras e pagamentos;
+- Confirmar pedidos;
+- Organizar e realizar entregas;
+- Executar serviços contratados;
+- Entrar em contato com clientes;
+- Prestar atendimento e suporte;
+- Resolver problemas relacionados às compras;
+- Processar solicitações de cancelamento e reembolso;
+- Cumprir obrigações legais e regulatórias;
+- Prevenir fraudes e atividades indevidas;
+- Proteger nossos direitos em procedimentos administrativos ou judiciais;
+- Analisar o funcionamento e o desempenho do site;
+- Melhorar a experiência de navegação;
+- Mensurar resultados de campanhas publicitárias;
+- Apresentar anúncios e ofertas relevantes, quando permitido;
+- Desenvolver melhorias em nossos produtos, serviços e operações.
+
+O tratamento será realizado de acordo com a finalidade correspondente e com as hipóteses legais previstas na LGPD.
+
+## 4. PAGAMENTOS E UTILIZAÇÃO DA CIELO
+
+Para processar pagamentos, a LETS 4 TRADE utiliza os serviços da Cielo.
+
+A Cielo poderá tratar informações necessárias à autorização, processamento, confirmação e segurança das transações.
+
+O processamento poderá envolver procedimentos de análise de risco e prevenção de fraudes.
+
+O tratamento realizado pela Cielo também estará sujeito às condições e à Política de Privacidade da própria prestadora.
+
+A LETS 4 TRADE não deve ser considerada responsável por operações internas de tratamento realizadas exclusivamente pela prestadora de pagamento, sem prejuízo das responsabilidades que possam existir conforme a legislação e as circunstâncias de cada operação.
+
+## 5. COOKIES E TECNOLOGIAS DE RASTREAMENTO
+
+Nosso site utiliza cookies e tecnologias semelhantes para permitir determinadas funcionalidades, analisar a navegação e mensurar campanhas publicitárias.
+
+Cookies são pequenos arquivos armazenados no dispositivo do usuário durante a navegação.
+
+Podemos utilizar as seguintes categorias:
+
+### 5.1. Cookies necessários
+
+São utilizados para permitir o funcionamento adequado do site, manter funcionalidades essenciais e possibilitar determinadas operações.
+
+Esses cookies são necessários para a disponibilização de recursos fundamentais da plataforma.
+
+### 5.2. Cookies de análise e estatística
+
+São utilizados para compreender como os visitantes navegam pelo site, quais páginas acessam e como interagem com os conteúdos.
+
+Essas informações ajudam a identificar oportunidades de melhoria e avaliar o desempenho da plataforma.
+
+### 5.3. Cookies de publicidade e marketing
+
+São utilizados para mensurar campanhas publicitárias, compreender resultados de anúncios e, quando permitido, apresentar publicidade relacionada aos interesses dos usuários.
+
+Essas tecnologias também podem permitir que plataformas de publicidade reconheçam interações realizadas após o acesso a determinados anúncios.
+
+### 5.4. Gerenciamento de cookies
+
+O usuário poderá gerenciar suas preferências por meio do mecanismo de consentimento de cookies disponibilizado no site, quando existente, além das configurações do próprio navegador.
+
+Cookies não essenciais, especialmente os utilizados para análise e publicidade, deverão ser tratados conforme as exigências legais aplicáveis, incluindo as regras de consentimento quando necessárias.
+
+A desativação de determinados cookies poderá afetar algumas funcionalidades ou a experiência de navegação.
+
+## 6. FERRAMENTAS DE ANÁLISE E PUBLICIDADE
+
+A LETS 4 TRADE utiliza ferramentas de terceiros para analisar o desempenho do site e mensurar suas campanhas de publicidade.
+
+Entre as ferramentas utilizadas estão:
+
+### 6.1. Google Analytics
+
+Utilizamos o Google Analytics para analisar informações relacionadas à navegação e à utilização do site.
+
+Essa ferramenta poderá coletar informações como páginas acessadas, interações, origem das visitas, dados do dispositivo e informações de navegação.
+
+Esses dados ajudam a compreender o comportamento dos visitantes e melhorar nossos serviços.
+
+### 6.2. Google Ads
+
+Utilizamos o Google Ads para divulgar nossos produtos e serviços e avaliar o desempenho de campanhas publicitárias.
+
+A ferramenta poderá utilizar cookies e tecnologias semelhantes para mensurar conversões, identificar interações com anúncios e avaliar resultados de publicidade.
+
+### 6.3. Meta Pixel
+
+Utilizamos o Meta Pixel para mensurar resultados de campanhas publicitárias realizadas nas plataformas da Meta, incluindo Facebook e Instagram.
+
+Essa tecnologia poderá registrar determinadas interações realizadas no site, permitindo avaliar o desempenho dos anúncios e melhorar a segmentação de campanhas, conforme as configurações aplicáveis.
+
+### 6.4. Tratamento realizado pelas plataformas
+
+Google e Meta possuem suas próprias políticas de privacidade e regras de tratamento de dados.
+
+Dependendo da operação, essas empresas poderão atuar como controladoras independentes ou desempenhar outras funções relacionadas ao tratamento de dados.
+
+Recomendamos que o usuário consulte as políticas de privacidade das respectivas plataformas para compreender como seus dados podem ser tratados por elas.
+
+## 7. COM QUEM PODEMOS COMPARTILHAR OS DADOS?
+
+A LETS 4 TRADE poderá compartilhar dados pessoais quando necessário para executar suas atividades, prestar serviços, cumprir obrigações legais ou proteger seus direitos.
+
+Esse compartilhamento poderá ocorrer com:
+
+- **Cielo:** para processamento e confirmação de pagamentos;
+- **Google:** para análise de navegação, mensuração e publicidade;
+- **Meta:** para mensuração de campanhas e publicidade;
+- **Prestadores de serviços tecnológicos:** para hospedagem, manutenção e funcionamento do site;
+- **Prestadores de atendimento:** quando necessários para suporte e comunicação;
+- **Autoridades públicas:** quando houver obrigação legal, regulatória ou determinação válida;
+- **Assessores profissionais:** como advogados e contadores, quando necessário para o exercício regular de direitos ou cumprimento de obrigações.
+
+O compartilhamento será limitado ao necessário para a finalidade correspondente, observadas as exigências legais e contratuais aplicáveis.
+
+A LETS 4 TRADE não comercializa dados pessoais de seus clientes como atividade própria.
+
+## 8. TRANSFERÊNCIA INTERNACIONAL DE DADOS
+
+Algumas ferramentas e prestadores utilizados pela LETS 4 TRADE poderão armazenar ou processar informações em servidores localizados fora do Brasil.
+
+Isso poderá ocorrer, por exemplo, durante a utilização de serviços internacionais de análise, publicidade, hospedagem ou tecnologia.
+
+Quando houver transferência internacional de dados pessoais, ela deverá observar os requisitos previstos na LGPD e na regulamentação aplicável, incluindo os mecanismos legais adequados para garantir a proteção das informações.
+
+## 9. POR QUANTO TEMPO ARMAZENAMOS OS DADOS?
+
+Os dados pessoais serão armazenados pelo período necessário para cumprir as finalidades para as quais foram coletados.
+
+O prazo de armazenamento poderá variar conforme:
+
+- A existência de uma relação comercial com o cliente;
+- A necessidade de manter registros de compras e pagamentos;
+- O cumprimento de obrigações legais e regulatórias;
+- A necessidade de prevenir fraudes;
+- A existência de solicitações ou disputas relacionadas a pedidos;
+- O exercício regular de direitos em processos administrativos ou judiciais.
+
+Após o encerramento da finalidade do tratamento, os dados poderão ser eliminados ou anonimizados, quando possível, ressalvadas as hipóteses em que a legislação permita ou exija sua conservação.
+
+## 10. COMO PROTEGEMOS OS DADOS PESSOAIS?
+
+A LETS 4 TRADE adota medidas de segurança compatíveis com suas atividades, buscando proteger as informações pessoais contra acessos não autorizados, perda, alteração, divulgação ou utilização indevida.
+
+As medidas poderão envolver controles de acesso, procedimentos internos, ferramentas tecnológicas e cuidados relacionados ao armazenamento e à utilização das informações.
+
+Apesar dos esforços empregados, nenhum sistema ou transmissão de dados pela internet pode ser considerado absolutamente livre de riscos.
+
+Caso ocorra um incidente de segurança que possa acarretar risco ou dano relevante aos titulares, serão adotadas as providências cabíveis conforme a LGPD e as regulamentações aplicáveis.
+
+## 11. DIREITOS DOS TITULARES DOS DADOS
+
+Nos termos da LGPD, o titular dos dados pessoais poderá solicitar, conforme aplicável:
+
+- Confirmação da existência de tratamento de seus dados;
+- Acesso aos dados pessoais tratados;
+- Correção de informações incompletas, inexatas ou desatualizadas;
+- Anonimização, bloqueio ou eliminação de dados desnecessários, excessivos ou tratados em desconformidade com a legislação;
+- Portabilidade dos dados, observadas as condições legais e regulamentares;
+- Eliminação de dados tratados com base no consentimento, ressalvadas as hipóteses legais de conservação;
+- Informação sobre as entidades públicas e privadas com as quais os dados são compartilhados;
+- Informação sobre a possibilidade de não fornecer consentimento e suas consequências;
+- Revogação do consentimento, quando essa for a base legal utilizada;
+- Revisão de decisões tomadas unicamente com base em tratamento automatizado de dados pessoais, nos termos da legislação.
+
+O exercício desses direitos poderá estar sujeito à confirmação da identidade do solicitante e às limitações previstas na legislação.
+
+## 12. COMO SOLICITAR ACESSO, CORREÇÃO OU EXCLUSÃO DOS DADOS?
+
+Para exercer seus direitos relacionados à proteção de dados pessoais, o titular poderá entrar em contato pelos seguintes canais:
+
+**E-mail:** suporte@lets4trade.com.br  
+**WhatsApp:** +55 (19) 99582-3058
+
+Na solicitação, recomendamos informar:
+
+- Nome completo;
+- E-mail ou telefone utilizado na compra ou cadastro;
+- Descrição da solicitação;
+- Informações adicionais necessárias para localizar os dados.
+
+Poderemos solicitar informações adicionais para confirmar a identidade do titular e evitar que dados pessoais sejam fornecidos a terceiros não autorizados.
+
+As solicitações serão analisadas e respondidas conforme os prazos e procedimentos previstos na legislação aplicável.
+
+A exclusão de dados poderá não ser possível quando houver obrigação legal de conservação ou outra hipótese legal que justifique a manutenção das informações.
+
+## 13. COMUNICAÇÕES E PUBLICIDADE
+
+A LETS 4 TRADE poderá entrar em contato com os clientes para tratar de assuntos relacionados a:
+
+- Confirmação de pedidos;
+- Pagamentos;
+- Entregas;
+- Prestação de serviços;
+- Atendimento e suporte;
+- Alterações importantes relacionadas às compras;
+- Informações necessárias ao cumprimento de obrigações legais.
+
+O envio de comunicações promocionais e ofertas deverá observar as bases legais aplicáveis e as preferências do usuário.
+
+Quando a comunicação depender de consentimento, o cliente poderá revogá-lo pelos meios disponibilizados.
+
+O recebimento de mensagens relacionadas à execução de um pedido não significa necessariamente que o cliente tenha autorizado o recebimento de publicidade.
+
+## 14. DADOS DE CRIANÇAS E ADOLESCENTES
+
+A LETS 4 TRADE não tem como objetivo coletar intencionalmente dados pessoais de crianças sem a observância das exigências legais aplicáveis.
+
+Quando houver tratamento de dados pessoais de crianças ou adolescentes, serão observadas as disposições específicas da LGPD e a proteção de seus melhores interesses.
+
+Quando necessário, poderão ser solicitadas informações adicionais para verificar a legitimidade da contratação e a participação dos responsáveis legais.
+
+## 15. LINKS PARA SITES DE TERCEIROS
+
+Nosso site poderá conter links para plataformas, jogos, serviços ou páginas de terceiros.
+
+A LETS 4 TRADE não controla as políticas de privacidade, práticas de segurança ou conteúdos desses ambientes externos.
+
+Ao acessar sites de terceiros, recomendamos que o usuário consulte suas respectivas políticas de privacidade e termos de utilização.
+
+## 16. ALTERAÇÕES DESTA POLÍTICA
+
+Esta Política de Privacidade poderá ser atualizada para refletir mudanças em nossas atividades, ferramentas, procedimentos, serviços ou exigências legais.
+
+A versão atualizada será disponibilizada em nosso site, acompanhada da respectiva data de atualização.
+
+Recomendamos que o usuário consulte periodicamente este documento para acompanhar eventuais alterações.
+
+## 17. LEGISLAÇÃO APLICÁVEL
+
+Esta Política de Privacidade é regida pelas leis da República Federativa do Brasil, especialmente pela Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018).
+
+Eventuais questões relacionadas ao tratamento de dados pessoais serão analisadas conforme a legislação aplicável e os direitos assegurados aos titulares.
+
+## 18. CONTATO
+
+Caso tenha dúvidas sobre esta Política de Privacidade, queira esclarecer como seus dados são utilizados ou deseje exercer algum direito previsto na LGPD, entre em contato conosco.
+
+**LETS 4 TRADE LTDA**
+
+CNPJ: 50.109.140/0001-70
+
+Endereço: Rua Rio de Janeiro, nº 243, sala 802, Centro, Belo Horizonte/MG, CEP 30160-040.
+
+**E-mail:** suporte@lets4trade.com.br  
+**WhatsApp:** +55 (19) 99582-3058  
+**Site:** https://www.lets4trade.com.br
+
+---
+
+**LETS 4 TRADE LTDA**  
+Compromisso com transparência, responsabilidade e proteção dos dados pessoais de nossos clientes.
+
+**Última atualização: 11 de novembro de 2026.**

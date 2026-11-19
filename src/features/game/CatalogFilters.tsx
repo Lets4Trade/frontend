@@ -3,12 +3,13 @@ import {
   SORT_OPTIONS,
   activeCategory,
   buildHref,
-  categoryChoice,
   scopedCategories,
   type CatalogQuery,
 } from "./catalog";
 import { ALL_LABEL, pillClassName } from "./pill";
 import { CatalogSearch } from "./CatalogSearch";
+import { CategorySelect } from "./CategorySelect";
+import { ServerDropdown } from "./ServerDropdown";
 import type { GamePage } from "./types";
 import { gameHref } from "@/features/game/href";
 
@@ -26,7 +27,10 @@ import { gameHref } from "@/features/game/href";
  * precisa de client component.
  */
 
-/** Botões de servidor: 197×50, 25px de vão (Figma 1471:1798). */
+/**
+ * Botões de servidor: 197×50, 25px de vão (Figma 1471:1798) — no computador.
+ * No celular (2026-11-18) é um dropdown que fecha ao escolher (`ServerDropdown`).
+ */
 export function ServerPicker({
   page,
   query,
@@ -42,7 +46,19 @@ export function ServerPicker({
         {page.servers.label}
       </h2>
 
-      <div className="mt-[16px] flex flex-wrap gap-[10px] desk:mt-[25px] desk:gap-[25px]">
+      <div className="mt-[16px] desk:hidden">
+        <ServerDropdown
+          label={page.servers.label}
+          options={page.servers.items.map((server) => ({
+            key: server.slug,
+            label: server.label,
+            href: buildHref(page.slug, query, { server: server.slug }),
+            active: server.slug === query.server,
+          }))}
+        />
+      </div>
+
+      <div className="mt-[25px] flex flex-wrap gap-[25px] max-desk:hidden">
         {page.servers.items.map((server) => {
           const active = server.slug === query.server;
           return (
@@ -66,17 +82,16 @@ export function ServerPicker({
 }
 
 /**
- * Painel "Selecionar categoria" (1486:1815): grade de 282px a cada 306, linhas
- * a cada 55.
+ * Painel "Selecionar categoria" (1486:1815).
  *
- * Desde 2026-10-08 (pedido do usuário) são DOIS quadros e seleção ÚNICA: em
- * cima as categorias de topo; embaixo, num quadro próprio, as subcategorias da
- * categoria ativa (só quando ela tem). Escolher uma subcategoria mantém a mãe
- * marcada em cima: as duas mostram o check verde (o filtro usa a mais
- * específica — ver `categoryChoice`).
+ * Desde 2026-11-18 (pedido do usuário: a lista de botões ocupava espaço demais
+ * e só crescia) são SELECTS, não a grade de 282px: um para a categoria e, ao
+ * lado, um para a subcategoria quando a escolhida tem filhas. A regra de
+ * escolha é a mesma de 2026-10-08 — UMA por vez na URL, a mais específica, e
+ * a mãe continua mostrada no primeiro select quando há subcategoria escolhida.
  *
- * A grade é `auto-fill` e não cinco colunas fixas: a contagem de categorias é
- * editável, e cinco colunas com três itens deixaria dois buracos.
+ * "Todos" fixo e PRIMEIRO nos dois (2026-11-17): no de cima tira o filtro; no
+ * de baixo volta para a mãe inteira.
  */
 export function CategoryPanel({
   page,
@@ -91,68 +106,47 @@ export function CategoryPanel({
 
   const active = activeCategory(items, query);
   const children = active?.children ?? [];
+  const selected = query.categories[0];
 
   return (
-    <div className="flex flex-col gap-[25px]">
-      <CategoryBox title={page.categories.label}>
-        {/* "Todos" fixo e PRIMEIRO (2026-11-17, pedido do usuário): sem ele a
-            única forma de tirar o filtro era clicar de novo na marcada, o que
-            ninguém descobre. Não é categoria do banco — é "sem filtro" —, por
-            isso vale em todo jogo sem cadastro e não pode ser apagado. */}
-        <CategoryOption
-          label={ALL_LABEL}
-          checked={!active}
-          href={buildHref(page.slug, query, { categories: [] })}
+    <section className="rounded-[24px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[14px] pt-[18px] pb-[20px] desk:rounded-[30px] desk:px-[24px] desk:pt-[25px] desk:pb-[28px]">
+      <h2 className="font-helvetica text-[18px] leading-none font-bold tracking-[0.18px] text-white">
+        {page.categories.label}
+      </h2>
+      <div className="mt-[16px] grid gap-[14px] sm:grid-cols-2 desk:mt-[22px] desk:flex desk:gap-[24px]">
+        <CategorySelect
+          label="Categoria"
+          value={active?.id ?? ALL_KEY}
+          options={[
+            { key: ALL_KEY, label: ALL_LABEL, href: buildHref(page.slug, query, { categories: [] }) },
+            ...items.map((category) => ({
+              key: category.id,
+              label: category.label,
+              href: buildHref(page.slug, query, { categories: [category.id] }),
+            })),
+          ]}
         />
-        {items.map((category) => (
-          <CategoryOption
-            key={category.id}
-            label={category.label}
-            // Marcada se escolhida OU mãe da subcategoria escolhida.
-            checked={active?.id === category.id}
-            href={buildHref(page.slug, query, { categories: categoryChoice(query, category, active) })}
+        {active && children.length > 0 ? (
+          <CategorySelect
+            label={`Subcategoria de ${active.label}`}
+            value={selected && selected !== active.id ? selected : ALL_KEY}
+            options={[
+              { key: ALL_KEY, label: ALL_LABEL, href: buildHref(page.slug, query, { categories: [active.id] }) },
+              ...children.map((child) => ({
+                key: child.id,
+                label: child.label,
+                href: buildHref(page.slug, query, { categories: [child.id] }),
+              })),
+            ]}
           />
-        ))}
-      </CategoryBox>
-
-      {active && children.length > 0 ? (
-        <CategoryBox title={`Subcategorias de ${active.label}`}>
-          {/* "Todos" das subcategorias = a mãe inteira, sem subfiltro. */}
-          <CategoryOption
-            label={ALL_LABEL}
-            checked={query.categories[0] === active.id}
-            href={buildHref(page.slug, query, { categories: [active.id] })}
-          />
-          {children.map((child) => (
-            <CategoryOption
-              key={child.id}
-              label={child.label}
-              checked={query.categories[0] === child.id}
-              href={buildHref(page.slug, query, { categories: categoryChoice(query, child, active) })}
-            />
-          ))}
-        </CategoryBox>
-      ) : null}
-    </div>
-  );
-}
-
-function CategoryBox({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="rounded-[24px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[14px] pt-[18px] pb-[20px] desk:rounded-[30px] desk:px-[24px] desk:pt-[25px] desk:pb-[30px]">
-      <h2 className="font-helvetica text-[18px] leading-none font-bold tracking-[0.18px] text-white">{title}</h2>
-      {/* Escolha única: grupo de rádios para o leitor de tela. */}
-      <div
-        role="radiogroup"
-        aria-label={title}
-        // Celular: duas colunas fluidas; desktop: a grade de 282px do arquivo.
-        className="mt-[16px] grid grid-cols-2 items-start gap-x-[10px] gap-y-[10px] md:grid-cols-3 lg:grid-cols-4 desk:mt-[24px] desk:grid-cols-[repeat(auto-fill,282px)] desk:gap-x-[24px] desk:gap-y-[15px]"
-      >
-        {children}
+        ) : null}
       </div>
     </section>
   );
 }
+
+/** Valor da opção "Todos" nos selects (não colide com id de categoria, que é cuid). */
+const ALL_KEY = "__todos";
 
 /**
  * Barra do catálogo (1193:808 + 1507:1897 + 1184:651): o nome do servidor
@@ -218,45 +212,4 @@ export function CatalogToolbar({
 function SearchBox({ page, query }: { page: GamePage; query: CatalogQuery }) {
   // Em tempo real desde 2026-11-09 (ver `CatalogSearch`).
   return <CatalogSearch slug={page.slug} action={gameHref(page.slug)} query={query} />;
-}
-
-function CategoryOption({
-  label,
-  checked,
-  href,
-}: {
-  label: string;
-  checked: boolean;
-  href: string;
-}) {
-  return (
-    <Link
-      href={href}
-      scroll={false}
-      // Escolha única por quadro: rádio para quem usa leitor de tela; o href
-      // faz funcionar (e clicar de novo na marcada desfaz).
-      role="radio"
-      aria-checked={checked}
-      // Recuo curto (era 25px): caixinha de 22px com 9px em volta.
-      className={`flex h-[40px] w-full min-w-0 items-center gap-[10px] rounded-[8px] desk:w-[282px] border border-white/10 pr-[14px] pl-[9px] backdrop-blur-[100px] transition-opacity hover:opacity-90 ${
-        checked ? "bg-[image:var(--brand-orange-gradient)] text-white" : "bg-[image:var(--brand-surface-fill)] text-white/80"
-      }`}
-    >
-      <span
-        aria-hidden
-        className={`flex size-[22px] shrink-0 items-center justify-center rounded-[6px] border-2 backdrop-blur-[100px] ${
-          checked ? "border-[#22c55e]/60 bg-brand-bg/60" : "border-white/10 bg-[image:var(--brand-surface-fill)]"
-        }`}
-      >
-        {checked ? (
-          <svg viewBox="0 0 24 24" className="size-[14px]" fill="none" stroke="#22c55e" strokeWidth={3.4}>
-            <path d="M5 12.5l4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        ) : null}
-      </span>
-      <span className="truncate font-poppins text-[13px] leading-none font-bold tracking-[0.13px]">
-        {label}
-      </span>
-    </Link>
-  );
 }

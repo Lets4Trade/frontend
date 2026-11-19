@@ -25,7 +25,7 @@ import {
 import { cn } from "@/lib/cn";
 
 export const metadata: Metadata = {
-  title: "Pedido | Lets4Trade",
+  title: "Pedido",
   description: "Acompanhe seu pedido na Lets4Trade.",
   // Conteúdo de conta: nada a indexar.
   robots: { index: false, follow: false },

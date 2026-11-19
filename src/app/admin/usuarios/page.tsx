@@ -17,7 +17,7 @@ import { requirePanelArea } from "@/features/admin/guard";
 import { getLoyaltyTiers } from "@/features/loyalty/publicTiers";
 
 export const metadata: Metadata = {
-  title: "Painel de usuário | Lets4Trade",
+  title: "Painel de usuário",
   robots: { index: false, follow: false },
 };
 

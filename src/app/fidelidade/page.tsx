@@ -12,7 +12,7 @@ import { getLoyalty } from "@/features/loyalty/data";
 import { getSectionsFor } from "@/features/site/content";
 
 export const metadata: Metadata = {
-  title: "Fidelidade | Lets4Trade",
+  title: "Programa de fidelidade",
   description:
     "Acompanhe seu nível, cashback e saldo de Lets Coins no programa de fidelidade.",
   robots: { index: false, follow: false },

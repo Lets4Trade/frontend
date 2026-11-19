@@ -24,6 +24,8 @@ export type ExitOfferConfig = {
   title: string;
   text: string;
   imageUrl?: string;
+  /** Arte própria do celular (2026-11-18); ausente = a do computador. */
+  mobileImageUrl?: string;
   button: string;
   /** Dias até mostrar de novo para a mesma pessoa (0 = toda visita). */
   days: number;
@@ -82,6 +84,7 @@ export function exitOfferConfig(section: {
   title: string;
   subtitle: string;
   imageUrl?: string;
+  secondaryImageUrl?: string;
   extra: (name: string, fallback: string) => string;
 }): ExitOfferConfig | null {
   if (section.extra("ativo", "desligado") !== "ligado") return null;
@@ -90,6 +93,8 @@ export function exitOfferConfig(section: {
     title: section.title || "Espera! Tem um presente pra você",
     text: section.subtitle || "Crie sua conta e use este cupom na sua primeira compra.",
     imageUrl: section.imageUrl || undefined,
+    // Só a do celular também vale: aparece só no celular.
+    mobileImageUrl: section.secondaryImageUrl || undefined,
     button: section.extra("botao", "CRIAR CONTA E USAR") || "CRIAR CONTA E USAR",
     days: Number.isFinite(days) && days >= 0 ? Math.min(days, 365) : 7,
   };

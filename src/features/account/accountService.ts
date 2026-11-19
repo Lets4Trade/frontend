@@ -106,7 +106,9 @@ export async function saveProfile(
  */
 export async function completeProfile(values: CompleteProfileValues, signal?: AbortSignal) {
   requireApi();
-  await request("/me", "PATCH", { whatsapp: values.whatsapp, gender: values.gender }, signal);
+  // Sem gênero (entrou pelo Google, 2026-11-18): o campo nem vai — o backend
+  // não toca no que não recebe.
+  await request("/me", "PATCH", { whatsapp: values.whatsapp, ...(values.gender ? { gender: values.gender } : {}) }, signal);
 }
 
 export async function confirmEmailChange(code: string, signal?: AbortSignal) {

@@ -153,6 +153,13 @@ export type SiteSectionDef = {
    */
   imageHint?: string;
   /**
+   * SEGUNDA arte no formulário da seção (2026-11-18, cupom de saída: imagem
+   * própria para o celular). Grava em `secondaryImageUrl`; o rótulo é o nome
+   * do campo. Ausente = sem o campo.
+   */
+  secondaryImageLabel?: string;
+  secondaryImageHint?: string;
+  /**
    * A seção tem uma LISTA de itens que o admin adiciona, remove e reordena.
    *
    * Ausente = seção de conteúdo fixo, com título e talvez arte. Presente, o
@@ -649,7 +656,10 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         subtitleLabel: "Texto do aviso",
         defaultSubtitle: "Crie sua conta e use este cupom na sua primeira compra.",
         hasImage: true,
-        imageHint: "Imagem opcional no topo do aviso: 880×400 (aparece com 440px de largura). Vazio = só o texto.",
+        imageHint: "Imagem opcional no topo do aviso, no computador: 880×400 (aparece com 440px de largura). Vazio = só o texto.",
+        secondaryImageLabel: "Imagem no celular",
+        secondaryImageHint:
+          "Opcional: a imagem do topo em telas de celular, 720×400 (aparece com até 360px de largura e 200 de altura — a do computador perde as laterais). Vazio = usa a do computador.",
         extraFields: [
           {
             name: "ativo",
@@ -850,53 +860,6 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         hasBody: true,
         bodyLabel: "Parágrafo do rodapé",
         hasImage: false,
-      },
-    ],
-  },
-  {
-    /**
-     * TERMOS DE USO e POLÍTICA DE PRIVACIDADE.
-     *
-     * O cadastro sempre disse "ao criar sua conta, você aceita os Termos de Uso
-     * e a Política de Privacidade" e linkava para `/termos` e
-     * `/politica-de-privacidade` — que não existiam. Aceite de documento que
-     * não existe não vale nada, e na LGPD a política precisa estar acessível.
-     *
-     * ── Por que o documento é uma LISTA de cláusulas ──────────────────────
-     * O texto longo de uma sessão tem teto de 4.000 caracteres, e um documento
-     * jurídico passa disso com folga. Cada cláusula como item (título + texto
-     * de até 2.000) cabe no model que já existe, sem migration, e ainda dá ao
-     * documento os subtítulos que ele precisa ter para ser lido.
-     *
-     * ⚠️ O CONTEÚDO não vem de nós: é texto jurídico e tem que ser escrito ou
-     * revisado por quem responde por ele. As páginas nascem sem cláusula e
-     * dizem isso.
-     */
-    key: "legal",
-    label: "Termos e privacidade",
-    href: "/termos",
-    sections: [
-      {
-        key: "termos",
-        label: "Termos de Uso",
-        defaultTitle: "Termos de Uso",
-        titleLabel: "Título da página",
-        // Documento legal precisa dizer de quando é. Texto livre e não data
-        // automática: corrigir uma vírgula não é uma nova versão dos termos.
-        defaultFootnote: "",
-        footnoteLabel: "Última atualização (ex.: 14 de setembro de 2026)",
-        hasImage: false,
-        list: { itemLabel: "cláusula", title: "Título da cláusula", body: "Texto" },
-      },
-      {
-        key: "privacidade",
-        label: "Política de Privacidade",
-        defaultTitle: "Política de Privacidade",
-        titleLabel: "Título da página",
-        defaultFootnote: "",
-        footnoteLabel: "Última atualização (ex.: 14 de setembro de 2026)",
-        hasImage: false,
-        list: { itemLabel: "cláusula", title: "Título da cláusula", body: "Texto" },
       },
     ],
   },

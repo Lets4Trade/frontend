@@ -6,7 +6,7 @@ import { SocialLogin } from "@/features/auth/SocialLogin";
 import { CheckoutLoginNotice } from "@/features/checkout/CheckoutLoginNotice";
 
 export const metadata: Metadata = {
-  title: "Criar conta | Lets4Trade",
+  title: "Crie sua conta",
   description: "Crie sua conta na Lets4Trade.",
   // Mesma razão do /login: tela de autenticação não tem valor de SEO e
   // aparecer na busca só amplia a superfície para phishing e sondagem.

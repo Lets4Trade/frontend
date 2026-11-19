@@ -18,7 +18,7 @@ import { ADMIN_SHELL } from "@/features/admin/layout";
 import { gameHref } from "@/features/game/href";
 
 export const metadata: Metadata = {
-  title: "Jogo | Lets4Trade",
+  title: "Jogo",
   robots: { index: false, follow: false },
 };
 

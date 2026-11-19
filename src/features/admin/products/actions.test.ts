@@ -365,6 +365,22 @@ describe("saveProductOrderAction", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/admin/produtos");
   });
 
+  it("ordem de uma categoria (2026-11-18) leva o categoryId; id inválido recusa", async () => {
+    expect(await saveProductOrderAction("g1", "tab1", ["b", "a"], "chaves")).toEqual({ ok: true });
+    expect(put).toHaveBeenLastCalledWith("/admin/products/order", {
+      gameId: "g1",
+      tabId: "tab1",
+      ids: ["b", "a"],
+      categoryId: "chaves",
+    });
+    put.mockClear();
+    expect(await saveProductOrderAction("g1", "tab1", ["a"], "../x")).toEqual({
+      ok: false,
+      message: "Categoria inválida.",
+    });
+    expect(put).not.toHaveBeenCalled();
+  });
+
   it("400 repassa a mensagem do backend (é acionável); o resto vira genérico", async () => {
     put.mockResolvedValue(apiFail(400, "Produto p9 não é deste jogo"));
     expect(await saveProductOrderAction("g1", "tab1", ["p9"])).toEqual({

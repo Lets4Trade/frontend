@@ -6,7 +6,7 @@ import { requirePanelArea } from "@/features/admin/guard";
 import { ADMIN_SHELL } from "@/features/admin/layout";
 
 export const metadata: Metadata = {
-  title: "Novo cupom | Lets4Trade",
+  title: "Novo cupom",
   robots: { index: false, follow: false },
 };
 

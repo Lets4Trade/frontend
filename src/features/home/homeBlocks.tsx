@@ -67,7 +67,9 @@ export function buildHomeBlocks(
       node: (
         <>
           <HomeNav stats={items("navegacao")} />
-          <hr className="mt-[69px] border-0 border-t border-brand-hairline" />
+          {/* O divisor de 1076 saiu em 2026-11-18: a faixa dos contadores
+              virou banner com bordas próprias. Fica o espaço. */}
+          <div aria-hidden className="h-[70px]" />
         </>
       ),
     },

@@ -77,6 +77,31 @@ export function useAutoplayInView(
 const YT_ORIGIN = "https://www.youtube-nocookie.com";
 
 /**
+ * Quanto esperar o YouTube dizer "tocando" antes de mostrar o player assim
+ * mesmo — se o autoplay foi barrado, a pessoa precisa ver o play dele.
+ */
+const YT_REVEAL_FALLBACK_MS = 3500;
+
+/** Mensagem do player do YouTube dizendo que está TOCANDO (playerState 1). */
+export function isYoutubePlaying(data: unknown): boolean {
+  let message: unknown = data;
+  if (typeof data === "string") {
+    try {
+      message = JSON.parse(data);
+    } catch {
+      return false;
+    }
+  }
+  if (!message || typeof message !== "object") return false;
+  const { event, info } = message as { event?: unknown; info?: unknown };
+  if (event === "onStateChange") return info === 1;
+  if (event === "infoDelivery" && info && typeof info === "object") {
+    return (info as { playerState?: unknown }).playerState === 1;
+  }
+  return false;
+}
+
+/**
  * O player em si, dentro de uma moldura que o pai já posicionou (`relative` ou
  * `absolute`). Arquivo enviado pelo painel vale mais que o link do YouTube.
  */
@@ -97,6 +122,30 @@ export function InlineVideo({
   const videoRef = useRef<HTMLVideoElement>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
   const [muted, setMuted] = useState(true);
+  // Sem "piscada" (2026-11-18, relato do usuário: "dá uma piscada da foto até
+  // renderizar o vídeo, fica um espaço vazio"). O player nasce INVISÍVEL por
+  // cima da capa (o pai a mantém embaixo) e só aparece quando há imagem de
+  // verdade: o arquivo com o 1º quadro pronto, o YouTube dizendo "tocando".
+  const [ready, setReady] = useState(false);
+
+  // YouTube: o player só manda o estado depois de ouvir "listening" — mandado
+  // no `onLoad` do iframe. Mensagem de outra origem é ignorada.
+  useEffect(() => {
+    if (!videoId || videoFile || ready) return;
+    function onMessage(event: MessageEvent) {
+      if (event.origin !== YT_ORIGIN || event.source !== frameRef.current?.contentWindow) return;
+      if (isYoutubePlaying(event.data)) setReady(true);
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [videoId, videoFile, ready]);
+
+  function onFrameLoad() {
+    frameRef.current?.contentWindow?.postMessage(JSON.stringify({ event: "listening", id: 1, channel: "widget" }), YT_ORIGIN);
+    window.setTimeout(() => setReady(true), YT_REVEAL_FALLBACK_MS);
+  }
+
+  const reveal = `transition-opacity duration-300 ${ready ? "opacity-100" : "opacity-0"}`;
 
   // Toca na tela, pausa fora dela.
   useEffect(() => {
@@ -145,7 +194,9 @@ export function InlineVideo({
           playsInline
           controls
           preload="metadata"
-          className="absolute inset-0 size-full bg-black object-cover"
+          className={`absolute inset-0 size-full object-cover ${reveal}`}
+          onLoadedData={() => setReady(true)}
+          onPlaying={() => setReady(true)}
           onVolumeChange={(event) => setMuted(event.currentTarget.muted)}
         >
           Seu navegador não conseguiu tocar este vídeo.
@@ -158,11 +209,12 @@ export function InlineVideo({
           allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
           allowFullScreen
           referrerPolicy="strict-origin-when-cross-origin"
-          className="absolute inset-0 size-full border-0 bg-black"
+          className={`absolute inset-0 size-full border-0 ${reveal}`}
+          onLoad={onFrameLoad}
         />
       ) : null}
 
-      {muted ? (
+      {muted && ready ? (
         <button
           type="button"
           onClick={unmute}

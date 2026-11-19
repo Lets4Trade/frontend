@@ -27,6 +27,8 @@ export type BlogCardView = {
   date: string;
   game: BlogGameRef | null;
   href: string;
+  /** Autor no card da lista (2026-11-18). Ausente/`null` = sem a linha. */
+  author?: BlogAuthorView | null;
 };
 
 /**

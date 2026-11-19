@@ -184,16 +184,10 @@ const BLOG: ContentPageDef = {
   previewPath: null,
 };
 
-const LEGAL: ContentPageDef = {
-  kind: "content",
-  slug: "legal",
-  label: "Termos e privacidade",
-  href: "/termos",
-  catalogPage: "legal",
-  previewPath: null,
-};
+// "Termos e privacidade" saiu em 2026-11-18: o texto é o arquivo de
+// `public/docs/` (ver `LegalDocument`), não mais cláusulas do painel.
 
-export const STATIC_PAGES: readonly BuilderPageDef[] = [HOME, VENDA, FIDELIDADE, BLOG, CABECALHO, RODAPE, GAMES_SHARED, LEGAL];
+export const STATIC_PAGES: readonly BuilderPageDef[] = [HOME, VENDA, FIDELIDADE, BLOG, CABECALHO, RODAPE, GAMES_SHARED];
 
 /** Resolve o slug (inclusive `jogo-<id>`, com a lista de jogos). */
 export function builderPage(

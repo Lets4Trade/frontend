@@ -1,18 +1,15 @@
 import type { Metadata } from "next";
-import { LegalDocument, legalTitle } from "@/features/site/LegalDocument";
+import { LegalDocument } from "@/features/site/LegalDocument";
 
 /**
- * Política de Privacidade — linkada pelo cadastro e exigida pela LGPD como
- * informação acessível ao titular. O texto é editado em "Edição de sessões →
- * Termos e privacidade".
+ * Política de Privacidade — linkada pelo cadastro, pelo rodapé e pelo aviso de cookies. O texto
+ * é o arquivo de `public/docs/` (2026-11-18): ver `LegalDocument`.
  */
-export async function generateMetadata(): Promise<Metadata> {
-  return {
-    title: await legalTitle("privacidade"),
-    description: "Política de Privacidade da Lets4Trade.",
-  };
-}
+export const metadata: Metadata = {
+  title: "Política de Privacidade",
+  description: "Política de Privacidade da Lets 4 Trade: quais dados coletamos, como usamos e protegemos, e os seus direitos na LGPD.",
+};
 
-export default function PrivacyPage() {
-  return <LegalDocument sectionKey="privacidade" />;
+export default function Page() {
+  return <LegalDocument kind="privacidade" />;
 }

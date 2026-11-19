@@ -69,12 +69,16 @@ export function SectionContentForm({
   const [pending, startTransition] = useTransition();
   const imageInput = useRef<HTMLInputElement>(null);
   const [imageName, setImageName] = useState<string | null>(null);
+  const secondaryInput = useRef<HTMLInputElement>(null);
+  const [secondaryName, setSecondaryName] = useState<string | null>(null);
 
   const hasTitle = def.hasTitle !== false;
   const hasSubtitle = def.defaultSubtitle !== undefined || Boolean(def.subtitleLabel);
   const hasFootnote = def.defaultFootnote !== undefined || Boolean(def.footnoteLabel);
   const hasExtras = (def.extraFields?.length ?? 0) > 0;
-  const hasFields = hasTitle || hasSubtitle || hasFootnote || def.hasBody || def.hasImage || hasExtras;
+  const hasSecondary = Boolean(def.secondaryImageLabel);
+  const hasFields =
+    hasTitle || hasSubtitle || hasFootnote || def.hasBody || def.hasImage || hasSecondary || hasExtras;
   const grid = layout === "grid";
   const hoursFields = (def.extraFields ?? []).filter((field) => field.kind === "hours");
   const otherExtras = (def.extraFields ?? []).filter((field) => field.kind !== "hours");
@@ -84,6 +88,7 @@ export function SectionContentForm({
   // loja tem agora — depois de salvar, o `content` novo chega e o aviso some.
   const dirty =
     imageName !== null ||
+    secondaryName !== null ||
     title !== (content?.title ?? "") ||
     subtitle !== (content?.subtitle ?? "") ||
     footnote !== (content?.footnote ?? "") ||
@@ -105,6 +110,8 @@ export function SectionContentForm({
     if (hasExtras) form.set("extras", JSON.stringify(extras));
     const file = imageInput.current?.files?.[0];
     if (file) form.set("image", file, file.name);
+    const secondary = secondaryInput.current?.files?.[0];
+    if (secondary) form.set("secondaryImage", secondary, secondary.name);
 
     startTransition(async () => {
       const result = await runAction(() => saveSectionAction(form), {
@@ -118,6 +125,8 @@ export function SectionContentForm({
       }
       setImageName(null);
       if (imageInput.current) imageInput.current.value = "";
+      setSecondaryName(null);
+      if (secondaryInput.current) secondaryInput.current.value = "";
       onSaved(result.data);
       toastOk("Salvo. A loja já mostra.");
     });
@@ -270,29 +279,26 @@ export function SectionContentForm({
             </div>
           ) : null}
           {def.hasImage ? (
-            <div className={full}>
-              <p className="mb-[8px] font-helvetica text-[16px] font-bold text-white">Imagem</p>
-              <div className="flex items-center gap-[12px]">
-                <span className="relative size-[64px] shrink-0 overflow-hidden rounded-[12px] border border-brand-border bg-black/40">
-                  {content?.imageUrl ? (
-                    <Image src={content.imageUrl} alt="" fill sizes="64px" className="object-contain" />
-                  ) : null}
-                </span>
-                <label className="cursor-pointer rounded-full border border-white/20 px-[14px] py-[8px] font-poppins text-[12px] font-bold text-white focus-within:ring-2 focus-within:ring-brand-orange hover:bg-white/5">
-                  {imageName ?? (content?.imageUrl ? "Trocar imagem" : "Escolher imagem")}
-                  <input
-                    ref={imageInput}
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    className="sr-only"
-                    onChange={(event) => setImageName(event.target.files?.[0]?.name ?? null)}
-                  />
-                </label>
-              </div>
-              {def.imageHint ? (
-                <p className="mt-[6px] font-poppins text-[12px] text-brand-fg-subtle">{def.imageHint}</p>
-              ) : null}
-            </div>
+            <ImagePick
+              className={full}
+              label={hasSecondary ? "Imagem no computador" : "Imagem"}
+              current={content?.imageUrl}
+              chosen={imageName}
+              inputRef={imageInput}
+              onChoose={setImageName}
+              hint={def.imageHint}
+            />
+          ) : null}
+          {def.secondaryImageLabel ? (
+            <ImagePick
+              className={full}
+              label={def.secondaryImageLabel}
+              current={content?.secondaryImageUrl}
+              chosen={secondaryName}
+              inputRef={secondaryInput}
+              onChoose={setSecondaryName}
+              hint={def.secondaryImageHint}
+            />
           ) : null}
 
           <div
@@ -347,3 +353,45 @@ export function SectionContentForm({
   );
 }
 
+/** Uma arte da seção: miniatura da atual + escolher arquivo (sobe ao Salvar). */
+function ImagePick({
+  className,
+  label,
+  current,
+  chosen,
+  inputRef,
+  onChoose,
+  hint,
+}: {
+  className?: string;
+  label: string;
+  current?: string | null;
+  /** Nome do arquivo escolhido e ainda não salvo. */
+  chosen: string | null;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  onChoose: (name: string | null) => void;
+  hint?: string;
+}) {
+  return (
+    <div className={className}>
+      <p className="mb-[8px] font-helvetica text-[16px] font-bold text-white">{label}</p>
+      <div className="flex items-center gap-[12px]">
+        <span className="relative size-[64px] shrink-0 overflow-hidden rounded-[12px] border border-brand-border bg-black/40">
+          {current ? <Image src={current} alt="" fill sizes="64px" className="object-contain" /> : null}
+        </span>
+        <label className="cursor-pointer rounded-full border border-white/20 px-[14px] py-[8px] font-poppins text-[12px] font-bold text-white focus-within:ring-2 focus-within:ring-brand-orange hover:bg-white/5">
+          {chosen ?? (current ? "Trocar imagem" : "Escolher imagem")}
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="sr-only"
+            aria-label={label}
+            onChange={(event) => onChoose(event.target.files?.[0]?.name ?? null)}
+          />
+        </label>
+      </div>
+      {hint ? <p className="mt-[6px] font-poppins text-[12px] text-brand-fg-subtle">{hint}</p> : null}
+    </div>
+  );
+}

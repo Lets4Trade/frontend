@@ -10,6 +10,7 @@ import { ACTION_FAILED_MESSAGE, ACTION_FAILED_UPLOAD_MESSAGE, runAction } from "
 import {
   removeBannerAction,
   removeBannerMobileAction,
+  replaceBannerImageAction,
   reorderBannersAction,
   uploadBannerAction,
   uploadBannerMobileAction,
@@ -755,6 +756,27 @@ export function BannerPanel({
     });
   }
 
+  // Arte do COMPUTADOR (2026-11-18): troca só a imagem — a do celular e a
+  // posição ficam. Grava na hora, como o upload.
+  function setDesktop(bannerId: string, file: File) {
+    startTransition(async () => {
+      const form = new FormData();
+      form.append("image", file);
+      const result = await runAction(() => replaceBannerImageAction(gameId, bannerId, form), {
+        ok: false,
+        reason: "error",
+        message: ACTION_FAILED_UPLOAD_MESSAGE,
+      });
+      if (!result.ok) {
+        toastError(result.message ?? "Não foi possível trocar o banner.");
+        return;
+      }
+      onChange(
+        banners.map((banner) => (banner.id === bannerId ? { ...banner, imageUrl: result.data.imageUrl } : banner)),
+      );
+    });
+  }
+
   // Arte do celular (2026-10-16): grava na hora, como o banner. `null` tira.
   function setMobile(bannerId: string, file: File | null) {
     startTransition(async () => {
@@ -826,7 +848,26 @@ export function BannerPanel({
               <div className="relative h-[100px] w-[350px] max-w-full shrink-0 overflow-hidden rounded-[12px] border border-white/10">
                 <Image src={banner.imageUrl} alt="" fill sizes="350px" className="object-cover" />
               </div>
-              <figcaption className="font-poppins text-[12px] text-brand-fg-subtle">Computador</figcaption>
+              <figcaption className="flex items-center gap-[10px] font-poppins text-[12px] text-brand-fg-subtle">
+                Computador
+                <label
+                  className={`font-bold text-white/80 hover:text-white ${pending ? "pointer-events-none opacity-50" : "cursor-pointer"}`}
+                >
+                  Trocar
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/avif"
+                    disabled={pending}
+                    aria-label={`Trocar a arte do computador do banner ${index + 1}`}
+                    className="sr-only"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      event.target.value = "";
+                      if (file) setDesktop(banner.id, file);
+                    }}
+                  />
+                </label>
+              </figcaption>
             </figure>
             <MobileBannerSlot
               index={index}

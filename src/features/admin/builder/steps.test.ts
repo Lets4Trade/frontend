@@ -10,12 +10,13 @@ describe("BUILDER_STEPS (2026-11-09, lista do usuário)", () => {
       "4 Servidores",
       "5 Categorias globais",
       "6 Descrição",
-      "7 Ordem da página",
+      "7 Blocos e ordem",
     ]);
   });
 
-  it("nenhuma etapa é atalho, então ADMIN e EDITOR veem as mesmas", () => {
-    expect(BUILDER_STEPS.every((step) => !step.href)).toBe(true);
+  it("só 'Blocos e ordem' é atalho, para o construtor da página do jogo (2026-11-18)", () => {
+    expect(BUILDER_STEPS.filter((step) => step.href).map((step) => step.id)).toEqual(["ordem"]);
+    expect(BUILDER_STEPS.find((step) => step.id === "ordem")?.href?.("g1", "jogo")).toBe("/admin/paginas?pagina=jogo-g1");
     expect(visibleSteps(false)).toEqual(visibleSteps(true));
   });
 });

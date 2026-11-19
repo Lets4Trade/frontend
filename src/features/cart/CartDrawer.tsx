@@ -70,7 +70,7 @@ export function CartDrawer({ tiers, gifts }: { tiers: LoyaltyTierRule[]; gifts: 
               Carrinho
               {count > 0 ? (
                 <span className="font-helvetica text-[14px] font-normal tracking-normal text-brand-fg-muted">
-                  {count} {count === 1 ? "item" : "itens"}
+                  {count.toLocaleString("pt-BR")} {count === 1 ? "item" : "itens"}
                 </span>
               ) : null}
             </Drawer.Title>

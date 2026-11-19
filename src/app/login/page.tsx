@@ -6,7 +6,7 @@ import { SocialLogin, socialErrorMessage } from "@/features/auth/SocialLogin";
 import { CheckoutLoginNotice } from "@/features/checkout/CheckoutLoginNotice";
 
 export const metadata: Metadata = {
-  title: "Login | Lets4Trade",
+  title: "Entre na sua conta",
   description: "Acesse sua conta Lets4Trade.",
   // Tela de autenticação não deve entrar em índice de busca: não tem valor de
   // SEO e aparecer na SERP só amplia a superfície para phishing e sondagem.

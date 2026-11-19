@@ -25,7 +25,6 @@ import {
 import { BuilderPreview } from "./BuilderPreview";
 import { BuilderSidebar } from "./BuilderSidebar";
 import type { GameTab } from "@/features/admin/games/tabs/types";
-import { SectionOrderPanel } from "./SectionOrderPanel";
 import { stepById, type BuilderStepId } from "./steps";
 import { isGlobalCategory } from "./types";
 import type {
@@ -324,13 +323,8 @@ function renderPanel(
     case "descricao":
       return <DescriptionPanel draft={draft} patch={patch} />;
     case "ordem":
-      return (
-        <SectionOrderPanel
-          gameId={game.id}
-          order={draft.sectionOrder}
-          onChange={(sectionOrder) => patch({ sectionOrder })}
-        />
-      );
+      // Atalho para o construtor (`href` na etapa): não abre painel aqui.
+      return null;
   }
 }
 

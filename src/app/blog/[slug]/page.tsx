@@ -19,9 +19,9 @@ export async function generateMetadata({ params }: { params: Promise<RouteParams
   const post = await getBlogPost(slug);
   if (!post) return {};
 
-  const title = `${post.title} | Lets4Trade`;
+  // O título do post já é a frase; a marca entra pelo template do layout raiz.
   return {
-    title,
+    title: post.title,
     description: post.excerpt,
     alternates: { canonical: post.href },
     openGraph: {

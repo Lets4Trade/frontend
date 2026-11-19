@@ -30,13 +30,17 @@ import type { OrderableProduct } from "./ordering";
 import {
   ALL,
   applyVisibleOrder,
+  categoryOrder,
+  cutFilters,
   EMPTY_FILTERS,
   hasFilters,
   matchesFilters,
   moveSelection,
   moveSelectionTo,
   NONE,
+  orderScope,
   rangeBetween,
+  sameOrder,
   type OrderCategory,
   type OrderFilters,
 } from "./orderBoard";
@@ -65,11 +69,17 @@ const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL",
  *  - MULTISSELEÇÃO: caixa no card, Ctrl/⌘+clique e Shift+clique (intervalo).
  *    Arrastar um selecionado leva o grupo inteiro, na ordem em que estavam;
  *    "Topo"/"Fim" da barra fazem o mesmo sem arrastar.
+ *
+ * Desde 2026-11-18 (pedido do usuário): CATEGORIA/SUBCATEGORIA escolhida no
+ * filtro organiza a ordem PRÓPRIA dela, que a vitrine usa quando o cliente
+ * filtra por ela; a lista da aba (sem categoria) fica intacta. Cada lista tem
+ * o seu rascunho, e o SALVAR grava todas as que mudaram.
  */
 export function ProductOrderBoard({
   gameId,
   tabId,
   initial,
+  initialCategoryOrders = {},
   servers = [],
   categories = [],
 }: {
@@ -77,6 +87,8 @@ export function ProductOrderBoard({
   /** A aba do jogo (`tabId`). */
   tabId: string;
   initial: OrderableProduct[];
+  /** Ordem gravada de cada categoria (id → ids). */
+  initialCategoryOrders?: Record<string, string[]>;
   /** Servidores do jogo (filtro). */
   servers?: { id: string; label: string }[];
   /** Categorias que valem NESTA aba (globais + as da aba), lista plana com `parentId`. */
@@ -84,6 +96,9 @@ export function ProductOrderBoard({
 }) {
   const [saved, setSaved] = useState(() => initial.map((item) => item.id));
   const [order, setOrder] = useState(saved);
+  // Ordem gravada de cada categoria, e os rascunhos das que a pessoa mexeu.
+  const [categorySaved, setCategorySaved] = useState(initialCategoryOrders);
+  const [categoryDrafts, setCategoryDrafts] = useState<Record<string, string[]>>({});
   const [filters, setFilters] = useState<OrderFilters>(EMPTY_FILTERS);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [anchor, setAnchor] = useState<string | null>(null);
@@ -92,18 +107,32 @@ export function ProductOrderBoard({
   const [pending, startTransition] = useTransition();
 
   const byId = useMemo(() => new Map(initial.map((item) => [item.id, item])), [initial]);
-  const dirty = order.some((id, index) => id !== saved[index]);
   const filtered = hasFilters(filters);
-  const visible = useMemo(
-    () =>
-      order.filter((id) => {
-        const product = byId.get(id);
-        return product ? matchesFilters(product, filters, categories) : false;
-      }),
-    [order, byId, filters, categories],
+
+  // Qual lista está aberta: a da aba (`null`) ou a de uma categoria.
+  const scope = orderScope(filters);
+  /** A ordem gravada de uma categoria, completada com os produtos dela. */
+  const categoryBaseline = (categoryId: string) =>
+    categoryOrder(saved, categoryId, categorySaved[categoryId], byId, categories);
+  const list = scope
+    ? (categoryDrafts[scope] ?? categoryOrder(order, scope, categorySaved[scope], byId, categories))
+    : order;
+
+  const changedCategories = Object.keys(categoryDrafts).filter(
+    (categoryId) => !sameOrder(categoryDrafts[categoryId], categoryBaseline(categoryId)),
   );
-  const position = useMemo(() => new Map(order.map((id, index) => [id, index])), [order]);
-  const selectedVisible = useMemo(() => new Set(visible.filter((id) => selected.has(id))), [visible, selected]);
+  const tabDirty = !sameOrder(order, saved);
+  const dirty = tabDirty || changedCategories.length > 0;
+
+  // Busca e servidor recortam a lista aberta.
+  const cut = cutFilters(filters);
+  const visible = list.filter((id) => {
+    const product = byId.get(id);
+    return product ? matchesFilters(product, cut, categories) : false;
+  });
+  const position = new Map(list.map((id, index) => [id, index]));
+  const categorySavedSet = scope ? new Set(categorySaved[scope] ?? []) : null;
+  const selectedVisible = new Set(visible.filter((id) => selected.has(id)));
 
   const roots = categories.filter((category) => !category.parentId);
   const children = categories.filter((category) => category.parentId && category.parentId === filters.category);
@@ -117,7 +146,12 @@ export function ProductOrderBoard({
 
   /** Nova ordem dos VISÍVEIS, encaixada nas posições que eles ocupavam. */
   function reorderVisible(next: string[]) {
-    setOrder((current) => applyVisibleOrder(current, visible, next));
+    if (scope) {
+      // A lista da categoria muda; a da aba não.
+      setCategoryDrafts((current) => ({ ...current, [scope]: applyVisibleOrder(list, visible, next) }));
+    } else {
+      setOrder((current) => applyVisibleOrder(current, visible, next));
+    }
     setMessage(null);
   }
 
@@ -170,18 +204,41 @@ export function ProductOrderBoard({
   }
 
   function save() {
+    // Fotografia do que vai ser gravado: a pessoa pode seguir mexendo.
+    const tabOrder = tabDirty ? order : null;
+    const categoryLists = changedCategories.map((categoryId) => [categoryId, categoryDrafts[categoryId]] as const);
     startTransition(async () => {
-      const result = await runAction(() => saveProductOrderAction(gameId, tabId, order), {
-        ok: false,
-        message: ACTION_FAILED_MESSAGE,
-      });
-      if (result.ok) {
-        setSaved(order);
-        setMessage({ tone: "ok", text: "Ordem salva. A vitrine já mostra a nova ordem." });
-      } else {
-        setMessage({ tone: "error", text: result.message });
+      const failed = { ok: false as const, message: ACTION_FAILED_MESSAGE };
+      if (tabOrder) {
+        const result = await runAction(() => saveProductOrderAction(gameId, tabId, tabOrder), failed);
+        if (!result.ok) {
+          setMessage({ tone: "error", text: result.message });
+          return;
+        }
+        setSaved(tabOrder);
       }
+      // Uma gravação por categoria mexida (normalmente uma ou duas).
+      for (const [categoryId, ids] of categoryLists) {
+        const result = await runAction(() => saveProductOrderAction(gameId, tabId, ids, categoryId), failed);
+        if (!result.ok) {
+          setMessage({ tone: "error", text: result.message });
+          return;
+        }
+        setCategorySaved((current) => ({ ...current, [categoryId]: ids }));
+        setCategoryDrafts((current) => {
+          const next = { ...current };
+          if (next[categoryId] === ids) delete next[categoryId];
+          return next;
+        });
+      }
+      setMessage({ tone: "ok", text: "Ordem salva. A vitrine já mostra a nova ordem." });
     });
+  }
+
+  function discard() {
+    setOrder(saved);
+    setCategoryDrafts({});
+    setMessage(null);
   }
 
   const dragging = activeId !== null && selectedVisible.has(activeId) && selectedVisible.size > 1;
@@ -193,7 +250,9 @@ export function ProductOrderBoard({
         <div className="flex flex-wrap items-center gap-[16px]">
           <p className="font-helvetica text-[14px] text-brand-fg-muted">
             <strong className="font-bold text-white">
-              {filtered ? `${visible.length} de ${order.length} produtos.` : `${order.length} produtos.`}
+              {visible.length !== order.length
+                ? `${visible.length} de ${order.length} produtos.`
+                : `${order.length} produtos.`}
             </strong>{" "}
             Arraste para mudar a ordem. Os {ROW} primeiros formam a{" "}
             <strong className="text-white">1ª fileira</strong> da vitrine.
@@ -214,10 +273,7 @@ export function ProductOrderBoard({
             <button
               type="button"
               disabled={!dirty || pending}
-              onClick={() => {
-                setOrder(saved);
-                setMessage(null);
-              }}
+              onClick={discard}
               className="h-[40px] rounded-full border border-white/15 px-[18px] font-poppins text-[13px] font-bold text-white/80 transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
             >
               DESCARTAR
@@ -303,12 +359,22 @@ export function ProductOrderBoard({
           {filtered ? <BarButton onClick={() => changeFilters(EMPTY_FILTERS)}>Limpar filtros</BarButton> : null}
         </div>
       </div>
-      {filtered ? (
-        <p className="mt-[10px] pl-[4px] font-helvetica text-[12px] text-brand-fg-subtle">
-          Com filtro, a ordem muda só entre os produtos filtrados; os outros ficam onde estão. O número no card é a
-          posição real na aba.
-        </p>
-      ) : null}
+      <p className="mt-[10px] pl-[4px] font-helvetica text-[12px] text-brand-fg-subtle">
+        {scope ? (
+          <>
+            Organizando a ordem de <strong className="text-white">{categoryLabel(categories, scope)}</strong>: é a que
+            o cliente vê ao filtrar por ela. A ordem da aba (sem categoria) não muda.
+          </>
+        ) : (
+          <>
+            Organizando a ordem da <strong className="text-white">aba inteira</strong>. Escolha uma categoria ou
+            subcategoria para organizar a ordem própria dela.
+          </>
+        )}
+        {filtered && (filters.search.trim() || filters.server !== ALL)
+          ? " Busca e servidor só recortam: a ordem muda entre os filtrados e os outros ficam onde estão."
+          : ""}
+      </p>
 
       {visible.length === 0 ? (
         <p className="mt-[24px] rounded-2xl border border-white/10 px-4 py-6 text-center font-helvetica text-[14px] text-brand-fg-muted">
@@ -333,6 +399,10 @@ export function ProductOrderBoard({
                     key={id}
                     product={product}
                     position={position.get(id) ?? index}
+                    // Na lista de uma categoria, "organizado" é ter posição
+                    // gravada NELA; o resto segue a ordem da aba.
+                    ordered={categorySavedSet ? categorySavedSet.has(id) : product.ordered}
+                    unorderedLabel={categorySavedSet ? "Aba" : "A–Z"}
                     index={index}
                     last={index === visible.length - 1}
                     lastIndex={visible.length - 1}
@@ -373,9 +443,19 @@ function BarButton({
   );
 }
 
+/** Nome da categoria aberta ("Armas › Chaves" para subcategoria). */
+function categoryLabel(categories: readonly OrderCategory[], id: string): string {
+  const category = categories.find((item) => item.id === id);
+  if (!category) return "esta categoria";
+  const parent = category.parentId ? categories.find((item) => item.id === category.parentId) : undefined;
+  return parent ? `${parent.label} › ${category.label}` : category.label;
+}
+
 function SortableTile({
   product,
   position,
+  ordered,
+  unorderedLabel,
   index,
   last,
   lastIndex,
@@ -386,8 +466,12 @@ function SortableTile({
   onMove,
 }: {
   product: OrderableProduct;
-  /** Posição REAL na aba (0-based), com ou sem filtro. */
+  /** Posição REAL na lista aberta (aba ou categoria, 0-based), com ou sem recorte. */
   position: number;
+  /** Já tem posição gravada na lista aberta. */
+  ordered: boolean;
+  /** Etiqueta de quem ainda não foi organizado ("A–Z" na aba, "Aba" na categoria). */
+  unorderedLabel: string;
   /** Posição na lista visível (para os botões ←/→/topo). */
   index: number;
   last: boolean;
@@ -453,9 +537,16 @@ function SortableTile({
           </span>
           {firstRow ? (
             <span className="font-poppins text-[10px] font-bold tracking-[0.1px] text-brand-orange">1ª FILEIRA</span>
-          ) : !product.ordered ? (
-            <span className="font-helvetica text-[10px] text-brand-fg-subtle" title="Ainda não organizado: está em ordem alfabética">
-              A–Z
+          ) : !ordered ? (
+            <span
+              className="font-helvetica text-[10px] text-brand-fg-subtle"
+              title={
+                unorderedLabel === "A–Z"
+                  ? "Ainda não organizado: está em ordem alfabética"
+                  : "Ainda não organizado nesta categoria: segue a ordem da aba"
+              }
+            >
+              {unorderedLabel}
             </span>
           ) : null}
         </div>

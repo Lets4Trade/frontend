@@ -10,7 +10,7 @@ import { isPanelRole } from "@/features/admin/permissions";
 import { getSessionRole, getSessionUser } from "@/features/auth/session";
 
 export const metadata: Metadata = {
-  title: "Painel | Lets4Trade",
+  title: "Painel",
   // Painel interno: nada a indexar, e o `noindex` vale para toda rota filha.
   robots: { index: false, follow: false },
 };

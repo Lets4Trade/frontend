@@ -23,7 +23,16 @@ export type OrderableProduct = {
 };
 
 export type ProductOrdering =
-  | { ok: true; items: OrderableProduct[]; truncated: boolean }
+  | {
+      ok: true;
+      items: OrderableProduct[];
+      truncated: boolean;
+      /**
+       * Ordem PRÓPRIA de cada categoria/subcategoria (2026-11-18): id da
+       * categoria → ids na ordem gravada para ela. Sem chave = nunca organizada.
+       */
+      categoryOrders: Record<string, string[]>;
+    }
   | { ok: false };
 
 export async function getProductOrdering(
@@ -32,14 +41,18 @@ export async function getProductOrdering(
   tabId: string,
 ): Promise<ProductOrdering> {
   const params = new URLSearchParams({ gameId, tabId });
-  const result = await apiGet<{ items: OrderableProduct[]; truncated?: boolean }>(
-    `/admin/products/order?${params.toString()}`,
-  );
+  const result = await apiGet<{
+    items: OrderableProduct[];
+    truncated?: boolean;
+    categoryOrders?: Record<string, string[]>;
+  }>(`/admin/products/order?${params.toString()}`);
   if (!result.ok) return { ok: false };
   return {
     ok: true,
     items: result.data.items ?? [],
     truncated: Boolean(result.data.truncated),
+    // API antiga não manda: nenhuma categoria organizada.
+    categoryOrders: result.data.categoryOrders ?? {},
   };
 }
 

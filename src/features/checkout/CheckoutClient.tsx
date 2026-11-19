@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { SelectField } from "@/components/ui/SelectField";
@@ -53,6 +54,7 @@ import { cardSchema, pixSchema, savedCardSchema } from "./schema";
 import { NEW_CARD, SaveCardCheckbox, SavedCardPicker } from "./SavedCardPicker";
 import type { SavedCard } from "@/features/payment/savedCards";
 import { lineTotalCents } from "@/features/pricing/quote";
+import { gameHref } from "@/features/game/href";
 
 /**
  * Cotação de reserva da Lets Coin, em centavos.
@@ -461,6 +463,17 @@ export function CheckoutClient({
           arquivo (302 de margem dos dois lados dentro dos 1079). */}
       <div className="flex flex-1 justify-center px-[16px] pt-[28px] pb-[40px] lg:px-[50px] lg:pt-[97px] lg:pb-[60px]">
         <form noValidate onSubmit={handleSubmit} className="w-full max-w-[476px]">
+          {/* Voltar SIMPLES (2026-11-18, pedido do usuário): para o jogo do
+              último item do carrinho — de onde a pessoa veio —, ou a home. */}
+          <Link
+            href={continueShoppingHref(items)}
+            className="mb-[18px] inline-flex items-center gap-[8px] rounded-full font-poppins text-[14px] font-semibold text-white/70 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none"
+          >
+            <svg aria-hidden viewBox="0 0 24 24" className="size-[16px]" fill="none" stroke="currentColor" strokeWidth={2.4}>
+              <path d="M15 5l-7 7 7 7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Continuar comprando
+          </Link>
           <h1 className="font-poppins text-[22px] leading-[28px] font-semibold tracking-[-0.44px] text-white">
             Pagamento
           </h1>
@@ -661,7 +674,7 @@ export function CheckoutClient({
           Resumo do pedido
           {hydrated && items.length > 0 ? (
             <span className="font-helvetica text-[14px] font-normal tracking-normal text-brand-fg-muted">
-              {itemCount(items)} {itemCount(items) === 1 ? "item" : "itens"}
+              {itemCount(items).toLocaleString("pt-BR")} {itemCount(items) === 1 ? "item" : "itens"}
             </span>
           ) : null}
         </h2>
@@ -936,4 +949,10 @@ function coinOptions(maxCoins: number, coinCents: number) {
     },
     { value: "nao", label: "Não" },
   ];
+}
+
+/** "Continuar comprando": o jogo do último item adicionado; sem itens, a home. */
+export function continueShoppingHref(items: readonly { gameSlug?: string }[]): string {
+  const slug = items.at(-1)?.gameSlug;
+  return slug ? gameHref(slug) : "/";
 }

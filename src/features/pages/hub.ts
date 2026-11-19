@@ -50,7 +50,6 @@ export function hubGroups(games: readonly { id: string; name: string }[] = []): 
           title: "Textos comuns dos jogos",
           description: "Referências, notícias e dúvidas que aparecem em todos os jogos.",
         },
-        { href: page("legal"), title: "Termos e privacidade", description: "Termos de Uso e Política de Privacidade." },
       ],
     },
   ];

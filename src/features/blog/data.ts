@@ -31,9 +31,10 @@ type RawCard = {
   coverUrl?: unknown;
   publishedAt?: unknown;
   game?: RawGame | null;
+  author?: unknown;
 };
 type RawList = { items?: unknown; total?: unknown; page?: unknown; pageCount?: unknown };
-type RawArticle = RawCard & { body?: unknown; related?: unknown; author?: unknown };
+type RawArticle = RawCard & { body?: unknown; related?: unknown };
 
 function str(value: unknown): string {
   return typeof value === "string" ? value : "";
@@ -66,6 +67,7 @@ export function toBlogCard(raw: unknown): BlogCardView | null {
     date: formatBlogDate(publishedAt),
     game: toGameRef(item.game),
     href: blogPostHref(slug),
+    author: toAuthor(item.author),
   };
 }
 

@@ -1,23 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { statCenters } from "./HomeNav";
 
+// Desde 2026-11-18: os atalhos saíram do meio da faixa, e os contadores se
+// espalham por igual na largura toda (1820), cada um no centro da sua fatia.
 describe("statCenters", () => {
-  it("dois contadores: as posições do arquivo", () => {
-    expect(statCenters(2)).toEqual([340, 1444.75]);
+  it("dois: um em cada metade", () => {
+    expect(statCenters(2)).toEqual([455, 1365]);
   });
 
-  it("três: dois à esquerda do menu, um à direita", () => {
-    const [a, b, c] = statCenters(3);
-    expect(a).toBeLessThan(b);
-    expect(b).toBeLessThan(679); // antes do primeiro ladrilho
-    expect(c).toBe(1444.75);
+  it("quatro: um por quarto, com o mesmo vão entre todos", () => {
+    expect(statCenters(4)).toEqual([227.5, 682.5, 1137.5, 1592.5]);
   });
 
-  it("quatro: dois de cada lado, sem invadir o menu (679–1135)", () => {
-    const centers = statCenters(4);
-    expect(centers).toHaveLength(4);
-    expect(centers.slice(0, 2).every((x) => x + 90 < 679)).toBe(true);
-    expect(centers.slice(2).every((x) => x - 90 > 1135)).toBe(true);
+  it("um sozinho fica no meio; três dividem em terços", () => {
+    expect(statCenters(1)).toEqual([910]);
+    expect(statCenters(3).map(Math.round)).toEqual([303, 910, 1517]);
   });
 
   it("mais de quatro é cortado; zero não desenha nada", () => {

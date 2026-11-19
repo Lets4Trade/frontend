@@ -45,7 +45,8 @@ describe("GameBannerSlider", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Próximo banner" }));
     expect(activeSlide()).toBe(1);
-    fireEvent.click(screen.getByRole("button", { name: "Ver banner 3 de 3" }));
+    // Celular (abaixo da arte) e computador (sobre ela): dois conjuntos de barrinhas.
+    fireEvent.click(screen.getAllByRole("button", { name: "Ver banner 3 de 3" })[1]);
     expect(activeSlide()).toBe(2);
     fireEvent.click(screen.getByRole("button", { name: "Próximo banner" }));
     expect(activeSlide()).toBe(0);
@@ -54,7 +55,9 @@ describe("GameBannerSlider", () => {
 
     fireEvent.keyDown(screen.getByRole("region"), { key: "ArrowRight" });
     expect(activeSlide()).toBe(0);
-    expect(screen.getByRole("button", { name: "Ver banner 1 de 3" }).getAttribute("aria-current")).toBe("true");
+    for (const dot of screen.getAllByRole("button", { name: "Ver banner 1 de 3" })) {
+      expect(dot.getAttribute("aria-current")).toBe("true");
+    }
   });
 
   it("passa sozinho a cada 6s e pausa com o mouse em cima", () => {
@@ -109,5 +112,19 @@ describe("GameBannerSlider", () => {
     expect(picture?.querySelector("img")?.getAttribute("fetchpriority")).toBe("high");
     // Banner sem arte de celular continua na <Image> de sempre.
     expect(container.querySelectorAll("picture")).toHaveLength(1);
+  });
+
+  it("celular (2026-11-18): setas escondidas e barrinhas menores ABAIXO da arte", () => {
+    render(<GameBannerSlider banners={three} />);
+    for (const name of ["Banner anterior", "Próximo banner"]) {
+      expect(screen.getByRole("button", { name }).className).toContain("max-sm:hidden");
+    }
+    const [onArt, below] = screen.getAllByRole("button", { name: "Ver banner 1 de 3" }).map((dot) => dot.parentElement!);
+    expect(onArt.className).toContain("max-sm:hidden");
+    expect(onArt.className).toContain("absolute");
+    expect(below.className).toContain("sm:hidden");
+    expect(below.className).not.toContain("absolute");
+    // Abaixo da caixa da arte, não dentro dela.
+    expect(below.parentElement?.tagName).toBe("SECTION");
   });
 });

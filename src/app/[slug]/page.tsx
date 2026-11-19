@@ -10,7 +10,8 @@ import { notFound } from "next/navigation";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { parseCatalogQuery, scopePageToQuery } from "@/features/game/catalog";
-import { getGamePage, withActiveTab } from "@/features/game/content";
+import { buildTabTitle, getGamePage, withActiveTab } from "@/features/game/content";
+import { withSiteName } from "@/lib/siteTitle";
 import { GamePageSections } from "@/features/game/GamePageSections";
 import { GAME_SLUG, gameHref, isReservedGameSlug } from "@/features/game/href";
 
@@ -35,20 +36,28 @@ type PageProps = {
 
 export async function generateMetadata({
   params,
-}: {
-  params: Promise<RouteParams>;
-}): Promise<Metadata> {
+  searchParams,
+}: PageProps): Promise<Metadata> {
   const { slug } = await params;
   if (!isGameSlug(slug)) return {};
   const page = await getGamePage(slug);
   if (!page) return {};
 
+  // Título da aba do navegador segue a aba ATIVA (`?aba=`), validada contra a
+  // página como no render — "Compre Moedas ARC Raiders | Lets 4 Trade". A
+  // leitura do jogo é a mesma do render (memorizada pelo `fetch` do Next).
+  const query = parseCatalogQuery(await searchParams, page);
+  const title = buildTabTitle(
+    page.name,
+    page.tabs.find((tab) => tab.id === query.tab),
+  );
+
   return {
-    title: page.seo.title,
+    title,
     description: page.seo.description,
     alternates: { canonical: gameHref(page.slug) },
     openGraph: {
-      title: page.seo.title,
+      title: withSiteName(title),
       description: page.seo.description,
       url: gameHref(page.slug),
       type: "website",

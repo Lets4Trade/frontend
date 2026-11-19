@@ -26,6 +26,10 @@ const SWIPE_PX = 50;
  * barrinhas do arquivo viram botões, arrastar no toque troca, e ← → no teclado
  * quando o foco está no slider. Slide escondido fica `inert`: o link dele não
  * recebe foco nem clique.
+ *
+ * CELULAR (abaixo de 640px, 2026-11-18, pedido do usuário): sem setas — elas
+ * cobriam a arte, e o banner já passa sozinho e troca no arraste — e as
+ * barrinhas, menores, ficam ABAIXO da arte, centralizadas.
  */
 export function GameBannerSlider({
   banners,
@@ -84,10 +88,7 @@ export function GameBannerSlider({
     <section
       aria-roledescription="carrossel"
       aria-label="Banners"
-      // Celular (2026-10-09): mais baixo e com o canto menor — 490px de altura
-      // ocupavam mais da metade da tela. Abaixo de 640px a caixa é 2:1
-      // (2026-10-16), a proporção da arte de celular enviada no painel.
-      className="group relative aspect-[2/1] touch-pan-y overflow-hidden rounded-[20px] border border-white/10 bg-[#2f2f2f] sm:aspect-auto sm:h-[280px] desk:h-[490px] desk:rounded-[30px]"
+      className="touch-pan-y"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
@@ -102,69 +103,111 @@ export function GameBannerSlider({
         swipe.current = null;
       }}
     >
-      {banners.map((banner, index) => {
-        const isActive = index === current;
-        return (
-          <div
-            key={banner.id}
-            role="group"
-            aria-roledescription="slide"
-            aria-label={`${index + 1} de ${count}`}
-            aria-hidden={!isActive}
-            inert={!isActive}
-            className={`absolute inset-0 transition-opacity duration-700 ease-out motion-reduce:transition-none ${
-              isActive ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            {banner.href ? (
-              <Link href={banner.href} className="absolute inset-0">
+      {/* Celular (2026-10-09): mais baixo e com o canto menor — 490px de altura
+          ocupavam mais da metade da tela. Abaixo de 640px a caixa é 2:1
+          (2026-10-16), a proporção da arte de celular enviada no painel. */}
+      <div className="group relative aspect-[2/1] overflow-hidden rounded-[20px] border border-white/10 bg-[#2f2f2f] sm:aspect-auto sm:h-[280px] desk:h-[490px] desk:rounded-[30px]">
+        {banners.map((banner, index) => {
+          const isActive = index === current;
+          return (
+            <div
+              key={banner.id}
+              role="group"
+              aria-roledescription="slide"
+              aria-label={`${index + 1} de ${count}`}
+              aria-hidden={!isActive}
+              inert={!isActive}
+              className={`absolute inset-0 transition-opacity duration-700 ease-out motion-reduce:transition-none ${
+                isActive ? "opacity-100" : "opacity-0"
+              }`}
+            >
+              {banner.href ? (
+                <Link href={banner.href} className="absolute inset-0">
+                  <BannerArt banner={banner} priority={index === 0} />
+                </Link>
+              ) : (
                 <BannerArt banner={banner} priority={index === 0} />
-              </Link>
-            ) : (
-              <BannerArt banner={banner} priority={index === 0} />
-            )}
-          </div>
-        );
-      })}
+              )}
+            </div>
+          );
+        })}
 
+        {count > 1 ? (
+          <>
+            <ArrowButton side="left" label="Banner anterior" onClick={() => go(current - 1)} />
+            <ArrowButton side="right" label="Próximo banner" onClick={() => go(current + 1)} />
+            <Dots
+              banners={banners}
+              current={current}
+              onPick={go}
+              className="absolute bottom-[18px] left-[50px] gap-[10px] max-sm:hidden"
+              size="h-[23px] w-[40px]"
+            />
+          </>
+        ) : null}
+      </div>
+
+      {/* Celular: barrinhas menores, abaixo da arte. */}
       {count > 1 ? (
-        <>
-          <ArrowButton side="left" label="Banner anterior" onClick={() => go(current - 1)} />
-          <ArrowButton side="right" label="Próximo banner" onClick={() => go(current + 1)} />
-
-          {/* Indicadores: barras de 40×3 a cada 50px, a ativa em degradê
-              laranja com uma cópia borrada atrás fazendo o brilho (o mesmo
-              tratamento do hero da home). O botão é mais alto que a barra
-              para o dedo acertar. */}
-          <div className="absolute bottom-[18px] left-[50px] flex gap-[10px]">
-            {banners.map((banner, index) => (
-              <button
-                key={banner.id}
-                type="button"
-                onClick={() => go(index)}
-                aria-label={`Ver banner ${index + 1} de ${count}`}
-                aria-current={index === current ? "true" : undefined}
-                className="flex h-[23px] w-[40px] items-center"
-              >
-                <span className="relative block h-[3px] w-full">
-                  {index === current ? (
-                    <>
-                      <span
-                        aria-hidden
-                        className="absolute inset-0 bg-[image:var(--brand-orange-gradient)] blur-[1.55px]"
-                      />
-                      <span className="absolute inset-0 bg-[image:var(--brand-orange-gradient)]" />
-                    </>
-                  ) : (
-                    <span className="absolute inset-0 bg-[#3b3b3b]" />
-                  )}
-                </span>
-              </button>
-            ))}
-          </div>
-        </>
+        <Dots
+          banners={banners}
+          current={current}
+          onPick={go}
+          className="mt-[8px] justify-center gap-[6px] sm:hidden"
+          size="h-[18px] w-[24px]"
+        />
       ) : null}
     </section>
+  );
+}
+
+/**
+ * Indicadores: barras de 3px, a ativa em degradê laranja com uma cópia borrada
+ * atrás fazendo o brilho (o mesmo tratamento do hero da home). O botão é mais
+ * alto que a barra para o dedo acertar.
+ */
+function Dots({
+  banners,
+  current,
+  onPick,
+  className,
+  size,
+}: {
+  banners: GameBanner[];
+  current: number;
+  onPick: (index: number) => void;
+  className: string;
+  /** Altura (área de toque) e largura da barra. */
+  size: string;
+}) {
+  const count = banners.length;
+  return (
+    <div className={`flex ${className}`}>
+      {banners.map((banner, index) => (
+        <button
+          key={banner.id}
+          type="button"
+          onClick={() => onPick(index)}
+          aria-label={`Ver banner ${index + 1} de ${count}`}
+          aria-current={index === current ? "true" : undefined}
+          className={`flex items-center ${size}`}
+        >
+          <span className="relative block h-[3px] w-full">
+            {index === current ? (
+              <>
+                <span
+                  aria-hidden
+                  className="absolute inset-0 bg-[image:var(--brand-orange-gradient)] blur-[1.55px]"
+                />
+                <span className="absolute inset-0 bg-[image:var(--brand-orange-gradient)]" />
+              </>
+            ) : (
+              <span className="absolute inset-0 bg-[#3b3b3b]" />
+            )}
+          </span>
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -238,7 +281,7 @@ function ArrowButton({
       type="button"
       onClick={onClick}
       aria-label={label}
-      className={`absolute top-1/2 ${side === "left" ? "left-[20px]" : "right-[20px]"} flex size-[46px] -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white opacity-0 backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100 hover:bg-black/75 focus-visible:opacity-100 [@media(hover:none)]:opacity-100`}
+      className={`absolute top-1/2 max-sm:hidden ${side === "left" ? "left-[20px]" : "right-[20px]"} flex size-[46px] -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white opacity-0 backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100 hover:bg-black/75 focus-visible:opacity-100 [@media(hover:none)]:opacity-100`}
     >
       <svg aria-hidden viewBox="0 0 24 24" className="size-[22px]" fill="none" stroke="currentColor" strokeWidth={2.2}>
         <path d={side === "left" ? "M15 5l-7 7 7 7" : "M9 5l7 7-7 7"} strokeLinecap="round" strokeLinejoin="round" />

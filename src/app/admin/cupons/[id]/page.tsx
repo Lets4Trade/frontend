@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CouponForm } from "@/features/admin/coupons/CouponForm";
+import { CouponStatsPanel } from "@/features/admin/coupons/CouponStatsPanel";
 import { getAdminCoupon, getCouponTargetGames } from "@/features/admin/coupons/data";
 import { requirePanelArea } from "@/features/admin/guard";
 import { ADMIN_SHELL } from "@/features/admin/layout";
 
 export const metadata: Metadata = {
-  title: "Cupom | Lets4Trade",
+  title: "Cupom",
   robots: { index: false, follow: false },
 };
 
@@ -24,6 +25,7 @@ export default async function EditCouponPage({ params }: { params: Promise<{ id:
         ← Cupons
       </Link>
       <h1 className="mt-[6px] mb-[28px] font-helvetica text-[28px] leading-tight font-bold text-white">{coupon.code}</h1>
+      <CouponStatsPanel stats={coupon.stats} />
       {/* `key` pelo conteúdo salvo: depois de salvar, o formulário remonta com o que o servidor devolveu. */}
       <CouponForm key={JSON.stringify(coupon)} coupon={coupon} games={games} />
     </div>

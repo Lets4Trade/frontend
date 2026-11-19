@@ -22,7 +22,7 @@ import { getHomeItems } from "@/features/home/homeNews";
 import { gameSlugFromHref } from "@/features/game/href";
 
 export const metadata: Metadata = {
-  title: "Prévia | Lets4Trade",
+  title: "Prévia",
   robots: { index: false, follow: false },
 };
 

@@ -12,7 +12,7 @@ import { ProductFilters } from "@/features/admin/products/ProductFilters";
 import { ProductTable } from "@/features/admin/products/ProductTable";
 
 export const metadata: Metadata = {
-  title: "Produtos | Lets4Trade",
+  title: "Produtos",
   robots: { index: false, follow: false },
 };
 

@@ -53,18 +53,9 @@ export function ReviewsSection({
       aria-labelledby="reviews-title"
       className="relative h-[635px] scroll-mt-[100px]"
     >
-      {/* Prisma decorativo (Figma 567:1446). Fica ACIMA da origem da seção, no
-          vão entre o bloco do vídeo e o título — daí o topo negativo. */}
-      <Image
-        src="/images/home/deco-prisma.webp"
-        alt=""
-        width={186}
-        height={186}
-        aria-hidden
-        className="deco-float pointer-events-none absolute -top-[223px] left-[444.95px] size-[186.12px] object-cover"
-        style={{ ["--float-dur" as string]: "7.5s", ["--float-rot" as string]: "-4deg" }}
-      />
-
+      {/* O prisma decorativo (Figma 567:1446) que ficava aqui, com topo
+          negativo, mudou para o bloco do VÍDEO em 2026-11-18 — ver
+          `VideoSection`. */}
       {/* Render decorativo à direita do título (Figma 848:104). */}
       <Image
         src="/images/home/deco-reviews.webp"

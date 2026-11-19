@@ -6,6 +6,7 @@ import { CountUp } from "@/components/ui/CountUp";
 import { getMenuGames } from "@/features/game/menuGames";
 import { HomeGamesMenu } from "./HomeGamesMenu";
 import { HomeNavTileFace } from "./HomeNavTileFace";
+import { LogoBand } from "./LogoBand";
 import { NAV_ITEMS } from "./navItems";
 import { reveal, revealDelay } from "./reveal";
 
@@ -32,54 +33,69 @@ import { reveal, revealDelay } from "./reveal";
 export { NAV_ITEMS } from "./navItems";
 
 /**
- * O CENTRO de cada contador.
+ * O CENTRO de cada contador, na faixa de 1820.
  *
- * O número e a legenda vêm do banco (Páginas → Home → Contadores). Com DOIS,
- * vale o arquivo: um de cada lado, centrados em x=390 e x=1494,75 do frame.
- *
- * Até 2026-10-01 a lista era CORTADA em dois — o terceiro contador salvo no
- * painel simplesmente não aparecia. Agora cabem até `MAX_HOME_STATS` (4): a
- * primeira metade (arredondada para cima) à esquerda do menu, o resto à
- * direita, espaçados por igual no vão livre de cada lado (medido: os
- * ladrilhos ocupam 679–1135 na faixa de 1820). Um sozinho num lado fica no
- * centro do arquivo.
+ * O número e a legenda vêm do banco (Páginas → Home → Contadores), até
+ * `MAX_HOME_STATS` (4). Desde 2026-11-18 os atalhos (HOME, JOGOS…) saíram do
+ * meio da faixa (foram para baixo do banner) e a faixa virou banner de borda a
+ * borda: os contadores se espalham por IGUAL na largura toda — cada um no
+ * centro da sua fatia (2 → 455 e 1365; 4 → 227,5 / 682,5 / 1137,5 / 1592,5).
+ * Antes ficavam metade de cada lado do menu, com o meio vazio.
  */
-const SIDE_CENTER = { left: 340, right: 1444.75 } as const;
-const SIDE_SPAN = { left: [20, 640], right: [1175, 1800] } as const;
+const STATS_WIDTH = 1820;
 
 export function statCenters(count: number): number[] {
   const n = Math.min(Math.max(count, 0), MAX_HOME_STATS);
-  const leftCount = Math.ceil(n / 2);
-  const side = (which: "left" | "right", k: number) => {
-    if (k === 1) return [SIDE_CENTER[which]];
-    const [from, to] = SIDE_SPAN[which];
-    return Array.from({ length: k }, (_, i) => from + ((to - from) * (i + 0.5)) / k);
-  };
-  return [...side("left", leftCount), ...side("right", n - leftCount)];
+  return Array.from({ length: n }, (_, i) => (STATS_WIDTH * (i + 0.5)) / n);
 }
 
 /**
  * ASSÍNCRONO desde 2026-09-24: lê a lista de jogos do dropdown do GAMES — a
  * mesma leitura cacheada do cabeçalho (`getMenuGames`), deduplicada pelo Next.
  */
-export async function HomeNav({ stats = [] }: { stats?: SectionItemView[] }) {
+export function HomeNav({ stats = [] }: { stats?: SectionItemView[] }) {
+  // Os quatro atalhos (HOME, JOGOS…) saíram daqui em 2026-11-18 (pedido do
+  // usuário): ficam sob o banner do hero (`HomeNavTiles`). A faixa guarda os
+  // contadores, nos mesmos lugares.
+  //
+  // Desde 2026-11-18 a faixa é um BANNER de borda a borda da tela com logos
+  // do site correndo ao fundo (`LogoBand`); os números ficam centrados nela.
+  // A seção NÃO é `relative`: a faixa se posiciona pela tela (ver `LogoBand`).
+  return (
+    <section className="mt-[45px] h-[170px]">
+      <LogoBand mode="screen" className="h-[170px]" />
+      <div className="relative h-full">
+        {statCenters(stats.length).map((center, index) => (
+          <Stat
+            key={stats[index].id}
+            id={stats[index].id}
+            center={center}
+            value={stats[index].title}
+            label={stats[index].body}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Os quatro atalhos da home (HOME, JOGOS, FIDELIDADE, VENDA PRA NÓS). Desde
+ * 2026-11-18 sob o banner do hero, abaixo das barrinhas e da legenda (pedido
+ * do usuário). Mantêm os vãos do arquivo entre si (`left` de `NAV_ITEMS`),
+ * deslocados para começar em `originLeft`, na altura `top`.
+ *
+ * ASSÍNCRONO: lê a lista de jogos do dropdown do JOGOS — a mesma leitura
+ * cacheada do cabeçalho (`getMenuGames`), deduplicada pelo Next.
+ */
+export async function HomeNavTiles({ originLeft, top }: { originLeft: number; top: number }) {
   const games = await getMenuGames();
+  const first = NAV_ITEMS[0].left;
 
   return (
-    <section className="relative h-[129px]">
-      {statCenters(stats.length).map((center, index) => (
-        <Stat
-          key={stats[index].id}
-          id={stats[index].id}
-          center={center}
-          value={stats[index].title}
-          label={stats[index].body}
-        />
-      ))}
-
-      <nav aria-label="Seções principais" className="contents">
+    <nav aria-label="Seções principais" className="contents">
         {NAV_ITEMS.map((item, index) => {
-          const style = { left: item.left, ...revealDelay(index + 1) };
+          const style = { left: item.left - first + originLeft, top, ...revealDelay(index + 1) };
 
           if ("key" in item && item.key === "games") {
             return (
@@ -112,8 +128,7 @@ export async function HomeNav({ stats = [] }: { stats?: SectionItemView[] }) {
             </Link>
           );
         })}
-      </nav>
-    </section>
+    </nav>
   );
 }
 
@@ -140,14 +155,14 @@ function Stat({
     <div className="contents">
       <p
         {...editItem("home:navegacao", id, "title")}
-        className="absolute top-[58px] -translate-x-1/2 font-poppins text-[40px] leading-[55px] font-semibold text-brand-orange"
+        className="absolute top-[47px] -translate-x-1/2 font-poppins text-[40px] leading-[55px] font-semibold text-brand-orange"
         style={{ left: center }}
       >
         <CountUp value={value} />
       </p>
       <p
         {...editItem("home:navegacao", id, "body")}
-        className="absolute top-[110px] -translate-x-1/2 whitespace-nowrap font-poppins text-[15px] leading-[23px] font-bold tracking-[0.15px] text-white/80"
+        className="absolute top-[99px] -translate-x-1/2 whitespace-nowrap font-poppins text-[15px] leading-[23px] font-bold tracking-[0.15px] text-white/80"
         style={{ left: center }}
       >
         {label}

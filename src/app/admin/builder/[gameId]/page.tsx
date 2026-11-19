@@ -11,7 +11,7 @@ import { requirePanelArea } from "@/features/admin/guard";
 import { canAccess } from "@/features/admin/permissions";
 
 export const metadata: Metadata = {
-  title: "Builder de Páginas | Lets4Trade",
+  title: "Builder de Páginas",
   // O painel inteiro é `noindex`: são telas atrás de sessão, e o que elas
   // revelam no título já é informação interna.
   robots: { index: false, follow: false },

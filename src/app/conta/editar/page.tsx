@@ -5,7 +5,7 @@ import { EditProfileForm } from "@/features/account/EditProfileForm";
 import { getAccountProfile } from "@/features/account/profile";
 
 export const metadata: Metadata = {
-  title: "Minhas Informações | Lets4Trade",
+  title: "Minhas Informações",
   description: "Edite os dados da sua conta Lets4Trade.",
   // Painel do usuário: conteúdo por conta, nada a indexar.
   robots: { index: false, follow: false },

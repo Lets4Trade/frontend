@@ -52,7 +52,16 @@ export type AdminCoupon = {
   allowCoins: boolean;
   rewardsOnDiscounted: boolean;
   targets: CouponTargetLabels;
+  stats: CouponStats;
 };
+
+/**
+ * O que o cupom rendeu (2026-11-18), em centavos — só pedidos PAGOS e não
+ * cancelados (o backend decide). `discountCents`: quanto ele já descontou.
+ * `revenueCents`: o faturamento desses pedidos (o que foi pago). `grossCents`:
+ * o valor cheio deles, antes dos descontos.
+ */
+export type CouponStats = { orders: number; discountCents: number; revenueCents: number; grossCents: number };
 
 /** O que vai no corpo do POST/PUT (o `SaveCouponDto`). */
 export type CouponPayload = {
@@ -180,6 +189,19 @@ export function toAdminCoupon(raw: unknown): AdminCoupon | null {
         : [],
       products: toProductOptions(targets.products),
     },
+    stats: toCouponStats(row.stats),
+  };
+}
+
+/** Ausente (cupom sem pedido, ou o backend apagou os zeros) = tudo zero. */
+export function toCouponStats(raw: unknown): CouponStats {
+  const row = (raw && typeof raw === "object" ? raw : {}) as Raw;
+  const count = (value: unknown) => Math.max(0, intOrNull(value) ?? 0);
+  return {
+    orders: count(row.orders),
+    discountCents: count(row.discountCents),
+    revenueCents: count(row.revenueCents),
+    grossCents: count(row.grossCents),
   };
 }
 

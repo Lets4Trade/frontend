@@ -14,6 +14,11 @@ import { GlobalMobileNav } from "@/features/home/mobile/GlobalMobileNav";
 import { chatConfig } from "@/features/support/chatConfig";
 import { ExitIntentCoupon } from "@/features/promo/ExitIntentCoupon";
 import { exitOfferConfig, getExitOffer } from "@/features/promo/exitOffer";
+import {
+  SITE_DEFAULT_PHRASE,
+  SITE_TITLE_TEMPLATE,
+  withSiteName,
+} from "@/lib/siteTitle";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -91,7 +96,11 @@ const BASE_METADATA: Metadata = {
       "",
     ),
   ),
-  title: "Lets4Trade",
+  // Padrão MMOEXP (2026-11-18): as páginas dão só a frase; a marca vem daqui.
+  title: {
+    default: withSiteName(SITE_DEFAULT_PHRASE),
+    template: SITE_TITLE_TEMPLATE,
+  },
   description:
     "Lets4Trade",
   keywords: ["lets4trade", "tickets", "events", "management"],
@@ -99,7 +108,7 @@ const BASE_METADATA: Metadata = {
   creator: "Lets4Trade",
   publisher: "Lets4Trade",
   openGraph: {
-    title: "Lets4Trade",
+    title: withSiteName(SITE_DEFAULT_PHRASE),
     description:
       "Lets4Trade",
     type: "website",
@@ -107,7 +116,7 @@ const BASE_METADATA: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Lets4Trade",
+    title: withSiteName(SITE_DEFAULT_PHRASE),
     description:
       "Lets4Trade",
   },

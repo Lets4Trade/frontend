@@ -13,8 +13,8 @@ describe("imageHintFor", () => {
   });
 
   it("banner do hero e foto do CEO têm texto próprio", () => {
-    expect(imageHintFor({ editItem: "home:hero-banner|b1|image" })).toContain("859×643");
-    expect(imageHintFor({ editAdd: "home:hero-banner|imagem do banner" })).toContain("859×643");
+    expect(imageHintFor({ editItem: "home:hero-banner|b1|image" })).toContain("859×549");
+    expect(imageHintFor({ editAdd: "home:hero-banner|imagem do banner" })).toContain("859×549");
     expect(imageHintFor({ editImage: "home:video", editSlot: "secondary" })).toContain("120×120");
   });
 

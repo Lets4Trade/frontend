@@ -13,7 +13,7 @@ import { ProductForm } from "@/features/admin/products/ProductForm";
 import { requirePanelArea } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
-  title: "Cadastro de produto | Lets4Trade",
+  title: "Cadastro de produto",
   robots: { index: false, follow: false },
 };
 

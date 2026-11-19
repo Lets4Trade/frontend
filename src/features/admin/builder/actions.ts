@@ -307,6 +307,38 @@ export async function uploadBannerMobileAction(
   };
 }
 
+/**
+ * Etapa 2 — troca a arte do COMPUTADOR de um banner (2026-11-18). Antes não
+ * dava: era remover e subir de novo, perdendo a arte do celular e a posição.
+ */
+export async function replaceBannerImageAction(
+  gameId: string,
+  bannerId: string,
+  form: FormData,
+): Promise<BuilderResult<{ id: string; imageUrl: string }>> {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
+  const file = form.get("image");
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, reason: "invalid", message: "Escolha uma imagem." };
+  }
+  if (file.size > MAX_IMAGE_BYTES) return IMAGE_TOO_LARGE;
+
+  const body = new FormData();
+  body.append("image", file);
+
+  const result = await apiPutFormData<{ id: string; imageUrl: string }>(
+    `/admin/game-page/${encodeURIComponent(gameId)}/banners/${encodeURIComponent(bannerId)}/image`,
+    body,
+  );
+  if (!result.ok) return failure(result);
+  return {
+    ok: true,
+    data: { id: result.data.id, imageUrl: backendAsset(result.data.imageUrl) ?? result.data.imageUrl },
+  };
+}
+
 /** Etapa 2 — tira a arte do celular; o banner volta a usar a do computador. */
 export async function removeBannerMobileAction(
   gameId: string,

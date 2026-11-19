@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { buttonVariants } from "@/components/ui/Button";
 import { MAX_CART_QUANTITY, useCart } from "@/features/cart/store";
+import { QuantityField } from "@/features/cart/QuantityField";
 import { cn } from "@/lib/cn";
 import { formatPrice } from "./content";
 import { DiscountBadge, LabelBadge } from "./DiscountBadge";
@@ -153,9 +154,13 @@ export function ProductCard({
             priceLabel={formatPrice(shownCents(product.priceCents, quantity))}
           />
         ) : quantity > 1 ? (
-          <span title={`${quantity} × ${formatPrice(product.priceCents)}`}>
+          <span title={`${quantity.toLocaleString("pt-BR")} × ${formatPrice(product.priceCents)}`}>
             <PriceHighlight>{formatPrice(shownCents(product.priceCents, quantity))}</PriceHighlight>
-            <span className="ml-[6px] text-[13px] font-medium text-white/60">· {quantity} un.</span>
+            {/* Número grande (digitado, 2026-11-18) não cabe ao lado do preço;
+                o campo logo abaixo já mostra a quantidade. */}
+            {quantity < 1000 ? (
+              <span className="ml-[6px] text-[13px] font-medium text-white/60">· {quantity} un.</span>
+            ) : null}
           </span>
         ) : (
           // Laranja também sem desconto (2026-11-04), no padrão do desconto.
@@ -190,37 +195,44 @@ export function ProductCard({
           : undefined
       }
       actions={
-        // Celular: fileira centrada e mais justa (botões de 36px) para caber
-        // no card de ~170px; desktop: começa a 32px da borda, como no arquivo.
-        <div className="flex items-center justify-center gap-[6px] desk:justify-start desk:gap-[15px] desk:pl-[32px]">
-        <StepButton
-          label={`Diminuir a quantidade de ${product.name}`}
-          onClick={() => setQuantity((value) => Math.max(min, value - 1))}
-          disabled={quantity <= min}
-        >
-          −
-        </StepButton>
-
-        <span
-          aria-live="polite"
-          className="min-w-[20px] text-center font-poppins text-[16px] leading-[27px] font-bold tracking-[0.36px] text-white tabular-nums desk:min-w-[22px] desk:text-[18px]"
-        >
-          {quantity}
-        </span>
-
-        <StepButton
-          label={`Aumentar a quantidade de ${product.name}`}
-          // Sem limite de negócio (2026-10-12: era 99); só o teto técnico.
-          onClick={() => setQuantity((value) => Math.min(MAX_CART_QUANTITY, value + 1))}
-          disabled={quantity >= MAX_CART_QUANTITY}
-        >
-          +
-        </StepButton>
+        // Quantidade DIGITÁVEL (2026-11-18, pedido do usuário: "10000000" no
+        // card): − campo + numa caixa só, e o carrinho ao lado. A caixa ocupa
+        // o que sobra da fileira — no desktop a mesma largura do botão de
+        // baixo (32px → 249px) — e a letra encolhe só com número grande.
+        <div className="flex items-center gap-[6px] desk:ml-[32px] desk:w-[217px] desk:gap-[10px]">
+        <div className="flex h-[36px] min-w-0 flex-1 items-center rounded-[8px] border border-white/10 bg-[image:var(--brand-surface-fill)] desk:h-[50px]">
+          <StepButton
+            label={`Diminuir a quantidade de ${product.name}`}
+            onClick={() => setQuantity((value) => Math.max(min, value - 1))}
+            disabled={quantity <= min}
+          >
+            −
+          </StepButton>
+          <div className="relative h-full min-w-0 flex-1 overflow-hidden">
+            <QuantityField
+              fit
+              value={quantity}
+              min={min}
+              // Sem limite de negócio (2026-10-12: era 99); só o teto técnico.
+              max={MAX_CART_QUANTITY}
+              onChange={setQuantity}
+              label={`Quantidade de ${product.name}`}
+              className="leading-none tracking-[0.2px] text-[16px] desk:text-[18px]"
+            />
+          </div>
+          <StepButton
+            label={`Aumentar a quantidade de ${product.name}`}
+            onClick={() => setQuantity((value) => Math.min(MAX_CART_QUANTITY, value + 1))}
+            disabled={quantity >= MAX_CART_QUANTITY}
+          >
+            +
+          </StepButton>
+        </div>
 
         <button
           type="button"
           onClick={add}
-          className="flex size-[36px] items-center justify-center rounded-[8px] border border-white/15 bg-[image:var(--brand-orange-gradient)] transition-opacity hover:opacity-90 desk:size-[50px]"
+          className="flex size-[36px] shrink-0 items-center justify-center rounded-[8px] border border-white/15 bg-[image:var(--brand-orange-gradient)] transition-opacity hover:opacity-90 desk:size-[50px]"
         >
           <Image
             src="/icons/game/cart.svg"
@@ -268,7 +280,7 @@ function StepButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="flex size-[36px] items-center justify-center rounded-[8px] border border-white/10 bg-[image:var(--brand-surface-fill)] font-poppins text-[16px] font-bold tracking-[0.18px] text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 desk:size-[50px] desk:text-[18px]"
+      className="flex h-full w-[30px] shrink-0 items-center justify-center rounded-[7px] font-poppins text-[16px] font-bold tracking-[0.18px] text-white transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent desk:w-[36px] desk:text-[18px]"
     >
       {children}
     </button>

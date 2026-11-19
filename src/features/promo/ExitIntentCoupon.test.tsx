@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ExitIntentCoupon } from "./ExitIntentCoupon";
 
@@ -178,6 +178,36 @@ describe("ExitIntentCoupon ao sair do site", () => {
       pressBack({ l4tExitGuard: true });
       expect(back).toHaveBeenCalledTimes(1);
       vi.restoreAllMocks();
+    });
+  });
+
+  describe("arte e código (2026-11-18)", () => {
+    const open = (extra: Partial<typeof config> & { imageUrl?: string; mobileImageUrl?: string }) => {
+      render(<ExitIntentCoupon offer={{ ...offer, code: "BLACKFRIDAY-LETS4TRADE-2026" }} config={{ ...config, ...extra }} />);
+      leave();
+      stay();
+      return document.querySelector("[role=dialog]") as HTMLElement;
+    };
+
+    it("com as duas artes: <picture> com a do celular numa <source> de tela pequena", () => {
+      const dialog = open({ imageUrl: "/uploads/pc.webp", mobileImageUrl: "/uploads/cel.webp" });
+      const source = dialog.querySelector("picture source");
+      expect(source?.getAttribute("media")).toBe("(max-width: 767px)");
+      expect(source?.getAttribute("srcset")).toContain("cel.webp");
+      expect(dialog.querySelector("picture img")?.getAttribute("srcset")).toContain("pc.webp");
+    });
+
+    it("só a do celular: vale nas duas telas, sem <source>", () => {
+      const dialog = open({ mobileImageUrl: "/uploads/cel.webp" });
+      expect(dialog.querySelector("picture source")).toBeNull();
+      expect(dialog.querySelector("picture img")?.getAttribute("srcset")).toContain("cel.webp");
+    });
+
+    it("o código não é cortado com reticências", () => {
+      const dialog = open({});
+      const code = within(dialog).getByText("BLACKFRIDAY-LETS4TRADE-2026");
+      expect(code.className).not.toContain("truncate");
+      expect(code.className).toContain("break-all");
     });
   });
 });

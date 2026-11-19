@@ -395,32 +395,30 @@ function renderBlock(key: GameSectionKey, ctx: BlockContext) {
 
     case "categories": {
       if (draft.categories.length === 0) return null;
-      // Mesmo desenho da vitrine (`CategoryPanel`, 2026-10-08): categorias em
-      // cima e, num quadro próprio, as subcategorias — aqui as da primeira
-      // categoria que tem, como amostra.
+      // Mesmo desenho da vitrine (`CategoryPanel`, selects desde 2026-11-18):
+      // o select da categoria e, ao lado, o da subcategoria — aqui o da
+      // primeira categoria que tem filhas, como amostra.
       const sample = draft.categories.find((category) => category.children.length > 0);
-      const box = (title: string, labels: { key: string; label: string }[]) => (
-        <div className="rounded-[30px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[24px] pt-[25px] pb-[30px]">
-          <p className="font-helvetica text-[18px] leading-none font-bold text-white">{title}</p>
-          <div className="mt-[24px] grid grid-cols-[repeat(auto-fill,282px)] items-start gap-x-[24px] gap-y-[15px]">
-            {labels.map((item) => (
-              <span
-                key={item.key}
-                className="flex h-[40px] w-[282px] items-center gap-[10px] rounded-[8px] border border-white/10 bg-[image:var(--brand-surface-fill)] pr-[14px] pl-[9px]"
-              >
-                <span className="size-[22px] shrink-0 rounded-[6px] border-2 border-white/10" />
-                <span className="truncate font-poppins text-[13px] leading-none font-bold text-white/80">
-                  {item.label || "-"}
-                </span>
-              </span>
-            ))}
-          </div>
+      const select = (label: string, value: string) => (
+        <div className="flex w-[360px] flex-col gap-[8px]">
+          <p className="font-poppins text-[13px] leading-none font-bold text-white/60">{label}</p>
+          <span className="flex h-[50px] items-center justify-between rounded-[12px] border border-white/10 bg-[image:var(--brand-surface-fill)] pr-[18px] pl-[16px]">
+            <span className="truncate font-poppins text-[14px] font-bold text-white">{value}</span>
+            <svg aria-hidden viewBox="0 0 12 12" className="size-[12px] text-white/70" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M2.5 4.5 6 8l3.5-3.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
         </div>
       );
       return (
-        <div className="flex flex-col gap-[25px]">
-          {box(draft.categoriesLabel.trim() || "Selecionar categoria", draft.categories)}
-          {sample ? box(`Subcategorias de ${sample.label || "-"}`, sample.children) : null}
+        <div className="rounded-[30px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[24px] pt-[25px] pb-[28px]">
+          <p className="font-helvetica text-[18px] leading-none font-bold text-white">
+            {draft.categoriesLabel.trim() || "Selecionar categoria"}
+          </p>
+          <div className="mt-[22px] flex gap-[24px]">
+            {select("Categoria", "Todos")}
+            {sample ? select(`Subcategoria de ${sample.label || "-"}`, "Todos") : null}
+          </div>
         </div>
       );
     }

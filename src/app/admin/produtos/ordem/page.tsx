@@ -11,7 +11,7 @@ import { cn } from "@/lib/cn";
 import { requirePanelArea } from "@/features/admin/guard";
 
 export const metadata: Metadata = {
-  title: "Organizar produtos | Lets4Trade",
+  title: "Organizar produtos",
   robots: { index: false, follow: false },
 };
 
@@ -120,6 +120,8 @@ export default async function ProductOrderPage({ searchParams }: PageProps) {
               gameId={game.id}
               tabId={tab.key}
               initial={ordering.items}
+              // Ordem própria de cada categoria (2026-11-18).
+              initialCategoryOrders={ordering.categoryOrders}
               // Filtros (2026-11-09): servidores do jogo e as categorias que
               // valem NESTA aba (globais + as da aba).
               servers={game.servers}
