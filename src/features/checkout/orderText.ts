@@ -10,6 +10,12 @@ import { lineTotalCents } from "@/features/pricing/quote";
  * Formatação do próprio WhatsApp (`*negrito*`). Os valores são a PRÉVIA da
  * tela — o preço que vale é o que o vendedor confirma; por isso a última linha
  * avisa. Nada de cartão entra aqui: só a forma de pagamento.
+ *
+ * SEM Lets Coins (2026-11-23, pedido do usuário): o desconto das coins é só de
+ * quem compra pelo site. Quem chama passa o total SEM as coins.
+ *
+ * Também vai pronto na primeira mensagem do "FALE COM UM ESPECIALISTA"
+ * (`whatsappWithText`, mesmo dia).
  */
 export type OrderTextInput = {
   items: CartItem[];
@@ -17,7 +23,6 @@ export type OrderTextInput = {
   gameNames: Record<string, string>;
   customerName?: string;
   coupon?: { code: string; cents: number } | null;
-  coinsCents: number;
   feeCents: number;
   totalCents: number;
   method: "pix" | "credit";
@@ -43,7 +48,6 @@ export function orderText(input: OrderTextInput): string {
   if (input.coupon && input.coupon.cents > 0) {
     lines.push(`Cupom: ${clean(input.coupon.code)} (− ${formatCents(input.coupon.cents)})`);
   }
-  if (input.coinsCents > 0) lines.push(`Lets Coins: − ${formatCents(input.coinsCents)}`);
   if (input.feeCents > 0) lines.push(`Taxa do cartão: ${formatCents(input.feeCents)}`);
   lines.push(`*Total: ${formatCents(input.totalCents)}*`);
   lines.push(
@@ -63,4 +67,18 @@ export function orderText(input: OrderTextInput): string {
  */
 function clean(value: string): string {
   return value.replace(/[\r\n]+/g, " ").replace(/[*_~`]/g, "").trim();
+}
+
+/**
+ * O link do WhatsApp com a mensagem já escrita (`?text=`, aceito pelo `wa.me`
+ * e pelo `api.whatsapp.com`). Link que não é URL válida volta como veio.
+ */
+export function whatsappWithText(href: string, text: string): string {
+  try {
+    const url = new URL(href);
+    url.searchParams.set("text", text);
+    return url.toString();
+  } catch {
+    return href;
+  }
 }

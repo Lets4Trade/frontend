@@ -34,9 +34,11 @@ export function useNavAttention({ orders, support }: { orders: boolean; support:
   const proposals = useUnreadCount(newSellRequestsCounter, PROPOSAL_EVENTS, orders);
   return {
     "/admin/pedidos": orders && sales > 0 ? { count: sales, kind: "number", label: `${sales} venda(s) nova(s)` } : undefined,
+    // NÚMERO, não ponto (2026-11-23): o grupo "Vendas" vive aceso pelas
+    // propostas, e um ponto a mais não mudava nada à vista.
     "/admin/chats":
       chats > 0
-        ? { count: chats, kind: "dot", label: chats === 1 ? "1 conversa com mensagem nova" : `${chats} conversas com mensagem nova` }
+        ? { count: chats, kind: "number", label: chats === 1 ? "1 conversa com mensagem nova" : `${chats} conversas com mensagem nova` }
         : undefined,
     "/admin/propostas":
       proposals > 0

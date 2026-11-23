@@ -147,25 +147,49 @@ export function ChatsBoard({
                     scroll={false}
                     aria-current={item.id === openId ? "true" : undefined}
                     className={cn(
-                      "flex gap-[12px] border-b border-brand-hairline px-[16px] py-[14px] transition-colors hover:bg-white/5 lg:px-[25px] lg:py-[16px]",
+                      // Não lida (2026-11-23, "não tem indicador de mensagem
+                      // nova"): barra laranja na borda, fundo aceso e "NOVA" —
+                      // o ponto de 9px sozinho passava despercebido.
+                      "flex gap-[12px] border-b border-l-[3px] border-b-brand-hairline px-[16px] py-[14px] transition-colors hover:bg-white/5 lg:px-[25px] lg:py-[16px]",
+                      item.unread ? "border-l-brand-orange bg-brand-orange/[0.08]" : "border-l-transparent",
                       item.id === openId && "bg-white/[0.07]",
                     )}
                   >
                     <span
                       aria-hidden
-                      className={cn("mt-[7px] size-[9px] shrink-0 rounded-full", item.unread ? "bg-brand-orange" : "bg-transparent")}
+                      className={cn(
+                        "mt-[6px] size-[10px] shrink-0 rounded-full",
+                        item.unread ? "bg-brand-orange shadow-[0_0_8px_rgba(255,115,0,0.85)]" : "bg-transparent",
+                      )}
                     />
                     <span className="min-w-0 flex-1">
                       <span className="flex items-baseline justify-between gap-[10px]">
                         <span className={cn("truncate font-poppins text-[15px] text-white", item.unread ? "font-bold" : "font-medium")}>
                           {item.customer.name || item.customer.username || "Cliente"}
                         </span>
-                        <span className="shrink-0 font-helvetica text-[12px] text-brand-fg-subtle">
-                          {listTime(item.lastMessageAt)}
+                        <span className="flex shrink-0 items-center gap-[6px]">
+                          {item.unread ? (
+                            <span className="rounded-full bg-brand-orange px-[7px] py-[1px] font-poppins text-[10px] font-bold tracking-[0.04em] text-black">
+                              NOVA
+                            </span>
+                          ) : null}
+                          <span
+                            className={cn(
+                              "font-helvetica text-[12px]",
+                              item.unread ? "font-bold text-brand-orange" : "text-brand-fg-subtle",
+                            )}
+                          >
+                            {listTime(item.lastMessageAt)}
+                          </span>
                         </span>
                       </span>
                       <span className="block truncate font-poppins text-[13px] text-white/80">{item.subject}</span>
-                      <span className="mt-[2px] block truncate font-helvetica text-[13px] text-brand-placeholder">
+                      <span
+                        className={cn(
+                          "mt-[2px] block truncate font-helvetica text-[13px]",
+                          item.unread ? "font-bold text-white" : "text-brand-placeholder",
+                        )}
+                      >
                         {item.lastAuthor === "SUPORTE" ? "Você: " : ""}
                         {item.lastPreview || " "}
                       </span>
@@ -183,7 +207,7 @@ export function ChatsBoard({
           )}
         </div>
         <p className="border-t border-brand-hairline px-[25px] py-[10px] font-helvetica text-[12px] text-brand-fg-subtle" role="status">
-          {status === "online" ? "Atualizando em tempo real" : status === "conectando" ? "Conectando…" : "Sem tempo real. Recarregue para ver novidades"}
+          {status === "online" ? "Atualizando em tempo real" : status === "conectando" ? "Conectando…" : ""}
         </p>
       </aside>
 

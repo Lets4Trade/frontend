@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { editAdd, editItem } from "@/features/site/editing/attrs";
 import { useBannerAutoplay } from "@/features/game/useBannerAutoplay";
+import { useBannerSwipe } from "@/features/game/useBannerSwipe";
 import type { SectionItemView } from "@/features/site/content";
 import { HERO_BANNER_WIDTH, HERO_DOTS_TOP, HERO_UPLOAD_HEIGHT } from "./heroGames";
 
@@ -43,6 +44,12 @@ export function HeroBannerSlides({
   const [paused, setPaused] = useState(false);
   const current = Math.min(active, Math.max(slides.length - 1, 0));
   useBannerAutoplay({ count: slides.length, current, setActive, paused });
+  // Tela de toque no layout do computador (tablet): arrastar troca também.
+  const count = slides.length;
+  const swipe = useBannerSwipe({
+    enabled: count > 1,
+    onSwipe: (step) => setActive((((current + step) % count) + count) % count),
+  });
 
   return (
     <>
@@ -64,8 +71,9 @@ export function HeroBannerSlides({
         // Caixa do tamanho do banner só para pausar com o mouse em cima; as
         // artes continuam no mesmo lugar (absolutas, topo-esquerda).
         <div
-          className="absolute top-0 left-0"
+          className="absolute top-0 left-0 touch-pan-y"
           style={{ width: HERO_BANNER_WIDTH, height: HERO_UPLOAD_HEIGHT }}
+          {...swipe}
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
         >

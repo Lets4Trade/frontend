@@ -2,12 +2,10 @@
 
 import Image, { getImageProps } from "next/image";
 import Link from "next/link";
-import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { useState, type KeyboardEvent } from "react";
 import type { GameBanner } from "./types";
 import { useBannerAutoplay } from "./useBannerAutoplay";
-
-/** Arrasto mínimo (px) para o toque contar como "trocar de banner". */
-const SWIPE_PX = 50;
+import { useBannerSwipe } from "./useBannerSwipe";
 
 /**
  * Banner do topo da página de jogo (1146:386, 1714×490) como SLIDER
@@ -49,22 +47,8 @@ export function GameBannerSlider({
   // O mesmo temporizador do banner da home (2026-11-23): `useBannerAutoplay`.
   useBannerAutoplay({ count, current, setActive, paused, enabled: autoPlay });
 
-  // Toque: guarda onde começou; ao soltar, um arrasto largo troca de banner e
-  // anula o clique que viria em seguida (senão abriria o link do slide).
-  const swipe = useRef<{ x: number; moved: boolean } | null>(null);
-  function onPointerDown(event: PointerEvent) {
-    if (event.pointerType === "mouse") return;
-    swipe.current = { x: event.clientX, moved: false };
-  }
-  function onPointerUp(event: PointerEvent) {
-    const start = swipe.current;
-    if (!start || count < 2) return;
-    const dx = event.clientX - start.x;
-    if (Math.abs(dx) >= SWIPE_PX) {
-      start.moved = true;
-      go(current + (dx < 0 ? 1 : -1));
-    }
-  }
+  // Arrastar com o dedo: o mesmo `useBannerSwipe` dos banners da home.
+  const swipe = useBannerSwipe({ enabled: count > 1, onSwipe: (step) => go(current + step) });
 
   function onKeyDown(event: KeyboardEvent) {
     if (count < 2) return;
@@ -88,12 +72,7 @@ export function GameBannerSlider({
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPaused(false);
       }}
       onKeyDown={onKeyDown}
-      onPointerDown={onPointerDown}
-      onPointerUp={onPointerUp}
-      onClickCapture={(event) => {
-        if (swipe.current?.moved) event.preventDefault();
-        swipe.current = null;
-      }}
+      {...swipe}
     >
       {/* Celular (2026-10-09): mais baixo e com o canto menor — 490px de altura
           ocupavam mais da metade da tela. Abaixo de 640px a caixa é 2:1

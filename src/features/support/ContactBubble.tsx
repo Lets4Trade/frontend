@@ -224,7 +224,7 @@ export function ContactBubble({
         >
           {/* Cabeçalho com a mesma foto do botão e o status — quem abre o chat
               sabe na hora se vai ser respondido agora. */}
-          <header className="relative overflow-hidden border-b border-brand-hairline px-[16px] pt-[16px] pb-[14px]">
+          <header className="relative shrink-0 overflow-hidden border-b border-brand-hairline px-[16px] pt-[16px] pb-[14px]">
             <span
               aria-hidden
               className="pointer-events-none absolute -top-[60px] left-1/2 h-[120px] w-[260px] -translate-x-1/2 rounded-full bg-brand-orange/25 blur-[40px]"
@@ -295,13 +295,13 @@ export function ContactBubble({
           )}
 
           {signedIn ? (
-            <div className="border-t border-brand-hairline px-[16px] pt-[10px] pb-[2px] text-center">
+            <div className="shrink-0 border-t border-brand-hairline px-[16px] pt-[10px] pb-[2px] text-center">
               <ReplyNotifyToggle />
             </div>
           ) : null}
 
           {whatsappHref ? (
-            <footer className="border-t border-brand-hairline px-[16px] py-[12px]">
+            <footer className="shrink-0 border-t border-brand-hairline px-[16px] py-[12px]">
               <a
                 href={whatsappHref}
                 target="_blank"
@@ -716,39 +716,44 @@ function StatusDot({
 
 function SignedOut({ loginHref }: { loginHref: string }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-[14px] px-[24px] text-center">
-      <span
-        aria-hidden
-        className="flex size-[56px] items-center justify-center rounded-full border border-white/10 bg-white/5"
-      >
-        <Image
-          src="/icons/home/chat-dialog.svg"
-          alt=""
-          width={26}
-          height={26}
-          className="size-[26px]"
-        />
-      </span>
-      <p className="font-poppins text-[16px] font-semibold text-white">
-        Entre para conversar com a equipe
-      </p>
-      <p className="font-helvetica text-[13px] leading-[19px] text-brand-fg-muted">
-        Com a sua conta, as conversas ficam salvas junto dos seus pedidos. Sem
-        conta, fale com a gente pelo WhatsApp.
-      </p>
-      <div className="mt-[4px] flex w-full flex-col gap-[10px]">
-        <Link
-          href={loginHref}
-          className="inline-flex h-[42px] items-center justify-center rounded-full border border-[var(--brand-stroke-soft)] bg-[image:var(--brand-orange-gradient)] px-[28px] font-poppins text-[14px] font-bold text-black transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg focus-visible:outline-none"
+    // Tela baixa (2026-11-23, "o chat fica cortado"): o MEIO rola, e cabeçalho
+    // e rodapé ficam inteiros (`shrink-0`). `my-auto` centra sem cortar o topo
+    // quando sobra pouco espaço — `justify-center` num contêiner que rola corta.
+    <div className="scrollbar-orange flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <div className="my-auto flex flex-col items-center gap-[14px] px-[24px] py-[16px] text-center">
+        <span
+          aria-hidden
+          className="flex size-[56px] items-center justify-center rounded-full border border-white/10 bg-white/5"
         >
-          ENTRAR
-        </Link>
-        <Link
-          href="/criar-conta"
-          className="inline-flex h-[42px] items-center justify-center rounded-full border border-brand-border px-[28px] font-poppins text-[14px] font-bold text-white transition-colors hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none"
-        >
-          CRIAR CONTA
-        </Link>
+          <Image
+            src="/icons/home/chat-dialog.svg"
+            alt=""
+            width={26}
+            height={26}
+            className="size-[26px]"
+          />
+        </span>
+        <p className="font-poppins text-[16px] font-semibold text-white">
+          Entre para conversar com a equipe
+        </p>
+        <p className="font-helvetica text-[13px] leading-[19px] text-brand-fg-muted">
+          Com a sua conta, as conversas ficam salvas junto dos seus pedidos. Sem
+          conta, fale com a gente pelo WhatsApp.
+        </p>
+        <div className="mt-[4px] flex w-full flex-col gap-[10px]">
+          <Link
+            href={loginHref}
+            className="inline-flex h-[42px] items-center justify-center rounded-full border border-[var(--brand-stroke-soft)] bg-[image:var(--brand-orange-gradient)] px-[28px] font-poppins text-[14px] font-bold text-black transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:ring-offset-2 focus-visible:ring-offset-brand-bg focus-visible:outline-none"
+          >
+            ENTRAR
+          </Link>
+          <Link
+            href="/criar-conta"
+            className="inline-flex h-[42px] items-center justify-center rounded-full border border-brand-border px-[28px] font-poppins text-[14px] font-bold text-white transition-colors hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none"
+          >
+            CRIAR CONTA
+          </Link>
+        </div>
       </div>
     </div>
   );

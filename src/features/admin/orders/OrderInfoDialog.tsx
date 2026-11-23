@@ -105,6 +105,19 @@ export function OrderInfoDialog({
             ))}
           </dl>
 
+          {/* O que o cliente escreveu no checkout (2026-11-23). Texto puro, com
+              as quebras de linha dele. */}
+          {order.customerNotes ? (
+            <>
+              <h3 className="mt-[28px] font-poppins text-[13px] font-bold tracking-[0.06em] text-brand-fg-subtle uppercase">
+                Informações do cliente
+              </h3>
+              <p className="mt-[10px] rounded-[12px] border border-white/10 bg-white/5 px-[14px] py-[10px] font-helvetica text-[14px] leading-[20px] break-words whitespace-pre-line text-white">
+                {order.customerNotes}
+              </p>
+            </>
+          ) : null}
+
           <h3 className="mt-[28px] font-poppins text-[13px] font-bold tracking-[0.06em] text-brand-fg-subtle uppercase">
             Itens
           </h3>

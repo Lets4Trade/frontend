@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { GlowBar } from "@/components/layout/GlowBar";
 import { UserMenu } from "@/components/layout/UserMenu";
+import { ChatAlerts } from "@/features/admin/chats/ChatAlerts";
 import { PresenceToggle } from "@/features/admin/chats/PresenceToggle";
 import { SaleAlerts } from "@/features/admin/sales/SaleAlerts";
 import type { SessionUser } from "@/features/auth/session";
@@ -87,6 +88,9 @@ export function AdminHeader({
           {/* Online/Offline do atendente no chat da loja (2026-10-16). ADMIN
               e ATENDENTE atendem — o EDITOR não vê chats. */}
           {canAccess(role, "support") ? <PresenceToggle /> : null}
+          {/* Mensagem nova de cliente (2026-11-23): botão com o número de
+              conversas esperando + aviso no canto e som. ADMIN e ATENDENTE. */}
+          {canAccess(role, "support") ? <ChatAlerts count={attention["/admin/chats"]?.count ?? 0} /> : null}
           {/* Aviso de venda (card, som, contador, notificação) — para quem
               entrega e vê pedidos: ADMIN e ATENDENTE (2026-10-16). */}
           {canAccess(role, "orders") ? <SaleAlerts canOpenUsers={canAccess(role, "users")} /> : null}

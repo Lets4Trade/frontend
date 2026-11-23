@@ -53,7 +53,7 @@ import { CHECKOUT_LOGIN_HREF } from "./loginHref";
 import { cardSchema, pixSchema, savedCardSchema } from "./schema";
 import { NEW_CARD, SaveCardCheckbox, SavedCardPicker } from "./SavedCardPicker";
 import { CopyOrderButton } from "./CopyOrderButton";
-import { orderText } from "./orderText";
+import { orderText, whatsappWithText } from "./orderText";
 import type { SavedCard } from "@/features/payment/savedCards";
 import { lineTotalCents } from "@/features/pricing/quote";
 import { gameHref } from "@/features/game/href";
@@ -232,6 +232,27 @@ export function CheckoutClient({
   // brinde — não é preço de produto.
   const fee = method === "credit" ? cardFeeCents(total) : 0;
   const charge = total + fee;
+
+  /**
+   * O pedido em texto para o WhatsApp (copiar e "FALE COM UM ESPECIALISTA").
+   * SEM as Lets Coins (2026-11-23, pedido do usuário): o desconto delas é só de
+   * quem compra pelo site, então o total e a taxa do cartão saem sem ele.
+   */
+  function whatsappOrder() {
+    const withoutCoins = Math.max(subtotal - couponTotal, 0);
+    const feeWithoutCoins = method === "credit" ? cardFeeCents(withoutCoins) : 0;
+    return orderText({
+      items,
+      gameNames,
+      customerName,
+      coupon: coupon && couponTotal > 0 ? { code: coupon.code, cents: couponTotal } : null,
+      feeCents: feeWithoutCoins,
+      totalCents: withoutCoins + feeWithoutCoins,
+      method,
+      installments: effectiveInstallments,
+      notes: String(new FormData(formRef.current ?? undefined).get("notes") ?? ""),
+    });
+  }
   // O total muda com as coins; a parcela escolhida antes pode ter ficado
   // abaixo do mínimo. Mesma regra do backend (`maxInstallmentsFor`, sobre o
   // valor com a taxa).
@@ -317,7 +338,7 @@ export function CheckoutClient({
       // Exceção (rede, deploy novo) cai no mesmo "error" de uma recusa comum:
       // sem isto o botão ficava em "enviando" para sempre, porque o
       // `setIsSubmitting(false)` abaixo nunca rodava.
-      const created = await runAction(() => checkoutAction(lines, coinsToUse, giftProductIds, coupon && couponTotal > 0 ? coupon.code : ""), {
+      const created = await runAction(() => checkoutAction(lines, coinsToUse, giftProductIds, coupon && couponTotal > 0 ? coupon.code : "", parsed.data.notes), {
         ok: false,
         reason: "error",
       });
@@ -652,6 +673,13 @@ export function CheckoutClient({
 
               <a
                 href={whatsappHref}
+                // A primeira mensagem já vai com o pedido (2026-11-23, pedido do
+                // usuário). Montada NO CLIQUE: sai com o que está na tela agora,
+                // inclusive o campo de informações adicionais.
+                onClick={(event) => {
+                  if (!hydrated || items.length === 0) return;
+                  event.currentTarget.href = whatsappWithText(whatsappHref, whatsappOrder());
+                }}
                 // Sai do site: nova aba, e sem `window.opener` para a página de fora.
                 target="_blank"
                 rel="noopener noreferrer"
@@ -669,23 +697,7 @@ export function CheckoutClient({
               </a>
 
               {/* O pedido inteiro em texto, para colar no WhatsApp (2026-11-22). */}
-              <CopyOrderButton
-                disabled={!hydrated || items.length === 0}
-                getText={() =>
-                  orderText({
-                    items,
-                    gameNames,
-                    customerName,
-                    coupon: coupon && couponTotal > 0 ? { code: coupon.code, cents: couponTotal } : null,
-                    coinsCents: discount,
-                    feeCents: fee,
-                    totalCents: charge,
-                    method,
-                    installments: effectiveInstallments,
-                    notes: String(new FormData(formRef.current ?? undefined).get("notes") ?? ""),
-                  })
-                }
-              />
+              <CopyOrderButton disabled={!hydrated || items.length === 0} getText={whatsappOrder} />
             </>
           ) : null}
         </form>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CartItem } from "@/features/cart/store";
-import { orderText as build, type OrderTextInput } from "./orderText";
+import { orderText as build, whatsappWithText, type OrderTextInput } from "./orderText";
 
 /** O `Intl` separa "R$" do valor com espaço não separável; o teste lê com espaço comum. */
 const orderText = (input: OrderTextInput) => build(input).replace(/ /g, " ");
@@ -36,9 +36,8 @@ describe("orderText", () => {
       gameNames: { "path-of-exile-2": "Path of Exile 2", "last-epoch": "Last Epoch" },
       customerName: "Maria",
       coupon: { code: "BEMVINDO", cents: 500 },
-      coinsCents: 100,
       feeCents: 0,
-      totalCents: 4040,
+      totalCents: 4140,
       method: "pix",
       installments: 1,
       notes: "Entregar à noite",
@@ -50,7 +49,9 @@ describe("orderText", () => {
     // igual ao nome do jogo não se repete.
     expect(text).toContain("2. *Level 1-90 rápido* — Last Epoch\n   Escolha: Nível 1 → 90 · Prioridade");
     expect(text).toContain("Prazo estimado: ~12,00 h");
-    expect(text).toContain("Cupom: BEMVINDO (− R$ 5,00)\nLets Coins: − R$ 1,00\n*Total: R$ 40,40*\nPagamento: PIX");
+    // Sem linha de Lets Coins (2026-11-23): o desconto delas é só no site.
+    expect(text).toContain("Cupom: BEMVINDO (− R$ 5,00)\n*Total: R$ 41,40*\nPagamento: PIX");
+    expect(text).not.toContain("Lets Coins");
     expect(text).toContain("Observações: Entregar à noite");
   });
 
@@ -58,7 +59,6 @@ describe("orderText", () => {
     const text = orderText({
       items: [gold],
       gameNames: {},
-      coinsCents: 0,
       feeCents: 3,
       totalCents: 53,
       method: "credit",
@@ -69,5 +69,18 @@ describe("orderText", () => {
     expect(text).not.toContain("Cupom");
     expect(text).not.toContain("Cliente");
     expect(text).not.toContain("Observações");
+  });
+});
+
+describe("whatsappWithText", () => {
+  it("põe o pedido como primeira mensagem do wa.me, codificado", () => {
+    const text = "*Pedido* — R$ 10,00\nPIX & cia";
+    const url = new URL(whatsappWithText("https://wa.me/5511999999999", text));
+    expect(url.origin + url.pathname).toBe("https://wa.me/5511999999999");
+    expect(url.searchParams.get("text")).toBe(text);
+  });
+
+  it("link inválido volta como veio", () => {
+    expect(whatsappWithText("não é link", "oi")).toBe("não é link");
   });
 });

@@ -124,6 +124,7 @@ export async function checkoutAction(
   coins = 0,
   giftProductIds: string[] = [],
   couponCode = "",
+  notes = "",
 ): Promise<CheckoutResult> {
   const cleaned = cleanLines(lines);
   if (!cleaned.ok) return { ok: false, reason: cleaned.reason };
@@ -160,6 +161,9 @@ export async function checkoutAction(
     ...(giftChoices.length > 0 ? { giftProductIds: giftChoices } : {}),
     // Cupom (2026-10-12): só o código; valor e alcance são do backend.
     ...(COUPON_CODE_PATTERN.test(normalizeCouponCode(couponCode)) ? { couponCode: normalizeCouponCode(couponCode) } : {}),
+    // "Informações adicionais" (2026-11-23): existiam na tela e nunca eram
+    // enviadas. Texto puro, mesmo teto do backend (500).
+    ...(cleanNotes(notes) ? { notes: cleanNotes(notes) } : {}),
   });
 
   if (!result.ok) {
@@ -272,4 +276,9 @@ export async function previewCouponAction(code: string, lines: CheckoutLine[]): 
         : [],
     },
   };
+}
+
+/** Informações adicionais: texto, sem espaço nas pontas, no teto de 500. */
+function cleanNotes(raw: unknown): string {
+  return typeof raw === "string" ? raw.trim().slice(0, 500) : "";
 }

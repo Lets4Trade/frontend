@@ -182,6 +182,19 @@ function readBell(): BellState {
   }
 }
 
+/**
+ * O sino vale também para MENSAGEM NOVA do chat (2026-11-23, pedido do
+ * usuário) — ver `ChatAlerts.tsx`. Uma chave só: quem quer ser avisado de
+ * venda quer ser avisado de cliente esperando.
+ */
+export function browserNotificationsOn(): boolean {
+  try {
+    return readBell() === "on";
+  } catch {
+    return false;
+  }
+}
+
 function subscribeBell(listener: () => void) {
   prefListeners.add(listener);
   return () => prefListeners.delete(listener);
@@ -212,7 +225,7 @@ function NotifyToggle() {
     }
     if (state === "on") {
       setMuted(true);
-      toastOk("Notificações de venda desligadas neste navegador.");
+      toastOk("Notificações de venda e de mensagem desligadas neste navegador.");
       return;
     }
     const permission =
@@ -224,23 +237,23 @@ function NotifyToggle() {
     }
     setMuted(false);
     try {
-      new Notification("Notificações de venda ligadas", {
-        body: "A cada venda confirmada aparece um aviso como este, mesmo com o painel em outra aba.",
+      new Notification("Notificações ligadas", {
+        body: "A cada venda confirmada e mensagem nova de cliente aparece um aviso como este, mesmo com o painel em outra aba.",
         tag: "teste-notificacao-venda",
       });
     } catch {
       // Navegador que só notifica por service worker (iOS): o card do painel continua.
     }
-    toastOk("Notificações de venda ligadas.");
+    toastOk("Notificações de venda e de mensagem ligadas.");
   }
 
   const on = state === "on";
   const label =
     state === "blocked"
-      ? "Notificações de venda bloqueadas no navegador (clique para ver como liberar)"
+      ? "Notificações de venda e mensagem bloqueadas no navegador (clique para ver como liberar)"
       : on
-        ? "Notificações de venda ligadas (clique para desligar)"
-        : "Ligar notificações de venda no navegador";
+        ? "Notificações de venda e mensagem ligadas (clique para desligar)"
+        : "Ligar notificações de venda e mensagem no navegador";
   return (
     <button
       type="button"

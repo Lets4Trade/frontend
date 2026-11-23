@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import type { SectionItemView } from "@/features/site/content";
 import { useBannerAutoplay } from "@/features/game/useBannerAutoplay";
+import { useBannerSwipe } from "@/features/game/useBannerSwipe";
 import { HERO_BANNER_WIDTH, HERO_DEFAULT_ART, HERO_UPLOAD_HEIGHT } from "../heroGames";
 
 /**
@@ -30,7 +31,8 @@ function artStyle(src: string) {
  *
  * Mesma regra do `HeroBannerSlides` do desktop: as artes vêm da lista
  * `home:hero-banner`, passam sozinhas com o timer do banner do jogo
- * (`useBannerAutoplay`, 2026-11-23) e trocam no clique; sem lista aparece a
+ * (`useBannerAutoplay`, 2026-11-23), trocam no clique e arrastando com o dedo
+ * (`useBannerSwipe`, 2026-11-23); sem lista aparece a
  * arte da sessão com as três barrinhas do desenho.
  */
 export function MobileHeroBanner({
@@ -47,11 +49,17 @@ export function MobileHeroBanner({
   const [paused, setPaused] = useState(false);
   const current = Math.min(active, Math.max(slides.length - 1, 0));
   useBannerAutoplay({ count: slides.length, current, setActive, paused });
+  const count = slides.length;
+  const swipe = useBannerSwipe({
+    enabled: count > 1,
+    onSwipe: (step) => setActive((((current + step) % count) + count) % count),
+  });
   const total = slides.length > 0 ? slides.length : 3;
 
   return (
     <section
-      className="relative w-full overflow-hidden rounded-[24px] border border-white/10 bg-brand-surface"
+      className="relative w-full touch-pan-y overflow-hidden rounded-[24px] border border-white/10 bg-brand-surface"
+      {...swipe}
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
     >

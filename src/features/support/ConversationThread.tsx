@@ -151,7 +151,7 @@ export function ConversationThread({
           <p role="alert" className="mt-[8px] font-helvetica text-[12px] text-red-9">{error}</p>
         ) : status !== "online" ? (
           <p role="status" className="mt-[8px] font-helvetica text-[12px] text-brand-fg-subtle">
-            {status === "conectando" ? "Conectando…" : "Sem tempo real, mas você ainda pode enviar."}
+            {status === "conectando" ? "Conectando…" : ""}
           </p>
         ) : null}
       </form>
@@ -184,9 +184,8 @@ function ThreadBubble({ message, showAuthor }: { message: ChatMessage; showAutho
       ) : null}
       <div
         title={message.at}
-        className={`max-w-[80%] rounded-[12px] px-[12px] py-[8px] ${
-          mine ? "border border-brand-orange bg-[image:var(--brand-surface-fill)]" : "bg-[#1b1b1b]"
-        }`}
+        className={`max-w-[80%] rounded-[12px] px-[12px] py-[8px] ${mine ? "border border-brand-orange bg-[image:var(--brand-surface-fill)]" : "bg-[#1b1b1b]"
+          }`}
       >
         {!mine && showAuthor ? (
           <p className="mb-[2px] font-poppins text-[11px] font-semibold text-brand-orange">

@@ -70,6 +70,8 @@ export type AdminOrder = {
   /** Cupom (2026-10-12): ausentes sem cupom. */
   couponCode?: string | null;
   couponCents?: number;
+  /** "Informações adicionais" que o cliente escreveu no checkout (2026-11-23). */
+  customerNotes?: string | null;
   /** Valor do enum do backend: PENDENTE, APROVADO, EM_ANDAMENTO… */
   status: string;
   step: string;

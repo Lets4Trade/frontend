@@ -2411,6 +2411,12 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
   html[data-bottom-nav] .contact-float {
     translate: 0 -68px;
   }
+  /* O painel sobe 68px — e ENCOLHE os mesmos 68px (2026-11-23, relato do
+     usuário: "o chat fica cortado na tela"). Sem isto a altura continuava
+     `dvh - 108px` e o topo (cabeçalho e ×) saía 36px acima da tela. */
+  html[data-bottom-nav] .chat-panel {
+    height: min(620px, calc(var(--dvh) - 108px - 68px));
+  }
 }
 
 /* Botão do chat (2026-10-09): o balão entra depois de um instante (convite,
@@ -2517,6 +2523,28 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
 @media (prefers-reduced-motion: no-preference) {
   .sale-alert-in {
     animation: sale-alert-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  /* Número do botão de chat do painel (2026-11-23): "pulo" quando aparece e,
+     enquanto houver conversa esperando, um brilho que pulsa devagar. */
+  .chat-count-in {
+    animation:
+      chat-count-pop 320ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      chat-count-glow 2s ease-in-out 320ms infinite;
+  }
+}
+
+@keyframes chat-count-pop {
+  from {
+    transform: scale(0.4);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes chat-count-glow {
+  50% {
+    box-shadow: 0 0 18px rgba(255, 115, 0, 1);
   }
 }
 

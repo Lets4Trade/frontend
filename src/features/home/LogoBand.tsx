@@ -30,14 +30,22 @@ import { getLayoutContent } from "@/features/site/layoutContent";
  * `logo-pattern.webp`; e saíram o fundo e as bordas — sobram só as logos
  * correndo, em CINZA (`grayscale`, pedido do usuário no mesmo dia).
  *
- * O desenho é um `<pattern>` de SVG em linha: a imagem entra por `<image>`
- * (que, diferente de um SVG usado como `background`, carrega URL de fora) e
- * o padrão se repete sozinho. Fileiras desencontradas como o arquivo: logo a
- * cada 161px, a segunda fileira deslocada meio passo. O período da animação é
- * o passo (161), então o laço não dá salto.
+ * ── Fileiras inteiras (2026-11-23, pedido do usuário) ─────────────────────
+ * Antes era UM padrão de 161×132 cobrindo a faixa: na de 170px a terceira
+ * fileira saía cortada embaixo, e no celular (98px) a segunda saía pela metade
+ * — "mal dá pra ver". Agora cada fileira é a sua tira de SVG, da altura da
+ * logo, e as tiras se distribuem na altura da faixa (`justify-evenly`): nenhuma
+ * logo fica cortada, qualquer que seja a altura (no celular ela vem do texto).
+ * Logos menores: 3 fileiras no computador, 2 no celular. Fileiras pares
+ * deslocadas meio passo, como os tijolos do arquivo. O período da animação é o
+ * passo, então o laço não dá salto.
  */
-export const LOGO_TILE = { width: 161, height: 132 } as const;
-const LOGO_BOX = { width: 104, height: 54 };
+const BAND = {
+  // Computador: medidas da moldura (o site está a 80%; na tela, ~64×33).
+  screen: { rows: 3, logo: { width: 80, height: 41 }, step: 124, opacity: "opacity-[0.13]" },
+  // Celular: um pouco mais forte — a faixa é estreita e as logos são poucas.
+  bleed: { rows: 2, logo: { width: 64, height: 33 }, step: 100, opacity: "opacity-[0.17]" },
+} as const;
 const DEFAULT_LOGO = "/images/lets4trade-logo.png";
 
 export async function LogoBand({ mode = "bleed", className = "" }: { mode?: "screen" | "bleed"; className?: string }) {
@@ -48,30 +56,37 @@ export async function LogoBand({ mode = "bleed", className = "" }: { mode?: "scr
   // `object-cover`); a enviada pelo painel entra INTEIRA, como no cabeçalho.
   const fit = uploaded ? "xMidYMid meet" : "xMidYMid slice";
   const place = mode === "screen" ? "right-0 left-0" : "inset-y-0 -right-[2400px] -left-[2400px]";
-  const x = (LOGO_TILE.width - LOGO_BOX.width) / 2;
-  const half = LOGO_TILE.width / 2;
-  // Id POR MODO: a home desenha a versão do celular (`bleed`) E a do
-  // computador (`screen`), uma escondida por CSS; com o mesmo id, `url(#id)`
-  // pegava o padrão da escondida e no computador as logos sumiam.
-  const patternId = `logo-band-${mode}`;
-  const rowTwo = LOGO_TILE.height / 2 + 6;
+  const { rows, logo: box, step, opacity } = BAND[mode];
+  const x = (step - box.width) / 2;
 
   return (
     <div aria-hidden className={`pointer-events-none absolute overflow-hidden ${place} ${className}`}>
-      <svg
-        className="logo-band-track absolute inset-y-0 left-0 h-full opacity-[0.13] grayscale"
-        style={{ width: `calc(100% + ${LOGO_TILE.width}px)`, ["--logo-tile" as string]: `${LOGO_TILE.width}px` }}
+      <div
+        className={`logo-band-track absolute inset-y-0 left-0 flex flex-col justify-evenly grayscale ${opacity}`}
+        style={{ width: `calc(100% + ${step}px)`, ["--logo-tile" as string]: `${step}px` }}
       >
-        <defs>
-          <pattern id={patternId} width={LOGO_TILE.width} height={LOGO_TILE.height} patternUnits="userSpaceOnUse">
-            <image href={logo} x={x} y={6} width={LOGO_BOX.width} height={LOGO_BOX.height} preserveAspectRatio={fit} />
-            {/* Segunda fileira, meio passo à frente (e a cópia que fecha a borda). */}
-            <image href={logo} x={x + half} y={rowTwo} width={LOGO_BOX.width} height={LOGO_BOX.height} preserveAspectRatio={fit} />
-            <image href={logo} x={x - half} y={rowTwo} width={LOGO_BOX.width} height={LOGO_BOX.height} preserveAspectRatio={fit} />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill={`url(#${patternId})`} />
-      </svg>
+        {Array.from({ length: rows }, (_, row) => {
+          // Id POR MODO e fileira: a home desenha a versão do celular (`bleed`)
+          // E a do computador (`screen`), uma escondida por CSS; com o mesmo
+          // id, `url(#id)` pegava o padrão da escondida e as logos sumiam.
+          const id = `logo-band-${mode}-${row}`;
+          const shift = row % 2 === 1 ? step / 2 : 0;
+          return (
+            <svg key={row} width="100%" height={box.height} className="block shrink-0">
+              <defs>
+                <pattern id={id} width={step} height={box.height} patternUnits="userSpaceOnUse">
+                  <image href={logo} x={x + shift} width={box.width} height={box.height} preserveAspectRatio={fit} />
+                  {/* Cópia que fecha a borda na fileira deslocada. */}
+                  {shift ? (
+                    <image href={logo} x={x - shift} width={box.width} height={box.height} preserveAspectRatio={fit} />
+                  ) : null}
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill={`url(#${id})`} />
+            </svg>
+          );
+        })}
+      </div>
     </div>
   );
 }
