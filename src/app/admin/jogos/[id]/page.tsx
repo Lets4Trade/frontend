@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getBuilderGame } from "@/features/admin/builder/list";
+import { getBuilderGame, getBuilderGames } from "@/features/admin/builder/list";
 import { getAdminGift } from "@/features/admin/gifts/data";
 import { builderHref, parseCentralQuery } from "@/features/admin/games/central";
-import { GiftSection, OverviewSection, TabsSection } from "@/features/admin/games/CentralSections";
+import { GiftSection, NewsSection, OverviewSection, TabsSection } from "@/features/admin/games/CentralSections";
 import { GameAdminNav } from "@/features/admin/games/GameAdminNav";
 import { CentralDescription, type CommonFaq } from "@/features/admin/games/CentralDescription";
 import { getSectionItemsFor, getSectionsFor } from "@/features/site/content";
@@ -34,7 +34,8 @@ type PageProps = {
  *   - `visao-geral`: o cadastro (nome, link, imagem, servidores);
  *   - `abas` (padrão): mestre-detalhe das abas, com produtos e categorias;
  *   - `pagina`: atalhos para o Builder, o Construtor e a loja;
- *   - `brinde`: o brinde por compra do jogo (2026-10-12).
+ *   - `brinde`: o brinde por compra do jogo (2026-10-12);
+ *   - `noticias`: de onde vêm as notícias da página do jogo (2026-11-23).
  *
  * Substitui `/editar`, `/abas` e `/categorias` (hoje redirecionamentos).
  * Catálogo: ADMIN e EDITOR (2026-10-16); a seção Brinde, só ADMIN.
@@ -52,11 +53,13 @@ export default async function GameCentralPage({ params, searchParams }: PageProp
 
   // Jogo e abas em paralelo (as abas só na seção que as desenha). Jogo
   // inexistente, desativado ou leitura que falhou: 404, como no produto.
-  const [game, tabs, gift, commonFaq] = await Promise.all([
+  const [game, tabs, gift, commonFaq, newsGames] = await Promise.all([
     getBuilderGame(id),
     query.section === "abas" ? getGameTabs(id) : Promise.resolve(null),
     query.section === "brinde" ? getAdminGift(id) : Promise.resolve(null),
     query.section === "descricao" ? readCommonFaq() : Promise.resolve(null),
+    // Aba Notícias (2026-11-23): os jogos do select. Lista vazia = falha.
+    query.section === "noticias" ? getBuilderGames() : Promise.resolve([]),
   ]);
   if (game === null) notFound();
 
@@ -100,6 +103,8 @@ export default async function GameCentralPage({ params, searchParams }: PageProp
             />
           ) : query.section === "brinde" ? (
             <GiftSection game={game} gift={gift} />
+          ) : query.section === "noticias" ? (
+            <NewsSection game={game} games={newsGames.length > 0 ? newsGames : null} />
           ) : (
             <section aria-labelledby="abas-titulo">
               {/* O título visível já é a própria navegação; este é para leitor

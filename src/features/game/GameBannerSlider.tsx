@@ -2,11 +2,10 @@
 
 import Image, { getImageProps } from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import type { GameBanner } from "./types";
+import { useBannerAutoplay } from "./useBannerAutoplay";
 
-/** Tempo de cada banner na tela quando ele passa sozinho. */
-const INTERVAL_MS = 6000;
 /** Arrasto mínimo (px) para o toque contar como "trocar de banner". */
 const SWIPE_PX = 50;
 
@@ -47,15 +46,8 @@ export function GameBannerSlider({
 
   const go = (index: number) => setActive(((index % count) + count) % count);
 
-  useEffect(() => {
-    if (!autoPlay || paused || count < 2) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const timer = window.setTimeout(() => {
-      if (!document.hidden) setActive((value) => (Math.min(value, count - 1) + 1) % count);
-    }, INTERVAL_MS);
-    return () => window.clearTimeout(timer);
-    // `current` reinicia a contagem a cada troca, inclusive a feita à mão.
-  }, [autoPlay, paused, count, current]);
+  // O mesmo temporizador do banner da home (2026-11-23): `useBannerAutoplay`.
+  useBannerAutoplay({ count, current, setActive, paused, enabled: autoPlay });
 
   // Toque: guarda onde começou; ao soltar, um arrasto largo troca de banner e
   // anula o clique que viria em seguida (senão abriria o link do slide).

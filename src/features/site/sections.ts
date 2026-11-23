@@ -1,6 +1,7 @@
 import type { MaskKind } from "@/lib/masks";
 import { MAX_INSTALLMENTS } from "@/features/payment/types";
 import { WEEKDAYS } from "@/features/support/hours";
+import { HERO_BANNER_UPLOAD_HINT } from "@/features/home/heroGames";
 import { blogCardExtraFields, type SectionExtraField } from "./blogCardFields";
 import { mobileAlignField } from "./mobileAlign";
 
@@ -206,7 +207,7 @@ export const SITE_PAGES: readonly SitePageDef[] = [
         // usuário apontou. Agora é esta legenda.
         defaultTitle: "Sua Loja de Gamecoins",
         hasImage: true,
-        imageHint: "Arte do topo da home (859×643, termina acima das barrinhas).",
+        imageHint: `Arte do banner da esquerda: ${HERO_BANNER_UPLOAD_HINT}`,
         list: {
           itemLabel: "slide",
           // Nome e link vêm do JOGO escolhido (2026-09-25) — antes eram dois

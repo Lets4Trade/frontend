@@ -176,6 +176,18 @@ export const HERO_NAV_TOP = HERO_HEIGHT - 79;
 export const HERO_BANNER_WIDTH = 859;
 export const HERO_GAP = 25;
 export const HERO_DECK_LEFT = HERO_BANNER_WIDTH + HERO_GAP;
+
+/**
+ * Tamanho de UPLOAD do banner da esquerda, mostrado no painel (formulário da
+ * sessão e editor na página). Montado das MESMAS constantes que desenham o
+ * banner: em 2026-11-18 a altura mudou de 643 para 549 e a dica do formulário
+ * ficou dizendo 643 — quem seguia a dica via a arte cortada (2026-11-23).
+ * O celular usa a MESMA proporção (`MobileHeroBanner`, 2026-11-23), então a
+ * arte aparece inteira nos dois.
+ */
+export const HERO_BANNER_UPLOAD_HINT =
+  `${HERO_BANNER_WIDTH}×${HERO_UPLOAD_HEIGHT} (ideal ${HERO_BANNER_WIDTH * 2}×${HERO_UPLOAD_HEIGHT * 2}). ` +
+  "Aparece inteira no computador e no celular.";
 export const HERO_ROW_WIDTH = HERO_DECK_LEFT + HERO_DECK_WIDTH;
 
 /**

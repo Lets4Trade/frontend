@@ -82,6 +82,13 @@ export type BuilderGame = {
   categoriesLabel?: string | null;
   /** JSON no banco (`{ title, items }[]`): lido por `toGameDescription`. */
   descriptionGroups?: unknown;
+  /**
+   * Origem das notícias da página (2026-11-23, Central → Notícias): `newsAll`
+   * = de todos os jogos; `newsGameId` = de outro jogo; nenhum = deste jogo.
+   * Ausentes (API antiga, ou nulo apagado pelo interceptor) = padrão.
+   */
+  newsAll?: boolean;
+  newsGameId?: string | null;
   servers: {
     id: string;
     label: string;

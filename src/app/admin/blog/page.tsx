@@ -144,7 +144,7 @@ export default async function AdminBlogPage({
                 <div className="min-w-[220px] flex-1">
                   <p className="line-clamp-2 font-poppins text-[16px] font-bold text-white">{post.title}</p>
                   <p className="mt-[4px] font-poppins text-[13px] text-brand-fg-subtle">
-                    {post.gameName ?? "Todos os jogos"}
+                    {post.gameName ?? "Sem jogo"}
                     {post.publishedDate ? ` · ${post.publishedDate}` : ""}
                   </p>
                 </div>

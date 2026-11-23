@@ -378,9 +378,10 @@ async function loadGamePage(slug: string): Promise<GamePage | null> {
 }
 
 /**
- * Notícia do blog → card da seção NOTÍCIAS da página de jogo. A TAG é o nome
- * do jogo da página (mesma regra dos itens editoriais) e a data, a de
- * publicação no formato de hoje ("17/04/26").
+ * Notícia do blog → card da seção NOTÍCIAS da página de jogo. A TAG é o jogo
+ * DA NOTÍCIA — desde 2026-11-23 a seção pode mostrar as de todos ou de outro
+ * jogo (Central → Notícias); sem jogo, o da página. A data é a de publicação
+ * no formato de hoje ("17/04/26").
  */
 export function blogNewsItem(post: BlogCardView, gameName: string, gameLogo?: string | null): GameNewsItem {
   const logo = post.game?.logo ?? gameLogo ?? null;
@@ -390,7 +391,7 @@ export function blogNewsItem(post: BlogCardView, gameName: string, gameLogo?: st
     excerpt: post.excerpt,
     image: post.cover ? { src: post.cover, width: 1280, height: 720, alt: "" } : undefined,
     ...(logo ? { logo } : {}),
-    tag: gameName,
+    tag: post.game?.name ?? gameName,
     date: post.date,
     href: post.href,
   };

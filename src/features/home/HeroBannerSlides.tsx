@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { editAdd, editItem } from "@/features/site/editing/attrs";
+import { useBannerAutoplay } from "@/features/game/useBannerAutoplay";
 import type { SectionItemView } from "@/features/site/content";
 import { HERO_BANNER_WIDTH, HERO_DOTS_TOP, HERO_UPLOAD_HEIGHT } from "./heroGames";
 
@@ -18,10 +19,12 @@ import { HERO_BANNER_WIDTH, HERO_DOTS_TOP, HERO_UPLOAD_HEIGHT } from "./heroGame
  * imagem. Agora as artes são uma LISTA (`home:hero-banner`), editável na
  * própria página, e cada barrinha corresponde a uma delas.
  *
- * ── Troca no clique, nunca sozinha ─────────────────────────────────────────
- * Passar sozinho contrariaria a regra de movimento da home ("nada anima
- * sozinho", decidida em 2026-08-31) e competiria com o carrossel de cards ao
- * lado, que é o elemento interativo do hero. Quem troca é quem clica.
+ * ── Passa sozinho, com o timer do banner do jogo ───────────────────────────
+ * Desde 2026-11-23 (pedido do usuário) troca a cada 6 s com o MESMO
+ * `useBannerAutoplay` da página de jogo: pausa com o mouse em cima ou o foco
+ * nas barrinhas, com a aba em segundo plano e com "reduzir movimento"; clicar
+ * numa barrinha reinicia a contagem. Antes (2026-08-31 a 11-23) só trocava no
+ * clique, pela regra "nada anima sozinho" da home.
  *
  * ── Sem lista, nada muda ───────────────────────────────────────────────────
  * Sem nenhuma arte cadastrada, desenha a do campo de imagem da sessão (ou o SVG
@@ -37,6 +40,9 @@ export function HeroBannerSlides({
 }) {
   const slides = items.filter((item) => item.image);
   const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const current = Math.min(active, Math.max(slides.length - 1, 0));
+  useBannerAutoplay({ count: slides.length, current, setActive, paused });
 
   return (
     <>
@@ -55,7 +61,15 @@ export function HeroBannerSlides({
           style={{ width: HERO_BANNER_WIDTH, height: HERO_UPLOAD_HEIGHT }}
         />
       ) : (
-        slides.map((item, index) => (
+        // Caixa do tamanho do banner só para pausar com o mouse em cima; as
+        // artes continuam no mesmo lugar (absolutas, topo-esquerda).
+        <div
+          className="absolute top-0 left-0"
+          style={{ width: HERO_BANNER_WIDTH, height: HERO_UPLOAD_HEIGHT }}
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+        >
+        {slides.map((item, index) => (
           <Image
             key={item.id}
             {...editItem("home:hero-banner", item.id, "image")}
@@ -63,7 +77,7 @@ export function HeroBannerSlides({
             alt=""
             width={859}
             height={HERO_UPLOAD_HEIGHT}
-            aria-hidden={index !== active}
+            aria-hidden={index !== current}
             // A primeira entra no caminho crítico (é o topo da home); as outras
             // só aparecem depois de um clique.
             priority={index === 0}
@@ -73,18 +87,24 @@ export function HeroBannerSlides({
               height: HERO_UPLOAD_HEIGHT,
               // `visibility` e não desmontar: trocar de arte não deve custar um
               // carregamento novo a cada clique.
-              visibility: index === active ? "visible" : "hidden",
+              visibility: index === current ? "visible" : "hidden",
             }}
           />
-        ))
+        ))}
+        </div>
       )}
 
       {/* Indicadores: barras de 40×3 a cada 50px, como no arquivo. Sem lista,
           as três do desenho; com lista, uma por arte. */}
       {/* Centradas sob o banner (2026-11-18, pedido do usuário). */}
-      <div className="absolute left-1/2 flex -translate-x-1/2 gap-[10px]" style={{ top: HERO_DOTS_TOP }}>
+      <div
+        className="absolute left-1/2 flex -translate-x-1/2 gap-[10px]"
+        style={{ top: HERO_DOTS_TOP }}
+        onFocus={() => setPaused(true)}
+        onBlur={() => setPaused(false)}
+      >
         {(slides.length > 0 ? slides : [null, null, null]).map((item, index) => {
-          const isActive = slides.length > 0 ? index === active : index === 0;
+          const isActive = slides.length > 0 ? index === current : index === 0;
           const total = slides.length > 0 ? slides.length : 3;
 
           return (

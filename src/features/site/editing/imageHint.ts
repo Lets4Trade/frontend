@@ -1,4 +1,5 @@
 import { siteSection } from "@/features/site/sections";
+import { HERO_BANNER_UPLOAD_HINT } from "@/features/home/heroGames";
 
 /**
  * A dimensão recomendada de uma imagem editável no modo "Textos e imagens"
@@ -11,7 +12,7 @@ import { siteSection } from "@/features/site/sections";
  * catálogo (as artes do banner do hero, a foto do CEO) tem texto próprio aqui.
  */
 const EXTRA_HINTS: Record<string, string> = {
-  "home:hero-banner": "Arte do banner (859×549, vai até a linha dos cards da direita).",
+  "home:hero-banner": `Arte do banner: ${HERO_BANNER_UPLOAD_HINT}`,
   "home:video|secondary": "Foto do CEO (quadrada, 120×120).",
 };
 

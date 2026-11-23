@@ -224,7 +224,7 @@ export function NewsCard({ item, fluid = false }: { item: GameNewsItem; fluid?: 
             className="size-[45px] rounded-full object-cover"
           />
         ) : null}
-        {/* Sem tag (notícia "Todos os jogos" na home): só a data. */}
+        {/* Sem tag (home: o logo na capa diz o jogo): só a data. */}
         {item.tag ? (
           <>
             <span className="font-poppins text-[16px] leading-[27px] font-semibold tracking-[0.08px] text-white">

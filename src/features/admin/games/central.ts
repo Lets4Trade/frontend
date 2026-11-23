@@ -24,6 +24,9 @@ export const CENTRAL_SECTIONS = [
   // (`centralNavLinks`). `?secao=pagina` antigo redireciona para o Builder.
   // Brinde por compra (2026-10-12): "ganhe 50Mi de Ouro a cada R$ 50,00".
   { id: "brinde", label: "Brinde" },
+  // De onde vêm as notícias da página do jogo (2026-11-23, pedido do usuário):
+  // deste jogo, de todos ou de outro jogo.
+  { id: "noticias", label: "Notícias" },
 ] as const;
 
 export type CentralSection = (typeof CENTRAL_SECTIONS)[number]["id"];

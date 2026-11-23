@@ -9,6 +9,8 @@ import type { AdminGift } from "../gifts/types";
 import { NEW_TAB, centralHref, pickCentralTab, type CentralQuery } from "./central";
 import { categoriesOnStore, productGrid } from "./centralView";
 import { GameEditForm } from "./GameEditForm";
+import { NewsSourceEditor } from "./NewsSourceEditor";
+import { newsSourceOptions, newsSourceValue } from "./newsSource";
 import { ReactivateProductButton } from "./ReactivateProductButton";
 import { NewTabPanel, TabDetailPanel } from "./tabs/GameTabsEditor";
 import { getTabCategories } from "./tabs/list";
@@ -70,6 +72,48 @@ export function GiftSection({
       ) : (
         <p role="alert" className="font-poppins text-[14px] text-red-9">
           Não foi possível ler o brinde deste jogo. Recarregue a página.
+        </p>
+      )}
+    </section>
+  );
+}
+
+// ── Notícias ────────────────────────────────────────────────────────────────
+
+/**
+ * De onde vêm as notícias da seção NOTÍCIAS da página do jogo (2026-11-23,
+ * pedido do usuário). `games === null` = a lista de jogos não veio: sem ela o
+ * select mostraria só "deste/todos" e esconderia uma escolha já gravada.
+ */
+export function NewsSection({
+  game,
+  games,
+}: {
+  game: BuilderGame;
+  games: readonly { id: string; name: string }[] | null;
+}) {
+  const current = newsSourceValue(game);
+  return (
+    <section
+      aria-labelledby="noticias-titulo"
+      className="rounded-[20px] border border-brand-border bg-[image:var(--brand-surface-fill)] p-[20px] sm:p-[30px]"
+    >
+      <SectionTitle id="noticias-titulo">Notícias</SectionTitle>
+      <p className="mt-[8px] mb-[24px] font-poppins text-[13px] text-brand-fg-subtle">
+        Quais notícias do blog aparecem na seção NOTÍCIAS da página de {game.name}: as deste jogo (padrão), as mais
+        recentes de todos os jogos, ou as de outro jogo.
+      </p>
+      {games ? (
+        <NewsSourceEditor
+          // Salvo, a página revalida e o editor remonta com o valor gravado.
+          key={current}
+          gameId={game.id}
+          initial={current}
+          options={newsSourceOptions(game, games, current)}
+        />
+      ) : (
+        <p role="alert" className="font-poppins text-[14px] text-red-9">
+          Não foi possível carregar a lista de jogos. Recarregue a página.
         </p>
       )}
     </section>

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { publicApiGet } from "@/lib/publicApi";
-import { getBlogGames, getBlogList, getBlogPost, getGameNews, toBlogCard } from "./data";
+import { getBlogGames, getBlogList, getBlogPost, getGameNews, getLatestNews, toBlogCard } from "./data";
 import { BLOG_TAG } from "./format";
 
 vi.mock("@/lib/publicApi", () => ({
@@ -116,12 +116,18 @@ describe("getBlogGames / getGameNews", () => {
     expect(await getBlogGames()).toEqual([]);
   });
 
-  it("notícias do jogo: ?game=&limit=4; falha → []", async () => {
+  it("notícias do jogo: ?forGame=&limit=4 (segue a aba Notícias da Central); falha → []", async () => {
     get.mockResolvedValueOnce({ items: [rawCard] });
     expect((await getGameNews("path-of-exile-2")).length).toBe(1);
-    expect(get).toHaveBeenLastCalledWith("/blog?game=path-of-exile-2&limit=4", expect.any(Object));
+    expect(get).toHaveBeenLastCalledWith("/blog?forGame=path-of-exile-2&limit=4", expect.any(Object));
 
     get.mockResolvedValueOnce(null);
     expect(await getGameNews("path-of-exile-2")).toEqual([]);
+  });
+
+  it("home: as últimas de TODOS os jogos (sem filtro; o `general` de 22/11 foi desfeito)", async () => {
+    get.mockResolvedValueOnce({ items: [rawCard] });
+    expect((await getLatestNews(4)).length).toBe(1);
+    expect(get).toHaveBeenLastCalledWith("/blog?limit=4", expect.any(Object));
   });
 });

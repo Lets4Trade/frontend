@@ -213,9 +213,10 @@ export function BlogPostForm({
           label="Jogo:"
           name="gameId"
           defaultValue={post?.gameId || NO_GAME}
-          // "Todos os jogos" (2026-11-22): sem jogo = aparece em TODA página de
-          // jogo e é o que vai para a home.
-          options={[{ value: NO_GAME, label: "Todos os jogos (vai para a home)" }, ...games]}
+          // "Sem jogo" de novo desde 2026-11-23: o "Todos os jogos (vai para a
+          // home)" de 22/11 foi desfeito a pedido do usuário. Quem escolhe as
+          // notícias de cada jogo agora é a Central do jogo → aba Notícias.
+          options={[{ value: NO_GAME, label: "Sem jogo" }, ...games]}
           error={errors.gameId}
         />
 

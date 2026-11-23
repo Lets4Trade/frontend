@@ -3,14 +3,24 @@
 import Image from "next/image";
 import { useState } from "react";
 import type { SectionItemView } from "@/features/site/content";
-import { HERO_DEFAULT_ART } from "../heroGames";
+import { useBannerAutoplay } from "@/features/game/useBannerAutoplay";
+import { HERO_BANNER_WIDTH, HERO_DEFAULT_ART, HERO_UPLOAD_HEIGHT } from "../heroGames";
 
 /**
- * A arte ENVIADA termina acima das barrinhas (bottom 58 + 3 de altura + 16 de
- * respiro), como no desktop; a padrão do desenho ocupa o card todo.
+ * A arte ENVIADA ocupa a faixa de cima, na MESMA proporção do banner do
+ * computador (859×549) — 2026-11-23, pedido do usuário: antes o card tinha
+ * proporção fixa 352/338 e a arte cortava 5–8% de cada lateral. Abaixo dela,
+ * os 77px das barrinhas e da legenda. A padrão do desenho ocupa o card todo.
  */
+const ART_RATIO = `${HERO_BANNER_WIDTH} / ${HERO_UPLOAD_HEIGHT}`;
+const FOOTER_HEIGHT = 77;
+
 function artBox(src: string) {
-  return src === HERO_DEFAULT_ART ? "inset-0" : "inset-x-0 top-0 bottom-[77px]";
+  return src === HERO_DEFAULT_ART ? "inset-0" : "inset-x-0 top-0";
+}
+
+function artStyle(src: string) {
+  return src === HERO_DEFAULT_ART ? undefined : { aspectRatio: ART_RATIO };
 }
 
 /**
@@ -19,8 +29,9 @@ function artBox(src: string) {
  * desenho mobile o tira.
  *
  * Mesma regra do `HeroBannerSlides` do desktop: as artes vêm da lista
- * `home:hero-banner`, trocam no CLIQUE (nada anima sozinho na home), e sem lista
- * aparece a arte da sessão com as três barrinhas do desenho.
+ * `home:hero-banner`, passam sozinhas com o timer do banner do jogo
+ * (`useBannerAutoplay`, 2026-11-23) e trocam no clique; sem lista aparece a
+ * arte da sessão com as três barrinhas do desenho.
  */
 export function MobileHeroBanner({
   fallbackImage,
@@ -33,12 +44,23 @@ export function MobileHeroBanner({
 }) {
   const slides = items.filter((item) => item.image);
   const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const current = Math.min(active, Math.max(slides.length - 1, 0));
+  useBannerAutoplay({ count: slides.length, current, setActive, paused });
   const total = slides.length > 0 ? slides.length : 3;
 
   return (
-    <section className="relative aspect-[352/338] w-full overflow-hidden rounded-[24px] border border-white/10 bg-brand-surface">
+    <section
+      className="relative w-full overflow-hidden rounded-[24px] border border-white/10 bg-brand-surface"
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
+    >
+      {/* A altura do card vem daqui: arte na proporção do computador + faixa. */}
+      <div aria-hidden className="w-full" style={{ aspectRatio: ART_RATIO }} />
+      <div aria-hidden style={{ height: FOOTER_HEIGHT }} />
+
       {slides.length === 0 ? (
-        <div className={`absolute ${artBox(fallbackImage)}`}>
+        <div className={`absolute ${artBox(fallbackImage)}`} style={artStyle(fallbackImage)}>
           <Image src={fallbackImage} alt="" fill priority sizes="100vw" aria-hidden className="object-cover" />
         </div>
       ) : (
@@ -46,7 +68,7 @@ export function MobileHeroBanner({
           <div
             key={item.id}
             className={`absolute ${artBox(item.image ?? fallbackImage)}`}
-            style={{ visibility: index === active ? "visible" : "hidden" }}
+            style={{ ...artStyle(item.image ?? fallbackImage), visibility: index === current ? "visible" : "hidden" }}
           >
             <Image
               src={item.image ?? fallbackImage}
@@ -54,7 +76,7 @@ export function MobileHeroBanner({
               fill
               sizes="100vw"
               priority={index === 0}
-              aria-hidden={index !== active}
+              aria-hidden={index !== current}
               className="object-cover"
             />
           </div>
@@ -63,7 +85,7 @@ export function MobileHeroBanner({
 
       <div className="absolute bottom-[58px] left-[25px] flex gap-[10px]">
         {Array.from({ length: total }, (_, index) => {
-          const isActive = index === (slides.length > 0 ? active : 0);
+          const isActive = index === (slides.length > 0 ? current : 0);
           return (
             <button
               key={index}

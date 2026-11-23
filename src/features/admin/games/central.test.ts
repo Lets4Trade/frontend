@@ -144,6 +144,7 @@ describe("centralNavLinks", () => {
       "/admin/jogos/g1?secao=descricao",
       "/admin/builder/g1",
       "/admin/jogos/g1?secao=brinde",
+      "/admin/jogos/g1?secao=noticias",
     ]);
     expect(extras.map((link) => link.href)).toEqual(["/admin/jogos", "/games/poe"]);
   });

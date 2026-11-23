@@ -58,7 +58,7 @@ describe("getGamePage → seção NOTÍCIAS", () => {
     route({ items: [blogPost] });
     const page = await getGamePage("diablo-4");
 
-    expect(get).toHaveBeenCalledWith("/blog?game=diablo-4&limit=4", expect.objectContaining({ revalidate: 60 }));
+    expect(get).toHaveBeenCalledWith("/blog?forGame=diablo-4&limit=4", expect.objectContaining({ revalidate: 60 }));
     expect(page?.news.items).toEqual([
       {
         id: "blog:temporada-nova",

@@ -31,8 +31,11 @@ export function NavTileFace({
   open?: boolean;
 }) {
   // Compacto = rodapé flutuante do celular; reduzido 38 → 30 em 2026-11-19
-  // (pedido do usuário: o menu flutuante comia muito da tela).
-  const tile = compact ? 30 : 55;
+  // (pedido do usuário: o menu flutuante comia muito da tela). Menu da home
+  // 55 → 48 e ícone 22 → 19 em 2026-11-23 (pedido do usuário: "diminuir um
+  // pouco os ícones", junto com o rótulo 11 → 10px).
+  const tile = compact ? 30 : 48;
+  const glyph = compact ? 14 : 19;
 
   return (
     <>
@@ -56,7 +59,7 @@ export function NavTileFace({
             height={22}
             aria-hidden
             className="nav-icon absolute inset-0 m-auto"
-            style={{ width: compact ? 14 : 22, height: compact ? 14 : 22 }}
+            style={{ width: glyph, height: glyph }}
           />
         </span>
         {chevron ? (
@@ -77,7 +80,9 @@ export function NavTileFace({
       <span
         className={cn(
           "font-poppins leading-none font-bold whitespace-nowrap",
-          compact ? "mt-[4px] text-[9px]" : "mt-[8px] text-[11px]",
+          // Menu da home: 11 → 10px (2026-11-23, pedido do usuário: "um pouco
+          // menor"). O rodapé flutuante (`compact`) segue com 9px.
+          compact ? "mt-[4px] text-[9px]" : "mt-[8px] text-[10px]",
           active ? "text-white" : "text-white/80",
         )}
       >

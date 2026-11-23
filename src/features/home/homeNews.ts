@@ -7,8 +7,8 @@ import { getSectionItemsFor, type SectionItemView } from "@/features/site/conten
 /**
  * Notícias da home (2026-11-17, pedido do usuário): a seção "guias" deixou de
  * ter cards cadastrados à mão e mostra SOZINHA os 4 posts mais recentes do
- * blog. Desde 2026-11-22, só os marcados "Todos os jogos" (sem jogo) — é como
- * o admin escolhe o que vai para a home; nenhum marcado = seção vazia.
+ * blog, de todos os jogos (de 2026-11-22 a 23 eram só as "Todos os jogos";
+ * desfeito a pedido do usuário).
  *
  * Os posts entram no MESMO formato dos itens da sessão (`SectionItemView`), e
  * por isso o desenho dos cards (desktop e celular) não muda. O id começa com
@@ -52,7 +52,7 @@ export async function getHomeItems(): Promise<(key: string) => SectionItemView[]
  * Item da seção → card de notícia DA PÁGINA DE JOGO (2026-11-22, pedido do
  * usuário: "as notícias da home têm que ficar iguais às de dentro dos jogos").
  * Capa 16:9 inteira em cima, logo do jogo no canto, título/resumo/data
- * embaixo. Sem tag: na home todas são "Todos os jogos".
+ * embaixo. Sem tag: o logo no canto da capa já diz de que jogo é.
  */
 export function sectionItemToNews(item: SectionItemView): GameNewsItem {
   return {
