@@ -30,11 +30,16 @@ export function NavTileFace({
    */
   open?: boolean;
 }) {
-  const tile = compact ? 38 : 55;
+  // Compacto = rodapé flutuante do celular; reduzido 38 → 30 em 2026-11-19
+  // (pedido do usuário: o menu flutuante comia muito da tela).
+  const tile = compact ? 30 : 55;
 
   return (
     <>
-      <span className="flex items-center gap-[4px]">
+      {/* A seta do JOGOS FLUTUA ao lado do ícone (2026-11-22): no fluxo ela
+          deslocava ícone e rótulo para a esquerda e o atalho ficava diferente
+          dos outros três. */}
+      <span className="relative block">
         <span className="relative block" style={{ width: tile, height: tile }}>
           <Image
             src={active ? "/icons/home/tile-active.svg" : "/icons/home/tile.svg"}
@@ -51,7 +56,7 @@ export function NavTileFace({
             height={22}
             aria-hidden
             className="nav-icon absolute inset-0 m-auto"
-            style={{ width: compact ? 16 : 22, height: compact ? 16 : 22 }}
+            style={{ width: compact ? 14 : 22, height: compact ? 14 : 22 }}
           />
         </span>
         {chevron ? (
@@ -62,7 +67,7 @@ export function NavTileFace({
             height={14}
             aria-hidden
             className={cn(
-              "size-[14px] transition-transform duration-[var(--dur-base)]",
+              "absolute top-1/2 left-[calc(100%+3px)] size-[14px] -translate-y-1/2 transition-transform duration-[var(--dur-base)]",
               // O arquivo é uma seta para BAIXO: fechado, gira para cima.
               !open && "rotate-180",
             )}
@@ -71,8 +76,8 @@ export function NavTileFace({
       </span>
       <span
         className={cn(
-          "mt-[8px] font-poppins leading-none font-bold whitespace-nowrap",
-          compact ? "text-[9px]" : "text-[11px]",
+          "font-poppins leading-none font-bold whitespace-nowrap",
+          compact ? "mt-[4px] text-[9px]" : "mt-[8px] text-[11px]",
           active ? "text-white" : "text-white/80",
         )}
       >

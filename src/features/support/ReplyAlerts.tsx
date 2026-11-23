@@ -96,7 +96,7 @@ export function ReplyAlertCard({
     <div
       role="status"
       aria-live="polite"
-      className="contact-float fixed right-[16px] bottom-[96px] z-40 w-[340px] max-w-[calc(var(--vw)-32px)] rounded-[20px] border border-brand-orange/60 bg-brand-surface p-[14px] shadow-[0_16px_40px_rgba(0,0,0,.5)] sm:right-[24px] sm:bottom-[104px]"
+      className="contact-float fixed right-[16px] bottom-[76px] z-40 w-[340px] max-w-[calc(var(--vw)-32px)] rounded-[20px] border border-brand-orange/60 bg-brand-surface p-[14px] shadow-[0_16px_40px_rgba(0,0,0,.5)] sm:right-[24px] lg:bottom-[104px]"
     >
       <div className="flex items-start gap-[10px]">
         <span aria-hidden className="mt-[2px] text-[18px] leading-none">💬</span>
@@ -198,10 +198,10 @@ export function ReplyNotifyToggle() {
       className="font-helvetica text-[12px] text-brand-fg-subtle underline-offset-[3px] hover:text-white hover:underline disabled:cursor-not-allowed disabled:no-underline"
     >
       {state === "on"
-        ? "🔔 Avisos do navegador ligados (desligar)"
+        ? "Avisos do navegador ligados (desligar)"
         : state === "blocked"
-          ? "🔕 Avisos bloqueados no navegador"
-          : "🔔 Avisar no navegador quando responderem"}
+          ? "Avisos bloqueados no navegador"
+          : "Avisar no navegador quando responderem"}
     </button>
   );
 }

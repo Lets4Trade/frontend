@@ -8,6 +8,7 @@ import {
   parseNameInput,
   changeRatio,
   formatPriceInput,
+  groupRowsByCategory,
   parsePercent,
   parsePriceInput,
 } from "./prices";
@@ -193,5 +194,56 @@ it("changeRatio", () => {
 describe("teto de preço (2026-10-15)", () => {
   it("é o técnico de R$ 20 mi, não mais R$ 100 mil", () => {
     expect(MAX_PRICE_CENTS).toBe(2_000_000_000);
+  });
+});
+
+describe("groupRowsByCategory (2026-11-19)", () => {
+  const categories = [
+    { id: "weapons", label: "Armas" },
+    { id: "rifles", label: "Rifles", parentId: "weapons" },
+    { id: "ammo", label: "Munição" },
+  ];
+  const servers = new Map([
+    ["s1", "Brasil"],
+    ["s2", "EUA"],
+  ]);
+
+  it("segue a ordem da árvore, mantém a ordem da loja no grupo e põe Sem categoria por último", () => {
+    const rows = [
+      { id: "a", categoryId: null },
+      { id: "b", categoryId: "ammo" },
+      { id: "c", categoryId: "rifles" },
+      { id: "d", categoryId: "ammo" },
+      { id: "e", categoryId: "weapons" },
+    ];
+    const groups = groupRowsByCategory(rows, categories, servers);
+    expect(groups.map((group) => [group.label, group.rows.map((row) => row.id)])).toEqual([
+      ["Armas", ["e"]],
+      ["Armas › Rifles", ["c"]],
+      ["Munição", ["b", "d"]],
+      ["Sem categoria", ["a"]],
+    ]);
+  });
+
+  it("categoria que sumiu do jogo vira um grupo próprio antes de Sem categoria", () => {
+    const groups = groupRowsByCategory(
+      [{ categoryId: undefined }, { categoryId: "gone" }],
+      categories,
+      servers,
+    );
+    expect(groups.map((group) => group.label)).toEqual(["Categoria removida", "Sem categoria"]);
+  });
+
+  it("rótulo repetido (uma categoria por servidor) ganha o servidor", () => {
+    const groups = groupRowsByCategory(
+      [{ categoryId: "x1" }, { categoryId: "x2" }, { categoryId: "y" }],
+      [
+        { id: "x1", label: "Armas", serverId: "s1" },
+        { id: "x2", label: "Armas", serverId: "s2" },
+        { id: "y", label: "Ouro", serverId: "s1" },
+      ],
+      servers,
+    );
+    expect(groups.map((group) => group.label)).toEqual(["Armas · Brasil", "Armas · EUA", "Ouro"]);
   });
 });

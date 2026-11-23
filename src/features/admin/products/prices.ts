@@ -5,6 +5,7 @@
  */
 
 import { MAX_PRICE_CENTS } from "@/features/pricing/quote";
+import { categorySelectOptions } from "./categoryOptions";
 
 /** Mesmo teto do `priceCents` do backend (`CreateProductDto`): R$ 20 mi. */
 export { MAX_PRICE_CENTS };
@@ -220,4 +221,55 @@ export function categoriesInScope<T extends ScopedCategory>(
 /** A categoria do filtro e as subcategorias dela (filtrar "Moedas" pega "Moedas › Raras"). */
 export function categoryWithChildren(categories: readonly ScopedCategory[], id: string): Set<string> {
   return new Set([id, ...categories.filter((category) => category.parentId === id).map((category) => category.id)]);
+}
+
+export type RowGroup<T> = { key: string; label: string; rows: T[] };
+
+/**
+ * Linhas da tabela agrupadas pela categoria PRINCIPAL gravada (2026-11-19),
+ * para recolher grupos e a aba de 300+ itens caber na tela.
+ *
+ *  - Ordem dos grupos = ordem da árvore de categorias do jogo (a mesma do
+ *    select); categoria que sumiu do jogo vem depois, e "Sem categoria" por
+ *    último. Dentro do grupo, a ordem de entrada (a da loja) é mantida.
+ *  - Agrupa pelo valor GRAVADO, como os filtros: trocar a categoria de uma
+ *    linha não a faz pular de grupo enquanto se edita.
+ *  - Duas categorias com o mesmo rótulo (uma por servidor, com "Todos os
+ *    servidores") ganham o servidor no nome, senão o painel mostra dois
+ *    "Armas" sem dizer qual é qual.
+ */
+export function groupRowsByCategory<T extends { categoryId?: string | null }>(
+  rows: readonly T[],
+  categories: readonly ScopedCategory[],
+  serverLabels: ReadonlyMap<string, string>,
+): RowGroup<T>[] {
+  const byKey = new Map<string, T[]>();
+  for (const row of rows) {
+    const key = row.categoryId || NO_CATEGORY;
+    const list = byKey.get(key);
+    if (list) list.push(row);
+    else byKey.set(key, [row]);
+  }
+
+  const options = categorySelectOptions(categories);
+  const known = new Set(options.map((option) => option.value));
+  const groups: RowGroup<T>[] = [];
+  for (const option of options) {
+    const list = byKey.get(option.value);
+    if (list) groups.push({ key: option.value, label: option.label, rows: list });
+  }
+  for (const [key, list] of byKey) {
+    if (key !== NO_CATEGORY && !known.has(key)) groups.push({ key, label: "Categoria removida", rows: list });
+  }
+  const loose = byKey.get(NO_CATEGORY);
+  if (loose) groups.push({ key: NO_CATEGORY, label: "Sem categoria", rows: loose });
+
+  const count = new Map<string, number>();
+  for (const group of groups) count.set(group.label, (count.get(group.label) ?? 0) + 1);
+  const scope = new Map(categories.map((category) => [category.id, category.serverId ?? null]));
+  return groups.map((group) => {
+    const serverId = scope.get(group.key);
+    const server = serverId ? serverLabels.get(serverId) : undefined;
+    return (count.get(group.label) ?? 0) > 1 && server ? { ...group, label: `${group.label} · ${server}` } : group;
+  });
 }

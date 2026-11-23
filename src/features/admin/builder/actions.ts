@@ -14,7 +14,7 @@ import { MAX_IMAGE_BYTES } from "../games/options";
 import {
   cleanCategories,
   cleanDescriptionGroups,
-  cleanList,
+  cleanServers,
   type SavePageCategory,
 } from "./payload";
 import { MAX_BANNERS, type BuilderGame } from "./types";
@@ -57,7 +57,7 @@ export type SavePagePayload = {
   serversLabel: string;
   categoriesLabel: string;
   descriptionGroups: { title: string; items: { subtitle: string; text: string }[] }[];
-  servers: { id?: string; label: string }[];
+  servers: { id?: string; label: string; platform?: string | null; isHidden?: boolean }[];
   /** Dois níveis: categoria → subcategoria (contrato C da FASE 4). */
   categories: SavePageCategory[];
   sectionOrder: string[];
@@ -128,7 +128,7 @@ export async function savePageAction(
     serversLabel: payload.serversLabel ?? "",
     categoriesLabel: payload.categoriesLabel ?? "",
     descriptionGroups: description.data,
-    servers: cleanList(payload.servers),
+    servers: cleanServers(payload.servers),
     categories: categories.data,
     sectionOrder: payload.sectionOrder,
     // Só `true` viaja: é a confirmação explícita do modal.

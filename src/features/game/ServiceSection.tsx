@@ -6,6 +6,8 @@ import { ServiceConfigurator } from "./ServiceConfigurator";
 import { withEffectivePricing } from "./storefrontTabs";
 import { SectionContentView } from "./SectionContentView";
 import type { GamePage, GameTab, ServiceContent } from "./types";
+import { PlatformIcon } from "./PlatformIcon";
+import { LinkPending } from "./LinkPending";
 
 /**
  * Layout SERVIÇO de uma aba (Figma 1708:3266): os textos da aba à esquerda
@@ -76,9 +78,11 @@ export async function ServiceSection({
                   scroll={false}
                   role="radio"
                   aria-checked={active}
-                  className={pillClassName(active, "max-w-full truncate")}
+                  className={pillClassName(active, "relative max-w-full gap-[8px]")}
                 >
-                  {item.label}
+                  <LinkPending />
+                  {item.platform ? <PlatformIcon platform={item.platform} className="size-[18px] shrink-0" /> : null}
+                  <span className="truncate">{item.label}</span>
                 </Link>
               );
             })}

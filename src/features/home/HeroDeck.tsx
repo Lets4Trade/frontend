@@ -69,7 +69,8 @@ const DRAG_SLOP = 6;
  * (Figma 1075:4856 → 1075:4914).
  *
  * Estado inicial: os cinco cards sobrepostos, com a arte dessaturada, e a
- * moeda "4" na frente deles. Clicar na moeda abre o baralho — os cards se
+ * moeda "4" na frente deles. Clicar na moeda (ou em qualquer card, 2026-11-22)
+ * abre o baralho — os cards se
  * separam para o passo de 361px do arquivo, ganham cor, e o sexto card
  * ("EM BREVE") entra pela direita.
  *
@@ -183,8 +184,11 @@ export function HeroDeck({ slides }: { slides: HeroSlide[] }) {
       base: offset,
       moved: 0,
     };
-    event.currentTarget.setPointerCapture(event.pointerId);
-    setDragging(true);
+    // SEM `setPointerCapture` aqui (2026-11-22, bug: "abro os banners, clico
+    // num jogo e não vou para a tela do jogo"). Com o ponteiro capturado no
+    // `pointerdown`, o `click` ia para a esteira, não para o `<a>` do card —
+    // nenhum clique navegava com o baralho aberto. A captura agora só acontece
+    // quando o gesto vira ARRASTO de verdade (`onPointerMove`, > DRAG_SLOP).
   }
 
   function onPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
@@ -193,6 +197,12 @@ export function HeroDeck({ slides }: { slides: HeroSlide[] }) {
 
     const dx = (event.clientX - gesture.x) / cssZoom(trackRef.current);
     gesture.moved = Math.max(gesture.moved, Math.abs(dx));
+    // Ainda é um clique: deixa o card receber o `click` normalmente.
+    if (gesture.moved <= DRAG_SLOP) return;
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.setPointerCapture(event.pointerId);
+      setDragging(true);
+    }
     const at = clamp(gesture.base - dx, 0, MAX_OFFSET);
     trackRef.current.style.transform = `translate3d(${-at}px, 0, 0)`;
   }
@@ -225,6 +235,18 @@ export function HeroDeck({ slides }: { slides: HeroSlide[] }) {
         // O `click` do link chega DEPOIS do `pointerup`; interceptá-lo na
         // captura é o que impede um arrasto de virar navegação.
         onClickCapture={(event) => {
+          // Baralho FECHADO (2026-11-22, pedido do usuário): clicar num card
+          // abre o carrossel, como a moeda. Fechados, os cards se sobrepõem e
+          // mostram ~120px cada — o clique caía no jogo do lado. O link só vale
+          // com o baralho aberto. Enter num card focado também passa por aqui.
+          if (!open) {
+            if (!(event.target as Element).closest(".hero-card")) return;
+            event.preventDefault();
+            event.stopPropagation();
+            setOpen(true);
+            markAnimating();
+            return;
+          }
           if (!swallowClick.current) return;
           swallowClick.current = false;
           event.preventDefault();

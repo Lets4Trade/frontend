@@ -1,10 +1,20 @@
 "use client";
 
 import Image from "next/image";
-import { ReplyAlertCard, ReplyNotifyToggle, useReplyAlerts } from "./ReplyAlerts";
+import {
+  ReplyAlertCard,
+  ReplyNotifyToggle,
+  useReplyAlerts,
+} from "./ReplyAlerts";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { backendAsset } from "@/lib/publicApi";
@@ -13,7 +23,11 @@ import { ConversationThread } from "./ConversationThread";
 import { NewConversationForm } from "./NewConversationForm";
 import { useSupportSocket } from "./socket";
 import type { ChatConfig } from "./chatConfig";
-import { attendantsLabel, type Attendant, type SupportPresence } from "./presenceTypes";
+import {
+  attendantsLabel,
+  type Attendant,
+  type SupportPresence,
+} from "./presenceTypes";
 import { listTime, type ConversationSummary } from "./types";
 import { usePresence } from "./usePresence";
 
@@ -40,18 +54,31 @@ import { usePresence } from "./usePresence";
  * nenhum dado é exposto por isso.
  */
 
-type View = { name: "list" } | { name: "new" } | { name: "thread"; conversation: ConversationSummary };
+type View =
+  | { name: "list" }
+  | { name: "new" }
+  | { name: "thread"; conversation: ConversationSummary };
 
 // `/previa`: a prévia do painel (iframe) mostra a página, não o atendimento.
 const HIDDEN_PREFIXES = ["/admin", "/checkout", "/previa"];
 /** Âncora que o login devolve para reabrir o popup onde a pessoa estava. */
 const OPEN_HASH = "#atendimento";
+/**
+ * Convite no celular (2026-11-19, pedido do usuário): o botão fica só com as
+ * fotos e, um instante depois de abrir a página, ESTICA mostrando o título e o
+ * texto do painel ("Precisa de ajuda?") e volta a encolher. Uma vez por
+ * página: repetir em loop vira ruído que a pessoa aprende a ignorar.
+ */
+const PEEK_DELAY_MS = 2500;
+/** O convite fica aberto 3 s (2026-11-22, pedido do usuário; era 5 s). */
+const PEEK_VISIBLE_MS = 3000;
 
 function subscribeCookies(onChange: () => void) {
   window.addEventListener("focus", onChange);
   return () => window.removeEventListener("focus", onChange);
 }
-const hasSessionHint = () => /(?:^|;\s*)pt_authed_client=/.test(document.cookie);
+const hasSessionHint = () =>
+  /(?:^|;\s*)pt_authed_client=/.test(document.cookie);
 
 export function ContactBubble({
   whatsappHref,
@@ -71,13 +98,19 @@ export function ContactBubble({
   const presence = usePresence(initialPresence);
   const online = presence.online;
   const showTeam = online && presence.attendants.length > 0;
-  const signedIn = useSyncExternalStore(subscribeCookies, hasSessionHint, () => false);
+  const signedIn = useSyncExternalStore(
+    subscribeCookies,
+    hasSessionHint,
+    () => false,
+  );
   const hidden = HIDDEN_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>({ name: "list" });
   const [unread, setUnread] = useState(0);
   const bubbleRef = useRef<HTMLButtonElement>(null);
+  const mobileBubbleRef = useRef<HTMLButtonElement>(null);
+  const [peek, setPeek] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
   // "Lado" do painel = de que lado do TEXTO a bolinha fica (não o lado da tela).
@@ -87,13 +120,19 @@ export function ContactBubble({
   useEffect(() => {
     if (window.location.hash === OPEN_HASH) {
       setOpen(true);
-      history.replaceState(null, "", window.location.pathname + window.location.search);
+      history.replaceState(
+        null,
+        "",
+        window.location.pathname + window.location.search,
+      );
     }
   }, [pathname]);
 
   const refreshUnread = useCallback(() => {
     if (!signedIn) return;
-    unreadCount().then(setUnread).catch(() => undefined);
+    unreadCount()
+      .then(setUnread)
+      .catch(() => undefined);
   }, [signedIn]);
 
   useEffect(() => {
@@ -102,7 +141,8 @@ export function ContactBubble({
       return;
     }
     refreshUnread();
-    const onVisible = () => document.visibilityState === "visible" && refreshUnread();
+    const onVisible = () =>
+      document.visibilityState === "visible" && refreshUnread();
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [hidden, signedIn, refreshUnread]);
@@ -116,15 +156,40 @@ export function ContactBubble({
     onReply: refreshUnread,
     isViewing: (summary) =>
       (open && view.name === "thread" && view.conversation.id === summary.id) ||
-      (!!summary.orderReference && pathname === `/conta/pedidos/${encodeURIComponent(summary.orderReference)}`),
+      (!!summary.orderReference &&
+        pathname ===
+          `/conta/pedidos/${encodeURIComponent(summary.orderReference)}`),
   });
 
   const close = useCallback(() => {
     setOpen(false);
     setView({ name: "list" });
     refreshUnread();
-    bubbleRef.current?.focus();
+    // Dois botões (celular e computador), um só à vista: o foco volta ao que
+    // aparece — o outro está com `display: none` (sem caixa; `offsetParent` não
+    // serve: é sempre nulo em `position: fixed`).
+    const visible = [mobileBubbleRef.current, bubbleRef.current].find(
+      (button) => button?.getClientRects().length,
+    );
+    visible?.focus();
   }, [refreshUnread]);
+
+  // O convite do celular: estica, espera e encolhe. Recomeça a cada página.
+  // Os timers rodam também no computador (custo nenhum); lá o botão do celular
+  // está escondido e o estado não aparece.
+  useEffect(() => {
+    if (hidden || !config.showBalloon) return;
+    const show = window.setTimeout(() => setPeek(true), PEEK_DELAY_MS);
+    const hide = window.setTimeout(
+      () => setPeek(false),
+      PEEK_DELAY_MS + PEEK_VISIBLE_MS,
+    );
+    return () => {
+      window.clearTimeout(show);
+      window.clearTimeout(hide);
+      setPeek(false);
+    };
+  }, [pathname, hidden, config.showBalloon]);
 
   // Esc fecha; clique fora não — perder um rascunho por um clique errado é pior.
   useEffect(() => {
@@ -152,7 +217,8 @@ export function ContactBubble({
           role="dialog"
           aria-label="Atendimento Lets4Trade"
           className={cn(
-            "chat-panel contact-float fixed bottom-[96px] z-40 flex h-[min(620px,calc(var(--dvh)-128px))] w-[380px] max-w-[calc(var(--vw)-32px)] flex-col overflow-hidden rounded-[22px] border border-brand-border bg-brand-surface shadow-[0_24px_60px_rgba(0,0,0,.6)] sm:bottom-[104px]",
+            // Celular: o botão encolheu para 48px (2026-11-19), o painel desce junto.
+            "chat-panel contact-float fixed bottom-[76px] z-40 flex h-[min(620px,calc(var(--dvh)-108px))] w-[380px] max-w-[calc(var(--vw)-32px)] flex-col overflow-hidden rounded-[22px] border border-brand-border bg-brand-surface shadow-[0_24px_60px_rgba(0,0,0,.6)] lg:bottom-[104px] lg:h-[min(620px,calc(var(--dvh)-128px))]",
             "right-[16px] sm:right-[24px]",
           )}
         >
@@ -165,16 +231,25 @@ export function ContactBubble({
             />
             <div className="relative flex items-center gap-[12px]">
               {showTeam ? (
-                <AttendantStack attendants={presence.attendants} total={presence.total} size={38} max={3} />
+                <AttendantStack
+                  attendants={presence.attendants}
+                  total={presence.total}
+                  size={38}
+                  max={3}
+                />
               ) : (
                 <ChatAvatar config={config} size={44} />
               )}
               <div className="min-w-0 flex-1">
-                <p className="truncate font-poppins text-[16px] font-semibold text-white">Atendimento Lets4Trade</p>
+                <p className="truncate font-poppins text-[16px] font-semibold text-white">
+                  Atendimento Lets4Trade
+                </p>
                 <p className="mt-[2px] flex items-center gap-[6px] font-helvetica text-[12px] text-brand-fg-muted">
                   <StatusDot online={online} />
                   <span className="truncate">
-                    {showTeam ? `${attendantsLabel(presence)} ${presence.total > 1 ? "online" : "online agora"}` : statusLabel}
+                    {showTeam
+                      ? `${attendantsLabel(presence)} ${presence.total > 1 ? "online" : "online agora"}`
+                      : statusLabel}
                   </span>
                 </p>
               </div>
@@ -205,11 +280,15 @@ export function ContactBubble({
           ) : view.name === "new" ? (
             <NewConversationForm
               onCancel={() => setView({ name: "list" })}
-              onCreated={(conversation) => setView({ name: "thread", conversation })}
+              onCreated={(conversation) =>
+                setView({ name: "thread", conversation })
+              }
             />
           ) : (
             <ConversationList
-              onOpen={(conversation) => setView({ name: "thread", conversation })}
+              onOpen={(conversation) =>
+                setView({ name: "thread", conversation })
+              }
               onNew={() => setView({ name: "new" })}
               onUnreadChange={setUnread}
             />
@@ -229,7 +308,14 @@ export function ContactBubble({
                 rel="noopener noreferrer"
                 className="flex h-[42px] w-full items-center justify-center gap-[10px] rounded-full border border-[#25d366]/60 bg-[#25d366]/10 font-poppins text-[14px] font-bold text-white transition-colors hover:bg-[#25d366]/20 focus-visible:ring-2 focus-visible:ring-[#25d366] focus-visible:outline-none"
               >
-                <Image src="/icons/social/whatsapp.svg" alt="" width={18} height={18} aria-hidden className="size-[18px]" />
+                <Image
+                  src="/icons/social/whatsapp.svg"
+                  alt=""
+                  width={18}
+                  height={18}
+                  aria-hidden
+                  className="size-[18px]"
+                />
                 FALAR NO WHATSAPP
               </a>
             </footer>
@@ -267,7 +353,9 @@ export function ContactBubble({
             : `Atendimento (${statusLabel})`
         }
         className={cn(
-          "chat-launcher contact-float fixed bottom-[16px] z-40 flex items-center rounded-full border border-white/15 bg-black/60 shadow-[0_10px_30px_rgba(0,0,0,.45)] backdrop-blur-[10.8px] transition-[border-color,transform] duration-[var(--dur-micro,160ms)] hover:scale-[1.03] hover:border-brand-orange/70 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none sm:bottom-[24px]",
+          // Só do `lg` em diante (2026-11-19): no celular quem aparece é o
+          // botão compacto logo abaixo.
+          "chat-launcher contact-float fixed bottom-[16px] z-40 hidden items-center lg:flex rounded-full border border-white/15 bg-black/60 shadow-[0_10px_30px_rgba(0,0,0,.45)] backdrop-blur-[10.8px] transition-[border-color,transform] duration-[var(--dur-micro,160ms)] hover:scale-[1.03] hover:border-brand-orange/70 focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none sm:bottom-[24px]",
           // Celular centralizado (padrão do painel, 2026-10-15): `inset-x-0` +
           // `mx-auto` + `w-fit` centra sem `translate` — a propriedade
           // `translate` já é usada por `.contact-float` para subir o botão
@@ -282,8 +370,18 @@ export function ContactBubble({
                 // Do lado da foto a borda é curta (a foto redonda enche a ponta);
                 // sem foto, o ícone solto pede um pouco mais de respiro.
                 iconRight
-                  ? cn("flex-row-reverse pl-[18px]", config.iconUrl || showTeam ? "pr-[6px] sm:pr-[8px]" : "pr-[16px]")
-                  : cn("pr-[18px]", config.iconUrl || showTeam ? "pl-[6px] sm:pl-[8px]" : "pl-[16px]"),
+                  ? cn(
+                      "flex-row-reverse pl-[18px]",
+                      config.iconUrl || showTeam
+                        ? "pr-[6px] sm:pr-[8px]"
+                        : "pr-[16px]",
+                    )
+                  : cn(
+                      "pr-[18px]",
+                      config.iconUrl || showTeam
+                        ? "pl-[6px] sm:pl-[8px]"
+                        : "pl-[16px]",
+                    ),
               )
             : "size-[64px] shrink-0 justify-center sm:size-[72px]",
           open && "border-brand-orange/70",
@@ -291,7 +389,10 @@ export function ContactBubble({
       >
         {open ? (
           <>
-            <span aria-hidden className="font-poppins text-[28px] leading-none text-white">
+            <span
+              aria-hidden
+              className="font-poppins text-[28px] leading-none text-white"
+            >
               ×
             </span>
             <span className="absolute right-[3px] bottom-[3px]">
@@ -314,7 +415,10 @@ export function ContactBubble({
               // Na pílula sem foto, a caixa do ícone tem o tamanho do desenho:
               // numa caixa de 52px o ícone de 24px sobrava ~14px de cada lado e
               // afastava o texto (relato do usuário).
-              <ChatAvatar config={config} size={withText ? (config.iconUrl ? 52 : 26) : 56} />
+              <ChatAvatar
+                config={config}
+                size={withText ? (config.iconUrl ? 52 : 26) : 56}
+              />
             )}
             {withText ? null : (
               <span className="absolute right-[1px] bottom-[1px]">
@@ -339,9 +443,13 @@ export function ContactBubble({
           <span
             className={cn(
               "min-w-0 flex-1",
-              config.mobileTextAlign === "center" ? "text-center lg:text-left" : "text-left",
+              config.mobileTextAlign === "center"
+                ? "text-center lg:text-left"
+                : "text-left",
               // Sem ponto (offline), a folga dele também sai.
-              iconRight ? cn("mr-[10px]", online && "ml-[18px]") : cn(online && "mr-[18px]", "ml-[10px]"),
+              iconRight
+                ? cn("mr-[10px]", online && "ml-[18px]")
+                : cn(online && "mr-[18px]", "ml-[10px]"),
             )}
           >
             <span className="block truncate font-poppins text-[14px] leading-[18px] font-bold text-white">
@@ -358,6 +466,104 @@ export function ContactBubble({
           </span>
         ) : null}
       </button>
+
+      {/* Celular (2026-11-19): só as fotos dos atendentes (ou a do painel), num
+          botão de 48px. SEMPRE à direita (2026-11-22, pedido do usuário — o
+          "centro" do painel vale só para o texto do computador): o convite
+          abre PARA A ESQUERDA (o texto vem antes da foto, que fica parada na
+          borda), some sozinho em 3 s e tem um × para fechar na hora.
+          `max-width` + `opacity` no texto; o texto tem largura própria
+          (`w-max`), então não se rearruma enquanto a caixa anima. O contêiner
+          é que é fixo, para o × poder ficar no canto sem botão dentro de botão. */}
+      <div className="contact-float fixed right-[16px] bottom-[max(16px,env(safe-area-inset-bottom))] z-40 lg:hidden">
+        <button
+          ref={mobileBubbleRef}
+          type="button"
+          onClick={() => (open ? close() : openChat())}
+          aria-expanded={open}
+          aria-label={
+            unread > 0
+              ? `Atendimento (${statusLabel}): ${unread} conversa(s) com resposta nova`
+              : `Atendimento (${statusLabel})`
+          }
+          className={cn(
+            "chat-launcher relative flex h-[48px] min-w-[48px] items-center justify-center rounded-full border border-white/15 bg-black/60 p-[5px] shadow-[0_10px_30px_rgba(0,0,0,.45)] backdrop-blur-[10.8px] transition-[border-color] duration-[var(--dur-micro,160ms)] focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none",
+            (open || (peek && config.showBalloon)) && "border-brand-orange/70",
+            open && "w-[48px] justify-center",
+          )}
+        >
+          {open ? (
+            <>
+              <span
+                aria-hidden
+                className="font-poppins text-[24px] leading-none text-white"
+              >
+                ×
+              </span>
+              <span className="absolute right-[1px] bottom-[1px]">
+                <StatusDot online={online} ring />
+              </span>
+            </>
+          ) : (
+            <>
+              {config.showBalloon ? (
+                <span
+                  aria-hidden={!peek}
+                  className={cn(
+                    "block overflow-hidden text-left transition-[max-width,opacity,margin] duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none",
+                    peek
+                      ? "mr-[10px] ml-[10px] max-w-[220px] opacity-100"
+                      : "max-w-0 opacity-0",
+                  )}
+                >
+                  <span className="block w-max max-w-[210px]">
+                    <span className="block truncate font-poppins text-[13px] leading-[16px] font-bold text-white">
+                      {config.title}
+                    </span>
+                    <span className="block truncate font-helvetica text-[11px] leading-[14px] text-white/70">
+                      {config.text}
+                    </span>
+                  </span>
+                </span>
+              ) : null}
+              <span className="relative shrink-0">
+                {showTeam ? (
+                  <AttendantStack
+                    attendants={presence.attendants}
+                    total={presence.total}
+                    size={32}
+                    max={3}
+                  />
+                ) : (
+                  <ChatAvatar config={config} size={36} />
+                )}
+                <span className="absolute -right-[2px] -bottom-[2px]">
+                  <StatusDot online={online} ring />
+                </span>
+                {unread > 0 ? (
+                  <span
+                    aria-hidden
+                    className="absolute -top-[6px] -right-[6px] flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-orange px-[4px] font-poppins text-[10px] font-bold text-black"
+                  >
+                    {unread > 9 ? "9+" : unread}
+                  </span>
+                ) : null}
+              </span>
+            </>
+          )}
+        </button>
+        {/* × do convite: fecha só o aviso (o chat não abre). */}
+        {peek && config.showBalloon && !open ? (
+          <button
+            type="button"
+            onClick={() => setPeek(false)}
+            aria-label="Fechar aviso do atendimento"
+            className="absolute -top-[8px] -left-[8px] flex size-[22px] items-center justify-center rounded-full border border-white/20 bg-black font-poppins text-[14px] leading-none text-white shadow-[0_4px_10px_rgba(0,0,0,.5)] focus-visible:ring-2 focus-visible:ring-brand-orange focus-visible:outline-none"
+          >
+            ×
+          </button>
+        ) : null}
+      </div>
     </>
   );
 }
@@ -370,8 +576,19 @@ export function ContactBubble({
 function ChatAvatar({ config, size }: { config: ChatConfig; size: number }) {
   if (config.iconUrl) {
     return (
-      <span className="relative block shrink-0 overflow-hidden rounded-full" style={{ width: size, height: size }}>
-        <Image src={config.iconUrl} alt="" fill sizes={`${size}px`} quality={90} aria-hidden className="object-cover" />
+      <span
+        className="relative block shrink-0 overflow-hidden rounded-full"
+        style={{ width: size, height: size }}
+      >
+        <Image
+          src={config.iconUrl}
+          alt=""
+          fill
+          sizes={`${size}px`}
+          quality={90}
+          aria-hidden
+          className="object-cover"
+        />
       </span>
     );
   }
@@ -380,7 +597,14 @@ function ChatAvatar({ config, size }: { config: ChatConfig; size: number }) {
       className="flex shrink-0 items-center justify-center rounded-full"
       style={{ width: size, height: size }}
     >
-      <Image src="/icons/home/chat-dialog.svg" alt="" width={24} height={24} aria-hidden className="size-[24px]" />
+      <Image
+        src="/icons/home/chat-dialog.svg"
+        alt=""
+        width={24}
+        height={24}
+        aria-hidden
+        className="size-[24px]"
+      />
     </span>
   );
 }
@@ -429,7 +653,14 @@ export function AttendantStack({
           >
             {src ? (
               // Qualidade 90: a 75 o rosto de 40px fica borrado (ver `qualities`).
-              <Image src={src} alt="" fill sizes={`${size}px`} quality={90} className="object-cover" />
+              <Image
+                src={src}
+                alt=""
+                fill
+                sizes={`${size}px`}
+                quality={90}
+                className="object-cover"
+              />
             ) : (
               <span
                 className="flex size-full items-center justify-center bg-[image:var(--brand-orange-gradient)] font-poppins font-bold text-white uppercase"
@@ -444,7 +675,12 @@ export function AttendantStack({
       {overflow ? (
         <span
           className="relative flex shrink-0 items-center justify-center rounded-full bg-white/15 font-poppins font-bold text-white ring-2 ring-brand-orange/60 ring-offset-2 ring-offset-black backdrop-blur"
-          style={{ width: size, height: size, marginLeft: -overlap + 4, fontSize: Math.round(size * 0.34) }}
+          style={{
+            width: size,
+            height: size,
+            marginLeft: -overlap + 4,
+            fontSize: Math.round(size * 0.34),
+          }}
         >
           +{rest}
         </span>
@@ -458,7 +694,13 @@ export function AttendantStack({
  * NÃO tem ponto (2026-10-23, pedido do usuário: o vermelho tirava o convite do
  * botão) — o texto "Offline no momento" no popup já diz.
  */
-function StatusDot({ online, ring = false }: { online: boolean; ring?: boolean }) {
+function StatusDot({
+  online,
+  ring = false,
+}: {
+  online: boolean;
+  ring?: boolean;
+}) {
   if (!online) return null;
   return (
     <span
@@ -475,13 +717,24 @@ function StatusDot({ online, ring = false }: { online: boolean; ring?: boolean }
 function SignedOut({ loginHref }: { loginHref: string }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-[14px] px-[24px] text-center">
-      <span aria-hidden className="flex size-[56px] items-center justify-center rounded-full border border-white/10 bg-white/5">
-        <Image src="/icons/home/chat-dialog.svg" alt="" width={26} height={26} className="size-[26px]" />
+      <span
+        aria-hidden
+        className="flex size-[56px] items-center justify-center rounded-full border border-white/10 bg-white/5"
+      >
+        <Image
+          src="/icons/home/chat-dialog.svg"
+          alt=""
+          width={26}
+          height={26}
+          className="size-[26px]"
+        />
       </span>
-      <p className="font-poppins text-[16px] font-semibold text-white">Entre para conversar com a equipe</p>
+      <p className="font-poppins text-[16px] font-semibold text-white">
+        Entre para conversar com a equipe
+      </p>
       <p className="font-helvetica text-[13px] leading-[19px] text-brand-fg-muted">
-        Com a sua conta, as conversas ficam salvas junto dos seus pedidos. Sem conta, fale com a gente pelo
-        WhatsApp.
+        Com a sua conta, as conversas ficam salvas junto dos seus pedidos. Sem
+        conta, fale com a gente pelo WhatsApp.
       </p>
       <div className="mt-[4px] flex w-full flex-col gap-[10px]">
         <Link
@@ -527,7 +780,16 @@ function ConversationList({
     setLoading(true);
     listConversations(nextPage)
       .then((data) => {
-        setItems((current) => (nextPage === 1 ? data.items : [...current, ...data.items.filter((item) => !current.some((c) => c.id === item.id))]));
+        setItems((current) =>
+          nextPage === 1
+            ? data.items
+            : [
+                ...current,
+                ...data.items.filter(
+                  (item) => !current.some((c) => c.id === item.id),
+                ),
+              ],
+        );
         setTotal(data.total);
         setPage(nextPage);
         setError(null);
@@ -547,7 +809,10 @@ function ConversationList({
   useEffect(() => {
     if (!socket) return;
     const onUpdate = (summary: ConversationSummary) => {
-      setItems((current) => [summary, ...current.filter((item) => item.id !== summary.id)]);
+      setItems((current) => [
+        summary,
+        ...current.filter((item) => item.id !== summary.id),
+      ]);
     };
     socket.on("conversa", onUpdate);
     return () => {
@@ -559,13 +824,23 @@ function ConversationList({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="scrollbar-orange min-h-0 flex-1 overflow-y-auto">
         {error ? (
-          <p role="alert" className="px-[16px] pt-[24px] text-center font-helvetica text-[13px] text-red-9">{error}</p>
+          <p
+            role="alert"
+            className="px-[16px] pt-[24px] text-center font-helvetica text-[13px] text-red-9"
+          >
+            {error}
+          </p>
         ) : items.length === 0 && !loading ? (
           <div className="flex flex-col items-center gap-[10px] px-[24px] pt-[40px] text-center">
-            <span aria-hidden className="text-[28px]">👋</span>
-            <p className="font-poppins text-[15px] font-semibold text-white">Como podemos ajudar?</p>
+            <span aria-hidden className="text-[28px]">
+              👋
+            </span>
+            <p className="font-poppins text-[15px] font-semibold text-white">
+              Como podemos ajudar?
+            </p>
             <p className="font-helvetica text-[13px] leading-[19px] text-brand-fg-muted">
-              Abra uma conversa para falar com a equipe sobre uma compra, uma venda ou qualquer dúvida.
+              Abra uma conversa para falar com a equipe sobre uma compra, uma
+              venda ou qualquer dúvida.
             </p>
           </div>
         ) : (
@@ -586,7 +861,12 @@ function ConversationList({
                   />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-baseline justify-between gap-[8px]">
-                      <span className={cn("truncate font-poppins text-[14px] text-white", item.unread ? "font-bold" : "font-semibold")}>
+                      <span
+                        className={cn(
+                          "truncate font-poppins text-[14px] text-white",
+                          item.unread ? "font-bold" : "font-semibold",
+                        )}
+                      >
                         {item.subject}
                       </span>
                       <span className="shrink-0 font-helvetica text-[11px] text-brand-fg-subtle">
@@ -608,7 +888,9 @@ function ConversationList({
                         </span>
                       ) : null}
                     </span>
-                    {item.unread ? <span className="sr-only">Resposta nova</span> : null}
+                    {item.unread ? (
+                      <span className="sr-only">Resposta nova</span>
+                    ) : null}
                   </span>
                 </button>
               </li>
@@ -631,7 +913,12 @@ function ConversationList({
       </div>
 
       <div className="border-t border-brand-hairline px-[16px] py-[12px]">
-        <Button variant="outline" fullWidth className="h-[42px] text-[14px]" onClick={onNew}>
+        <Button
+          variant="outline"
+          fullWidth
+          className="h-[42px] text-[14px]"
+          onClick={onNew}
+        >
           + NOVA CONVERSA
         </Button>
       </div>

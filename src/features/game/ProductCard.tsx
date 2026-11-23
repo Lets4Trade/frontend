@@ -120,15 +120,19 @@ export function ProductCard({
             ? { title: product.name, content: product.content }
             : undefined
         }
-        actions={
-          // Mesma largura da fileira do contador + carrinho (32px → 249px).
-          <div className="px-[10px] desk:px-[32px]">
-            <ConsultButton href={href} productName={product.name} />
-          </div>
+        // O botão do WhatsApp vai no LUGAR do COMPRE AQUI, no pé do card
+        // (2026-11-22, pedido do usuário: ficava colado no preço e os dois
+        // tipos de card saíam desalinhados). A fileira do contador fica vazia,
+        // com a altura dela, para o card ter a mesma altura dos vizinhos.
+        actions={<span aria-hidden className="block h-[36px] desk:h-[50px]" />}
+        cta={
+          // Mesma largura, começo e altura do COMPRE AQUI (32px → 249px, 40px).
+          <ConsultButton
+            href={href}
+            productName={product.name}
+            className="h-[38px] desk:ml-[32px] desk:h-[40px] desk:w-[217px]"
+          />
         }
-        // Linha do COMPRE AQUI vazia: o card fica com a MESMA altura dos
-        // vizinhos (467px no computador) e a grade não "dente".
-        cta={<span aria-hidden />}
       />
     );
   }

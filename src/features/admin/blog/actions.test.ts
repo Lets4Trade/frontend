@@ -64,12 +64,15 @@ describe("createBlogPostAction", () => {
     expect(await createBlogPostAction(validForm())).toMatchObject({ ok: true });
   });
 
-  it("REDATOR (2026-10-28) escreve no blog; ATENDENTE não", async () => {
+  it("REDATOR (2026-10-28) escreve no blog; ATENDENTE herda (2026-11-22); CLIENTE não", async () => {
     role.mockResolvedValue("WRITER");
     expect(await createBlogPostAction(validForm())).toMatchObject({ ok: true });
 
-    post.mockClear();
     role.mockResolvedValue("SUPPORT");
+    expect(await createBlogPostAction(validForm())).toMatchObject({ ok: true });
+
+    post.mockClear();
+    role.mockResolvedValue("USER");
     expect(await createBlogPostAction(validForm())).toMatchObject({ ok: false, reason: "forbidden" });
     expect(post).not.toHaveBeenCalled();
   });

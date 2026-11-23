@@ -37,9 +37,15 @@ describe("busca do painel", () => {
     expect(editor.some((entry) => entry.href === "/admin/produtos/precos")).toBe(true);
     expect(search(editor, "whatsapp")[0]?.href).toBe("/admin/configuracoes#atendimento");
 
+    // Hierarquia (2026-11-22): o editor herda pedidos/chat do atendente.
+    expect(editor.some((entry) => entry.href === "/admin/chats")).toBe(true);
+
     const support = buildIndex("SUPPORT");
-    // "Propostas" (2026-10-23) é da área de pedidos: o atendente vê.
-    expect(support.map((entry) => entry.href).sort()).toEqual(["/admin/chats", "/admin/pedidos", "/admin/propostas"]);
+    // "Propostas" (2026-10-23) é da área de pedidos: o atendente vê. E herda o
+    // blog do redator (2026-11-22); conteúdo e catálogo, não.
+    const hrefs = support.map((entry) => entry.href);
+    expect(hrefs).toEqual(expect.arrayContaining(["/admin/chats", "/admin/pedidos", "/admin/propostas", "/admin/blog"]));
+    expect(hrefs.some((href) => href.startsWith("/admin/produtos") || href.startsWith("/admin/paginas"))).toBe(false);
   });
 
   it("busca vazia sugere o menu e as configurações", () => {

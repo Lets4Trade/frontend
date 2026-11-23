@@ -1,7 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, useTransition, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  useTransition,
+  type KeyboardEvent,
+} from "react";
 import { cn } from "@/lib/cn";
 import { ACTION_FAILED_MESSAGE, runAction } from "@/lib/safeAction";
 import type { AdminGame } from "../catalog";
@@ -18,6 +26,7 @@ import {
   categoryWithChildren,
   changeRatio,
   formatPriceInput,
+  groupRowsByCategory,
   parseNameInput,
   parsePercent,
   parsePriceInput,
@@ -184,6 +193,44 @@ export function ProductPriceTable({
     );
   }, [rows, serverId, activeCategoryFilter, filterIds, search, storeFilter]);
 
+  // Grupos por categoria que dá para recolher (2026-11-19): a aba de 300+
+  // itens virava uma rolagem sem fim. Recolher só esconde as LINHAS — o
+  // escopo dos lotes continua sendo o dos filtros, e o cabeçalho do grupo
+  // conta o que está marcado e alterado lá dentro.
+  const serverLabels = useMemo(() => new Map(servers.map((server) => [server.id, server.label])), [servers]);
+  const groups = useMemo(
+    () => groupRowsByCategory(visible, categories, serverLabels),
+    [visible, categories, serverLabels],
+  );
+  // Grupos recolhidos lembrados POR ABA neste navegador. `useSyncExternalStore`
+  // com "nada recolhido" no servidor: sem diferença de hidratação.
+  const collapsedKey = `l4t:precos:recolhidos:${tabId}`;
+  const collapsedRaw = useSyncExternalStore(
+    subscribeCollapsed,
+    () => readCollapsed(collapsedKey),
+    () => "[]",
+  );
+  const collapsed = useMemo(() => parseCollapsed(collapsedRaw), [collapsedRaw]);
+  function saveCollapsed(next: Set<string>) {
+    writeCollapsed(collapsedKey, JSON.stringify([...next]));
+  }
+  // Buscando, tudo abre: o produto achado não pode ficar num grupo fechado.
+  const searching = search.trim() !== "";
+  const isOpen = (key: string) => searching || !collapsed.has(key);
+  function toggleGroup(key: string) {
+    const next = new Set(collapsed);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    saveCollapsed(next);
+  }
+  function setAllGroups(open: boolean) {
+    saveCollapsed(open ? new Set() : new Set([...collapsed, ...groups.map((group) => group.key)]));
+  }
+  /** As linhas À VISTA, na ordem da tela — é por elas que Enter / ↑ / ↓ andam. */
+  const shown = groups.flatMap((group) => (isOpen(group.key) ? group.rows : []));
+  const allClosed = groups.length > 0 && groups.every((group) => !isOpen(group.key));
+  const allOpen = groups.every((group) => isOpen(group.key));
+
   // Filtros na URL, sem navegar: recarregar ou mandar o link abre no mesmo
   // recorte. `replaceState` não cria uma entrada no histórico a cada clique.
   useEffect(() => {
@@ -207,6 +254,7 @@ export function ProductPriceTable({
   });
   const removeCount = changes.filter((change) => change.remove).length;
   const invalidSet = new Set(invalid);
+  const changedIds = new Set(changes.map((change) => change.id));
   const dirty = changes.length > 0 || invalid.length > 0;
   const visibleChecked = visible.filter((row) => checked.has(row.id));
   const allVisibleChecked = visible.length > 0 && visibleChecked.length === visible.length;
@@ -285,6 +333,18 @@ export function ProductPriceTable({
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      return next;
+    });
+  }
+
+  /** Caixinha do cabeçalho do grupo: marca ou desmarca o grupo inteiro. */
+  function toggleRows(targets: readonly { id: string }[], mark: boolean) {
+    setChecked((prev) => {
+      const next = new Set(prev);
+      for (const row of targets) {
+        if (mark) next.add(row.id);
+        else next.delete(row.id);
+      }
       return next;
     });
   }
@@ -369,12 +429,12 @@ export function ProductPriceTable({
     setMessage(null);
   }
 
-  /** Enter / ↓ / ↑ andam entre os campos visíveis da MESMA coluna. */
+  /** Enter / ↓ / ↑ andam entre os campos visíveis da MESMA coluna (pulam grupo recolhido). */
   function onFieldKey(event: KeyboardEvent<HTMLInputElement>, index: number, column: Column) {
     const step = event.key === "Enter" || event.key === "ArrowDown" ? 1 : event.key === "ArrowUp" ? -1 : 0;
     if (step === 0) return;
     event.preventDefault();
-    const target = visible[index + (event.shiftKey && event.key === "Enter" ? -1 : step)];
+    const target = shown[index + (event.shiftKey && event.key === "Enter" ? -1 : step)];
     const input = target ? inputs.current.get(`${column}:${target.id}`) : undefined;
     // O `onFocus` do campo cuida de rolar (e de selecionar o texto).
     input?.focus({ preventScroll: true });
@@ -638,6 +698,36 @@ export function ProductPriceTable({
         </div>
       </div>
 
+      {visible.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-[10px]">
+          <span className="font-poppins text-[12px] text-brand-fg-subtle">
+            {visible.length} produto{visible.length === 1 ? "" : "s"} em {groups.length}{" "}
+            {groups.length === 1 ? "categoria" : "categorias"}
+            {searching ? " · grupos abertos durante a busca" : ""}
+          </span>
+          <div className="ml-auto flex gap-[8px]">
+            <button
+              type="button"
+              onClick={() => setAllGroups(false)}
+              disabled={searching || allClosed}
+              className="flex h-[32px] items-center gap-[6px] rounded-full border border-white/15 px-[12px] font-poppins text-[11px] font-bold text-white/85 transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <ChevronIcon open={false} className="size-[14px]" />
+              RECOLHER TODOS
+            </button>
+            <button
+              type="button"
+              onClick={() => setAllGroups(true)}
+              disabled={searching || allOpen}
+              className="flex h-[32px] items-center gap-[6px] rounded-full border border-white/15 px-[12px] font-poppins text-[11px] font-bold text-white/85 transition-colors hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <ChevronIcon open className="size-[14px]" />
+              ABRIR TODOS
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="relative overflow-x-auto rounded-[20px] border border-brand-border bg-[image:var(--brand-surface-fill)]">
         <table className="w-full border-collapse font-poppins text-[13px] sm:min-w-[860px]">
           <thead>
@@ -668,238 +758,82 @@ export function ProductPriceTable({
               </th>
             </tr>
           </thead>
-          <tbody>
-            {visible.length === 0 ? (
+          {visible.length === 0 ? (
+            <tbody>
               <tr>
                 <td colSpan={9} className="py-[40px] text-center text-brand-fg-subtle">
                   Nenhum produto com esse filtro.
                 </td>
               </tr>
-            ) : (
-              visible.map((row, index) => {
-                const draft = priceDrafts[row.id];
-                const parsed = draft === undefined ? row.priceCents : parsePriceInput(draft);
-                const priceInvalid = draft !== undefined && parsed === null;
-                const changed = parsed !== null && parsed !== row.priceCents;
-                const ratio = changed ? changeRatio(row.priceCents, parsed) : 0;
-                const big = changed && Math.abs(ratio) >= BIG_CHANGE_RATIO;
-
-                const nameDraft = nameDrafts[row.id];
-                const nameInvalid = nameDraft !== undefined && parseNameInput(nameDraft) === null;
-                const nameChanged = nameDraft !== undefined && !nameInvalid && nameDraft.trim() !== row.name;
-
-                const categoryValue = categoryDrafts[row.id] ?? row.categoryId ?? "";
-                const categoryChanged = categoryValue !== (row.categoryId ?? "");
-                const category = (
-                  <CategorySelect
-                    value={categoryValue}
-                    options={rowOptions(row.serverId)}
-                    savedId={row.categoryId}
-                    savedLabel={row.categoryId ? (categoryLabels.get(row.categoryId) ?? "Categoria removida") : ""}
-                    changed={categoryChanged}
-                    onChange={(value) => setCategoryDraft(row.id, value)}
-                    label={`Categoria de ${row.name}${row.serverLabel ? ` (${row.serverLabel})` : ""}`}
-                  />
-                );
-
-                // Oculto do site (o olho) e excluir (a lixeira), 2026-11-17.
-                const hiddenNow = hiddenDrafts[row.id] ?? Boolean(row.hidden);
-                const hiddenChanged = hiddenNow !== Boolean(row.hidden);
-                const willRemove = Boolean(removeDrafts[row.id]);
-                const rowLabel = `${row.name}${row.serverLabel ? ` (${row.serverLabel})` : ""}`;
-                const removeButton = (
-                  <button
-                    type="button"
-                    onClick={() => setRemove([row.id], !willRemove)}
-                    aria-pressed={willRemove}
-                    aria-label={willRemove ? `Desfazer exclusão de ${rowLabel}` : `Excluir ${rowLabel}`}
-                    title={willRemove ? "Desfazer (não exclui)" : "Excluir (vai para a lixeira ao salvar)"}
-                    className={cn(
-                      "inline-flex size-[32px] items-center justify-center rounded-full transition-colors",
-                      willRemove ? "bg-red-9/20 text-white hover:bg-red-9/30" : "text-white/50 hover:bg-red-9/15 hover:text-red-9",
-                    )}
-                  >
-                    {willRemove ? <UndoIcon className="size-[16px]" /> : <TrashIcon className="size-[16px]" />}
-                  </button>
-                );
-
+            </tbody>
+          ) : (
+            (() => {
+              let index = 0;
+              return groups.map((group) => {
+                const open = isOpen(group.key);
+                const groupChecked = group.rows.filter((row) => checked.has(row.id)).length;
+                const groupChanged = group.rows.filter((row) => changedIds.has(row.id)).length;
+                const groupInvalid = group.rows.some((row) => invalidSet.has(row.id));
                 return (
-                  <tr
-                    key={row.id}
-                    className={cn(
-                      "border-b border-white/5 last:border-b-0",
-                      (changed || nameChanged || categoryChanged || hiddenChanged) && "bg-brand-orange/[0.07]",
-                      invalidSet.has(row.id) && "bg-red-9/10",
-                      willRemove && "bg-red-9/[0.12]",
-                    )}
-                  >
-                    <td className="px-[10px] py-[6px] sm:px-[14px]">
-                      <input
-                        type="checkbox"
-                        checked={checked.has(row.id)}
-                        onChange={() => toggle(row.id)}
-                        aria-label={`Marcar ${row.name}`}
-                        tabIndex={-1}
-                        className="size-[16px] accent-brand-orange"
-                      />
-                    </td>
-                    <td className="py-[6px] text-center">
-                      <button
-                        type="button"
-                        disabled={willRemove}
-                        onClick={() => setHidden([row], !hiddenNow)}
-                        aria-pressed={hiddenNow}
-                        aria-label={hiddenNow ? `Mostrar ${rowLabel} na loja` : `Ocultar ${rowLabel} da loja`}
-                        title={hiddenNow ? "Oculto da loja (clique para mostrar)" : "Visível na loja (clique para ocultar)"}
-                        className={cn(
-                          "inline-flex size-[32px] items-center justify-center rounded-full border transition-colors disabled:opacity-30",
-                          hiddenChanged ? "border-brand-orange/70" : "border-transparent",
-                          hiddenNow ? "text-white/40 hover:text-white/70" : "text-white hover:bg-white/10",
-                        )}
-                      >
-                        <EyeIcon off={hiddenNow} className="size-[18px]" />
-                      </button>
-                      {/* Celular: a lixeira mora aqui, embaixo do olho — a coluna
-                          própria tirava a largura do campo de preço. */}
-                      <div className="mt-[4px] sm:hidden">{removeButton}</div>
-                    </td>
-                    <td
-                      className={cn(
-                        "py-[6px] pr-[6px] pl-[6px] text-white sm:min-w-[200px] sm:pr-[10px]",
-                        hiddenNow && !willRemove && "opacity-60",
-                        willRemove && "opacity-70",
-                      )}
-                    >
-                      <input
-                        ref={(element) => {
-                          if (element) inputs.current.set(`name:${row.id}`, element);
-                          else inputs.current.delete(`name:${row.id}`);
-                        }}
-                        autoComplete="off"
-                        disabled={willRemove}
-                        maxLength={NAME_MAX}
-                        value={nameDraft ?? row.name}
-                        onChange={(event) => setNameDraft(row.id, event.target.value)}
-                        onFocus={(event) => keepVisible(event.target)}
-                        onKeyDown={(event) => onFieldKey(event, index, "name")}
-                        aria-label={`Nome de ${row.name}${row.serverLabel ? ` (${row.serverLabel})` : ""}`}
-                        aria-invalid={nameInvalid || undefined}
-                        title={nameInvalid ? "O nome precisa ter de 2 a 160 caracteres." : undefined}
-                        className={cn(
-                          "h-[34px] w-full min-w-0 rounded-[10px] border bg-black/30 px-[10px] text-white",
-                          willRemove && "line-through",
-                          nameInvalid
-                            ? "border-red-9"
-                            : nameChanged
-                              ? "border-brand-orange/70 font-bold"
-                              : "border-white/10",
-                        )}
-                      />
-                      {/* Telas estreitas: categoria, preço atual e servidor sob
-                          o nome — as colunas somem para os campos caberem. */}
-                      <div className="mt-[4px] sm:hidden">{category}</div>
-                      <span className="mt-[2px] block truncate text-[11px] text-brand-fg-subtle sm:hidden">
-                        <span className={changed ? "line-through" : undefined}>{brl.format(row.priceCents / 100)}</span>
-                        {" · "}
-                        {row.serverLabel ?? "Sem servidor"}
-                      </span>
-                      <span className="mt-[2px] hidden truncate text-[11px] text-brand-fg-subtle sm:block lg:hidden">
-                        {row.serverLabel ?? "Sem servidor"}
-                      </span>
-                      {willRemove ? (
-                        <span className="mt-[2px] block text-[11px] font-bold text-red-9">
-                          Será excluído ao salvar
-                        </span>
-                      ) : hiddenNow ? (
-                        <span className="mt-[2px] block text-[11px] font-bold text-white/70">
-                          {hiddenChanged ? "Será ocultado da loja" : "Oculto da loja"}
-                        </span>
-                      ) : hiddenChanged ? (
-                        <span className="mt-[2px] block text-[11px] font-bold text-brand-orange">Volta para a loja</span>
-                      ) : null}
-                    </td>
-                    <td className="hidden px-[10px] py-[6px] sm:table-cell">{category}</td>
-                    <td className="hidden py-[6px] text-brand-fg-subtle lg:table-cell">
-                      {row.serverLabel ?? "Sem servidor"}
-                    </td>
-                    <td
-                      className={cn(
-                        "hidden py-[6px] text-right sm:table-cell",
-                        changed ? "text-brand-fg-subtle line-through" : "text-white",
-                      )}
-                    >
-                      {brl.format(row.priceCents / 100)}
-                    </td>
-                    {/* Largura mínima no celular: com o olho na linha, a coluna do
-                        nome tomava o espaço e "8.256,00" virava "8.25". */}
-                    <td className="min-w-[96px] px-[6px] py-[6px] align-top sm:min-w-0 sm:px-[14px] sm:align-middle">
-                      <input
-                        ref={(element) => {
-                          if (element) inputs.current.set(`price:${row.id}`, element);
-                          else inputs.current.delete(`price:${row.id}`);
-                        }}
-                        inputMode="decimal"
-                        autoComplete="off"
-                        disabled={willRemove}
-                        value={draft ?? formatPriceInput(row.priceCents)}
-                        onChange={(event) => setPriceDraft(row.id, event.target.value)}
-                        onFocus={(event) => {
-                          event.target.select();
-                          keepVisible(event.target);
-                        }}
-                        onKeyDown={(event) => onFieldKey(event, index, "price")}
-                        aria-label={`Novo preço de ${row.name}${row.serverLabel ? ` (${row.serverLabel})` : ""}`}
-                        aria-invalid={priceInvalid || undefined}
-                        className={cn(
-                          "h-[34px] w-full rounded-[10px] border bg-black/30 px-[8px] text-right text-white sm:px-[10px]",
-                          priceInvalid
-                            ? "border-red-9"
-                            : changed
-                              ? "border-brand-orange/70 font-bold"
-                              : "border-white/10",
-                        )}
-                      />
-                      {/* Celular: a variação mora embaixo do preço (a coluna
-                          "Var." some para o preço caber inteiro). */}
-                      {priceInvalid || changed ? (
-                        <span
-                          className={cn(
-                            "mt-[2px] block text-right text-[11px] sm:hidden",
-                            priceInvalid || big ? "font-bold text-red-9" : "text-brand-orange",
-                          )}
+                  <tbody key={group.key} className="border-b border-white/10 last:border-b-0">
+                    <tr className="bg-white/[0.03]">
+                      <td className="px-[10px] py-[8px] sm:px-[14px]">
+                        <input
+                          type="checkbox"
+                          checked={groupChecked === group.rows.length}
+                          ref={(element) => {
+                            if (element)
+                              element.indeterminate = groupChecked > 0 && groupChecked < group.rows.length;
+                          }}
+                          onChange={() => toggleRows(group.rows, groupChecked !== group.rows.length)}
+                          aria-label={`Marcar todos de ${group.label}`}
+                          className="size-[16px] accent-brand-orange"
+                        />
+                      </td>
+                      <td colSpan={8} className="py-[4px] pr-[10px] sm:pr-[14px]">
+                        <button
+                          type="button"
+                          onClick={() => toggleGroup(group.key)}
+                          disabled={searching}
+                          aria-expanded={open}
+                          title={searching ? "Durante a busca todos os grupos ficam abertos" : undefined}
+                          className="flex min-h-[36px] w-full items-center gap-[10px] rounded-[10px] px-[6px] text-left transition-colors hover:bg-white/5 disabled:cursor-default disabled:hover:bg-transparent"
                         >
-                          {priceInvalid ? "inválido" : pct.format(ratio)}
-                        </span>
-                      ) : null}
-                    </td>
-                    <td
-                      className={cn(
-                        "hidden py-[6px] pr-[10px] text-right align-top text-[12px] sm:table-cell sm:pr-[14px] sm:align-middle",
-                        priceInvalid
-                          ? "text-red-9"
-                          : big
-                            ? "font-bold text-red-9"
-                            : changed
-                              ? "text-brand-orange"
-                              : "text-white/30",
-                      )}
-                      title={big ? "Variação grande. Confira se não sobrou ou faltou um zero." : undefined}
-                    >
-                      <span className="inline-block leading-[34px]">
-                        {priceInvalid ? "inválido" : changed ? pct.format(ratio) : "-"}
-                      </span>
-                    </td>
-                    <td className="hidden py-[6px] pr-[8px] text-center sm:table-cell">{removeButton}</td>
-                  </tr>
+                          <ChevronIcon open={open} className="size-[16px] shrink-0 text-white/60" />
+                          <span className="min-w-0 truncate text-[13px] font-bold text-white">{group.label}</span>
+                          <span className="shrink-0 text-[12px] text-brand-fg-subtle">
+                            {group.rows.length} {group.rows.length === 1 ? "item" : "itens"}
+                          </span>
+                          <span className="ml-auto flex shrink-0 items-center gap-[10px] text-[11px] font-bold">
+                            {groupChecked > 0 ? (
+                              <span className="text-white/70">
+                                {groupChecked} marcado{groupChecked === 1 ? "" : "s"}
+                              </span>
+                            ) : null}
+                            {groupInvalid ? (
+                              <span className="text-red-9">inválido</span>
+                            ) : groupChanged > 0 ? (
+                              <span className="text-brand-orange">
+                                {groupChanged} alterado{groupChanged === 1 ? "" : "s"}
+                              </span>
+                            ) : null}
+                          </span>
+                        </button>
+                      </td>
+                    </tr>
+                    {open ? group.rows.map((row) => renderRow(row, index++)) : null}
+                  </tbody>
                 );
-              })
-            )}
-          </tbody>
+              });
+            })()
+          )}
         </table>
       </div>
       <p className="font-poppins text-[12px] text-brand-fg-subtle">
         Enter ou ↓ vai para o próximo campo da mesma coluna (nome ou preço), ↑ volta. O ajuste em % é sobre o preço
-        atual e, como o &quot;Mover para&quot;, vale só para os marcados que estão na tela. Cada produto só aceita as
+        atual e, como o &quot;Mover para&quot;, vale só para os marcados dentro dos filtros, inclusive os de um grupo
+        recolhido (o cabeçalho do grupo mostra quantos estão marcados). A seta de cada categoria recolhe o grupo.
+        Cada produto só aceita as
         categorias do servidor dele. O olho oculta o produto da loja (ele continua aqui); a lixeira exclui (dá para
         reativar na Central do jogo). Nada muda na loja até salvar.
         {quoted ? " Nesta aba o valor é a base da regra de preço de cada produto." : ""}
@@ -909,6 +843,224 @@ export function ProductPriceTable({
       </p>
     </div>
   );
+
+  function renderRow(row: (typeof visible)[number], index: number) {
+    const draft = priceDrafts[row.id];
+    const parsed = draft === undefined ? row.priceCents : parsePriceInput(draft);
+    const priceInvalid = draft !== undefined && parsed === null;
+    const changed = parsed !== null && parsed !== row.priceCents;
+    const ratio = changed ? changeRatio(row.priceCents, parsed) : 0;
+    const big = changed && Math.abs(ratio) >= BIG_CHANGE_RATIO;
+
+    const nameDraft = nameDrafts[row.id];
+    const nameInvalid = nameDraft !== undefined && parseNameInput(nameDraft) === null;
+    const nameChanged = nameDraft !== undefined && !nameInvalid && nameDraft.trim() !== row.name;
+
+    const categoryValue = categoryDrafts[row.id] ?? row.categoryId ?? "";
+    const categoryChanged = categoryValue !== (row.categoryId ?? "");
+    const category = (
+      <CategorySelect
+        value={categoryValue}
+        options={rowOptions(row.serverId)}
+        savedId={row.categoryId}
+        savedLabel={row.categoryId ? (categoryLabels.get(row.categoryId) ?? "Categoria removida") : ""}
+        changed={categoryChanged}
+        onChange={(value) => setCategoryDraft(row.id, value)}
+        label={`Categoria de ${row.name}${row.serverLabel ? ` (${row.serverLabel})` : ""}`}
+      />
+    );
+
+    // Oculto do site (o olho) e excluir (a lixeira), 2026-11-17.
+    const hiddenNow = hiddenDrafts[row.id] ?? Boolean(row.hidden);
+    const hiddenChanged = hiddenNow !== Boolean(row.hidden);
+    const willRemove = Boolean(removeDrafts[row.id]);
+    const rowLabel = `${row.name}${row.serverLabel ? ` (${row.serverLabel})` : ""}`;
+    const removeButton = (
+      <button
+        type="button"
+        onClick={() => setRemove([row.id], !willRemove)}
+        aria-pressed={willRemove}
+        aria-label={willRemove ? `Desfazer exclusão de ${rowLabel}` : `Excluir ${rowLabel}`}
+        title={willRemove ? "Desfazer (não exclui)" : "Excluir (vai para a lixeira ao salvar)"}
+        className={cn(
+          "inline-flex size-[32px] items-center justify-center rounded-full transition-colors",
+          willRemove ? "bg-red-9/20 text-white hover:bg-red-9/30" : "text-white/50 hover:bg-red-9/15 hover:text-red-9",
+        )}
+      >
+        {willRemove ? <UndoIcon className="size-[16px]" /> : <TrashIcon className="size-[16px]" />}
+      </button>
+    );
+
+    return (
+      <tr
+        key={row.id}
+        className={cn(
+          "border-b border-white/5 last:border-b-0",
+          (changed || nameChanged || categoryChanged || hiddenChanged) && "bg-brand-orange/[0.07]",
+          invalidSet.has(row.id) && "bg-red-9/10",
+          willRemove && "bg-red-9/[0.12]",
+        )}
+      >
+        <td className="px-[10px] py-[6px] sm:px-[14px]">
+          <input
+            type="checkbox"
+            checked={checked.has(row.id)}
+            onChange={() => toggle(row.id)}
+            aria-label={`Marcar ${row.name}`}
+            tabIndex={-1}
+            className="size-[16px] accent-brand-orange"
+          />
+        </td>
+        <td className="py-[6px] text-center">
+          <button
+            type="button"
+            disabled={willRemove}
+            onClick={() => setHidden([row], !hiddenNow)}
+            aria-pressed={hiddenNow}
+            aria-label={hiddenNow ? `Mostrar ${rowLabel} na loja` : `Ocultar ${rowLabel} da loja`}
+            title={hiddenNow ? "Oculto da loja (clique para mostrar)" : "Visível na loja (clique para ocultar)"}
+            className={cn(
+              "inline-flex size-[32px] items-center justify-center rounded-full border transition-colors disabled:opacity-30",
+              hiddenChanged ? "border-brand-orange/70" : "border-transparent",
+              hiddenNow ? "text-white/40 hover:text-white/70" : "text-white hover:bg-white/10",
+            )}
+          >
+            <EyeIcon off={hiddenNow} className="size-[18px]" />
+          </button>
+          {/* Celular: a lixeira mora aqui, embaixo do olho — a coluna
+              própria tirava a largura do campo de preço. */}
+          <div className="mt-[4px] sm:hidden">{removeButton}</div>
+        </td>
+        <td
+          className={cn(
+            "py-[6px] pr-[6px] pl-[6px] text-white sm:min-w-[200px] sm:pr-[10px]",
+            hiddenNow && !willRemove && "opacity-60",
+            willRemove && "opacity-70",
+          )}
+        >
+          <input
+            ref={(element) => {
+              if (element) inputs.current.set(`name:${row.id}`, element);
+              else inputs.current.delete(`name:${row.id}`);
+            }}
+            autoComplete="off"
+            disabled={willRemove}
+            maxLength={NAME_MAX}
+            value={nameDraft ?? row.name}
+            onChange={(event) => setNameDraft(row.id, event.target.value)}
+            onFocus={(event) => keepVisible(event.target)}
+            onKeyDown={(event) => onFieldKey(event, index, "name")}
+            aria-label={`Nome de ${row.name}${row.serverLabel ? ` (${row.serverLabel})` : ""}`}
+            aria-invalid={nameInvalid || undefined}
+            title={nameInvalid ? "O nome precisa ter de 2 a 160 caracteres." : undefined}
+            className={cn(
+              "h-[34px] w-full min-w-0 rounded-[10px] border bg-black/30 px-[10px] text-white",
+              willRemove && "line-through",
+              nameInvalid
+                ? "border-red-9"
+                : nameChanged
+                  ? "border-brand-orange/70 font-bold"
+                  : "border-white/10",
+            )}
+          />
+          {/* Telas estreitas: categoria, preço atual e servidor sob
+              o nome — as colunas somem para os campos caberem. */}
+          <div className="mt-[4px] sm:hidden">{category}</div>
+          <span className="mt-[2px] block truncate text-[11px] text-brand-fg-subtle sm:hidden">
+            <span className={changed ? "line-through" : undefined}>{brl.format(row.priceCents / 100)}</span>
+            {" · "}
+            {row.serverLabel ?? "Sem servidor"}
+          </span>
+          <span className="mt-[2px] hidden truncate text-[11px] text-brand-fg-subtle sm:block lg:hidden">
+            {row.serverLabel ?? "Sem servidor"}
+          </span>
+          {willRemove ? (
+            <span className="mt-[2px] block text-[11px] font-bold text-red-9">
+              Será excluído ao salvar
+            </span>
+          ) : hiddenNow ? (
+            <span className="mt-[2px] block text-[11px] font-bold text-white/70">
+              {hiddenChanged ? "Será ocultado da loja" : "Oculto da loja"}
+            </span>
+          ) : hiddenChanged ? (
+            <span className="mt-[2px] block text-[11px] font-bold text-brand-orange">Volta para a loja</span>
+          ) : null}
+        </td>
+        <td className="hidden px-[10px] py-[6px] sm:table-cell">{category}</td>
+        <td className="hidden py-[6px] text-brand-fg-subtle lg:table-cell">
+          {row.serverLabel ?? "Sem servidor"}
+        </td>
+        <td
+          className={cn(
+            "hidden py-[6px] text-right sm:table-cell",
+            changed ? "text-brand-fg-subtle line-through" : "text-white",
+          )}
+        >
+          {brl.format(row.priceCents / 100)}
+        </td>
+        {/* Largura mínima no celular: com o olho na linha, a coluna do
+            nome tomava o espaço e "8.256,00" virava "8.25". */}
+        <td className="min-w-[96px] px-[6px] py-[6px] align-top sm:min-w-0 sm:px-[14px] sm:align-middle">
+          <input
+            ref={(element) => {
+              if (element) inputs.current.set(`price:${row.id}`, element);
+              else inputs.current.delete(`price:${row.id}`);
+            }}
+            inputMode="decimal"
+            autoComplete="off"
+            disabled={willRemove}
+            value={draft ?? formatPriceInput(row.priceCents)}
+            onChange={(event) => setPriceDraft(row.id, event.target.value)}
+            onFocus={(event) => {
+              event.target.select();
+              keepVisible(event.target);
+            }}
+            onKeyDown={(event) => onFieldKey(event, index, "price")}
+            aria-label={`Novo preço de ${row.name}${row.serverLabel ? ` (${row.serverLabel})` : ""}`}
+            aria-invalid={priceInvalid || undefined}
+            className={cn(
+              "h-[34px] w-full rounded-[10px] border bg-black/30 px-[8px] text-right text-white sm:px-[10px]",
+              priceInvalid
+                ? "border-red-9"
+                : changed
+                  ? "border-brand-orange/70 font-bold"
+                  : "border-white/10",
+            )}
+          />
+          {/* Celular: a variação mora embaixo do preço (a coluna
+              "Var." some para o preço caber inteiro). */}
+          {priceInvalid || changed ? (
+            <span
+              className={cn(
+                "mt-[2px] block text-right text-[11px] sm:hidden",
+                priceInvalid || big ? "font-bold text-red-9" : "text-brand-orange",
+              )}
+            >
+              {priceInvalid ? "inválido" : pct.format(ratio)}
+            </span>
+          ) : null}
+        </td>
+        <td
+          className={cn(
+            "hidden py-[6px] pr-[10px] text-right align-top text-[12px] sm:table-cell sm:pr-[14px] sm:align-middle",
+            priceInvalid
+              ? "text-red-9"
+              : big
+                ? "font-bold text-red-9"
+                : changed
+                  ? "text-brand-orange"
+                  : "text-white/30",
+          )}
+          title={big ? "Variação grande. Confira se não sobrou ou faltou um zero." : undefined}
+        >
+          <span className="inline-block leading-[34px]">
+            {priceInvalid ? "inválido" : changed ? pct.format(ratio) : "-"}
+          </span>
+        </td>
+        <td className="hidden py-[6px] pr-[8px] text-center sm:table-cell">{removeButton}</td>
+      </tr>
+    );
+  }
 }
 
 /**
@@ -964,6 +1116,71 @@ export function EyeIcon({ off = false, className }: { off?: boolean; className?:
       <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
       <circle cx="12" cy="12" r="3" />
       {off ? <path d="M3 3l18 18" /> : null}
+    </svg>
+  );
+}
+
+/*
+ * Grupos recolhidos (2026-11-19): conveniência do navegador, guardada no
+ * `localStorage` como JSON cru (string = snapshot estável para o
+ * `useSyncExternalStore`). A cópia em memória vale quando o armazenamento
+ * está bloqueado (aba anônima): recolher funciona, só não é lembrado.
+ */
+const collapsedMemory = new Map<string, string>();
+const collapsedListeners = new Set<() => void>();
+
+function subscribeCollapsed(listener: () => void) {
+  collapsedListeners.add(listener);
+  window.addEventListener("storage", listener);
+  return () => {
+    collapsedListeners.delete(listener);
+    window.removeEventListener("storage", listener);
+  };
+}
+
+function readCollapsed(key: string): string {
+  const memory = collapsedMemory.get(key);
+  if (memory !== undefined) return memory;
+  try {
+    return window.localStorage.getItem(key) ?? "[]";
+  } catch {
+    return "[]";
+  }
+}
+
+function writeCollapsed(key: string, raw: string) {
+  collapsedMemory.set(key, raw);
+  try {
+    window.localStorage.setItem(key, raw);
+  } catch {
+    // Sem armazenamento: fica só na memória desta página.
+  }
+  for (const listener of collapsedListeners) listener();
+}
+
+function parseCollapsed(raw: string): Set<string> {
+  try {
+    const value: unknown = JSON.parse(raw);
+    return new Set(Array.isArray(value) ? value.filter((key): key is string => typeof key === "string") : []);
+  } catch {
+    return new Set();
+  }
+}
+
+/** Seta do grupo: para a direita = recolhido, para baixo = aberto. */
+function ChevronIcon({ open, className }: { open: boolean; className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className={cn("transition-transform", open && "rotate-90", className)}
+    >
+      <path d="m9 6 6 6-6 6" />
     </svg>
   );
 }

@@ -3,6 +3,7 @@ import {
   SORT_OPTIONS,
   activeCategory,
   buildHref,
+  categoryChoice,
   scopedCategories,
   type CatalogQuery,
 } from "./catalog";
@@ -12,6 +13,8 @@ import { CategorySelect } from "./CategorySelect";
 import { ServerDropdown } from "./ServerDropdown";
 import type { GamePage } from "./types";
 import { gameHref } from "@/features/game/href";
+import { PlatformIcon } from "./PlatformIcon";
+import { LinkPending } from "./LinkPending";
 
 /**
  * Filtros do catálogo (Figma 1471:1798, 1486:1815, 1507:1897, 1184:651).
@@ -54,6 +57,7 @@ export function ServerPicker({
             label: server.label,
             href: buildHref(page.slug, query, { server: server.slug }),
             active: server.slug === query.server,
+            platform: server.platform,
           }))}
         />
       </div>
@@ -70,8 +74,10 @@ export function ServerPicker({
               // categoria/subcategoria e ordenação.
               scroll={false}
               aria-current={active ? "true" : undefined}
-              className={pillClassName(active)}
+              className={pillClassName(active, "relative gap-[8px]")}
             >
+              <LinkPending />
+              {server.platform ? <PlatformIcon platform={server.platform} className="size-[18px] shrink-0" /> : null}
               {server.label}
             </Link>
           );
@@ -108,40 +114,179 @@ export function CategoryPanel({
   const children = active?.children ?? [];
   const selected = query.categories[0];
 
+  // Select SÓ no celular (2026-11-22, pedido do usuário); no computador
+  // voltam os quadros com caixinhas de antes (2026-10-08). O CSS escolhe qual
+  // aparece — mesma divisão do filtro de servidor logo acima.
   return (
-    <section className="rounded-[24px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[14px] pt-[18px] pb-[20px] desk:rounded-[30px] desk:px-[24px] desk:pt-[25px] desk:pb-[28px]">
-      <h2 className="font-helvetica text-[18px] leading-none font-bold tracking-[0.18px] text-white">
-        {page.categories.label}
-      </h2>
-      <div className="mt-[16px] grid gap-[14px] sm:grid-cols-2 desk:mt-[22px] desk:flex desk:gap-[24px]">
-        <CategorySelect
-          label="Categoria"
-          value={active?.id ?? ALL_KEY}
-          options={[
-            { key: ALL_KEY, label: ALL_LABEL, href: buildHref(page.slug, query, { categories: [] }) },
-            ...items.map((category) => ({
-              key: category.id,
-              label: category.label,
-              href: buildHref(page.slug, query, { categories: [category.id] }),
-            })),
-          ]}
-        />
-        {active && children.length > 0 ? (
+    <>
+      <section className="rounded-[24px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[14px] pt-[18px] pb-[20px] desk:hidden">
+        <h2 className="font-helvetica text-[18px] leading-none font-bold tracking-[0.18px] text-white">
+          {page.categories.label}
+        </h2>
+        <div className="mt-[16px] grid gap-[14px] sm:grid-cols-2">
           <CategorySelect
-            label={`Subcategoria de ${active.label}`}
-            value={selected && selected !== active.id ? selected : ALL_KEY}
+            label="Categoria"
+            value={active?.id ?? ALL_KEY}
             options={[
-              { key: ALL_KEY, label: ALL_LABEL, href: buildHref(page.slug, query, { categories: [active.id] }) },
-              ...children.map((child) => ({
-                key: child.id,
-                label: child.label,
-                href: buildHref(page.slug, query, { categories: [child.id] }),
+              {
+                key: ALL_KEY,
+                label: ALL_LABEL,
+                href: buildHref(page.slug, query, { categories: [] }),
+              },
+              ...items.map((category) => ({
+                key: category.id,
+                label: category.label,
+                href: buildHref(page.slug, query, {
+                  categories: [category.id],
+                }),
               })),
             ]}
           />
+          {active && children.length > 0 ? (
+            <CategorySelect
+              label={`Subcategoria de ${active.label}`}
+              value={selected && selected !== active.id ? selected : ALL_KEY}
+              options={[
+                {
+                  key: ALL_KEY,
+                  label: ALL_LABEL,
+                  href: buildHref(page.slug, query, {
+                    categories: [active.id],
+                  }),
+                },
+                ...children.map((child) => ({
+                  key: child.id,
+                  label: child.label,
+                  href: buildHref(page.slug, query, { categories: [child.id] }),
+                })),
+              ]}
+            />
+          ) : null}
+        </div>
+      </section>
+
+      <div className="flex flex-col gap-[25px] max-desk:hidden">
+        <CategoryBox title={page.categories.label}>
+          {/* "Todos" fixo e PRIMEIRO (2026-11-17): é "sem filtro", não categoria. */}
+          <CategoryOption
+            label={ALL_LABEL}
+            checked={!active}
+            href={buildHref(page.slug, query, { categories: [] })}
+          />
+          {items.map((category) => (
+            <CategoryOption
+              key={category.id}
+              label={category.label}
+              // Marcada se escolhida OU mãe da subcategoria escolhida.
+              checked={active?.id === category.id}
+              href={buildHref(page.slug, query, {
+                categories: categoryChoice(query, category, active),
+              })}
+            />
+          ))}
+        </CategoryBox>
+
+        {active && children.length > 0 ? (
+          <CategoryBox title={`Subcategorias de ${active.label}`}>
+            {/* "Todos" das subcategorias = a mãe inteira, sem subfiltro. */}
+            <CategoryOption
+              label={ALL_LABEL}
+              checked={selected === active.id}
+              href={buildHref(page.slug, query, { categories: [active.id] })}
+            />
+            {children.map((child) => (
+              <CategoryOption
+                key={child.id}
+                label={child.label}
+                checked={selected === child.id}
+                href={buildHref(page.slug, query, {
+                  categories: categoryChoice(query, child, active),
+                })}
+              />
+            ))}
+          </CategoryBox>
         ) : null}
       </div>
+    </>
+  );
+}
+
+/** Quadro de categorias do computador (1486:1815): grade de 282px do arquivo. */
+function CategoryBox({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-[30px] border border-brand-border bg-[image:var(--brand-surface-fill)] px-[24px] pt-[25px] pb-[30px]">
+      <h2 className="font-helvetica text-[18px] leading-none font-bold tracking-[0.18px] text-white">
+        {title}
+      </h2>
+      {/* Escolha única: grupo de rádios para o leitor de tela. */}
+      <div
+        role="radiogroup"
+        aria-label={title}
+        className="mt-[24px] grid grid-cols-[repeat(auto-fill,282px)] items-start gap-x-[24px] gap-y-[15px]"
+      >
+        {children}
+      </div>
     </section>
+  );
+}
+
+/** Caixinha com check verde (2026-10-08). Clicar de novo na marcada desfaz. */
+function CategoryOption({
+  label,
+  checked,
+  href,
+}: {
+  label: string;
+  checked: boolean;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      scroll={false}
+      role="radio"
+      aria-checked={checked}
+      className={`relative flex h-[40px] w-[282px] min-w-0 items-center gap-[10px] rounded-[8px] border border-white/10 pr-[14px] pl-[9px] backdrop-blur-[100px] transition-opacity hover:opacity-90 ${
+        checked
+          ? "bg-[image:var(--brand-orange-gradient)] text-white"
+          : "bg-[image:var(--brand-surface-fill)] text-white/80"
+      }`}
+    >
+      <span
+        aria-hidden
+        className={`flex size-[22px] shrink-0 items-center justify-center rounded-[6px] border-2 backdrop-blur-[100px] ${
+          checked
+            ? "border-[#22c55e]/60 bg-brand-bg/60"
+            : "border-white/10 bg-[image:var(--brand-surface-fill)]"
+        }`}
+      >
+        {checked ? (
+          <svg
+            viewBox="0 0 24 24"
+            className="size-[14px]"
+            fill="none"
+            stroke="#22c55e"
+            strokeWidth={3.4}
+          >
+            <path
+              d="M5 12.5l4.5 4.5L19 7.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        ) : null}
+      </span>
+      <span className="truncate font-poppins text-[13px] leading-none font-bold tracking-[0.13px]">
+        {label}
+      </span>
+      <LinkPending />
+    </Link>
   );
 }
 
@@ -186,8 +331,9 @@ export function CatalogToolbar({
               scroll={false}
               role="radio"
               aria-checked={active}
-              className="flex items-center gap-[10px] transition-opacity hover:opacity-90"
+              className="relative flex items-center gap-[10px] transition-opacity hover:opacity-90"
             >
+              <LinkPending className="rounded-[8px]" />
               <span
                 aria-hidden
                 className={`h-[30px] w-[32px] rounded-[8px] border-2 border-white/10 backdrop-blur-[100px] ${
@@ -211,5 +357,11 @@ export function CatalogToolbar({
 
 function SearchBox({ page, query }: { page: GamePage; query: CatalogQuery }) {
   // Em tempo real desde 2026-11-09 (ver `CatalogSearch`).
-  return <CatalogSearch slug={page.slug} action={gameHref(page.slug)} query={query} />;
+  return (
+    <CatalogSearch
+      slug={page.slug}
+      action={gameHref(page.slug)}
+      query={query}
+    />
+  );
 }

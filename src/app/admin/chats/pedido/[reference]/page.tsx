@@ -47,7 +47,7 @@ export default async function OrderChatPage({ params }: { params: Promise<{ refe
         {found ? (
           <>
             <p className="font-poppins text-[15px] leading-[22px] text-brand-fg-muted">
-              Este pedido ainda não tem conversa — ele foi pago antes de o chat abrir sozinho na venda. Abra uma para
+              Este pedido ainda não tem conversa, ele foi pago antes de o chat abrir sozinho na venda. Abra uma para
               falar com o cliente; ele vê a conversa na tela do pedido e no chat do site.
             </p>
             <OpenOrderChatButton reference={shown} />

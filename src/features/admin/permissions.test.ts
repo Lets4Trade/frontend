@@ -5,10 +5,10 @@ const AREAS: PanelArea[] = ["content", "blog", "catalog", "orders", "support", "
 const allowed = (role: Parameters<typeof canAccess>[0]) => AREAS.filter((area) => canAccess(role, area));
 
 describe("níveis do painel (2026-10-16)", () => {
-  it("ADMIN tudo; EDITOR conteúdo + blog + catálogo; ATENDENTE chat + pedidos", () => {
+  it("hierarquia (2026-11-22): cada cargo herda os de baixo", () => {
     expect(allowed("ADMIN")).toEqual(AREAS);
-    expect(allowed("EDITOR")).toEqual(["content", "blog", "catalog"]);
-    expect(allowed("SUPPORT")).toEqual(["orders", "support"]);
+    expect(allowed("EDITOR")).toEqual(["content", "blog", "catalog", "orders", "support"]);
+    expect(allowed("SUPPORT")).toEqual(["blog", "orders", "support"]);
   });
 
   it("REDATOR (2026-10-28): entra no painel, mas só no blog", () => {

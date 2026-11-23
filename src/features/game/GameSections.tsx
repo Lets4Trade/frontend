@@ -183,10 +183,14 @@ function NewsLink({ href, children }: { href?: string; children: ReactNode }) {
  * resumo e data vêm EMBAIXO, sem degradê por cima da arte. Antes a caixa era
  * 389×276 (cortava as laterais) e um degradê preto cobria a metade de baixo.
  */
-function NewsCard({ item }: { item: GameNewsItem }) {
+export function NewsCard({ item, fluid = false }: { item: GameNewsItem; fluid?: boolean }) {
   return (
     <NewsLink href={item.href}>
-    <article className="flex h-full w-full flex-col overflow-hidden rounded-[30px] border border-white/10 bg-black desk:h-[438px] desk:w-[391px]">
+    {/* `fluid` (2026-11-22): a HOME usa este mesmo card numa coluna de 417px —
+        a largura vem da coluna, a altura continua a do arquivo. */}
+    <article
+      className={`flex h-full w-full flex-col overflow-hidden rounded-[30px] border border-white/10 bg-black desk:h-[438px] ${fluid ? "" : "desk:w-[391px]"}`}
+    >
       <div className="relative aspect-video w-full shrink-0 overflow-hidden bg-[#2f2f2f]">
         {item.image ? (
           <Image
@@ -220,10 +224,15 @@ function NewsCard({ item }: { item: GameNewsItem }) {
             className="size-[45px] rounded-full object-cover"
           />
         ) : null}
-        <span className="font-poppins text-[16px] leading-[27px] font-semibold tracking-[0.08px] text-white">
-          {item.tag}
-        </span>
-        <span aria-hidden className="h-[29px] w-px bg-white/20" />
+        {/* Sem tag (notícia "Todos os jogos" na home): só a data. */}
+        {item.tag ? (
+          <>
+            <span className="font-poppins text-[16px] leading-[27px] font-semibold tracking-[0.08px] text-white">
+              {item.tag}
+            </span>
+            <span aria-hidden className="h-[29px] w-px bg-white/20" />
+          </>
+        ) : null}
         <time className="font-helvetica text-[16px] tracking-[0.16px] text-brand-placeholder">
           {item.date}
         </time>
@@ -240,11 +249,11 @@ function NewsCard({ item }: { item: GameNewsItem }) {
  * título e resumo (duas linhas, não há altura para mais), com a data ao lado
  * do título.
  */
-function CompactNewsCard({ item }: { item: GameNewsItem }) {
+export function CompactNewsCard({ item, fluid = false }: { item: GameNewsItem; fluid?: boolean }) {
   return (
     <NewsLink href={item.href}>
     <article
-      className="relative w-full overflow-hidden rounded-[30px] border border-white/10 bg-[#2f2f2f] desk:w-[391px]"
+      className={`relative w-full overflow-hidden rounded-[30px] border border-white/10 bg-[#2f2f2f] ${fluid ? "" : "desk:w-[391px]"}`}
       style={{ height: NEWS_COMPACT_HEIGHT }}
     >
       {item.image ? (

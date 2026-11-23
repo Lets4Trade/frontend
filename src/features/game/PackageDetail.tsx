@@ -7,6 +7,8 @@ import { ServiceConfigurator } from "./ServiceConfigurator";
 import { ServiceText } from "./ServiceSection";
 import { withEffectivePricing } from "./storefrontTabs";
 import type { GamePage, GameTab } from "./types";
+import { PlatformIcon } from "./PlatformIcon";
+import { LinkPending } from "./LinkPending";
 
 /**
  * A PÁGINA DO PACOTE (2026-10-01) — o que o CONTINUAR de um card abre, no
@@ -71,9 +73,11 @@ export async function PackageDetail({
                 scroll={false}
                 role="radio"
                 aria-checked={active}
-                className={pillClassName(active, "max-w-full truncate")}
+                className={pillClassName(active, "relative max-w-full gap-[8px]")}
               >
-                {server.label}
+                <LinkPending />
+                {server.platform ? <PlatformIcon platform={server.platform} className="size-[18px] shrink-0" /> : null}
+                <span className="truncate">{server.label}</span>
               </Link>
             );
           })}
@@ -91,22 +95,30 @@ export async function PackageDetail({
     <section
       id="pacote"
       aria-label={current.name}
-      className="flex scroll-mt-[100px] flex-col gap-[40px] desk:flex-row desk:items-start desk:justify-between"
+      className="flex scroll-mt-[100px] flex-col gap-[30px] desk:flex-row desk:items-start desk:justify-between desk:gap-[40px]"
     >
-      <div className="min-w-0 flex-1">
-        <Link
-          href={back}
-          className="font-poppins text-[15px] font-bold text-brand-orange transition-opacity hover:opacity-80 desk:pl-[29px]"
-        >
-          ← Voltar aos pacotes
-        </Link>
-        <h2 className="mt-[14px] mb-[30px] font-poppins text-[26px] leading-[34px] font-bold break-words text-white desk:pl-[29px]">
-          {current.name}
-        </h2>
-        <ServiceText content={current.content ?? tab.content} />
+      {/* Celular (2026-11-22, pedido do usuário): Voltar + nome, depois o card
+          com a IMAGEM do pacote e, por último, os textos. A coluna da esquerda
+          vira `contents` abaixo de `desk` para os filhos entrarem na ordem do
+          flex da seção; no computador ela volta a ser a coluna de texto. */}
+      <div className="contents desk:block desk:min-w-0 desk:flex-1">
+        <div className="order-1 desk:order-none">
+          <Link
+            href={back}
+            className="font-poppins text-[15px] font-bold text-brand-orange transition-opacity hover:opacity-80 desk:pl-[29px]"
+          >
+            ← Voltar aos pacotes
+          </Link>
+          <h2 className="mt-[14px] font-poppins text-[26px] leading-[34px] font-bold break-words text-white desk:mb-[30px] desk:pl-[29px]">
+            {current.name}
+          </h2>
+        </div>
+        <div className="order-3 desk:order-none">
+          <ServiceText content={current.content ?? tab.content} />
+        </div>
       </div>
 
-      <div className="w-full desk:ml-auto desk:w-auto">
+      <div className="order-2 w-full desk:order-none desk:ml-auto desk:w-auto">
         <ServiceConfigurator
           // Outro servidor = outro produto: a escolha anterior não sobrevive.
           key={current.id}

@@ -22,25 +22,56 @@
  *
  * Decorativo (`aria-hidden`): os números continuam texto por cima.
  */
-export const LOGO_TILE = { width: 322, height: 132 } as const;
+import { getLayoutContent } from "@/features/site/layoutContent";
 
-export function LogoBand({ mode = "bleed", className = "" }: { mode?: "screen" | "bleed"; className?: string }) {
+/**
+ * Desde 2026-11-22 (pedido do usuário) a faixa usa a LOGO DO SITE enviada no
+ * painel (a mesma do cabeçalho, `marca`), em vez da imagem fixa
+ * `logo-pattern.webp`; e saíram o fundo e as bordas — sobram só as logos
+ * correndo, em CINZA (`grayscale`, pedido do usuário no mesmo dia).
+ *
+ * O desenho é um `<pattern>` de SVG em linha: a imagem entra por `<image>`
+ * (que, diferente de um SVG usado como `background`, carrega URL de fora) e
+ * o padrão se repete sozinho. Fileiras desencontradas como o arquivo: logo a
+ * cada 161px, a segunda fileira deslocada meio passo. O período da animação é
+ * o passo (161), então o laço não dá salto.
+ */
+export const LOGO_TILE = { width: 161, height: 132 } as const;
+const LOGO_BOX = { width: 104, height: 54 };
+const DEFAULT_LOGO = "/images/lets4trade-logo.png";
+
+export async function LogoBand({ mode = "bleed", className = "" }: { mode?: "screen" | "bleed"; className?: string }) {
+  const layout = await getLayoutContent();
+  const uploaded = layout.text("marca").imageUrl;
+  const logo = uploaded ?? DEFAULT_LOGO;
+  // A logo padrão é um quadrado com respiro (o cabeçalho a corta com
+  // `object-cover`); a enviada pelo painel entra INTEIRA, como no cabeçalho.
+  const fit = uploaded ? "xMidYMid meet" : "xMidYMid slice";
   const place = mode === "screen" ? "right-0 left-0" : "inset-y-0 -right-[2400px] -left-[2400px]";
+  const x = (LOGO_TILE.width - LOGO_BOX.width) / 2;
+  const half = LOGO_TILE.width / 2;
+  // Id POR MODO: a home desenha a versão do celular (`bleed`) E a do
+  // computador (`screen`), uma escondida por CSS; com o mesmo id, `url(#id)`
+  // pegava o padrão da escondida e no computador as logos sumiam.
+  const patternId = `logo-band-${mode}`;
+  const rowTwo = LOGO_TILE.height / 2 + 6;
+
   return (
-    <div
-      aria-hidden
-      className={`pointer-events-none absolute overflow-hidden border-y border-white/[0.06] bg-[#0c0c0c] ${place} ${className}`}
-    >
-      <div
-        className="logo-band-track absolute inset-y-0 left-0 opacity-[0.13]"
-        style={{
-          right: -LOGO_TILE.width,
-          backgroundImage: "url(/images/home/logo-pattern.webp)",
-          backgroundSize: `${LOGO_TILE.width}px ${LOGO_TILE.height}px`,
-          backgroundRepeat: "repeat",
-          ["--logo-tile" as string]: `${LOGO_TILE.width}px`,
-        }}
-      />
+    <div aria-hidden className={`pointer-events-none absolute overflow-hidden ${place} ${className}`}>
+      <svg
+        className="logo-band-track absolute inset-y-0 left-0 h-full opacity-[0.13] grayscale"
+        style={{ width: `calc(100% + ${LOGO_TILE.width}px)`, ["--logo-tile" as string]: `${LOGO_TILE.width}px` }}
+      >
+        <defs>
+          <pattern id={patternId} width={LOGO_TILE.width} height={LOGO_TILE.height} patternUnits="userSpaceOnUse">
+            <image href={logo} x={x} y={6} width={LOGO_BOX.width} height={LOGO_BOX.height} preserveAspectRatio={fit} />
+            {/* Segunda fileira, meio passo à frente (e a cópia que fecha a borda). */}
+            <image href={logo} x={x + half} y={rowTwo} width={LOGO_BOX.width} height={LOGO_BOX.height} preserveAspectRatio={fit} />
+            <image href={logo} x={x - half} y={rowTwo} width={LOGO_BOX.width} height={LOGO_BOX.height} preserveAspectRatio={fit} />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill={`url(#${patternId})`} />
+      </svg>
     </div>
   );
 }

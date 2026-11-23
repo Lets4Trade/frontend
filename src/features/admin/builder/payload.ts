@@ -7,6 +7,7 @@
  */
 
 import { DESCRIPTION_LIMITS } from "@/features/game/description";
+import { isServerPlatform } from "@/features/game/serverPlatform";
 import type { BuilderCategory } from "./types";
 
 /** Categoria como a tela manda (contrato C da FASE 4): dois níveis. */
@@ -34,6 +35,27 @@ export function cleanList(items: { id?: string; label: string }[]) {
       id: cleanId(item.id),
       label: item.label.trim(),
     }))
+    .filter((item) => item.label !== "");
+}
+
+/**
+ * Servidores → corpo do `PUT` (2026-11-22): o `cleanList` + a PLATAFORMA, só
+ * se for uma das três (`null` tira; ausente = o backend não mexe).
+ */
+export function cleanServers(items: { id?: string; label: string; platform?: unknown; isHidden?: unknown }[]) {
+  const platformOf = new Map(items.map((item) => [item, item?.platform]));
+  return items
+    .filter((item) => typeof item?.label === "string")
+    .map((item) => {
+      const platform = platformOf.get(item);
+      return {
+        id: cleanId(item.id),
+        label: item.label.trim(),
+        ...(platform === null ? { platform: null } : isServerPlatform(platform) ? { platform } : {}),
+        // Olho (2026-11-22): só booleano de verdade viaja; ausente = não mexe.
+        ...(typeof item.isHidden === "boolean" ? { isHidden: item.isHidden } : {}),
+      };
+    })
     .filter((item) => item.label !== "");
 }
 

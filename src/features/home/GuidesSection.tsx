@@ -1,6 +1,5 @@
 import Image from "next/image";
 import { RichText } from "@/features/site/richText";
-import { editItem } from "@/features/site/editing/attrs";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { safeLinkHref } from "@/features/game/storefrontTabs";
@@ -8,13 +7,13 @@ import type { SectionItemView } from "@/features/site/content";
 import { reveal, revealDelay } from "./reveal";
 import { blogCardTexts, type BlogCardTexts } from "./blogCard";
 import { VisitBlogCard } from "./VisitBlogCard";
-import { isAutoNewsItem } from "./homeNews";
+import { sectionItemToNews } from "./homeNews";
+import { CompactNewsCard, NewsCard } from "@/features/game/GameSections";
 
 /** Card do arquivo: 417×438, com vão de 40px entre colunas (457 − 417). */
 const GUIDE_CARD_WIDTH = 417;
 const GUIDE_CARD_HEIGHT = 438;
 /** Card BAIXO da quarta coluna (417×206), com 26px até o do blog (232 − 206). */
-const COMPACT_HEIGHT = 206;
 const COMPACT_GAP = 26;
 /** Três colunas altas + a quarta, que empilha um guia baixo e o blog. */
 const TALL_GUIDES = 3;
@@ -84,8 +83,17 @@ export function GuidesSection({
           Defeito real, visível na home publicada; achado em 2026-09-15. */}
       <div className="ml-[6px] w-[1808px] pt-[80px]">
         <ul className="flex gap-[40px]">
+          {/* Mesmo card da página de jogo (2026-11-22, pedido do usuário):
+              capa 16:9 inteira em cima, texto embaixo. */}
           {tall.map((guide, index) => (
-            <GuideCard key={guide.id} guide={guide} revealIndex={index + 1} />
+            <li
+              key={guide.id}
+              {...reveal("rise")}
+              className="shrink-0"
+              style={{ width: GUIDE_CARD_WIDTH, height: GUIDE_CARD_HEIGHT, ...revealDelay(index + 1) }}
+            >
+              <NewsCard item={sectionItemToNews(guide)} fluid />
+            </li>
           ))}
 
           {/* `justify-end`: sem o guia baixo, o card do blog fica na BASE da
@@ -95,9 +103,9 @@ export function GuidesSection({
             style={{ width: GUIDE_CARD_WIDTH, height: GUIDE_CARD_HEIGHT, gap: COMPACT_GAP }}
           >
             {compact ? (
-              <ul>
-                <GuideCard guide={compact} compact revealIndex={tall.length + 1} />
-              </ul>
+              <div {...reveal("rise")} style={revealDelay(tall.length + 1)}>
+                <CompactNewsCard item={sectionItemToNews(compact)} fluid />
+              </div>
             ) : null}
             <VisitBlogCard
               texts={blogCard}
@@ -110,143 +118,6 @@ export function GuidesSection({
         </ul>
       </div>
     </section>
-  );
-}
-
-/**
- * Card de guia: a arte do jogo é o PREENCHIMENTO do card (fill "Image" no
- * inspector), não uma imagem solta dentro dele. Por cima vem o degradê que
- * escurece o rodapé para o texto ficar legível, e só então logo, título e
- * resumo.
- *
- * São DOIS degradês: um do topo para baixo (preto → transparente) que dá
- * contraste ao logo, e outro do rodapé para cima, que trava em preto opaco a
- * 55,769% da sua altura e é o que sustenta título e resumo.
- */
-function GuideCard({
-  guide,
-  compact = false,
-  revealIndex = 0,
-}: {
-  guide: SectionItemView;
-  /** Posição na cascata de entrada (ver `reveal.ts`). */
-  revealIndex?: number;
-  /** O card BAIXO da quarta coluna (417×206), com as medidas do arquivo. */
-  compact?: boolean;
-}) {
-  const height = compact ? COMPACT_HEIGHT : GUIDE_CARD_HEIGHT;
-  // Notícia automática do blog (2026-11-17): não é item da sessão, então o
-  // editor da home não a oferece para edição (não há o que salvar).
-  // Sem id, `editItem` não marca nada.
-  const edit: typeof editItem = (key, id, field) => editItem(key, isAutoNewsItem(guide) ? undefined : id, field);
-
-  return (
-    <li
-      {...reveal("rise")}
-      className="guide-card relative shrink-0 overflow-hidden rounded-[30px] border border-white/10"
-      style={{ width: GUIDE_CARD_WIDTH, height, ...revealDelay(revealIndex) }}
-    >
-      <GuideLink href={guide.href}>
-      {/* Sem arte, o card fica no preto do tema em vez de transparente — os
-          degradês por cima só fazem sentido sobre alguma coisa. */}
-      {guide.image ? (
-        <Image
-          {...edit("home:guias", guide.id, "image")}
-          src={guide.image}
-          alt=""
-          width={GUIDE_CARD_WIDTH}
-          height={height}
-          aria-hidden
-          className="guide-art absolute inset-0 size-full object-cover"
-        />
-      ) : (
-        <span
-          {...edit("home:guias", guide.id, "image")}
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-brand-surface"
-        />
-      )}
-
-      {/* Os dois degradês do arquivo, agora com medidas FIXAS: eram do dado
-          (`guide.scrim`) porque o card curto do arquivo tinha valores próprios,
-          e com a fileira uniforme todos os cards têm a mesma altura. */}
-      <span
-        aria-hidden
-        className="absolute inset-x-0 top-0"
-        style={{
-          height: compact ? 68 : 147,
-          backgroundImage: "linear-gradient(180deg, #000 0%, rgba(0,0,0,0) 100%)",
-        }}
-      />
-
-      {/* No card baixo o degradê do rodapé só fecha em preto no fim (arquivo). */}
-      <span
-        aria-hidden
-        className="guide-scrim absolute inset-x-0"
-        style={
-          compact
-            ? {
-                top: 83,
-                height: 123,
-                backgroundImage: "linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 100%)",
-              }
-            : {
-                top: 240,
-                height: 198,
-                backgroundImage: "linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 60%)",
-              }
-        }
-      />
-
-      {/* O logo tem tamanho próprio por jogo no arquivo (86×44, 66×50, 71×58...).
-          Com a arte vindo do painel não dá para saber a proporção de antemão:
-          a caixa é fixa e o `object-contain` encaixa qualquer uma dentro dela
-          sem deformar. */}
-      {guide.secondaryImage ? (
-        <Image
-          {...edit("home:guias", guide.id, "secondaryImage")}
-          src={guide.secondaryImage}
-          alt=""
-          width={90}
-          height={58}
-          aria-hidden
-          className="guide-logo absolute top-[25px] left-[25px] h-[58px] w-[90px] object-contain object-left"
-        />
-      ) : (
-        // Sem logo, um espaço marcado no mesmo lugar: na loja ele é invisível e
-        // não recebe clique; no editor é onde se arrasta a arte do jogo.
-        <span
-          {...edit("home:guias", guide.id, "secondaryImage")}
-          aria-hidden
-          className="pointer-events-none absolute top-[25px] left-[25px] h-[58px] w-[90px]"
-        />
-      )}
-
-      {/* Título e resumo PRESOS AO RODAPÉ (2026-11-17): com as notícias do blog
-          o tamanho do título varia, e posições fixas (título a 308, resumo a
-          345) encavalavam um título de duas linhas no resumo. O título corta
-          em duas linhas; o resumo em duas (card baixo) ou três. */}
-      <div className={`guide-text absolute left-[26px] w-[365px] ${compact ? "bottom-[20px]" : "bottom-[34px]"}`}>
-        {guide.title ? (
-          <h3
-            {...edit("home:guias", guide.id, "title")}
-            data-edit-rich=""
-            className={`font-poppins text-[18px] leading-[normal] font-semibold tracking-[0.09px] text-white ${compact ? "line-clamp-1" : "line-clamp-2"}`}
-          >
-            <RichText value={guide.title} />
-          </h3>
-        ) : null}
-
-        <p
-          {...edit("home:guias", guide.id, "body")}
-          data-edit-rich=""
-          className={`font-helvetica text-[16px] leading-[normal] tracking-[0.16px] text-brand-placeholder ${guide.title ? "mt-[8px]" : ""} ${compact ? "line-clamp-2" : "line-clamp-3"}`}
-        >
-          <RichText value={guide.body} />
-        </p>
-      </div>
-      </GuideLink>
-    </li>
   );
 }
 

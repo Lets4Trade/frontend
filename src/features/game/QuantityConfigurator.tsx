@@ -161,7 +161,7 @@ function QuantityPanel({
               <div
                 role="group"
                 aria-labelledby={`${id}-label`}
-                className="mt-[15px] grid grid-cols-2 gap-x-[25px] gap-y-[15px] sm:grid-cols-3 desk:grid-cols-6"
+                className="mt-[15px] grid grid-cols-3 gap-x-[12px] gap-y-[15px] sm:gap-x-[25px] desk:grid-cols-6"
               >
                 {presets.map((preset) => {
                   const active = preset === quantity;

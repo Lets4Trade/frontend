@@ -4,8 +4,10 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/cn";
+import { PlatformIcon } from "./PlatformIcon";
+import type { ServerPlatform } from "./serverPlatform";
 
-export type ServerOption = { key: string; label: string; href: string; active: boolean };
+export type ServerOption = { key: string; label: string; href: string; active: boolean; platform?: ServerPlatform };
 
 /**
  * Servidor no CELULAR (2026-11-18, pedido do usuário, referência mmoexp): as
@@ -34,6 +36,7 @@ export function ServerDropdown({ label, options }: { label: string; options: Ser
             pending && "opacity-60",
           )}
         >
+          {current?.platform ? <PlatformIcon platform={current.platform} className="size-[18px] shrink-0 text-black" /> : null}
           <span className="min-w-0 flex-1 truncate font-poppins text-[15px] font-bold tracking-[0.15px] text-black">
             {current?.label}
           </span>
@@ -69,6 +72,7 @@ export function ServerDropdown({ label, options }: { label: string; options: Ser
                 option.active ? "text-brand-orange" : "text-white/85",
               )}
             >
+              {option.platform ? <PlatformIcon platform={option.platform} className="size-[18px] shrink-0" /> : null}
               <span className="min-w-0 flex-1 truncate">{option.label}</span>
               {option.active ? (
                 <svg aria-hidden viewBox="0 0 24 24" className="size-[16px] shrink-0" fill="none" stroke="currentColor" strokeWidth={3}>

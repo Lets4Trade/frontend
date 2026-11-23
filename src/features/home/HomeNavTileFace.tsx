@@ -1,6 +1,9 @@
 import Image from "next/image";
 import { cn } from "@/lib/cn";
 
+/** Largura de cada atalho da home no computador — a mesma para os quatro. */
+export const HOME_NAV_COL = 130;
+
 /**
  * O DESENHO de um atalho da faixa de navegação da home no desktop (Figma
  * 796:1624): ladrilho de 55, ícone, seta opcional e o rótulo centrado no
@@ -25,8 +28,11 @@ export function HomeNavTileFace({
   open?: boolean;
 }) {
   return (
-    <>
-      <span className="flex items-center gap-[15px]">
+    // Coluna de LARGURA FIXA (2026-11-22, pedido do usuário: "os 4 têm que
+    // estar padronizados"): ícone e rótulo centrados na coluna, e a seta do
+    // JOGOS flutua ao lado do ícone sem deslocar nada.
+    <span className="flex flex-col items-center" style={{ width: HOME_NAV_COL }}>
+      <span className="relative block">
         <span className="relative block size-[55px]">
           <Image
             src={active ? "/icons/home/tile-active.svg" : "/icons/home/tile.svg"}
@@ -54,21 +60,22 @@ export function HomeNavTileFace({
             height={18}
             aria-hidden
             // O arquivo é uma seta para BAIXO: fechado, gira para cima.
-            className={cn("transition-transform duration-[var(--dur-base)]", !open && "rotate-180")}
+            className={cn(
+              "absolute top-1/2 left-[calc(100%+8px)] -translate-y-1/2 transition-transform duration-[var(--dur-base)]",
+              !open && "rotate-180",
+            )}
           />
         ) : null}
       </span>
 
-      {/* Rótulo centrado no ladrilho (y=988 no frame), e não no item
-          inteiro: a seta de submenu não pode deslocar o texto. */}
       <span
         className={cn(
-          "nav-label absolute top-[60px] left-[27.5px] -translate-x-1/2 whitespace-nowrap font-poppins text-[15px] leading-[19px] font-bold tracking-[0.15px]",
+          "nav-label mt-[5px] whitespace-nowrap font-poppins text-[15px] leading-[19px] font-bold tracking-[0.15px]",
           active ? "text-white" : "text-white/80",
         )}
       >
         {label}
       </span>
-    </>
+    </span>
   );
 }

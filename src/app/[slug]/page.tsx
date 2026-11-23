@@ -3,14 +3,13 @@ import { composeBlocks } from "@/features/pages/compose";
 import { BlockColumn, GameFrame } from "@/features/pages/frames";
 import { getPublishedPage } from "@/features/pages/public";
 import { GAME_LEGACY_GAP } from "@/features/pages/registry";
-import { publicApiGet } from "@/lib/publicApi";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { parseCatalogQuery, scopePageToQuery } from "@/features/game/catalog";
-import { buildTabTitle, getGamePage, withActiveTab } from "@/features/game/content";
+import { buildTabTitle, getCatalog, getGamePage, withActiveTab } from "@/features/game/content";
 import { withSiteName } from "@/lib/siteTitle";
 import { GamePageSections } from "@/features/game/GamePageSections";
 import { GAME_SLUG, gameHref, isReservedGameSlug } from "@/features/game/href";
@@ -119,11 +118,16 @@ export default async function GamePage({ params, searchParams }: PageProps) {
   const page = scopePageToQuery(withActiveTab(base, query.tab), query);
 
   // Construtor de páginas (2026-09-25): a página DESTE jogo publicada por
-  // blocos manda na ordem das seções e nos blocos novos. O id vem da mesma
-  // leitura pública que `getGamePage` já fez — o `fetch` do Next memoriza a
-  // chamada idêntica dentro do render, então isto não é uma ida a mais.
-  const game = await publicApiGet<{ id: string }>(`/games/${encodeURIComponent(slug)}`);
-  const published = game?.id ? await getPublishedPage(`jogo-${game.id}`) : null;
+  // blocos manda na ordem das seções e nos blocos novos. O id já veio em
+  // `getGamePage` (2026-11-22): antes havia um `GET /games/:slug` a mais aqui,
+  // EM FILA — o `fetch` com `no-store` não era deduplicado.
+  // Catálogo ADIANTADO (2026-11-22): sai junto com a página publicada em vez
+  // de esperar a grade renderizar. `getCatalog` tem `cache()`, e a grade usa
+  // os mesmos `page`/`query` — pega esta mesma promessa.
+  if (page.tabs.find((tab) => tab.id === page.activeTabId)?.layout === "CATALOG") {
+    void getCatalog(page, query);
+  }
+  const published = base.id ? await getPublishedPage(`jogo-${base.id}`) : null;
 
   return (
     <div className="flex min-h-[var(--dvh)] flex-col bg-brand-bg">

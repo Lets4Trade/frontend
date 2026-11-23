@@ -73,7 +73,10 @@ describe("updateGameAction", () => {
     expect(save).toHaveBeenCalledWith("g1", {
       name: "Diablo IV",
       slug: "diablo-4",
-      servers: [{ id: "s1", label: "Softcore" }, { id: undefined, label: "Hardcore" }],
+      servers: [
+        { id: "s1", label: "Softcore", platform: null, isHidden: false },
+        { id: undefined, label: "Hardcore", platform: null, isHidden: false },
+      ],
       heading: "Compre gold",
       serversLabel: "",
       categoriesLabel: "Categorias",

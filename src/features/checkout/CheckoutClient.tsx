@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import { SelectField } from "@/components/ui/SelectField";
 import { TextField } from "@/components/ui/TextField";
 import {
@@ -52,6 +52,8 @@ import {
 import { CHECKOUT_LOGIN_HREF } from "./loginHref";
 import { cardSchema, pixSchema, savedCardSchema } from "./schema";
 import { NEW_CARD, SaveCardCheckbox, SavedCardPicker } from "./SavedCardPicker";
+import { CopyOrderButton } from "./CopyOrderButton";
+import { orderText } from "./orderText";
 import type { SavedCard } from "@/features/payment/savedCards";
 import { lineTotalCents } from "@/features/pricing/quote";
 import { gameHref } from "@/features/game/href";
@@ -104,7 +106,13 @@ export function CheckoutClient({
   installmentLimit = MAX_INSTALLMENTS,
   minInstallmentCents = DEFAULT_MIN_INSTALLMENT_CENTS,
   savedCards = [],
+  gameNames = {},
+  customerName,
 }: {
+  /** slug → nome do jogo, para o texto do "COPIAR PEDIDO" (2026-11-22). */
+  gameNames?: Record<string, string>;
+  /** Nome de quem está logado, idem. */
+  customerName?: string;
   /** Cartões salvos da conta (2026-11-02) — sem o token, ver `payment/savedCards.ts`. */
   savedCards?: SavedCard[];
   loyalty: LoyaltySummary | null;
@@ -127,6 +135,7 @@ export function CheckoutClient({
   minInstallmentCents?: number;
 }) {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
 
   const items = useCart((state) => state.items);
   const clear = useCart((state) => state.clear);
@@ -462,7 +471,7 @@ export function CheckoutClient({
       {/* Coluna do formulário: 476px centrados na faixa da esquerda, como no
           arquivo (302 de margem dos dois lados dentro dos 1079). */}
       <div className="flex flex-1 justify-center px-[16px] pt-[28px] pb-[40px] lg:px-[50px] lg:pt-[97px] lg:pb-[60px]">
-        <form noValidate onSubmit={handleSubmit} className="w-full max-w-[476px]">
+        <form ref={formRef} noValidate onSubmit={handleSubmit} className="w-full max-w-[476px]">
           {/* Voltar SIMPLES (2026-11-18, pedido do usuário): para o jogo do
               último item do carrinho — de onde a pessoa veio —, ou a home. */}
           <Link
@@ -658,6 +667,25 @@ export function CheckoutClient({
                 />
                 FALE COM UM ESPECIALISTA
               </a>
+
+              {/* O pedido inteiro em texto, para colar no WhatsApp (2026-11-22). */}
+              <CopyOrderButton
+                disabled={!hydrated || items.length === 0}
+                getText={() =>
+                  orderText({
+                    items,
+                    gameNames,
+                    customerName,
+                    coupon: coupon && couponTotal > 0 ? { code: coupon.code, cents: couponTotal } : null,
+                    coinsCents: discount,
+                    feeCents: fee,
+                    totalCents: charge,
+                    method,
+                    installments: effectiveInstallments,
+                    notes: String(new FormData(formRef.current ?? undefined).get("notes") ?? ""),
+                  })
+                }
+              />
             </>
           ) : null}
         </form>

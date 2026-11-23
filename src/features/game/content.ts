@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { splitName } from "./nameBreak";
 import { backendAsset, publicApiGet } from "@/lib/publicApi";
 import { getGameNews } from "@/features/blog/data";
@@ -21,6 +22,7 @@ import { toGameDescription } from "./description";
 import { FAQ_DESCRIPTION_GROUP, MOBILE_BANNER } from "./types";
 import type { GameNewsItem, GamePage, GameProduct } from "./types";
 import { readDiscountPercent } from "./discount";
+import { isServerPlatform } from "./serverPlatform";
 
 /**
  * Os jogos em que o grupo "Dúvidas sobre Orbs" aparece, ACIMA do geral.
@@ -67,7 +69,7 @@ type StorefrontGame = {
    * = jogo sem aba ativa.
    */
   tabs?: ApiGameTab[] | null;
-  servers: { slug: string; label: string }[];
+  servers: { slug: string; label: string; platform?: string | null }[];
   /**
    * Árvore de dois níveis (contrato C da FASE 4): raízes com `children` OU lista
    * plana com `parentId` — `toCategoryTree` resolve as duas.
@@ -142,8 +144,15 @@ const PAGE_SIZE = 30;
 /**
  * Identidade, abas e servidores de um jogo. `null` quando ele não existe ou
  * está desativado — a página transforma isso num 404.
+ *
+ * `cache()` (2026-11-22, otimização): UMA leitura por requisição. O
+ * `generateMetadata` e a página chamavam isto cada um e o `fetch` não
+ * deduplicava (`no-store` + `AbortSignal` próprio de cada chamada) — eram 12
+ * idas ao backend em vez de 6 a cada clique de filtro.
  */
-export async function getGamePage(slug: string): Promise<GamePage | null> {
+export const getGamePage = cache(loadGamePage);
+
+async function loadGamePage(slug: string): Promise<GamePage | null> {
   // As leituras em paralelo: em série somariam latência à página mais navegada
   // da loja.
   const [game, section, items, blogNews, homeSection, homeItems] = await Promise.all([
@@ -191,6 +200,7 @@ export async function getGamePage(slug: string): Promise<GamePage | null> {
   const logo = backendAsset(game.imageUrl);
 
   return {
+    id: game.id,
     slug: game.slug,
     name: game.name,
     seo: {
@@ -242,7 +252,10 @@ export async function getGamePage(slug: string): Promise<GamePage | null> {
 
     servers: {
       label: game.serversLabel?.trim() || "Selecionar servidor",
-      items: game.servers,
+      // Plataforma só se for uma das três conhecidas (2026-11-22).
+      items: game.servers.map(({ slug, label, platform }) =>
+        isServerPlatform(platform) ? { slug, label, platform } : { slug, label },
+      ),
     },
 
     /**
@@ -428,8 +441,15 @@ export function withActiveTab(page: GamePage, activeTabId: string): GamePage {
  * Em qualquer imprevisto devolve uma página VAZIA em vez de estourar: a
  * identidade do jogo já foi lida com sucesso, e derrubar a página inteira por
  * causa do catálogo esconderia as abas, o FAQ e as referências junto.
+ *
+ * `cache()` (2026-11-22, otimização): a página de jogo dispara a leitura
+ * ADIANTADA (junto com a página publicada) e a grade, ao renderizar com os
+ * MESMOS objetos `page`/`query`, recebe a mesma promessa — uma ida a menos
+ * em fila a cada clique de filtro.
  */
-export async function getCatalog(
+export const getCatalog = cache(loadCatalog);
+
+async function loadCatalog(
   page: GamePage,
   query: CatalogQuery,
 ): Promise<CatalogResult> {

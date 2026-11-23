@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import type { GamePage, GameTab } from "./types";
 import { tabHrefWithServer } from "./storefrontTabs";
+import { LinkPending } from "./LinkPending";
 
 /**
  * Identidade do jogo (Figma 1524:517 + 1524:401): logo, título e as abas de
@@ -21,8 +22,8 @@ export function GameIdentity({ page, server = "" }: { page: GamePage; server?: s
   // card do configurador, e ela ficaria por cima dele. Aba de PACOTES também
   // (2026-11-04, pedido do usuário): na grade ela ficava atrás do último card
   // e, com o pacote aberto, atrás do configurador.
-  const layout = page.tabs.find((tab) => tab.id === page.activeTabId)?.layout;
-  const besideTabs = layout === "SERVICE" || layout === "PACKAGES";
+  // Desde 2026-11-22 (pedido do usuário) é SEMPRE na linha das abas, em toda
+  // aba e na página do produto: no catálogo ela caía em cima dos servidores.
 
   // Celular: logo menor ao lado do título e as abas numa grade de DUAS colunas,
   // cada aba com o ícone à esquerda e o rótulo à direita (2026-10-16, pedido do
@@ -55,7 +56,7 @@ export function GameIdentity({ page, server = "" }: { page: GamePage; server?: s
         <Link
           href={coin.href ?? "/fidelidade"}
           // Só no desktop: no celular ela cairia em cima das abas e dos servidores.
-          className={`absolute -right-[16px] hidden size-[179px] desk:block ${besideTabs ? "top-[23px]" : "top-[150px]"}`}
+          className="absolute top-[23px] -right-[16px] hidden size-[179px] desk:block"
           aria-label="Programa de fidelidade"
         >
           <Image
@@ -200,6 +201,7 @@ function TabLink({ tab, server, active }: { tab: GameTab; server: string; active
       <span className="line-clamp-2 min-w-0 font-poppins text-[12px] leading-[1.3] font-bold tracking-[0.15px] desk:mt-[5px] desk:line-clamp-none desk:text-[15px] desk:leading-none desk:whitespace-nowrap">
         {tab.label}
       </span>
+      <LinkPending />
     </Link>
   );
 }

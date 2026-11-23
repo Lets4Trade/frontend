@@ -159,10 +159,6 @@ export function SaveCardCheckbox({ checked, onChange }: { checked: boolean; onCh
         <span className="block font-poppins text-[14px] font-semibold text-white">
           Salvar este cartão para as próximas compras
         </span>
-        <span className="mt-[2px] block font-helvetica text-[12px] leading-[17px] text-brand-fg-subtle">
-          O cartão fica guardado na Cielo. Nós guardamos só a bandeira e os 4 últimos dígitos — nunca o número completo
-          nem o código de segurança. Você pode remover quando quiser.
-        </span>
       </span>
     </label>
   );

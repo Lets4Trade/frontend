@@ -2409,7 +2409,7 @@ gmp-place-autocomplete::part(prediction-item-secondary-text) {
 
 @media (max-width: 1023.98px) {
   html[data-bottom-nav] .contact-float {
-    translate: 0 -88px;
+    translate: 0 -68px;
   }
 }
 

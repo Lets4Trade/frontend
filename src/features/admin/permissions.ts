@@ -42,8 +42,16 @@ export function isPanelRole(role: SessionRole | null | undefined): role is Panel
 }
 
 /** Papel desconhecido ou ausente nunca passa (lista fechada por área). */
+/**
+ * HIERARQUIA (2026-11-22, pedido do usuário): Admin > Editor > Atendente >
+ * Redator — cada cargo tem tudo o que os de baixo têm. Espelha `ROLE_RANK` do
+ * backend (`common/decorators/roles.decorator.ts`), que é quem de fato decide.
+ */
+export const ROLE_RANK: Record<PanelRole, number> = { WRITER: 1, SUPPORT: 2, EDITOR: 3, ADMIN: 4 };
+
 export function canAccess(role: SessionRole | null | undefined, area: PanelArea): boolean {
-  return isPanelRole(role) && AREA_ROLES[area].includes(role);
+  if (!isPanelRole(role)) return false;
+  return AREA_ROLES[area].some((need) => ROLE_RANK[role] >= ROLE_RANK[need]);
 }
 
 export const ROLE_LABEL: Record<SessionRole, string> = {

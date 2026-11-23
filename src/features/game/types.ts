@@ -29,6 +29,7 @@ import type { VideoSection } from "@/features/home/VideoSection";
 import type { Pricing } from "@/features/pricing/quote";
 import type { GameSectionKey } from "./sections";
 import type { GameDescriptionGroup } from "./description";
+import type { ServerPlatform } from "./serverPlatform";
 
 /** Imagem editável. `width`/`height` são as do arquivo original, para o `next/image`. */
 export type ImageRef = {
@@ -100,6 +101,8 @@ export type GameTab = {
 export type GameServer = {
   slug: string;
   label: string;
+  /** PC / PlayStation / Xbox (2026-11-22): ícone monocromático ao lado do nome. */
+  platform?: ServerPlatform;
 };
 
 /**
@@ -222,6 +225,8 @@ export const FAQ_DESCRIPTION_GROUP = "duvidas";
 export type { GameSectionKey };
 
 export type GamePage = {
+  /** Id do jogo no banco (2026-11-22): a página publicada é `jogo-<id>`. */
+  id?: string;
   slug: string;
   /** Nome do jogo, usado em `<title>` e nos textos que o admin não escreveu. */
   name: string;

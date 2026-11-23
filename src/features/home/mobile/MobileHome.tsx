@@ -3,11 +3,9 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/Button";
 import { CountUp } from "@/components/ui/CountUp";
 import type { SectionItemView, SectionView } from "@/features/site/content";
-import { MAX_HOME_STATS } from "@/features/site/sections";
 import { mobileAlignOf } from "@/features/site/mobileAlign";
 import { cn } from "@/lib/cn";
-import { RichText, alignClass, richToPlain, splitAlign } from "@/features/site/richText";
-import { safeLinkHref } from "@/features/game/storefrontTabs";
+import { RichText, alignClass, splitAlign } from "@/features/site/richText";
 import { blogCardTexts, type BlogCardTexts } from "../blogCard";
 import type { HomeBlock } from "../homeBlocks";
 import { getMenuGames } from "@/features/game/menuGames";
@@ -18,6 +16,8 @@ import { VideoPlayer } from "../VideoPlayer";
 import { videoTexts } from "../VideoSection";
 import { youtubeId, youtubeWatchUrl } from "../youtube";
 import { LogoBand } from "../LogoBand";
+import { sectionItemToNews } from "../homeNews";
+import { CompactNewsCard, NewsCard } from "@/features/game/GameSections";
 import { MobileHeroBanner } from "./MobileHeroBanner";
 import { NavTiles } from "./NavTiles";
 
@@ -133,7 +133,9 @@ async function MobileNav({ stats }: { stats: SectionItemView[] }) {
         <div className="relative">
           <LogoBand />
           <dl className="relative flex flex-wrap justify-center gap-y-[16px] py-[20px] text-center">
-            {stats.slice(0, MAX_HOME_STATS).map((stat) => (
+            {/* Celular: só CLIENTES ATENDIDOS e REFERÊNCIAS (2026-11-22, pedido
+                do usuário). Casa pelo rótulo escrito no painel. */}
+            {mobileStats(stats).map((stat) => (
               <div key={stat.id} className="w-1/2 px-[6px]">
                 <dt className="sr-only">{stat.body}</dt>
                 <dd className="font-poppins text-[32px] leading-[40px] font-semibold text-brand-orange">
@@ -449,14 +451,15 @@ function MobileGuides({
       </h2>
 
       <ul className="mt-[28px] flex flex-col gap-[20px]">
+        {/* Mesmo card da página de jogo no celular (2026-11-22). */}
         {tall.map((guide) => (
           <li key={guide.id} {...reveal("rise")}>
-            <GuideCard guide={guide} />
+            <NewsCard item={sectionItemToNews(guide)} fluid />
           </li>
         ))}
         {compact ? (
           <li {...reveal("rise")}>
-            <GuideCard guide={compact} compact />
+            <CompactNewsCard item={sectionItemToNews(compact)} fluid />
           </li>
         ) : null}
         <li {...reveal("rise")}>
@@ -491,58 +494,6 @@ function MobileGuides({
         </li>
       </ul>
     </section>
-  );
-}
-
-function GuideCard({ guide, compact = false }: { guide: SectionItemView; compact?: boolean }) {
-  return (
-    <article
-      className={cn(
-        "guide-card relative overflow-hidden rounded-[24px] border border-white/10 bg-brand-surface",
-        compact ? "aspect-[352/206]" : "aspect-[352/340]",
-      )}
-    >
-      {guide.image ? (
-        <Image
-          src={guide.image}
-          alt=""
-          fill
-          // A home de celular vai até 1475px (2026-11-02), numa coluna de até 720:
-          // "400px acima de 1024" baixaria uma arte menor que a exibida.
-          sizes="(max-width: 767px) 100vw, 720px"
-          aria-hidden
-          className="guide-art object-cover"
-        />
-      ) : null}
-      <span aria-hidden className="absolute inset-x-0 top-0 h-[40%] bg-linear-to-b from-black to-transparent" />
-      <span aria-hidden className="absolute inset-x-0 bottom-0 h-[60%] bg-linear-to-b from-transparent to-black to-60%" />
-
-      {guide.secondaryImage ? (
-        <Image
-          src={guide.secondaryImage}
-          alt=""
-          width={80}
-          height={50}
-          aria-hidden
-          className="absolute top-[20px] left-[25px] h-[44px] w-[80px] object-contain object-left"
-        />
-      ) : null}
-
-      <div className="absolute inset-x-[25px] bottom-[20px]">
-        {guide.title ? (
-          <h3 className="line-clamp-2 font-poppins text-[16px] font-semibold text-white">
-            <RichText value={guide.title} />
-          </h3>
-        ) : null}
-        <p className={cn("mt-[8px] font-helvetica text-[14px] leading-[1.2] text-brand-placeholder", compact ? "line-clamp-2" : "line-clamp-3")}>
-          <RichText value={guide.body} />
-        </p>
-      </div>
-      {/* Card inteiro clicável quando o guia tem link (mesma regra do desktop). */}
-      {safeLinkHref(guide.href) ? (
-        <Link href={safeLinkHref(guide.href)!} className="absolute inset-0" aria-label={richToPlain(guide.title) || "Abrir guia"} />
-      ) : null}
-    </article>
   );
 }
 
@@ -591,4 +542,15 @@ function MobileFaq({ title, items }: { title: string; items: SectionItemView[] }
       </div>
     </section>
   );
+}
+
+/**
+ * Contadores do celular: só "clientes atendidos" e "referências" (2026-11-22).
+ * Casa pelo rótulo, sem diferenciar caixa nem acento; nenhum casou = mostra os
+ * dois primeiros, para a faixa não sumir se o admin renomear.
+ */
+export function mobileStats(stats: SectionItemView[]): SectionItemView[] {
+  const norm = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const picked = stats.filter((stat) => /client|referenc/.test(norm(stat.body ?? "")));
+  return picked.length > 0 ? picked.slice(0, 2) : stats.slice(0, 2);
 }

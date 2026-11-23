@@ -5,7 +5,7 @@ import Link from "next/link";
 import { CountUp } from "@/components/ui/CountUp";
 import { getMenuGames } from "@/features/game/menuGames";
 import { HomeGamesMenu } from "./HomeGamesMenu";
-import { HomeNavTileFace } from "./HomeNavTileFace";
+import { HOME_NAV_COL, HomeNavTileFace } from "./HomeNavTileFace";
 import { LogoBand } from "./LogoBand";
 import { NAV_ITEMS } from "./navItems";
 import { reveal, revealDelay } from "./reveal";
@@ -90,12 +90,14 @@ export function HomeNav({ stats = [] }: { stats?: SectionItemView[] }) {
  */
 export async function HomeNavTiles({ originLeft, top }: { originLeft: number; top: number }) {
   const games = await getMenuGames();
-  const first = NAV_ITEMS[0].left;
 
   return (
     <nav aria-label="Seções principais" className="contents">
         {NAV_ITEMS.map((item, index) => {
-          const style = { left: item.left - first + originLeft, top, ...revealDelay(index + 1) };
+          // Colunas iguais, lado a lado (2026-11-22): o vão entre os quatro é o
+          // mesmo. As posições do arquivo (679/784/905/1047) davam vãos de
+          // 105, 121 e 142px.
+          const style = { left: originLeft + index * HOME_NAV_COL, top, ...revealDelay(index + 1) };
 
           if ("key" in item && item.key === "games") {
             return (

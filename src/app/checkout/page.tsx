@@ -11,6 +11,7 @@ import { getContacts } from "@/features/site/contacts";
 import { getSavedCards } from "@/features/payment/data";
 import { getReferencesVideoHref } from "@/features/site/content";
 import { getLayoutContent } from "@/features/site/layoutContent";
+import { getMenuGames } from "@/features/game/menuGames";
 
 export const metadata: Metadata = {
   title: "Finalizar compra",
@@ -55,7 +56,9 @@ export default async function CheckoutPage() {
   // O limite de parcelas (2026-10-28) também: sessão `layout:pagamento`, da
   // mesma leitura cacheada do layout.
   // Cartões salvos (2026-11-02): também em paralelo; sem sessão vem vazio.
-  const [user, result, contacts, gifts, referencesHref, layout, savedCards] = await Promise.all([
+  // Nomes dos jogos (2026-11-22) para o "COPIAR PEDIDO": a lista do menu, já
+  // cacheada por uma hora — não soma requisição nova ao backend.
+  const [user, result, contacts, gifts, referencesHref, layout, savedCards, games] = await Promise.all([
     getSessionUser(),
     getLoyalty(),
     getContacts(),
@@ -63,6 +66,7 @@ export default async function CheckoutPage() {
     getReferencesVideoHref(),
     getLayoutContent(),
     getSavedCards(),
+    getMenuGames(),
   ]);
 
   if (!user) redirect(CHECKOUT_LOGIN_HREF);
@@ -78,6 +82,8 @@ export default async function CheckoutPage() {
         installmentLimit={installmentLimitFrom(layout.text("pagamento").extra("parcelas", ""))}
         minInstallmentCents={minInstallmentFrom(layout.text("pagamento").extra("parcela-minima", ""))}
         savedCards={savedCards}
+        gameNames={Object.fromEntries(games.map((game) => [game.slug, game.name]))}
+        customerName={user.name}
       />
     </CheckoutShell>
   );

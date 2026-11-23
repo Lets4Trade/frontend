@@ -55,7 +55,7 @@ export function MobileStickyNav({ children }: { children: ReactNode }) {
       aria-hidden={!visible}
       // `inert` fora de vista: os links não recebem foco nem clique escondidos.
       inert={!visible}
-      className={`fixed inset-x-[16px] bottom-[max(12px,env(safe-area-inset-bottom))] z-30 rounded-[26px] border border-white/10 bg-black/70 px-[10px] py-[10px] shadow-[0_16px_40px_rgba(0,0,0,.5)] backdrop-blur-[12px] transition-all duration-200 lg:hidden ${
+      className={`fixed inset-x-[16px] bottom-[max(12px,env(safe-area-inset-bottom))] z-30 rounded-[22px] border border-white/10 bg-black/70 px-[8px] py-[6px] shadow-[0_16px_40px_rgba(0,0,0,.5)] backdrop-blur-[12px] transition-all duration-200 lg:hidden ${
         visible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"
       }`}
     >

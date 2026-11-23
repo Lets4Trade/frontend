@@ -10,10 +10,9 @@ import { cn } from "@/lib/cn";
  * com a lupa a 25px da borda. Extraído quando a segunda chegou, pelo motivo de
  * sempre: duplicar é como as duas começam a divergir.
  *
- * TUDO aqui é link ou `<form method="get">` — o filtro mora na URL, então
- * filtrar é navegar. É o que mantém a filtragem no SERVIDOR e o estado
- * compartilhável, e é o que dispensa hidratação numa tela que não precisa de
- * nenhuma.
+ * TUDO aqui é link ou busca na URL — o filtro mora na URL, então filtrar é
+ * navegar (a busca, em tempo real, navega sozinha: `AdminSearchBox.tsx`). É o
+ * que mantém a filtragem no SERVIDOR e o estado compartilhável.
  */
 
 export type FilterOption = {
@@ -90,59 +89,7 @@ export function FilterMenu({
 }
 
 /**
- * Busca (219×50, lupa a 25px da borda) — as mesmas medidas da busca da vitrine.
- *
- * `<form method="get">` de verdade: funciona sem JavaScript e não precisa de
- * client component. Os outros filtros viajam em `hidden`, porque um GET DESCARTA
- * tudo o que não está no formulário — sem isso, buscar zeraria os filtros que já
- * estavam aplicados.
+ * Busca das listagens — em tempo real desde 2026-11-22, por isso é client
+ * component e mora no próprio arquivo (este continua sendo de servidor).
  */
-export function AdminSearchBox({
-  action,
-  name,
-  defaultValue,
-  placeholder,
-  hidden,
-}: {
-  /** Rota da própria listagem. */
-  action: string;
-  /** Nome do parâmetro de busca na URL. */
-  name: string;
-  defaultValue: string;
-  placeholder: string;
-  /** Filtros atuais que precisam sobreviver ao envio. Vazios são ignorados. */
-  hidden: Record<string, string>;
-}) {
-  return (
-    <form
-      action={action}
-      method="get"
-      role="search"
-      className="relative h-[50px] w-full shrink-0 sm:w-[219px]"
-    >
-      {Object.entries(hidden)
-        .filter(([, value]) => value !== "")
-        .map(([key, value]) => (
-          <input key={key} type="hidden" name={key} value={value} />
-        ))}
-
-      <Image
-        src="/icons/search.svg"
-        alt=""
-        width={20}
-        height={20}
-        aria-hidden
-        className="pointer-events-none absolute top-1/2 left-[25px] size-[20px] -translate-y-1/2"
-      />
-      <input
-        type="search"
-        name={name}
-        defaultValue={defaultValue}
-        maxLength={80}
-        aria-label={placeholder}
-        placeholder={placeholder}
-        className="h-full w-full rounded-full border border-brand-border bg-[image:var(--brand-surface-fill)] pr-[20px] pl-[60px] font-helvetica text-[15px] tracking-[0.15px] text-white outline-none placeholder:text-brand-placeholder focus-visible:border-brand-orange"
-      />
-    </form>
-  );
-}
+export { AdminSearchBox } from "./AdminSearchBox";

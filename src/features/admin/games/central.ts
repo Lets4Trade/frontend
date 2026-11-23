@@ -209,12 +209,16 @@ export function moveInList<T>(list: readonly T[], index: number, direction: -1 |
  * é mudança) e pelo nome já aparado — o que o salvamento mandaria.
  */
 export function isGameFormDirty(
-  saved: { name: string; slug: string; servers: readonly { id: string; label: string }[] },
+  saved: {
+    name: string;
+    slug: string;
+    servers: readonly { id: string; label: string; platform?: string | null; isHidden?: boolean }[];
+  },
   draft: {
     name: string;
     /** Já na forma final (`slugify`). */
     slug: string;
-    servers: readonly { id?: string; label: string }[];
+    servers: readonly { id?: string; label: string; platform?: string | null; isHidden?: boolean }[];
     hasNewImage: boolean;
   },
 ): boolean {
@@ -222,6 +226,11 @@ export function isGameFormDirty(
   if (draft.name.trim() !== saved.name || draft.slug !== saved.slug) return true;
   if (draft.servers.length !== saved.servers.length) return true;
   return draft.servers.some(
-    (server, index) => server.id !== saved.servers[index].id || server.label.trim() !== saved.servers[index].label,
+    (server, index) =>
+      server.id !== saved.servers[index].id ||
+      server.label.trim() !== saved.servers[index].label ||
+      // Plataforma (2026-11-22): trocar só o ícone também é alteração.
+      (server.platform ?? null) !== (saved.servers[index].platform ?? null) ||
+      Boolean(server.isHidden) !== Boolean(saved.servers[index].isHidden),
   );
 }

@@ -33,7 +33,7 @@ import { apiGet, apiPost } from "@/lib/serverApi";
 export type UpdateGameInput = {
   name: string;
   slug: string;
-  servers: { id?: string; label: string }[];
+  servers: { id?: string; label: string; platform?: string | null; isHidden?: boolean }[];
   /** "Apagar tudo" (2026-11-17): confirma apagar servidor com produto. */
   deleteProducts?: boolean;
 };
@@ -79,7 +79,13 @@ export async function updateGameAction(
   const result = await savePageAction(gameId, {
     name,
     slug: input.slug,
-    servers: input.servers.map((server) => ({ id: server?.id, label: String(server?.label ?? "") })),
+    // Plataforma (2026-11-22): a validação fica no `cleanServers` do Builder.
+    servers: input.servers.map((server) => ({
+      id: server?.id,
+      label: String(server?.label ?? ""),
+      platform: server?.platform ?? null,
+      isHidden: server?.isHidden === true,
+    })),
     // Tudo abaixo volta como veio: esta tela não edita a página.
     heading: game.heading ?? "",
     serversLabel: game.serversLabel ?? "",

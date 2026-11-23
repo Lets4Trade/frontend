@@ -374,6 +374,7 @@ export function ListPanel({
   emptyHint,
   onDuplicate,
   duplicating = false,
+  renderExtra,
 }: {
   items: BuilderListItem[];
   onChange: (next: BuilderListItem[]) => void;
@@ -386,7 +387,16 @@ export function ListPanel({
    */
   onDuplicate?: (item: BuilderListItem) => void;
   duplicating?: boolean;
+  /**
+   * Controle extra no fim de cada linha (2026-11-22: a plataforma do
+   * servidor). Recebe a linha e um `patch` que troca só ela.
+   */
+  renderExtra?: (item: BuilderListItem, patch: (next: Partial<BuilderListItem>) => void) => React.ReactNode;
 }) {
+  function patchItem(key: string, next: Partial<BuilderListItem>) {
+    onChange(items.map((item) => (item.key === key ? { ...item, ...next } : item)));
+  }
+
   function add() {
     onChange([
       ...items,
@@ -431,6 +441,8 @@ export function ListPanel({
                 onChange={(event) => rename(item.key, event.target.value)}
               />
             </div>
+
+            {renderExtra ? renderExtra(item, (next) => patchItem(item.key, next)) : null}
 
             <RowButton
               label={`Mover ${item.label || itemLabel} para cima`}

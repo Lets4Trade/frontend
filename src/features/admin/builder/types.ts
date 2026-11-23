@@ -1,3 +1,5 @@
+import type { ServerPlatform } from "@/features/game/serverPlatform";
+
 /**
  * Tipos do "Builder de Páginas" (Figma 3883:2153).
  *
@@ -26,6 +28,10 @@ export type BuilderListItem = {
   slug?: string;
   /** Chave estável de renderização, local à tela. NUNCA vai para o backend. */
   key: string;
+  /** Só servidores (2026-11-22): PC / PlayStation / Xbox, que dá o ícone na loja. */
+  platform?: ServerPlatform | null;
+  /** Só servidores (2026-11-22): escondido da loja pelo olho. */
+  isHidden?: boolean;
 };
 
 export type BuilderBanner = {
@@ -76,7 +82,14 @@ export type BuilderGame = {
   categoriesLabel?: string | null;
   /** JSON no banco (`{ title, items }[]`): lido por `toGameDescription`. */
   descriptionGroups?: unknown;
-  servers: { id: string; label: string; slug: string; position: number }[];
+  servers: {
+    id: string;
+    label: string;
+    slug: string;
+    position: number;
+    platform?: ServerPlatform | null;
+    isHidden?: boolean;
+  }[];
   /**
    * Árvore de dois níveis (contrato C da FASE 4). Aceita raízes com `children`
    * montado OU lista plana com `parentId` — quem resolve é `toCategoryTree`.
@@ -108,10 +121,18 @@ export type BuilderGameSummary = {
 export const MAX_BANNERS = 10;
 
 /** Um par subtítulo/texto da descrição, no rascunho. */
-export type DescriptionDraftItem = { key: string; subtitle: string; text: string };
+export type DescriptionDraftItem = {
+  key: string;
+  subtitle: string;
+  text: string;
+};
 
 /** Um bloco da descrição (título + pares), no rascunho. */
-export type DescriptionDraftGroup = { key: string; title: string; items: DescriptionDraftItem[] };
+export type DescriptionDraftGroup = {
+  key: string;
+  title: string;
+  items: DescriptionDraftItem[];
+};
 
 /**
  * O estado que a tela edita.
@@ -165,6 +186,9 @@ export type BuilderShared = {
 };
 
 /** Categoria GLOBAL: sem servidor e sem aba. Ver `BuilderCategoryRow`. */
-export function isGlobalCategory(row: { serverId?: string | null; tabId?: string | null }): boolean {
+export function isGlobalCategory(row: {
+  serverId?: string | null;
+  tabId?: string | null;
+}): boolean {
   return !row.serverId && !row.tabId;
 }

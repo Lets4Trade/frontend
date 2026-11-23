@@ -1,12 +1,14 @@
 import { getLatestNews } from "@/features/blog/data";
+import { formatBlogDate } from "@/features/blog/format";
+import type { GameNewsItem } from "@/features/game/types";
 import type { BlogCardView } from "@/features/blog/types";
 import { getSectionItemsFor, type SectionItemView } from "@/features/site/content";
 
 /**
  * Notícias da home (2026-11-17, pedido do usuário): a seção "guias" deixou de
  * ter cards cadastrados à mão e mostra SOZINHA os 4 posts mais recentes do
- * blog, de todos os jogos (o filtro "Todos"). Post novo publicado = home
- * atualizada, sem ninguém trocar card.
+ * blog. Desde 2026-11-22, só os marcados "Todos os jogos" (sem jogo) — é como
+ * o admin escolhe o que vai para a home; nenhum marcado = seção vazia.
  *
  * Os posts entram no MESMO formato dos itens da sessão (`SectionItemView`), e
  * por isso o desenho dos cards (desktop e celular) não muda. O id começa com
@@ -44,4 +46,23 @@ export function withHomeNews(
 export async function getHomeItems(): Promise<(key: string) => SectionItemView[]> {
   const [items, news] = await Promise.all([getSectionItemsFor("home"), getLatestNews(HOME_NEWS_LIMIT)]);
   return withHomeNews(items, news);
+}
+
+/**
+ * Item da seção → card de notícia DA PÁGINA DE JOGO (2026-11-22, pedido do
+ * usuário: "as notícias da home têm que ficar iguais às de dentro dos jogos").
+ * Capa 16:9 inteira em cima, logo do jogo no canto, título/resumo/data
+ * embaixo. Sem tag: na home todas são "Todos os jogos".
+ */
+export function sectionItemToNews(item: SectionItemView): GameNewsItem {
+  return {
+    id: item.id,
+    title: item.title ?? "",
+    excerpt: item.body ?? "",
+    ...(item.image ? { image: { src: item.image, width: 1280, height: 720, alt: "" } } : {}),
+    ...(item.secondaryImage ? { logo: item.secondaryImage } : {}),
+    tag: "",
+    date: formatBlogDate(item.createdAt),
+    ...(item.href ? { href: item.href } : {}),
+  };
 }

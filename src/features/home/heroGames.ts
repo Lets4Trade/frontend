@@ -179,10 +179,11 @@ export const HERO_DECK_LEFT = HERO_BANNER_WIDTH + HERO_GAP;
 export const HERO_ROW_WIDTH = HERO_DECK_LEFT + HERO_DECK_WIDTH;
 
 /**
- * Largura do grupo dos quatro atalhos, do ícone do HOME ao fim do rótulo
- * "VENDA PRA NÓS" (medido no navegador: 456, o mesmo 679–1135 do arquivo).
+ * Largura do grupo dos quatro atalhos: quatro colunas iguais de 130px
+ * (`HOME_NAV_COL`, 2026-11-22). Antes era 456, medido do ícone do HOME ao fim
+ * do rótulo "VENDA PRA NÓS" com as posições soltas do arquivo.
  */
-export const HERO_NAV_SPAN = 456;
+export const HERO_NAV_SPAN = 4 * 130;
 /** O grupo CENTRADO sob o banner (2026-11-18, pedido do usuário). */
 export const HERO_NAV_LEFT = (HERO_BANNER_WIDTH - HERO_NAV_SPAN) / 2;
 

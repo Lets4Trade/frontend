@@ -213,7 +213,9 @@ export function BlogPostForm({
           label="Jogo:"
           name="gameId"
           defaultValue={post?.gameId || NO_GAME}
-          options={[{ value: NO_GAME, label: "Sem jogo" }, ...games]}
+          // "Todos os jogos" (2026-11-22): sem jogo = aparece em TODA página de
+          // jogo e é o que vai para a home.
+          options={[{ value: NO_GAME, label: "Todos os jogos (vai para a home)" }, ...games]}
           error={errors.gameId}
         />
 
