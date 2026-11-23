@@ -126,11 +126,11 @@ export function ProductCard({
         // com a altura dela, para o card ter a mesma altura dos vizinhos.
         actions={<span aria-hidden className="block h-[36px] desk:h-[50px]" />}
         cta={
-          // Mesma largura, começo e altura do COMPRE AQUI (32px → 249px, 40px).
+          // Mesma largura e altura do COMPRE AQUI (217 × 40), CENTRADO no card.
           <ConsultButton
             href={href}
             productName={product.name}
-            className="h-[38px] desk:ml-[32px] desk:h-[40px] desk:w-[217px]"
+            className="h-[38px] desk:mx-auto desk:h-[40px] desk:w-[217px]"
           />
         }
       />
@@ -203,7 +203,7 @@ export function ProductCard({
         // card): − campo + numa caixa só, e o carrinho ao lado. A caixa ocupa
         // o que sobra da fileira — no desktop a mesma largura do botão de
         // baixo (32px → 249px) — e a letra encolhe só com número grande.
-        <div className="flex items-center gap-[6px] desk:ml-[32px] desk:w-[217px] desk:gap-[10px]">
+        <div className="flex items-center gap-[6px] desk:mx-auto desk:w-[217px] desk:gap-[10px]">
         <div className="flex h-[36px] min-w-0 flex-1 items-center rounded-[8px] border border-white/10 bg-[image:var(--brand-surface-fill)] desk:h-[50px]">
           <StepButton
             label={`Diminuir a quantidade de ${product.name}`}
@@ -253,12 +253,13 @@ export function ProductCard({
         </div>
       }
       cta={
-        // Mesma largura e começo da fileira de cima (32px → 249px).
+        // Mesma largura da fileira de cima, CENTRADO (2026-11-23, pedido do
+        // usuário: com 32px à esquerda e 16px à direita tudo pendia para a direita).
         <button
           type="button"
           onClick={buyNow}
           aria-label={`Comprar ${quantity} × ${product.name} agora`}
-          className={cn(buttonVariants({ variant: "primary" }), "h-[38px] w-full px-0 text-[13px] desk:ml-[32px] desk:h-[40px] desk:w-[217px] desk:text-[16px]")}
+          className={cn(buttonVariants({ variant: "primary" }), "h-[38px] w-full px-0 text-[13px] desk:mx-auto desk:flex desk:h-[40px] desk:w-[217px] desk:text-[16px]")}
         >
           COMPRE AQUI
         </button>
