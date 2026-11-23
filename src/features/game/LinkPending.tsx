@@ -18,8 +18,11 @@ export function LinkPending({ className = "rounded-[inherit]" }: { className?: s
   return (
     <span
       aria-hidden
-      className={`pointer-events-none absolute inset-0 bg-white/15 transition-opacity duration-150 motion-safe:animate-pulse ${
-        pending ? "opacity-100" : "opacity-0"
+      // O pulso SÓ enquanto carrega (2026-11-23, bug: "tá piscando as coisas
+      // na tela do jogo"). O `animate-pulse` anima a própria opacidade, então
+      // ligado sempre ele vencia o `opacity-0` e todo filtro piscava parado.
+      className={`pointer-events-none absolute inset-0 bg-white/15 ${
+        pending ? "opacity-100 motion-safe:animate-pulse" : "opacity-0"
       } ${className}`}
     />
   );
