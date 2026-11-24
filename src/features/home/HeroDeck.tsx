@@ -14,12 +14,10 @@ import {
   type Ref,
 } from "react";
 import {
-  HERO_BANNER_WIDTH,
   HERO_CARD_WIDTH,
   HERO_COIN,
   HERO_DECK_LEFT,
   HERO_DECK_WIDTH,
-  HERO_GAP,
   HERO_HEIGHT,
   HERO_OPEN_STEP,
   type HeroSlide,
@@ -65,6 +63,17 @@ const TRANSITION_MS = 700;
 const DRAG_SLOP = 6;
 
 /**
+ * Largura do esmaecimento na borda esquerda da esteira (2026-11-24, pedido do
+ * usuário: "o banner sumindo fica muito seco"). Cresce com o quanto a esteira
+ * andou — parada no começo não há nada saindo, e o primeiro card fica nítido.
+ */
+const EDGE_FADE = 120;
+
+function edgeFade(at: number) {
+  return `${Math.round(Math.min(Math.max(at, 0), EDGE_FADE))}px`;
+}
+
+/**
  * Slot direito do hero: o baralho FECHADO que vira o carrossel ABERTO
  * (Figma 1075:4856 → 1075:4914).
  *
@@ -83,12 +92,13 @@ const DRAG_SLOP = 6;
  * esquerda continua no servidor, e é ele que carrega a maior parte do peso.
  *
  * GEOMETRIA — este componente ocupa a linha INTEIRA de 1820, não só os 936px
- * dos cards, mas o RECORTE da esteira começa na borda direita do banner (859) e
- * não no vão de 25px. É o que faz o card sumir exatamente onde o banner acaba,
- * como se passasse por trás dele, em vez de ser cortado 25px adiante e deixar
- * uma faixa vazia.
+ * dos cards. O RECORTE da esteira começa na linha dos cards (884), deixando o
+ * vão de 25px sempre vazio, e a borda esquerda ESMAECE conforme a esteira anda
+ * (`--hero-fade`, 2026-11-24, pedido do usuário). Antes o recorte começava na
+ * borda do banner (859): arrastando, o card encostava no banner e sumia num
+ * corte seco.
  *
- * Recortar em 859 em vez de deixar a esteira correr LITERALMENTE por baixo do
+ * Recortar em vez de deixar a esteira correr LITERALMENTE por baixo do
  * banner é deliberado: o banner é um cartão de VIDRO (o SVG é translúcido) e o
  * brilho laranja do fundo da home atravessa ele hoje. Um card passando por trás
  * apareceria através do vidro junto com o brilho; e tapar o banner com preto
@@ -117,6 +127,7 @@ export function HeroDeck({ slides }: { slides: HeroSlide[] }) {
   const [dragging, setDragging] = useState(false);
 
   const trackRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const nextRef = useRef<HTMLButtonElement>(null);
   const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -149,6 +160,7 @@ export function HeroDeck({ slides }: { slides: HeroSlide[] }) {
   useEffect(() => {
     if (!dragging && trackRef.current) {
       trackRef.current.style.transform = `translate3d(${-offset}px, 0, 0)`;
+      viewportRef.current?.style.setProperty("--hero-fade", edgeFade(offset));
     }
   }, [offset, dragging]);
 
@@ -205,6 +217,7 @@ export function HeroDeck({ slides }: { slides: HeroSlide[] }) {
     }
     const at = clamp(gesture.base - dx, 0, MAX_OFFSET);
     trackRef.current.style.transform = `translate3d(${-at}px, 0, 0)`;
+    event.currentTarget.style.setProperty("--hero-fade", edgeFade(at));
   }
 
   function onPointerUp(event: ReactPointerEvent<HTMLDivElement>) {
@@ -226,8 +239,12 @@ export function HeroDeck({ slides }: { slides: HeroSlide[] }) {
       data-dragging={dragging || undefined}
     >
       <div
+        ref={viewportRef}
         className="hero-viewport absolute top-0 right-0 bottom-0"
-        style={{ left: HERO_BANNER_WIDTH }}
+        // O recorte começa na linha dos CARDS (884), não na borda do banner
+        // (859): o vão de 25px fica sempre vazio (2026-11-24, pedido do
+        // usuário — arrastando, o card "grudava" no banner).
+        style={{ left: HERO_DECK_LEFT }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -258,9 +275,8 @@ export function HeroDeck({ slides }: { slides: HeroSlide[] }) {
         <div
           ref={trackRef}
           className="hero-track absolute top-0 h-full"
-          // O recorte já começa em 859, então dentro dele o primeiro card fica
-          // no vão de 25px — que é o `HERO_DECK_LEFT` visto de dentro.
-          style={{ left: HERO_GAP, width: TRACK_WIDTH }}
+          // O recorte já começa na linha dos cards, então a esteira começa nele.
+          style={{ left: 0, width: TRACK_WIDTH }}
         >
           {slides.map((slide, index) => (
             <HeroSlot

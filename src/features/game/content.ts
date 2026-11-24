@@ -206,7 +206,7 @@ async function loadGamePage(slug: string): Promise<GamePage | null> {
     seo: {
       // Só a frase (aba padrão); a marca vem do template do layout raiz.
       title: buildTabTitle(game.name, tabs.find((tab) => tab.id === activeTabId)),
-      description: `${heading} na Lets4Trade: entrega rápida, suporte e preço justo.`,
+      description: buildSeoDescription(game.name, tabs.find((tab) => tab.id === activeTabId)),
     },
 
     /**
@@ -609,6 +609,18 @@ export function buildTabTitle(
   const label = tab.label.trim();
   const what = label.charAt(0) + label.slice(1).toLocaleLowerCase("pt-BR");
   return `Compre ${what} ${name}`;
+}
+
+/**
+ * Descrição da página (meta `description`, a frase do Google e da prévia do
+ * link). Segue a ABA ativa como o título (2026-11-24, pedido do usuário: na
+ * aba Itens do ARC ela seguia dizendo "Compre Moedas…").
+ */
+export function buildSeoDescription(
+  name: string,
+  tab: { label: string; layout: string } | undefined,
+): string {
+  return `${buildTabTitle(name, tab)} na Lets4Trade: entrega rápida, suporte e preço justo.`;
 }
 
 /** Preço em centavos → "R$ 25,00". Formatação fixa em pt-BR, como o arquivo. */

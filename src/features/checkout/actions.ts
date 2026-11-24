@@ -122,7 +122,8 @@ function cleanLines(lines: CheckoutLine[]): { ok: true; items: CleanLine[] } | {
 export async function checkoutAction(
   lines: CheckoutLine[],
   coins = 0,
-  giftProductIds: string[] = [],
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- posição mantida (ver abaixo)
+  _giftProductIds: string[] = [],
   couponCode = "",
   notes = "",
 ): Promise<CheckoutResult> {
@@ -139,15 +140,9 @@ export async function checkoutAction(
    */
   const requestedCoins = Math.max(0, Math.floor(Number(coins)) || 0);
 
-  /**
-   * Brinde do jogo (2026-10-12): onde entregar, quando o mesmo jogo vem de
-   * dois servidores — o id de um produto DESTE carrinho por jogo. O backend
-   * recusa id fora do carrinho; aqui só o formato e o teto, como nas linhas.
-   */
-  const cartIds = new Set(items.map((item) => item.productId));
-  const giftChoices = Array.isArray(giftProductIds)
-    ? giftProductIds.filter((id): id is string => typeof id === "string" && cartIds.has(id)).slice(0, MAX_LINES)
-    : [];
+  // `_giftProductIds` (a escolha de onde receber o brinde do jogo) NÃO vai mais
+  // (2026-11-23): o brinde é por servidor e entregue onde a compra foi feita.
+  // O parâmetro fica só para não mudar a posição de `couponCode` e `notes`.
 
   const result = await apiPost<{
     payment: { id: string; amountCents: number; status: string; expiresAt: string };
@@ -158,7 +153,6 @@ export async function checkoutAction(
   }>("/orders", {
     items,
     coins: requestedCoins,
-    ...(giftChoices.length > 0 ? { giftProductIds: giftChoices } : {}),
     // Cupom (2026-10-12): só o código; valor e alcance são do backend.
     ...(COUPON_CODE_PATTERN.test(normalizeCouponCode(couponCode)) ? { couponCode: normalizeCouponCode(couponCode) } : {}),
     // "Informações adicionais" (2026-11-23): existiam na tela e nunca eram

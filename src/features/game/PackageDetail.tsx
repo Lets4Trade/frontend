@@ -88,6 +88,7 @@ export async function PackageDetail({
   const context = {
     gameSlug: page.slug,
     platform: current.serverLabel ?? page.name,
+    serverSlug: current.serverSlug,
     gameLogo: page.identity.logo?.src,
   };
 

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
 import { SITE_TITLE_TEMPLATE, withSiteName } from "@/lib/siteTitle";
-import { buildTabTitle } from "./content";
+import { buildSeoDescription, buildTabTitle } from "./content";
 
 vi.mock("@/lib/publicApi", () => ({
   publicApiGet: vi.fn(),
@@ -36,6 +36,17 @@ describe("buildTabTitle (título da aba do navegador)", () => {
     expect(withSiteName("Compre Itens Diablo 4")).toBe("Compre Itens Diablo 4 | Lets 4 Trade");
     expect(SITE_TITLE_TEMPLATE.replace("%s", "Compre Itens Diablo 4")).toBe(
       "Compre Itens Diablo 4 | Lets 4 Trade",
+    );
+  });
+});
+
+describe("buildSeoDescription (descrição da página)", () => {
+  it("segue a aba ativa, como o título", () => {
+    expect(buildSeoDescription("ARC Raiders", { label: "ITENS", layout: "CATALOG" })).toBe(
+      "Compre Itens ARC Raiders na Lets4Trade: entrega rápida, suporte e preço justo.",
+    );
+    expect(buildSeoDescription("ARC Raiders", { label: "MOEDAS", layout: "QUANTITY" })).toBe(
+      "Compre Moedas ARC Raiders na Lets4Trade: entrega rápida, suporte e preço justo.",
     );
   });
 });

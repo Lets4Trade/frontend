@@ -27,6 +27,8 @@ export type ProductContext = {
   gameSlug: string;
   /** Rótulo do servidor do filtro, para o produto que não tem um. */
   platform: string;
+  /** Slug do servidor do filtro — mesma reserva (brinde por servidor, 2026-11-23). */
+  serverSlug?: string;
   gameLogo?: string;
   /**
    * "Consulte aqui" (2026-11-17): o que a mensagem do WhatsApp cita e o link
@@ -72,6 +74,8 @@ export function ProductCard({
         image: product.image?.src,
         gameLogo: context.gameLogo,
         platform: product.serverLabel ?? context.platform,
+        // Brinde POR SERVIDOR (2026-11-23): o carrinho precisa saber qual.
+        ...(product.serverSlug ?? context.serverSlug ? { serverSlug: product.serverSlug ?? context.serverSlug } : {}),
         unitPriceCents: product.priceCents,
         ...(min > 1 ? { minUnits: min } : {}),
       },

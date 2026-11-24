@@ -51,6 +51,7 @@ export async function ServiceSection({
   const context = {
     gameSlug: page.slug,
     platform: server?.label ?? page.name,
+    serverSlug: server?.slug,
     gameLogo: page.identity.logo?.src,
   };
 

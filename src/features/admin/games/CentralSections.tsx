@@ -4,8 +4,8 @@ import { isGlobalCategory, type BuilderGame } from "@/features/admin/builder/typ
 import { editProductHref, newProductHref, productsListHref } from "@/features/admin/products/links";
 import { getInactiveProducts, getProductOrdering } from "@/features/admin/products/ordering";
 import { cn } from "@/lib/cn";
-import { GiftEditor } from "../gifts/GiftEditor";
-import type { AdminGift } from "../gifts/types";
+import { ServerGiftCard } from "../gifts/ServerGiftCard";
+import type { AdminServerGift } from "../gifts/types";
 import { NEW_TAB, centralHref, pickCentralTab, type CentralQuery } from "./central";
 import { categoriesOnStore, productGrid } from "./centralView";
 import { GameEditForm } from "./GameEditForm";
@@ -47,16 +47,17 @@ export function OverviewSection({ game }: { game: BuilderGame }) {
 // ── Brinde ──────────────────────────────────────────────────────────────────
 
 /**
- * Brinde por compra do jogo (2026-10-12): "ganhe 50Mi de Ouro a cada R$ 50,00".
- * `gift.ok === false` = a leitura falhou — a tela avisa e não oferece salvar por
- * cima de uma regra que não conseguiu ler.
+ * Brinde por compra: "ganhe 50Mi de Ouro a cada R$ 50,00". POR SERVIDOR desde
+ * 2026-11-23 (era do jogo desde 2026-10-12): um cartão por servidor, cada um
+ * com a sua regra. `gift.ok === false` = a leitura falhou — a tela avisa e não
+ * oferece salvar por cima de uma regra que não conseguiu ler.
  */
 export function GiftSection({
   game,
   gift,
 }: {
   game: BuilderGame;
-  gift: { ok: true; gift: AdminGift | null } | { ok: false } | null;
+  gift: { ok: true; servers: AdminServerGift[] } | { ok: false } | null;
 }) {
   return (
     <section
@@ -65,10 +66,21 @@ export function GiftSection({
     >
       <SectionTitle id="brinde-titulo">Brinde</SectionTitle>
       <p className="mt-[8px] mb-[24px] font-poppins text-[13px] text-brand-fg-subtle">
-        Um brinde por valor pago no jogo, mostrado no carrinho e no checkout e entregue junto com o pedido.
+        Cada servidor tem o seu brinde (ou nenhum): o que o cliente compra num servidor rende o brinde dele, entregue
+        nele, junto com o pedido. Servidor sem brinde ligado não dá brinde.
       </p>
       {gift?.ok ? (
-        <GiftEditor gameId={game.id} gameName={game.name} initial={gift.gift} />
+        gift.servers.length > 0 ? (
+          <div className="flex flex-col gap-[14px]">
+            {gift.servers.map((server) => (
+              <ServerGiftCard key={server.serverId} gameId={game.id} server={server} />
+            ))}
+          </div>
+        ) : (
+          <p className="font-poppins text-[14px] text-brand-fg-subtle">
+            Este jogo ainda não tem servidores. Cadastre em “Visão geral”.
+          </p>
+        )
       ) : (
         <p role="alert" className="font-poppins text-[14px] text-red-9">
           Não foi possível ler o brinde deste jogo. Recarregue a página.

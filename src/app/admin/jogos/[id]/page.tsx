@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getBuilderGame, getBuilderGames } from "@/features/admin/builder/list";
-import { getAdminGift } from "@/features/admin/gifts/data";
+import { getAdminGifts } from "@/features/admin/gifts/data";
 import { builderHref, parseCentralQuery } from "@/features/admin/games/central";
 import { GiftSection, NewsSection, OverviewSection, TabsSection } from "@/features/admin/games/CentralSections";
 import { GameAdminNav } from "@/features/admin/games/GameAdminNav";
@@ -34,7 +34,7 @@ type PageProps = {
  *   - `visao-geral`: o cadastro (nome, link, imagem, servidores);
  *   - `abas` (padrão): mestre-detalhe das abas, com produtos e categorias;
  *   - `pagina`: atalhos para o Builder, o Construtor e a loja;
- *   - `brinde`: o brinde por compra do jogo (2026-10-12);
+ *   - `brinde`: o brinde por compra, POR SERVIDOR (2026-11-23; era do jogo);
  *   - `noticias`: de onde vêm as notícias da página do jogo (2026-11-23).
  *
  * Substitui `/editar`, `/abas` e `/categorias` (hoje redirecionamentos).
@@ -56,7 +56,7 @@ export default async function GameCentralPage({ params, searchParams }: PageProp
   const [game, tabs, gift, commonFaq, newsGames] = await Promise.all([
     getBuilderGame(id),
     query.section === "abas" ? getGameTabs(id) : Promise.resolve(null),
-    query.section === "brinde" ? getAdminGift(id) : Promise.resolve(null),
+    query.section === "brinde" ? getAdminGifts(id) : Promise.resolve(null),
     query.section === "descricao" ? readCommonFaq() : Promise.resolve(null),
     // Aba Notícias (2026-11-23): os jogos do select. Lista vazia = falha.
     query.section === "noticias" ? getBuilderGames() : Promise.resolve([]),

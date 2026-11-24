@@ -42,7 +42,7 @@ describe("checkoutAction", () => {
     });
   });
 
-  it("brinde: manda só escolhas que estão no carrinho (2026-10-12)", async () => {
+  it("brinde: a escolha antiga de onde receber NÃO vai mais (por servidor, 2026-11-23)", async () => {
     await checkoutAction([{ productId: "a", units: 1 }, { productId: "b", units: 1 }], 0, ["b", "fora", 7 as never]);
     expect(apiPost).toHaveBeenCalledWith("/orders", {
       items: [
@@ -50,7 +50,6 @@ describe("checkoutAction", () => {
         { productId: "b", units: 1 },
       ],
       coins: 0,
-      giftProductIds: ["b"],
     });
   });
 

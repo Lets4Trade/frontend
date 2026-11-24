@@ -40,3 +40,38 @@ export function parseAmount(text: string): number | null {
 export function formatAmount(value: number | null): string {
   return value === null ? "" : value.toLocaleString("pt-BR");
 }
+
+/**
+ * Um servidor do jogo na Central → Brinde (POR SERVIDOR desde 2026-11-23): o
+ * nome, a plataforma (ícone), se está escondido da loja e a regra dele.
+ */
+export type AdminServerGift = {
+  serverId: string;
+  serverLabel: string;
+  platform: "PC" | "PLAYSTATION" | "XBOX" | null;
+  isHidden: boolean;
+  /** `null` = servidor sem brinde configurado. */
+  gift: AdminGift | null;
+};
+
+const PLATFORMS = new Set(["PC", "PLAYSTATION", "XBOX"]);
+
+/** Resposta do `GET /admin/games/:id/gift` → servidores. Item sem id/nome sai. */
+export function toAdminServerGifts(raw: unknown): AdminServerGift[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const row = item as Record<string, unknown>;
+    if (typeof row.serverId !== "string" || typeof row.serverLabel !== "string") return [];
+    return [
+      {
+        serverId: row.serverId,
+        serverLabel: row.serverLabel,
+        platform: typeof row.platform === "string" && PLATFORMS.has(row.platform) ? (row.platform as AdminServerGift["platform"]) : null,
+        // O backend apaga `false`: ausente = à vista.
+        isHidden: row.isHidden === true,
+        gift: toAdminGift(row.gift),
+      },
+    ];
+  });
+}

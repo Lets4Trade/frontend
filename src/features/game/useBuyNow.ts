@@ -32,6 +32,8 @@ export function useBuyNow(context: ProductContext) {
         image: product.image?.src,
         gameLogo: context.gameLogo,
         platform: product.serverLabel ?? context.platform,
+        // Brinde POR SERVIDOR (2026-11-23): o carrinho precisa saber qual.
+        ...(product.serverSlug ?? context.serverSlug ? { serverSlug: product.serverSlug ?? context.serverSlug } : {}),
         unitPriceCents: result.totalCents,
         selection: result.selection,
         summary: result.summary,

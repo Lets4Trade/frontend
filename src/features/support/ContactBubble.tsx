@@ -425,14 +425,6 @@ export function ContactBubble({
                 <StatusDot online={online} ring />
               </span>
             )}
-            {unread > 0 ? (
-              <span
-                aria-hidden
-                className="absolute -top-[4px] -right-[4px] flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-brand-orange px-[5px] font-poppins text-[11px] font-bold text-black"
-              >
-                {unread > 9 ? "9+" : unread}
-              </span>
-            ) : null}
           </span>
         )}
         {withText ? (
@@ -465,6 +457,7 @@ export function ContactBubble({
             <StatusDot online={online} ring />
           </span>
         ) : null}
+        {open ? null : <UnreadBadge count={unread} />}
       </button>
 
       {/* Celular (2026-11-19): só as fotos dos atendentes (ou a do painel), num
@@ -540,15 +533,8 @@ export function ContactBubble({
                 <span className="absolute -right-[2px] -bottom-[2px]">
                   <StatusDot online={online} ring />
                 </span>
-                {unread > 0 ? (
-                  <span
-                    aria-hidden
-                    className="absolute -top-[6px] -right-[6px] flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-orange px-[4px] font-poppins text-[10px] font-bold text-black"
-                  >
-                    {unread > 9 ? "9+" : unread}
-                  </span>
-                ) : null}
               </span>
+              <UnreadBadge count={unread} />
             </>
           )}
         </button>
@@ -565,6 +551,24 @@ export function ContactBubble({
         ) : null}
       </div>
     </>
+  );
+}
+
+/**
+ * Número de conversas com resposta nova, no canto de cima do BOTÃO, como
+ * notificação (2026-11-24, pedido do usuário). Antes ficava dentro da caixa
+ * da foto e, sem `z-index`, por trás das fotos dos atendentes (que têm
+ * `zIndex` próprio) — aparecia só um pedaço atrás delas.
+ */
+function UnreadBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute -top-[6px] -right-[6px] z-10 flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-brand-orange px-[5px] font-poppins text-[11px] leading-none font-bold text-black shadow-[0_0_0_2px_#000]"
+    >
+      {count > 9 ? "9+" : count}
+    </span>
   );
 }
 

@@ -13,7 +13,7 @@ import {
   useCart,
   useCartHydrated,
 } from "@/features/cart/store";
-import { cartGifts, type CartGift, type PublicGift } from "@/features/gifts/cartGifts";
+import { cartGifts, type PublicGift } from "@/features/gifts/cartGifts";
 import { GiftSummary } from "@/features/gifts/GiftSummary";
 import type { LoyaltySummary } from "@/features/loyalty/data";
 import { couponDiscount } from "@/features/pricing/coupon";
@@ -167,8 +167,6 @@ export function CheckoutClient({
   const [couponInput, setCouponInput] = useState("");
   const [couponNote, setCouponNote] = useState<string | null>(null);
   const [couponBusy, setCouponBusy] = useState(false);
-  // Brinde: servidor escolhido por jogo (slug → id de produto do carrinho).
-  const [giftChoice, setGiftChoice] = useState<Record<string, string>>({});
 
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -314,10 +312,6 @@ export function CheckoutClient({
      * mais. Não dava prejuízo só porque nenhum saldo era creditado ainda.
      */
     const coinsToUse = coins;
-    // Onde entregar cada brinde que depende de escolha (jogo em 2+ servidores).
-    const giftProductIds = giftList
-      .filter((gift) => gift.result.amount > 0 && gift.servers.length > 1)
-      .map((gift) => chosenServer(gift, giftChoice).productId);
     // A escolha entra na assinatura: mudar "1 → 50" para "1 → 90" é OUTRO
     // pedido e não pode reaproveitar o pagamento pendente do anterior.
     const signature = cartSignature(
@@ -328,9 +322,7 @@ export function CheckoutClient({
         units: line.units,
       })),
       coinsToUse,
-    ) +
-      (giftProductIds.length > 0 ? `#brinde:${[...giftProductIds].sort().join(",")}` : "") +
-      (coupon && couponTotal > 0 ? `#cupom:${coupon.code}` : "");
+    ) + (coupon && couponTotal > 0 ? `#cupom:${coupon.code}` : "");
 
     // Tentativa anterior recusada, mesmo carrinho: cobra o MESMO pagamento.
     let pending = readPendingPayment(signature);
@@ -338,7 +330,7 @@ export function CheckoutClient({
       // Exceção (rede, deploy novo) cai no mesmo "error" de uma recusa comum:
       // sem isto o botão ficava em "enviando" para sempre, porque o
       // `setIsSubmitting(false)` abaixo nunca rodava.
-      const created = await runAction(() => checkoutAction(lines, coinsToUse, giftProductIds, coupon && couponTotal > 0 ? coupon.code : "", parsed.data.notes), {
+      const created = await runAction(() => checkoutAction(lines, coinsToUse, [], coupon && couponTotal > 0 ? coupon.code : "", parsed.data.notes), {
         ok: false,
         reason: "error",
       });
@@ -796,18 +788,8 @@ export function CheckoutClient({
           className="mt-[12px]"
           note={
             discount > 0 || (couponTotal > 0 && rewardsCut)
-              ? "Brinde calculado sobre o valor pago no jogo (descontos abatem). Entregue junto com o pedido."
-              : "Brinde calculado sobre o valor pago no jogo. Entregue junto com o pedido."
-          }
-          extra={(gift) =>
-            gift.result.amount > 0 && gift.servers.length > 1 ? (
-              <SelectField
-                label="Receber o brinde em"
-                value={chosenServer(gift, giftChoice).productId}
-                onValueChange={(productId) => setGiftChoice((current) => ({ ...current, [gift.gameSlug]: productId }))}
-                options={gift.servers.map((server) => ({ value: server.productId, label: server.label }))}
-              />
-            ) : null
+              ? "Brinde calculado sobre o valor pago em cada servidor (descontos abatem). Entregue no mesmo servidor, junto com o pedido."
+              : "Brinde calculado sobre o valor pago em cada servidor. Entregue no mesmo servidor, junto com o pedido."
           }
         />
 
@@ -957,14 +939,6 @@ function CheckoutCashback({
 }
 
 /** "1x de R$ 500,00 (R$ 500,00)" — sem juros, que é o que o arquivo mostra. */
-/**
- * O servidor que recebe o brinde de um jogo: o escolhido, se ainda estiver no
- * carrinho; senão o primeiro (o mesmo padrão do backend sem escolha).
- */
-function chosenServer(gift: CartGift, choice: Record<string, string>) {
-  return gift.servers.find((server) => server.productId === choice[gift.gameSlug]) ?? gift.servers[0];
-}
-
 function installmentOptions(totalCents: number, limit: number, minCents: number) {
   return Array.from({ length: maxInstallmentsFor(totalCents, limit, minCents) }, (_, index) => {
     const times = index + 1;

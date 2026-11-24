@@ -26,14 +26,25 @@ const BLANK: AdminGift = { isActive: true, everyCents: 5000, amount: 0, label: "
 const EXAMPLES_CENTS = [5000, 16000, 50000];
 
 /**
- * Brinde do jogo (2026-10-12) — "ganhe 50Mi de Ouro a cada R$ 50,00".
+ * Brinde de UM SERVIDOR (por servidor desde 2026-11-23; era do jogo desde
+ * 2026-10-12) — "ganhe 50Mi de Ouro a cada R$ 50,00".
  *
- * A regra ACUMULA sobre o valor PAGO nos itens do jogo (as Lets Coins abatem)
- * e o teto é opcional, por compra. A prévia ao lado mostra o que o cliente vai
- * ler no carrinho e quanto compras de exemplo rendem — com a MESMA conta
- * (`giftFor`) que o backend usa para conceder.
+ * A regra ACUMULA sobre o valor PAGO nos itens DESTE servidor (as Lets Coins
+ * abatem) e o teto é opcional, por compra. A prévia ao lado mostra o que o
+ * cliente vai ler no carrinho e quanto compras de exemplo rendem — com a MESMA
+ * conta (`giftFor`) que o backend usa para conceder.
  */
-export function GiftEditor({ gameId, gameName, initial }: { gameId: string; gameName: string; initial: AdminGift | null }) {
+export function GiftEditor({
+  gameId,
+  serverId,
+  serverLabel,
+  initial,
+}: {
+  gameId: string;
+  serverId: string;
+  serverLabel: string;
+  initial: AdminGift | null;
+}) {
   const [saved, setSaved] = useState<AdminGift | null>(initial);
   const start = initial ?? BLANK;
   const [isActive, setIsActive] = useState(start.isActive);
@@ -74,14 +85,18 @@ export function GiftEditor({ gameId, gameName, initial }: { gameId: string; game
       return;
     }
     startSaving(async () => {
-      const result = await runAction(() => saveGiftAction(gameId, { ...rule, isActive }), FAILED);
+      const result = await runAction(() => saveGiftAction(gameId, serverId, { ...rule, isActive }), FAILED);
       if (!result.ok) {
         toastError(result.message ?? ACTION_FAILED_MESSAGE);
         return;
       }
       setSaved(result.data);
       load(result.data);
-      toastOk(result.data.isActive ? "Brinde salvo. O carrinho e o checkout já mostram." : "Brinde salvo e desligado.");
+      toastOk(
+        result.data.isActive
+          ? `Brinde de ${serverLabel} salvo. O carrinho e o checkout já mostram.`
+          : `Brinde de ${serverLabel} salvo e desligado.`,
+      );
     });
   }
 
@@ -95,7 +110,7 @@ export function GiftEditor({ gameId, gameName, initial }: { gameId: string; game
             onChange={(event) => setIsActive(event.target.checked)}
             className="size-[18px] accent-[var(--brand-orange)]"
           />
-          Brinde ligado na loja
+          Brinde ligado em {serverLabel}
         </label>
 
         <div className="grid grid-cols-1 gap-[20px] sm:grid-cols-2">
@@ -118,7 +133,7 @@ export function GiftEditor({ gameId, gameName, initial }: { gameId: string; game
           />
           <MoneyField
             key={version}
-            label="A cada (valor pago no jogo)"
+            label="A cada (valor pago no servidor)"
             name="everyCents"
             defaultCents={everyCents}
             maxCents={MAX_GIFT_EVERY_CENTS}
@@ -138,8 +153,8 @@ export function GiftEditor({ gameId, gameName, initial }: { gameId: string; game
 
         <p className="font-poppins text-[13px] leading-[19px] text-brand-fg-subtle">
           Quantidade em unidades do jogo: 50.000.000 aparece para o cliente como “50Mi”. O brinde acumula a cada valor
-          pago nos itens de {gameName} (as Lets Coins abatem). Se a compra tiver o jogo em mais de um servidor, o
-          cliente escolhe no checkout onde receber. O brinde aparece no pedido e no painel de vendas para quem entrega.
+          pago nos itens de {serverLabel} (as Lets Coins abatem) e é entregue em {serverLabel}. Cada servidor conta
+          separado. O brinde aparece no pedido e no painel de vendas para quem entrega.
         </p>
 
         {problem && amountText !== "" ? (

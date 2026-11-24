@@ -9,7 +9,7 @@ import { notFound } from "next/navigation";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { parseCatalogQuery, scopePageToQuery } from "@/features/game/catalog";
-import { buildTabTitle, getCatalog, getGamePage, withActiveTab } from "@/features/game/content";
+import { buildSeoDescription, buildTabTitle, getCatalog, getGamePage, withActiveTab } from "@/features/game/content";
 import { withSiteName } from "@/lib/siteTitle";
 import { GamePageSections } from "@/features/game/GamePageSections";
 import { GAME_SLUG, gameHref, isReservedGameSlug } from "@/features/game/href";
@@ -46,18 +46,19 @@ export async function generateMetadata({
   // página como no render — "Compre Moedas ARC Raiders | Lets 4 Trade". A
   // leitura do jogo é a mesma do render (memorizada pelo `fetch` do Next).
   const query = parseCatalogQuery(await searchParams, page);
-  const title = buildTabTitle(
-    page.name,
-    page.tabs.find((tab) => tab.id === query.tab),
-  );
+  const activeTab = page.tabs.find((tab) => tab.id === query.tab);
+  const title = buildTabTitle(page.name, activeTab);
+  // A descrição segue a aba como o título (2026-11-24): antes vinha de
+  // `page.seo.description`, montada só com a aba padrão.
+  const description = buildSeoDescription(page.name, activeTab);
 
   return {
     title,
-    description: page.seo.description,
+    description,
     alternates: { canonical: gameHref(page.slug) },
     openGraph: {
       title: withSiteName(title),
-      description: page.seo.description,
+      description,
       url: gameHref(page.slug),
       type: "website",
       siteName: "Lets4Trade",

@@ -36,6 +36,7 @@ export async function ProductGrid({
   const context = {
     gameSlug: page.slug,
     platform: server?.label ?? page.name,
+    serverSlug: server?.slug,
     gameLogo: page.identity.logo?.src,
     // "Consulte aqui" (2026-11-17): a mensagem do WhatsApp e o link da loja.
     gameName: page.name,

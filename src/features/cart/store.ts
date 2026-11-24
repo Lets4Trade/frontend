@@ -38,6 +38,12 @@ export type CartItem = {
   gameLogo?: string;
   /** Servidor/liga escolhido ("Eternal Softcore"). */
   platform: string;
+  /**
+   * Slug do servidor (2026-11-23): o brinde é POR SERVIDOR, e o rótulo pode
+   * repetir em plataformas diferentes. Opcional para o carrinho salvo antes
+   * continuar abrindo (aí o brinde casa pelo rótulo — ver `cartGifts`).
+   */
+  serverSlug?: string;
   unitPriceCents: number;
   quantity: number;
   /** Quando entrou no carrinho — é a data que o card mostra. */

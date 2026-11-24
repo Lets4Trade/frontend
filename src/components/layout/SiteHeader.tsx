@@ -77,7 +77,7 @@ export async function SiteHeader({ user }: { user?: SessionUser } = {}) {
     getLayoutContent(),
     // Jogos do menu GAMES — cacheada como o layout, ver `menuGames.ts`.
     getMenuGames(),
-    // Brindes por jogo da gaveta do carrinho (2026-10-12) — público e
+    // Brindes POR SERVIDOR da gaveta do carrinho (2026-11-23) — público e
     // cacheado como os níveis, ver `gifts/publicGifts.ts`.
     getPublicGifts(),
     // Atendentes online (2026-10-16) — só para o cartão do menu do celular;
