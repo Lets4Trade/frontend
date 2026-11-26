@@ -146,8 +146,6 @@ export type GameProduct = {
   consultOnly?: boolean;
   /** Quantidade mínima por compra (2026-11-17). Ausente = 1. */
   minUnits?: number;
-  /** Nome no menu "Selecionar serviço" (2026-11-04). Ausente = o `name`. */
-  serviceLabel?: string;
   image?: ImageRef;
   /** Ausente quando o produto não tem servidor cadastrado. */
   serverSlug?: string;

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 /**
@@ -19,6 +20,8 @@ export type FilterOption = {
   href: string;
   label: string;
   active: boolean;
+  /** Ícone antes do rótulo (2026-11-26: a plataforma do servidor). */
+  icon?: ReactNode;
 };
 
 /**
@@ -38,11 +41,14 @@ export type FilterOption = {
 export function FilterMenu({
   width,
   label,
+  labelIcon,
   active,
   options,
 }: {
   width: number;
   label: string;
+  /** Ícone antes do rótulo do campo (o da opção escolhida). */
+  labelIcon?: ReactNode;
   /** Muda só a cor do rótulo: escolhido fica branco, padrão fica apagado. */
   active: boolean;
   options: FilterOption[];
@@ -58,7 +64,10 @@ export function FilterMenu({
           active ? "text-white" : "text-white/60",
         )}
       >
-        <span className="truncate">{label}</span>
+        <span className="flex min-w-0 items-center gap-[8px]">
+          {labelIcon}
+          <span className="truncate">{label}</span>
+        </span>
         <Image
           src="/icons/chevron-down.svg"
           alt=""
@@ -80,7 +89,14 @@ export function FilterMenu({
               option.active ? "text-brand-orange" : "text-white",
             )}
           >
-            {option.label}
+            {option.icon ? (
+              <span className="flex min-w-0 items-center gap-[8px]">
+                {option.icon}
+                <span className="truncate">{option.label}</span>
+              </span>
+            ) : (
+              option.label
+            )}
           </Link>
         ))}
       </div>

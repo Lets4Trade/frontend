@@ -11,7 +11,7 @@ import { tierArt } from "@/features/loyalty/tiers";
 import { CartRow } from "./CartRow";
 import { CashbackSummary } from "./CashbackSummary";
 import { estimateCashback } from "./cashback";
-import { formatCents, itemCount, subtotalCents, useCart, type CartItem } from "./store";
+import { cartRowKey, formatCents, itemCount, subtotalCents, useCart, type CartItem } from "./store";
 import { useLoyaltyRate } from "./useLoyaltyRate";
 import { CHECKOUT_LOGIN_HREF, CHECKOUT_PATH } from "@/features/checkout/loginHref";
 
@@ -93,7 +93,7 @@ export function CartDrawer({ tiers, gifts }: { tiers: LoyaltyTierRule[]; gifts: 
                   embaixo fica sempre visível. */}
               <ul className="scrollbar-orange min-h-0 flex-1 overflow-y-auto px-[20px] py-[8px] sm:px-[28px]">
                 {items.map((item) => (
-                  <CartRow key={item.id} item={item} />
+                  <CartRow key={cartRowKey(item)} item={item} />
                 ))}
               </ul>
 

@@ -8,7 +8,7 @@ import { apiDelete, apiPatchFormData, apiPost, apiPostFormData, apiPut } from "@
 import { MAX_IMAGE_BYTES } from "../games/options";
 import { isPriceCents, pricingSchema, type Pricing } from "@/features/pricing/quote";
 import { MAX_PRICE_BATCH, MAX_PRICE_CENTS, NAME_MAX, parseNameInput, type RowChange } from "./prices";
-import { createProductSchema, highlightsSchema } from "./schema";
+import { createProductSchema, highlightsSchema, MAX_MIN_UNITS } from "./schema";
 import { tabContentSchema, type TabContent } from "../games/tabs/types";
 
 /**
@@ -62,7 +62,6 @@ export async function createProductAction(
     serverId: form.get("serverId") ?? "",
     categoryId: form.get("categoryId") ?? "",
     badgeText: form.get("badgeText") ?? "",
-    serviceLabel: form.get("serviceLabel") ?? "",
     extraCategoryIds: form.get("extraCategoryIds") ?? "",
   });
 
@@ -90,7 +89,6 @@ export async function createProductAction(
   if (createBreak !== null) payload.set("nameBreak", String(createBreak));
   // Selo e categorias extras (2026-11-04): no cadastro, só quando há.
   if (parsed.data.badgeText) payload.set("badgeText", parsed.data.badgeText);
-  if (parsed.data.serviceLabel) payload.set("serviceLabel", parsed.data.serviceLabel);
   // "Consulte aqui" (2026-11-17): no cadastro, só quando marcado.
   if (readConsultOnly(form)) payload.set("consultOnly", "true");
   // Oculto do site (2026-11-17): no cadastro, só quando marcado.
@@ -272,7 +270,6 @@ export async function updateProductAction(
       serverId: form.get("serverId") ?? "",
       categoryId: form.get("categoryId") ?? "",
       badgeText: form.get("badgeText") ?? "",
-      serviceLabel: form.get("serviceLabel") ?? "",
       extraCategoryIds: form.get("extraCategoryIds") ?? "",
     });
 
@@ -303,8 +300,6 @@ export async function updateProductAction(
   payload.set("isHidden", form.get("isHidden") === "true" ? "true" : "false");
   // Quantidade mínima vai SEMPRE na edição: vazio (ou aba sem o campo) volta a 1.
   payload.set("minUnits", String(parsed.data.minUnits));
-  // Vazio volta o menu ao nome do produto.
-  payload.set("serviceLabel", parsed.data.serviceLabel);
   payload.set("extraCategoryIds", JSON.stringify(parsed.data.extraCategoryIds));
   payload.set("priceCents", String(parsed.data.priceCents));
   // Na edição vai SEMPRE: 0 tira o desconto (inclusive de quem saiu do catálogo).
@@ -465,6 +460,8 @@ export async function saveProductPricesAction(
       // Oculto do site e excluir (2026-11-17).
       ...(item.hidden === undefined ? {} : { hidden: item.hidden }),
       ...(item.remove === true ? { remove: true } : {}),
+      // Quantidade mínima (2026-11-26), com a lida como trava.
+      ...(item.minUnits === undefined ? {} : { minUnits: item.minUnits, expectedMinUnits: item.expectedMinUnits }),
     })),
   });
   if (!response.ok) {
@@ -501,11 +498,14 @@ function isValidRowChange(value: unknown): value is RowChange {
   }
   if (item.hidden !== undefined && typeof item.hidden !== "boolean") return false;
   if (item.remove !== undefined && item.remove !== true) return false;
+  const units = (v: unknown) => Number.isInteger(v) && (v as number) >= 1 && (v as number) <= MAX_MIN_UNITS;
+  if (item.minUnits !== undefined && (!units(item.minUnits) || !units(item.expectedMinUnits))) return false;
   return (
     item.priceCents !== undefined ||
     item.name !== undefined ||
     item.categoryId !== undefined ||
     item.hidden !== undefined ||
+    item.minUnits !== undefined ||
     item.remove === true
   );
 }

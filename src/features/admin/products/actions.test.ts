@@ -281,7 +281,8 @@ describe("selo do card e categorias extras (2026-11-04)", () => {
   it("edição: vão sempre (vazio tira o selo; [] tira as extras)", async () => {
     await updateProductAction("p1", productForm({ serviceLabel: " Campanha " }));
     const sent = patch.mock.calls[0][1] as FormData;
-    expect(sent.get("serviceLabel")).toBe("Campanha");
+    // "Nome no Selecionar serviço" saiu do painel (2026-11-26): não viaja mais.
+    expect(sent.has("serviceLabel")).toBe(false);
     expect(sent.get("badgeText")).toBe("");
     expect(sent.get("extraCategoryIds")).toBe("[]");
   });
@@ -539,10 +540,24 @@ describe("saveProductPricesAction", () => {
     ["nome curto", { id: "a", expectedPriceCents: 1, name: " x ", expectedName: "ab" }],
     ["nome sem o lido", { id: "a", expectedPriceCents: 1, name: "Novo" }],
     ["categoria com barra", { id: "a", expectedPriceCents: 1, categoryId: "../x", expectedCategoryId: null }],
+    ["mínima sem a lida", { id: "a", expectedPriceCents: 1, minUnits: 10 }],
+    ["mínima zero", { id: "a", expectedPriceCents: 1, minUnits: 0, expectedMinUnits: 1 }],
+    ["mínima quebrada", { id: "a", expectedPriceCents: 1, minUnits: 1.5, expectedMinUnits: 1 }],
+    ["mínima acima do teto", { id: "a", expectedPriceCents: 1, minUnits: 1_000_001, expectedMinUnits: 1 }],
   ])("linha inválida (%s) → recusa sem API", async (_l, item) => {
     role.mockResolvedValue("ADMIN");
     expect(await saveProductPricesAction("g1", [item] as typeof items)).toMatchObject({ ok: false });
     expect(put).not.toHaveBeenCalled();
+  });
+
+  it("quantidade mínima (2026-11-26) vai com a lida", async () => {
+    role.mockResolvedValue("ADMIN");
+    put.mockResolvedValue(apiOk({ saved: 1 }));
+    await saveProductPricesAction("g1", [{ id: "a", expectedPriceCents: 390, minUnits: 100, expectedMinUnits: 1 }]);
+    expect(put).toHaveBeenCalledWith("/admin/products/prices", {
+      gameId: "g1",
+      items: [{ id: "a", expectedPriceCents: 390, minUnits: 100, expectedMinUnits: 1 }],
+    });
   });
 
   it("409 repassa a mensagem do backend (diz qual preço mudou)", async () => {

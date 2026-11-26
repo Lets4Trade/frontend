@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const push = vi.fn();
@@ -137,19 +137,6 @@ describe("ServiceConfigurator", () => {
     expect(container.querySelector(".rounded-t-\\[30px\\]")).toBeNull();
   });
 
-  it("menu \"Selecionar serviço\": nome próprio quando há, senão o nome (2026-11-04)", () => {
-    render(
-      <ServiceConfigurator
-        products={[{ ...product, serviceLabel: "Campanha 1-50" }, { ...product, id: "p2", name: "Farm de Divine" }]}
-        context={context}
-        filters={null}
-        emptyMessage="vazio"
-      />,
-    );
-    expect(screen.getByLabelText("Selecionar serviço:")).toHaveTextContent("Campanha 1-50");
-    expect(screen.queryByText("Power Leveling")).not.toBeInTheDocument();
-  });
-
   it("sem produto no escopo mostra o estado vazio", () => {
     render(<ServiceConfigurator products={[]} context={context} filters={null} emptyMessage="Nada aqui." />);
     expect(screen.getByRole("status")).toHaveTextContent("Nada aqui.");
@@ -268,12 +255,22 @@ describe("ServiceConfigurator", () => {
     expect(useCart.getState().items[0]).toMatchObject({ productId: "p1", quantity: 3, unitPriceCents: 1500 });
   });
 
-  it("sem máximo de unidades (ou faixa de nível) não tem seletor de quantidade", () => {
+  it("faixa de nível e preço fixo com máximo 1 não têm seletor; sem máximo tem, sem limite (2026-11-26)", () => {
     const { unmount } = render(
       <ServiceConfigurator products={[product]} context={context} filters={null} emptyMessage="vazio" />,
     );
     expect(screen.queryByRole("button", { name: "Aumentar a quantidade" })).not.toBeInTheDocument();
     unmount();
+    render(
+      <ServiceConfigurator
+        products={[{ ...product, pricing: { mode: "FIXED", maxUnits: 1 }, priceCents: 1500 }]}
+        context={context}
+        filters={null}
+        emptyMessage="vazio"
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "Aumentar a quantidade" })).not.toBeInTheDocument();
+    cleanup();
     render(
       <ServiceConfigurator
         products={[{ ...product, pricing: { mode: "FIXED" }, priceCents: 1500 }]}
@@ -282,7 +279,9 @@ describe("ServiceConfigurator", () => {
         emptyMessage="vazio"
       />,
     );
-    expect(screen.queryByRole("button", { name: "Aumentar a quantidade" })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole("textbox", { name: `Quantidade de ${product.name}` }), { target: { value: "250" } });
+    expect(screen.getByText(/R\$\s?3\.750,00/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Aumentar a quantidade" })).toBeEnabled();
   });
 
   it("grupo obrigatório (2026-11-11): COMPRAR AGORA travado até escolher um subitem", () => {

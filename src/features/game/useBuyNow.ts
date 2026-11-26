@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCart } from "@/features/cart/store";
 import type { Quote } from "@/features/pricing/quote";
+import { cartSummary } from "./configurator";
 import type { ProductContext } from "./ProductCard";
 import type { GameProduct } from "./types";
 
@@ -22,7 +23,10 @@ export function useBuyNow(context: ProductContext) {
 
   // `units`: quantas vezes a mesma escolha (2026-11-11, só preço fixo).
   // `maxUnits`: até quanto o carrinho deixa mudar a quantidade depois.
-  return (product: GameProduct, result: Quote, units = 1, maxUnits = 1) => {
+  // `checkout` false (2026-11-26, o botão do carrinho ao lado do COMPRAR
+  // AGORA): só põe no carrinho — a gaveta abre sozinha (`add`) e a pessoa
+  // continua na página.
+  return (product: GameProduct, result: Quote, units = 1, maxUnits = 1, checkout = true) => {
     if (!result.ok) return;
     addToCart(
       {
@@ -36,12 +40,18 @@ export function useBuyNow(context: ProductContext) {
         ...(product.serverSlug ?? context.serverSlug ? { serverSlug: product.serverSlug ?? context.serverSlug } : {}),
         unitPriceCents: result.totalCents,
         selection: result.selection,
-        summary: result.summary,
+        // Quantidade no texto da página ("1Mi Gold"), 2026-11-26.
+        summary: product.pricing ? cartSummary(product.pricing, result) : result.summary,
         hours: result.hours,
+        // Gold: o carrinho muda a quantidade e refaz a prévia (2026-11-26).
+        ...(product.pricing?.mode === "QUANTITY"
+          ? { pricing: product.pricing, basePriceCents: product.priceCents }
+          : {}),
         ...(maxUnits > 1 ? { maxUnits } : {}),
       },
       units,
     );
+    if (!checkout) return;
     // "Comprar agora" vai direto ao checkout; a gaveta aberta por cima dele
     // seria um passo a mais.
     closeCart();

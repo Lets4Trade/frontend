@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import Image from "next/image";
+// Import ESTÁTICO do mascote: a URL leva hash do conteúdo, então trocar a arte
+// invalida o cache sozinho.
+import mascote from "../../../public/images/venda-mascote.png";
 import { Button } from "@/components/ui/Button";
 import { SelectField } from "@/components/ui/SelectField";
 import { TextAreaField } from "@/components/ui/TextAreaField";
@@ -116,7 +120,7 @@ export function SellForm({ games, game }: { games: readonly SellGame[]; game?: {
   }
 
   return (
-    <form noValidate onSubmit={handleSubmit} className="flex w-full flex-col">
+    <form noValidate onSubmit={handleSubmit} className="relative flex w-full flex-col">
       <div className="grid grid-cols-1 gap-x-[50px] gap-y-[25px] md:grid-cols-2">
         <SelectField
           name="jogo"
@@ -185,6 +189,21 @@ export function SellForm({ games, game }: { games: readonly SellGame[]; game?: {
           error={fieldErrors.descricao}
         />
       </div>
+
+      {/* Mascote no vão à direita da descrição (2026-11-26, pedido do usuário:
+          era do card "Contato Rápido", que saiu). Em pé no pé do card: desce
+          os 50px do padding (`sm:p-[50px]`, e ele só aparece de `md` para
+          cima, com as duas colunas). Celular: uma coluna só, sem vão — some.
+          `drop-shadow` segue o recorte do PNG (o `box-shadow` desenharia uma
+          moldura retangular). */}
+      <Image
+        src={mascote}
+        alt=""
+        aria-hidden
+        sizes="320px"
+        className="pointer-events-none absolute right-0 -bottom-[50px] hidden h-[276px] w-[320px] object-contain object-bottom md:block"
+        style={{ filter: "drop-shadow(0 -9px 18px rgba(255,255,255,0.19))" }}
+      />
 
       {/* 50px depois da textarea (e não 25 como entre as linhas) — medido no
           design: textarea termina em 553 e o divisor fica em 603. */}

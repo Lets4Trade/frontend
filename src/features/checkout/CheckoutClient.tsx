@@ -7,6 +7,7 @@ import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import { SelectField } from "@/components/ui/SelectField";
 import { TextField } from "@/components/ui/TextField";
 import {
+  cartRowKey,
   formatCents,
   itemCount,
   subtotalCents,
@@ -718,7 +719,7 @@ export function CheckoutClient({
         ) : (
           <ul className="mt-[10px] border-y border-white/10">
             {items.map((item) => (
-              <CartRow key={item.id} item={item} />
+              <CartRow key={cartRowKey(item)} item={item} />
             ))}
           </ul>
         )}

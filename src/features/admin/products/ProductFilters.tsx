@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { serverIcon } from "../ServerName";
 import { buttonVariants } from "@/components/ui/Button";
 import { AdminSearchBox, FilterMenu } from "@/features/admin/AdminFilters";
 import type { AdminGame } from "@/features/admin/catalog";
@@ -109,12 +110,14 @@ export function ProductFilters({
             key={`server-${resetKey}`}
             width={250}
             label={currentServer?.label ?? "Todos os servidores"}
+            labelIcon={serverIcon(currentServer?.platform)}
             active={query.server !== ""}
             options={[
               { href: buildHref(query, { server: "" }), label: "Todos os servidores", active: query.server === "" },
               ...currentGame.servers.map((server) => ({
                 href: buildHref(query, { server: server.id }),
                 label: server.label,
+                icon: serverIcon(server.platform),
                 active: server.id === query.server,
               })),
             ]}

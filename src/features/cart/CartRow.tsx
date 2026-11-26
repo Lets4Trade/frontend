@@ -1,7 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import { formatCents, formatHours, isServiceItem, maxQuantityOf, minQuantityOf, useCart, type CartItem } from "./store";
+import {
+  amountRuleOf,
+  formatCents,
+  formatHours,
+  isServiceItem,
+  maxQuantityOf,
+  minQuantityOf,
+  useCart,
+  type CartItem,
+} from "./store";
 import { lineTotalCents } from "@/features/pricing/quote";
 import { QuantityField } from "./QuantityField";
 
@@ -14,6 +23,7 @@ import { QuantityField } from "./QuantityField";
  */
 export function CartRow({ item }: { item: CartItem }) {
   const setQuantity = useCart((state) => state.setQuantity);
+  const setAmount = useCart((state) => state.setAmount);
   const remove = useCart((state) => state.remove);
   const service = isServiceItem(item);
   const max = maxQuantityOf(item);
@@ -22,6 +32,10 @@ export function CartRow({ item }: { item: CartItem }) {
   const min = minQuantityOf(item);
   // Serviço com "Máximo de unidades por compra" também ganha contador (2026-11-11).
   const editable = !service || max > 1;
+  // Gold (2026-11-26): o contador muda a quantidade ESCOLHIDA ("1Mi Gold" →
+  // "2Mi Gold") e a prévia é refeita — não repete a mesma escolha.
+  const amountRule = amountRuleOf(item);
+  const amount = item.selection?.quantity ?? amountRule?.min ?? 1;
 
   return (
     <li className="flex gap-[14px] border-b border-white/[0.07] py-[14px] last:border-b-0">
@@ -59,8 +73,33 @@ export function CartRow({ item }: { item: CartItem }) {
         ) : null}
 
         <div className="mt-auto flex items-center justify-between gap-[10px] pt-[8px]">
-          {/* Serviço sem máximo de unidades: a quantidade é a da página. */}
-          {!editable ? (
+          {amountRule ? (
+            <div className="flex items-center rounded-full border border-white/10 bg-white/[0.03]">
+              <StepButton
+                label={`Diminuir a quantidade de ${item.name}`}
+                disabled={amount <= amountRule.min}
+                onClick={() => setAmount(item.id, amount - amountRule.step)}
+              >
+                −
+              </StepButton>
+              <QuantityField
+                value={amount}
+                min={amountRule.min}
+                max={amountRule.max}
+                onChange={(next) => setAmount(item.id, next)}
+                label={`Quantidade de ${item.name}`}
+                className="h-[32px] min-w-[26px] px-[2px] text-[14px]"
+              />
+              <StepButton
+                label={`Aumentar a quantidade de ${item.name}`}
+                disabled={amount + amountRule.step > amountRule.max}
+                onClick={() => setAmount(item.id, amount + amountRule.step)}
+              >
+                +
+              </StepButton>
+            </div>
+          ) : /* Serviço sem máximo de unidades: a quantidade é a da página. */
+          !editable ? (
             <span className="font-helvetica text-[12px] text-white/60">
               {item.quantity > 1 ? `${item.quantity}× · ` : ""}
               {item.hours ? `~${formatHours(item.hours * item.quantity)} h` : "Serviço"}

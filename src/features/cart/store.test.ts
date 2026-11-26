@@ -106,3 +106,54 @@ describe("useCart com serviço", () => {
     expect(items[0].selection).toBeUndefined();
   });
 });
+
+describe("useCart: quantidade da Gold no carrinho (2026-11-26)", () => {
+  const pricing = { mode: "QUANTITY", min: 1, max: 1000, step: 1, unitLabel: "Gold", unitSize: 1_000_000 } as const;
+  const gold = {
+    ...base,
+    name: "Gold PoE 2",
+    unitPriceCents: 5,
+    selection: { quantity: 1 },
+    summary: "1Mi Gold",
+    pricing,
+    basePriceCents: 5,
+  };
+
+  beforeEach(() => {
+    useCart.setState({ items: [], isOpen: false });
+  });
+
+  it("troca a quantidade escolhida, refaz preço e resumo e muda o id", () => {
+    useCart.getState().add(gold);
+    const id = useCart.getState().items[0].id;
+    useCart.getState().setAmount(id, 10);
+    const line = useCart.getState().items[0];
+    expect(line.selection).toEqual({ quantity: 10 });
+    expect(line.unitPriceCents).toBe(50);
+    expect(line.summary).toBe("10Mi Gold");
+    expect(line.quantity).toBe(1);
+    expect(line.id).not.toBe(id);
+  });
+
+  it("fica presa à regra e não mexe em linha sem a regra (carrinho antigo)", () => {
+    useCart.getState().add(gold);
+    const id = useCart.getState().items[0].id;
+    useCart.getState().setAmount(id, 5000);
+    expect(useCart.getState().items[0].selection).toEqual({ quantity: 1000 });
+
+    useCart.setState({ items: [] });
+    useCart.getState().add({ ...gold, pricing: undefined, basePriceCents: undefined });
+    const old = useCart.getState().items[0];
+    useCart.getState().setAmount(old.id, 10);
+    expect(useCart.getState().items[0]).toEqual(old);
+  });
+
+  it("chegar numa escolha que já estava no carrinho junta as duas linhas", () => {
+    useCart.getState().add(gold);
+    useCart.getState().add({ ...gold, selection: { quantity: 2 }, summary: "2Mi Gold" });
+    expect(useCart.getState().items).toHaveLength(2);
+    useCart.getState().setAmount(useCart.getState().items[0].id, 2);
+    expect(useCart.getState().items).toHaveLength(1);
+    expect(useCart.getState().items[0].summary).toBe("2Mi Gold");
+  });
+});

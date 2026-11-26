@@ -178,8 +178,11 @@ const fixedSchema = z.object({
   ...common,
   /**
    * Até quantas unidades da MESMA escolha o cliente compra de uma vez
-   * (2026-11-11, pedido do usuário). Ausente (ou 1) = uma por vez, sem seletor
-   * na loja. Cada unidade repete tudo o que foi escolhido: total = `quote` × N.
+   * (2026-11-11, pedido do usuário). 1 = uma por vez, sem seletor na loja.
+   * AUSENTE = sem limite (2026-11-26, pedido do usuário: todo serviço com a
+   * quantidade digitável, como o catálogo) — só o teto técnico `MAX_QUANTITY`,
+   * e o total continua preso a `MAX_SERVICE_TOTAL_CENTS` no pedido. Cada
+   * unidade repete tudo o que foi escolhido: total = `quote` × N.
    */
   maxUnits: z.number().int().min(1).max(MAX_UNITS_PER_ORDER).optional(),
 });
@@ -328,7 +331,7 @@ export type PricingChildAddon = z.infer<typeof childAddonSchema>;
  * fixo tem `maxUnits`; faixa de nível e quantidade já dizem o tamanho na escolha.
  */
 export function maxUnitsOf(pricing: Pricing): number {
-  return pricing.mode === "FIXED" ? (pricing.maxUnits ?? 1) : 1;
+  return pricing.mode === "FIXED" ? (pricing.maxUnits ?? MAX_QUANTITY) : 1;
 }
 
 export function addonsTitle(pricing: Pick<Pricing, "mode" | "addonsTitle">): string {

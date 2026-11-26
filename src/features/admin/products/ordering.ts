@@ -20,6 +20,8 @@ export type OrderableProduct = {
   ordered: boolean;
   /** Oculto do site (2026-11-17). Ausente = visível. */
   hidden?: boolean;
+  /** Quantidade mínima por compra (2026-11-26). Ausente = 1. */
+  minUnits?: number;
 };
 
 export type ProductOrdering =

@@ -4,7 +4,8 @@ import { useSyncExternalStore } from "react";
 import { MAX_QUANTITY } from "@/features/pricing/quote";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Selection } from "@/features/pricing/quote";
+import { quote, type Pricing, type Selection } from "@/features/pricing/quote";
+import { cartSummary, snapQuantity } from "@/features/game/configurator";
 import { cartLineId } from "./lineId";
 import { lineTotalCents } from "@/features/pricing/quote";
 
@@ -74,7 +75,27 @@ export type CartItem = {
    * `units` menor que o mínimo do banco.
    */
   minUnits?: number;
+  /**
+   * Linha cotada por QUANTIDADE (Gold, "Runs" — 2026-11-26, pedido do usuário:
+   * aumentar a quantidade no carrinho): a regra e o preço base do produto, para
+   * o carrinho mudar a quantidade ESCOLHIDA e refazer a prévia com o mesmo
+   * `quote`. São dados públicos da vitrine e só desenham a tela — o checkout
+   * manda produto + escolha e o backend recalcula com o produto do banco.
+   * Ausente (linha salva antes) = sem contador, como era.
+   */
+  pricing?: Pricing;
+  basePriceCents?: number;
 };
+
+/**
+ * A regra de quantidade da linha (Gold), ou `null` se a linha não muda a
+ * quantidade escolhida no carrinho.
+ */
+export function amountRuleOf(item: Pick<CartItem, "pricing" | "basePriceCents" | "selection">) {
+  return item.pricing?.mode === "QUANTITY" && item.basePriceCents !== undefined && item.selection
+    ? item.pricing
+    : null;
+}
 
 /** Linha de serviço: tem escolha (a quantidade só muda se `maxUnits` > 1). */
 export function isServiceItem(item: Pick<CartItem, "selection">): boolean {
@@ -108,6 +129,8 @@ type CartState = {
 
   add: (item: Omit<CartItem, "id" | "addedAt" | "quantity">, quantity?: number) => void;
   setQuantity: (id: string, quantity: number) => void;
+  /** Linha de Gold (2026-11-26): troca a quantidade ESCOLHIDA e refaz a prévia. */
+  setAmount: (id: string, amount: number) => void;
   remove: (id: string) => void;
   clear: () => void;
 };
@@ -192,6 +215,35 @@ export const useCart = create<CartState>()(
                 ),
         })),
 
+      setAmount: (id, amount) =>
+        set((state) => {
+          const line = state.items.find((item) => item.id === id);
+          const pricing = line ? amountRuleOf(line) : null;
+          if (!line || !pricing || line.basePriceCents === undefined) return state;
+          const result = quote(line.basePriceCents, pricing, {
+            ...line.selection,
+            quantity: snapQuantity(pricing, amount),
+          });
+          if (!result.ok) return state;
+          // A escolha faz parte do id (`lineId.ts`): a linha muda de id. Outra
+          // linha que já tinha essa escolha sai — a editada a substitui, no
+          // lugar dela na lista.
+          const nextId = cartLineId(line.productId, line.platform, result.selection);
+          const next: CartItem = {
+            ...line,
+            id: nextId,
+            selection: result.selection,
+            unitPriceCents: result.totalCents,
+            summary: cartSummary(pricing, result),
+            hours: result.hours,
+          };
+          return {
+            items: state.items
+              .filter((item) => item.id === id || item.id !== nextId)
+              .map((item) => (item.id === id ? next : item)),
+          };
+        }),
+
       remove: (id) =>
         set((state) => ({ items: state.items.filter((line) => line.id !== id) })),
 
@@ -250,4 +302,14 @@ export function formatCents(cents: number) {
 /** Horas estimadas em pt-BR com duas casas: 19 → "19,00". */
 export function formatHours(hours: number) {
   return hours.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/**
+ * Chave da linha NA TELA (2026-11-26). Não é o `id`: na Gold o id muda a cada
+ * quantidade digitada (a escolha faz parte dele), e com `key={id}` a linha era
+ * remontada a cada tecla — o campo perdia o foco no meio do "10". Produto,
+ * servidor e o momento em que entrou não mudam.
+ */
+export function cartRowKey(item: Pick<CartItem, "productId" | "platform" | "addedAt">): string {
+  return `${item.productId}::${item.platform}::${item.addedAt}`;
 }

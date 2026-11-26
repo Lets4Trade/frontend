@@ -12,7 +12,8 @@ export type AdminGame = {
   name: string;
   /** Nomes do enum `GamePlatform` do backend. */
   platforms: string[];
-  servers: { id: string; label: string }[];
+  /** `platform` (2026-11-26): o ícone PC/PlayStation/Xbox nos seletores do painel. */
+  servers: { id: string; label: string; platform?: string | null }[];
   /**
    * Categorias criadas no Builder de Páginas (etapa 7). Lista vazia é o normal
    * de um jogo que ainda não passou pelo builder — o select some nesse caso, em

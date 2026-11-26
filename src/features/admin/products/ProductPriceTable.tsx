@@ -11,6 +11,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { cn } from "@/lib/cn";
+import { ServerName } from "../ServerName";
 import { ACTION_FAILED_MESSAGE, runAction } from "@/lib/safeAction";
 import type { AdminGame } from "../catalog";
 import { saveProductPricesAction } from "./actions";
@@ -27,6 +28,7 @@ import {
   changeRatio,
   formatPriceInput,
   groupRowsByCategory,
+  parseMinUnitsInput,
   parseNameInput,
   parsePercent,
   parsePriceInput,
@@ -35,14 +37,14 @@ import {
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 4 });
 const pct = new Intl.NumberFormat("pt-BR", { style: "percent", maximumFractionDigits: 1, signDisplay: "always" });
 
-type Server = { id: string; label: string };
+type Server = { id: string; label: string; platform?: string | null };
 type Category = AdminGame["categories"][number];
 type Option = { value: string; label: string };
-type Saved = { priceCents: number; name: string; categoryId: string | null; hidden: boolean };
+type Saved = { priceCents: number; name: string; categoryId: string | null; hidden: boolean; minUnits: number };
 /** Filtro "Na loja" (2026-11-17). */
 type StoreFilter = "" | "visible" | "hidden";
 /** Colunas de texto navegáveis por Enter / ↑ / ↓. */
-type Column = "name" | "price";
+type Column = "name" | "price" | "min";
 
 /**
  * "Editar preços" (2026-10-01, fora do Figma): a aba inteira numa tabela tipo
@@ -62,6 +64,8 @@ type Column = "name" | "price";
  *  - Categoria da linha: a PRINCIPAL, só as do servidor + aba do produto, mais
  *    as globais (a mesma regra do cadastro; o backend recusa o resto). As
  *    extras se editam no produto; o filtro as considera.
+ *  - Aba de CATÁLOGO (2026-11-26): a linha também troca a QUANTIDADE MÍNIMA
+ *    por compra (a mesma do formulário do produto; vazio = 1, sem mínimo).
  *  - O salvar é tudo ou nada; se alguém mudou um produto enquanto a tela estava
  *    aberta, nada é gravado e a mensagem diz qual.
  */
@@ -70,6 +74,7 @@ export function ProductPriceTable({
   tabId,
   quoted,
   packages,
+  catalog,
   servers,
   categories,
   initialServerId,
@@ -82,6 +87,8 @@ export function ProductPriceTable({
   quoted: boolean;
   /** Aba de pacotes: o mesmo NOME em servidores diferentes é um pacote só. */
   packages: boolean;
+  /** Aba de catálogo (2026-11-26): mostra a coluna da quantidade mínima. */
+  catalog: boolean;
   servers: Server[];
   /** Todas as categorias do jogo (lista plana com escopo). */
   categories: Category[];
@@ -102,6 +109,7 @@ export function ProductPriceTable({
             name: item.name,
             categoryId: item.categoryId ?? null,
             hidden: Boolean(item.hidden),
+            minUnits: item.minUnits ?? 1,
           },
         ]),
       ),
@@ -113,6 +121,8 @@ export function ProductPriceTable({
   // o resto — nada muda na loja até "SALVAR".
   const [hiddenDrafts, setHiddenDrafts] = useState<Record<string, boolean>>({});
   const [removeDrafts, setRemoveDrafts] = useState<Record<string, boolean>>({});
+  // Quantidade mínima (2026-11-26): o texto digitado, como o preço.
+  const [minDrafts, setMinDrafts] = useState<Record<string, string>>({});
   // Excluídos no último salvar: somem da tabela sem esperar o refresh.
   const [removedIds, setRemovedIds] = useState<Set<string>>(() => new Set());
   const [storeFilter, setStoreFilter] = useState<StoreFilter>("");
@@ -172,7 +182,11 @@ export function ProductPriceTable({
         .filter((item) => !removedIds.has(item.id))
         .map((item) => ({
           ...item,
-          ...(current.get(item.id) ?? { categoryId: item.categoryId ?? null, hidden: Boolean(item.hidden) }),
+          ...(current.get(item.id) ?? {
+            categoryId: item.categoryId ?? null,
+            hidden: Boolean(item.hidden),
+            minUnits: item.minUnits ?? 1,
+          }),
         })),
     [initial, current, removedIds],
   );
@@ -251,6 +265,7 @@ export function ProductPriceTable({
     category: categoryDrafts,
     hidden: hiddenDrafts,
     remove: removeDrafts,
+    minUnits: minDrafts,
   });
   const removeCount = changes.filter((change) => change.remove).length;
   const invalidSet = new Set(invalid);
@@ -275,6 +290,11 @@ export function ProductPriceTable({
 
   function setNameDraft(id: string, value: string) {
     setNameDrafts((prev) => ({ ...prev, [id]: value }));
+    setMessage(null);
+  }
+
+  function setMinDraft(id: string, value: string) {
+    setMinDrafts((prev) => ({ ...prev, [id]: value }));
     setMessage(null);
   }
 
@@ -426,6 +446,7 @@ export function ProductPriceTable({
     setCategoryDrafts({});
     setHiddenDrafts({});
     setRemoveDrafts({});
+    setMinDrafts({});
     setMessage(null);
   }
 
@@ -478,6 +499,7 @@ export function ProductPriceTable({
             name: change.name ?? saved.name,
             categoryId: change.categoryId === undefined ? saved.categoryId : change.categoryId,
             hidden: change.hidden ?? saved.hidden,
+            minUnits: change.minUnits ?? saved.minUnits,
           });
         }
         return next;
@@ -492,6 +514,7 @@ export function ProductPriceTable({
       setCategoryDrafts({});
       setHiddenDrafts({});
       setRemoveDrafts({});
+      setMinDrafts({});
       setMessage({
         tone: "ok",
         text:
@@ -502,6 +525,9 @@ export function ProductPriceTable({
       router.refresh();
     });
   }
+
+  /** Colunas da tabela: a da quantidade mínima só existe no catálogo. */
+  const columns = catalog ? 10 : 9;
 
   return (
     <div className="flex flex-col gap-[16px]">
@@ -514,7 +540,7 @@ export function ProductPriceTable({
             </FilterPill>
             {servers.map((server) => (
               <FilterPill key={server.id} active={serverId === server.id} onClick={() => setServerId(server.id)}>
-                {server.label}
+                <ServerName label={server.label} platform={server.platform} />
               </FilterPill>
             ))}
           </nav>
@@ -748,6 +774,14 @@ export function ProductPriceTable({
               <th className="py-[10px] pl-[6px] font-bold">Produto</th>
               <th className="hidden w-[220px] px-[10px] py-[10px] font-bold sm:table-cell">Categoria</th>
               <th className="hidden py-[10px] font-bold lg:table-cell">Servidor</th>
+              {catalog ? (
+                <th
+                  className="hidden w-[104px] px-[10px] py-[10px] text-right font-bold sm:table-cell"
+                  title="Quantidade mínima por compra (1 = sem mínimo)"
+                >
+                  Qtd. mín.
+                </th>
+              ) : null}
               <th className="hidden py-[10px] text-right font-bold sm:table-cell">
                 {quoted ? "Base atual" : "Preço atual"}
               </th>
@@ -761,7 +795,7 @@ export function ProductPriceTable({
           {visible.length === 0 ? (
             <tbody>
               <tr>
-                <td colSpan={9} className="py-[40px] text-center text-brand-fg-subtle">
+                <td colSpan={columns} className="py-[40px] text-center text-brand-fg-subtle">
                   Nenhum produto com esse filtro.
                 </td>
               </tr>
@@ -790,7 +824,7 @@ export function ProductPriceTable({
                           className="size-[16px] accent-brand-orange"
                         />
                       </td>
-                      <td colSpan={8} className="py-[4px] pr-[10px] sm:pr-[14px]">
+                      <td colSpan={columns - 1} className="py-[4px] pr-[10px] sm:pr-[14px]">
                         <button
                           type="button"
                           onClick={() => toggleGroup(group.key)}
@@ -830,13 +864,17 @@ export function ProductPriceTable({
         </table>
       </div>
       <p className="font-poppins text-[12px] text-brand-fg-subtle">
-        Enter ou ↓ vai para o próximo campo da mesma coluna (nome ou preço), ↑ volta. O ajuste em % é sobre o preço
+        Enter ou ↓ vai para o próximo campo da mesma coluna ({catalog ? "nome, quantidade mínima ou preço" : "nome ou preço"}),
+        ↑ volta. O ajuste em % é sobre o preço
         atual e, como o &quot;Mover para&quot;, vale só para os marcados dentro dos filtros, inclusive os de um grupo
         recolhido (o cabeçalho do grupo mostra quantos estão marcados). A seta de cada categoria recolhe o grupo.
         Cada produto só aceita as
         categorias do servidor dele. O olho oculta o produto da loja (ele continua aqui); a lixeira exclui (dá para
         reativar na Central do jogo). Nada muda na loja até salvar.
         {quoted ? " Nesta aba o valor é a base da regra de preço de cada produto." : ""}
+        {catalog
+          ? " Qtd. mín. é a compra mínima do produto (o card da loja já começa nela); vazio ou 1 = sem mínimo."
+          : ""}
         {packages
           ? " Nesta aba, o MESMO nome em servidores diferentes forma um pacote só: ao renomear, renomeie em todos os servidores."
           : ""}
@@ -870,11 +908,47 @@ export function ProductPriceTable({
       />
     );
 
+    // Quantidade mínima (2026-11-26), só no catálogo.
+    const minDraft = minDrafts[row.id];
+    const minParsed = minDraft === undefined ? row.minUnits : parseMinUnitsInput(minDraft);
+    const minInvalid = minDraft !== undefined && minParsed === null;
+    const minChanged = minParsed !== null && minParsed !== row.minUnits;
+
     // Oculto do site (o olho) e excluir (a lixeira), 2026-11-17.
     const hiddenNow = hiddenDrafts[row.id] ?? Boolean(row.hidden);
     const hiddenChanged = hiddenNow !== Boolean(row.hidden);
     const willRemove = Boolean(removeDrafts[row.id]);
     const rowLabel = `${row.name}${row.serverLabel ? ` (${row.serverLabel})` : ""}`;
+    /** O campo da mínima. `nav`: o da coluna (computador), que anda com Enter / ↑ / ↓. */
+    const minInput = (nav: boolean) => (
+      <input
+        ref={
+          nav
+            ? (element) => {
+                if (element) inputs.current.set(`min:${row.id}`, element);
+                else inputs.current.delete(`min:${row.id}`);
+              }
+            : undefined
+        }
+        inputMode="numeric"
+        autoComplete="off"
+        disabled={willRemove}
+        value={minDraft ?? String(row.minUnits)}
+        onChange={(event) => setMinDraft(row.id, event.target.value)}
+        onFocus={(event) => {
+          event.target.select();
+          keepVisible(event.target);
+        }}
+        onKeyDown={nav ? (event) => onFieldKey(event, index, "min") : undefined}
+        aria-label={`Quantidade mínima de ${rowLabel}`}
+        aria-invalid={minInvalid || undefined}
+        title={minInvalid ? "Use um número inteiro de 1 a 1.000.000." : undefined}
+        className={cn(
+          "h-[34px] w-full rounded-[10px] border bg-black/30 px-[8px] text-right text-white sm:px-[10px]",
+          minInvalid ? "border-red-9" : minChanged ? "border-brand-orange/70 font-bold" : "border-white/10",
+        )}
+      />
+    );
     const removeButton = (
       <button
         type="button"
@@ -896,7 +970,7 @@ export function ProductPriceTable({
         key={row.id}
         className={cn(
           "border-b border-white/5 last:border-b-0",
-          (changed || nameChanged || categoryChanged || hiddenChanged) && "bg-brand-orange/[0.07]",
+          (changed || nameChanged || categoryChanged || hiddenChanged || minChanged) && "bg-brand-orange/[0.07]",
           invalidSet.has(row.id) && "bg-red-9/10",
           willRemove && "bg-red-9/[0.12]",
         )}
@@ -966,6 +1040,12 @@ export function ProductPriceTable({
           {/* Telas estreitas: categoria, preço atual e servidor sob
               o nome — as colunas somem para os campos caberem. */}
           <div className="mt-[4px] sm:hidden">{category}</div>
+          {catalog ? (
+            <label className="mt-[4px] flex items-center gap-[8px] text-[11px] text-brand-fg-subtle sm:hidden">
+              <span className="shrink-0">Qtd. mín.</span>
+              <span className="w-[96px]">{minInput(false)}</span>
+            </label>
+          ) : null}
           <span className="mt-[2px] block truncate text-[11px] text-brand-fg-subtle sm:hidden">
             <span className={changed ? "line-through" : undefined}>{brl.format(row.priceCents / 100)}</span>
             {" · "}
@@ -988,8 +1068,12 @@ export function ProductPriceTable({
         </td>
         <td className="hidden px-[10px] py-[6px] sm:table-cell">{category}</td>
         <td className="hidden py-[6px] text-brand-fg-subtle lg:table-cell">
-          {row.serverLabel ?? "Sem servidor"}
+          <ServerName
+            label={row.serverLabel ?? "Sem servidor"}
+            platform={servers.find((server) => server.id === row.serverId)?.platform}
+          />
         </td>
+        {catalog ? <td className="hidden px-[10px] py-[6px] sm:table-cell">{minInput(true)}</td> : null}
         <td
           className={cn(
             "hidden py-[6px] text-right sm:table-cell",

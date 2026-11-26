@@ -96,14 +96,15 @@ export async function PackageDetail({
     <section
       id="pacote"
       aria-label={current.name}
-      className="flex scroll-mt-[100px] flex-col gap-[30px] desk:flex-row desk:items-start desk:justify-between desk:gap-[40px]"
+      className="flex scroll-mt-[100px] flex-col gap-[30px] desk:grid desk:grid-cols-[minmax(0,1fr)_auto] desk:items-start desk:gap-x-[40px] desk:gap-y-0"
     >
       {/* Celular (2026-11-22, pedido do usuário): Voltar + nome, depois o card
-          com a IMAGEM do pacote e, por último, os textos. A coluna da esquerda
-          vira `contents` abaixo de `desk` para os filhos entrarem na ordem do
-          flex da seção; no computador ela volta a ser a coluna de texto. */}
-      <div className="contents desk:block desk:min-w-0 desk:flex-1">
-        <div className="order-1 desk:order-none">
+          com a IMAGEM do pacote e, por último, os textos — `order` no flex.
+          Computador (2026-11-26, pedido do usuário: o card "rente à descrição"):
+          GRADE — Voltar + nome na 1ª linha, só à esquerda; descrição e card na
+          2ª, os dois começando na mesma altura. */}
+      <div className="contents">
+        <div className="order-1 desk:col-start-1 desk:row-start-1">
           <Link
             href={back}
             className="font-poppins text-[15px] font-bold text-brand-orange transition-opacity hover:opacity-80 desk:pl-[29px]"
@@ -114,12 +115,12 @@ export async function PackageDetail({
             {current.name}
           </h2>
         </div>
-        <div className="order-3 desk:order-none">
+        <div className="order-3 desk:col-start-1 desk:row-start-2 desk:min-w-0">
           <ServiceText content={current.content ?? tab.content} />
         </div>
       </div>
 
-      <div className="order-2 w-full desk:order-none desk:ml-auto desk:w-auto">
+      <div className="order-2 w-full desk:col-start-2 desk:row-start-2 desk:w-auto">
         <ServiceConfigurator
           // Outro servidor = outro produto: a escolha anterior não sobrevive.
           key={current.id}

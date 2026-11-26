@@ -141,3 +141,17 @@ describe("toggleAddon (limites de serviços e subserviços, 2026-11-09; grupos, 
     expect(atLimit(5, undefined)).toBe(false);
   });
 });
+
+describe("cartSummary (2026-11-26)", () => {
+  it("quantidade no texto da página, adicionais intactos", async () => {
+    const { cartSummary } = await import("./configurator");
+    const { quote } = await import("@/features/pricing/quote");
+    const pricing: Pricing = { mode: "QUANTITY", min: 1, max: 1000, step: 1, unitLabel: "Gold", unitSize: 1_000_000 };
+    const result = quote(5, pricing, { quantity: 3 });
+    if (!result.ok) throw new Error("quote");
+    expect(result.summary).toBe("3.000.000 Gold");
+    expect(cartSummary(pricing, result)).toBe("3Mi Gold");
+    expect(cartSummary(pricing, { ...result, summary: "3.000.000 Gold · Prioridade" })).toBe("3Mi Gold · Prioridade");
+    expect(cartSummary({ mode: "FIXED" }, { ...result, summary: "Serviço" })).toBe("Serviço");
+  });
+});

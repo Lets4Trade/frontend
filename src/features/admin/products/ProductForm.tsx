@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { serverIcon } from "../ServerName";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type FormEvent, type ReactNode } from "react";
@@ -64,7 +65,6 @@ type ErrorField =
   | "serverId"
   | "categoryId"
   | "badgeText"
-  | "serviceLabel"
   | "extraCategoryIds"
   | "highlights";
 type FieldErrors = Partial<Record<ErrorField, string>>;
@@ -381,7 +381,11 @@ export function ProductForm({
   }));
 
   const serverOptions =
-    selectedGame?.servers.map((server) => ({ value: server.id, label: server.label })) ?? [];
+    selectedGame?.servers.map((server) => ({
+      value: server.id,
+      label: server.label,
+      icon: serverIcon(server.platform),
+    })) ?? [];
 
   // Categorias vêm do Builder de Páginas. Jogo que nunca passou por lá tem a
   // lista vazia, e aí o select aparece desabilitado com a explicação — em vez
@@ -477,7 +481,6 @@ export function ProductForm({
       serverId: data.get("serverId") ?? "",
       categoryId: data.get("categoryId") ?? "",
       badgeText: data.get("badgeText") ?? "",
-      serviceLabel: data.get("serviceLabel") ?? "",
       extraCategoryIds: data.get("extraCategoryIds") ?? "",
     });
 
@@ -944,22 +947,6 @@ export function ProductForm({
                 maxLength={160}
                 error={fieldErrors.nameEn}
               />
-
-              {/* Nome no menu "Selecionar serviço" da tela do serviço
-                  (2026-11-04): só nas abas que têm essa tela. Vazio = o nome
-                  em português de cima. */}
-              {isQuoted ? (
-                <TextField
-                  key={`serviceLabel-${entryKey}`}
-                  label="Nome no “Selecionar serviço” (opcional)"
-                  name="serviceLabel"
-                  placeholder={previewName || "Vazio = o nome em português"}
-                  defaultValue={product?.serviceLabel ?? ""}
-                  autoComplete="off"
-                  maxLength={160}
-                  error={fieldErrors.serviceLabel}
-                />
-              ) : null}
 
               <FileField
                 key={`image-${entryKey}`}

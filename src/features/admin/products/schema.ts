@@ -92,8 +92,6 @@ export const createProductSchema = z.object({
    */
   categoryId: z.string().optional().default(""),
 
-  /** Nome no "Selecionar serviço" (2026-11-04). Vazio = usa o nome do produto. */
-  serviceLabel: z.string().trim().max(160, "O nome no menu é longo demais.").default(""),
 
   /** Selo do card (2026-11-04): "Novo", "Em alta" ou livre. Vazio = sem selo. */
   badgeText: z.string().trim().max(MAX_BADGE_CHARS, `O selo vai até ${MAX_BADGE_CHARS} caracteres.`).default(""),

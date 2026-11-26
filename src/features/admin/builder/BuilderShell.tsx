@@ -1,6 +1,7 @@
 "use client";
 
 import { slugify } from "@/lib/slugify";
+import { ServerName } from "../ServerName";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState, useTransition, type ReactNode } from "react";
@@ -294,6 +295,44 @@ function renderPanel(
       // continua levando a lista como veio — intocada aqui, nunca apaga nada.
       return <ServersReadOnly servers={draft.servers} gameId={game.id} canManage={canManage} />;
     case "categorias":
+      // Jogo com servidor (2026-11-26): categorias são de cada servidor e
+      // moram na Central. Aqui só aparecem as globais que ainda existirem,
+      // sem edição — o rascunho as leva como vieram, nada se apaga.
+      if (draft.servers.length > 0) {
+        return (
+          <>
+            <p className="font-poppins text-[13px] text-brand-fg-subtle">
+              Este jogo tem servidores: as categorias são de cada servidor e se editam na Central do jogo
+              {canManage ? (
+                <>
+                  {" "}
+                  (
+                  <Link
+                    href={centralHref(game.id, { section: "abas" })}
+                    className="font-bold text-brand-orange underline"
+                  >
+                    Abas e produtos
+                  </Link>
+                  )
+                </>
+              ) : null}
+              . Editar a categoria de um servidor não mexe nos outros.
+            </p>
+            {draft.categories.length > 0 ? (
+              <ul className="mt-[12px] flex flex-col gap-[6px] font-poppins text-[13px] text-white/80">
+                {draft.categories.map((category) => (
+                  <li key={category.key}>
+                    {category.label}
+                    {category.children.length > 0
+                      ? ` › ${category.children.map((child) => child.label).join(", ")}`
+                      : ""}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </>
+        );
+      }
       return (
         <>
           <p className="font-poppins text-[13px] text-brand-fg-subtle">
@@ -452,7 +491,7 @@ function ServersReadOnly({
               key={server.key}
               className="rounded-full border border-white/10 px-[16px] py-[8px] font-poppins text-[13px] text-white"
             >
-              {server.label}
+              <ServerName label={server.label} platform={server.platform} />
             </li>
           ))}
         </ul>

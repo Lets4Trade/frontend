@@ -137,9 +137,20 @@ describe("QuantityConfigurator", () => {
       productId: "g1",
       platform: "Eternal Softcore",
       selection: { quantity: 5000 },
-      summary: "5000 Gold",
+      // Quantidade no texto da página (2026-11-26).
+      summary: "5K Gold",
+      pricing: gold.pricing,
+      basePriceCents: gold.priceCents,
     });
     expect(push).toHaveBeenCalledWith("/checkout");
+  });
+
+  it("o carrinho ao lado do COMPRAR AGORA só adiciona e abre a gaveta (2026-11-26)", () => {
+    render(<QuantityConfigurator products={[gold]} context={context} emptyMessage="vazio" />);
+    fireEvent.click(screen.getByRole("button", { name: `Adicionar ${gold.name} ao carrinho` }));
+    expect(useCart.getState().items[0]).toMatchObject({ productId: "g1", selection: { quantity: 5000 } });
+    expect(useCart.getState().isOpen).toBe(true);
+    expect(push).not.toHaveBeenCalled();
   });
 
   it("mais de um produto: select no topo do painel", () => {

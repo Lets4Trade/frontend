@@ -4,6 +4,7 @@ import { isGlobalCategory, type BuilderGame } from "@/features/admin/builder/typ
 import { editProductHref, newProductHref, productsListHref } from "@/features/admin/products/links";
 import { getInactiveProducts, getProductOrdering } from "@/features/admin/products/ordering";
 import { cn } from "@/lib/cn";
+import { ServerName } from "../ServerName";
 import { ServerGiftCard } from "../gifts/ServerGiftCard";
 import type { AdminServerGift } from "../gifts/types";
 import { NEW_TAB, centralHref, pickCentralTab, type CentralQuery } from "./central";
@@ -183,7 +184,7 @@ export function TabsSection({
               href={centralHref(game.id, { section: "abas", tabId: tab?.id ?? query.tabId, serverId: item.id })}
               active={item.id === server?.id}
             >
-              {item.label}
+              <ServerName label={item.label} platform={item.platform} />
             </Pill>
           ))}
         </nav>
@@ -308,11 +309,19 @@ async function TabProductsAndCategories({
         ) : grid.rows.length === 0 ? (
           <p className="mt-[20px] font-poppins text-[14px] text-brand-fg-subtle">Nenhum produto nesta aba ainda.</p>
         ) : (
-          <>
+          // Minimizável (2026-11-26, pedido do usuário), como o "Excluídos"
+          // logo abaixo: `<details>` nativo, aberto por padrão — é a rotina da
+          // tela. Teclado e leitor de tela de graça.
+          <details open className="group mt-[15px] rounded-[12px] border border-white/5 px-[15px] py-[10px]">
+            <summary className="cursor-pointer font-poppins text-[13px] font-bold text-brand-fg-muted">
+              Produtos ({grid.rows.length}
+              {ordering.ok && ordering.truncated ? "+" : ""})
+              <span className="ml-[8px] font-normal text-brand-fg-subtle group-open:hidden">· clique para abrir</span>
+            </summary>
             {/* Grade produto × servidor: uma linha por produto, um preço por
                 servidor — 30 linhas em vez de 120 repetidas. Cada preço abre
                 a edição daquele produto. */}
-            <div className="relative mt-[15px] overflow-x-auto rounded-[12px] border border-white/5">
+            <div className="relative mt-[10px] overflow-x-auto rounded-[12px] border border-white/5">
               <table className="w-full min-w-[480px] border-collapse font-poppins text-[13px]">
                 <thead className="bg-black/40">
                   <tr className="text-left text-[12px] text-brand-fg-subtle">
@@ -328,7 +337,11 @@ async function TabProductsAndCategories({
                           server && column.id === server.id && "text-white",
                         )}
                       >
-                        {column.label}
+                        <ServerName
+                          label={column.label}
+                          platform={servers.find((item) => item.id === column.id)?.platform}
+                          className="justify-end"
+                        />
                       </th>
                     ))}
                   </tr>
@@ -394,7 +407,7 @@ async function TabProductsAndCategories({
                 </>
               ) : null}
             </p>
-          </>
+          </details>
         )}
 
         {/* Lixeira = desativar. O desativado não é editável pela API, então
@@ -438,27 +451,34 @@ async function TabProductsAndCategories({
           Categorias do filtro
         </h3>
         <p className="mt-[4px] max-w-[760px] font-poppins text-[12px] text-brand-fg-subtle">
-          O painel “Selecionar categoria” da loja. Cada servidor pode ter categorias próprias, além das que valem
-          para a aba inteira.
+          O painel “Selecionar categoria” da loja.
+          {servers.length > 0
+            ? " Cada servidor tem as suas: editar uma aqui não mexe nos outros servidores."
+            : ""}
         </p>
 
+        {/* Categorias POR SERVIDOR (2026-11-26, pedido do usuário): saiu o
+            "Aba inteira" — editar uma categoria no Eternal mexia em todos. */}
         {servers.length > 0 ? (
           <nav aria-label="Servidor das categorias" className="mt-[15px] flex flex-wrap gap-[8px]">
-            <Pill href={centralHref(game.id, { section: "abas", tabId: tab.id })} active={server === null}>
-              Aba inteira
-            </Pill>
             {servers.map((item) => (
               <Pill
                 key={item.id}
                 href={centralHref(game.id, { section: "abas", tabId: tab.id, serverId: item.id })}
                 active={item.id === server?.id}
               >
-                Só em {item.label}
+                <ServerName label={item.label} platform={item.platform} />
               </Pill>
             ))}
           </nav>
         ) : null}
 
+        {servers.length > 0 && !server ? (
+          <p className="mt-[20px] rounded-[14px] border border-white/10 bg-black/20 p-[15px] font-poppins text-[13px] text-brand-fg-muted">
+            Escolha um servidor acima para ver e editar as categorias dele.
+          </p>
+        ) : (
+          <>
         <CategoriesOnStore
           game={game}
           tab={tab}
@@ -469,7 +489,7 @@ async function TabProductsAndCategories({
 
         <div className="mt-[20px] border-t border-white/10 pt-[20px]">
           <p className="mb-[15px] font-poppins text-[14px] font-bold text-white">
-            {server ? `Editar as categorias só de ${server.label}` : "Editar as categorias da aba inteira"}
+            {server ? `Editar as categorias de ${server.label}` : "Editar as categorias da aba"}
           </p>
           {editorCategories === null ? (
             <p role="alert" className="font-poppins text-[14px] text-brand-fg-muted">
@@ -485,6 +505,8 @@ async function TabProductsAndCategories({
             />
           )}
         </div>
+          </>
+        )}
       </section>
     </>
   );
@@ -493,7 +515,7 @@ async function TabProductsAndCategories({
 const ORIGIN_LABEL = {
   global: "Globais (todas as abas)",
   tab: "Desta aba (todos os servidores)",
-  server: "Só neste servidor",
+  server: "Deste servidor",
 } as const;
 
 /**
@@ -525,7 +547,12 @@ function CategoriesOnStore({
         row.children ??
         game.categories.filter((child) => child.parentId === row.id).sort((a, b) => a.position - b.position),
     }));
-  const groups = categoriesOnStore({ global: globals, tab: tabRows, server: server ? serverRows : null });
+  // Com servidor escolhido (2026-11-26, categorias por servidor), "Globais" e
+  // "Desta aba" só aparecem se ainda tiverem alguma (sobra de antes da
+  // separação) — vazias, só confundiriam.
+  const groups = categoriesOnStore({ global: globals, tab: tabRows, server: server ? serverRows : null }).filter(
+    (group) => !server || group.origin === "server" || group.items.length > 0,
+  );
   const total = groups.reduce((sum, group) => sum + group.items.length, 0);
 
   return (

@@ -44,7 +44,7 @@ export function TabsMasterList({
   /** Servidor do filtro — mantido ao trocar de aba. `""` = todos. */
   serverId: string;
   /** Servidores do jogo — para o "só Temporada" das abas restritas (2026-11-17). */
-  servers?: readonly { id: string; label: string }[];
+  servers?: readonly { id: string; label: string; platform?: string | null }[];
 }) {
   const router = useRouter();
   const [order, setOrder] = useState<string[] | null>(null);

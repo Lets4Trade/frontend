@@ -112,8 +112,6 @@ type StorefrontProductPage = {
     consultOnly?: boolean | null;
     /** Quantidade mínima por compra (2026-11-17). Ausente = 1. */
     minUnits?: number | null;
-    /** Nome no "Selecionar serviço" (2026-11-04). Ausente = usa o `name`. */
-    serviceLabel?: string | null;
     tabSlug?: string | null;
     /** Regra efetiva em aba cotada (`effectivePricing`); nulo/ausente fora dela. */
     pricing?: unknown;
@@ -508,7 +506,6 @@ function toProduct(item: StorefrontProductPage["items"][number]): GameProduct {
     ...(splitName(item.name, item.nameBreak) ? { nameBreak: item.nameBreak! } : {}),
     // Selo do card (2026-11-04). Teto aqui também: é texto de API num card.
     badgeText: typeof item.badgeText === "string" ? item.badgeText.trim().slice(0, 24) || undefined : undefined,
-    serviceLabel: typeof item.serviceLabel === "string" ? item.serviceLabel.trim() || undefined : undefined,
     ...(item.consultOnly === true ? { consultOnly: true } : {}),
     // Inteiro de 2 a 1.000.000; qualquer outra coisa = sem mínimo.
     ...(Number.isInteger(item.minUnits) && item.minUnits! > 1 && item.minUnits! <= 1_000_000

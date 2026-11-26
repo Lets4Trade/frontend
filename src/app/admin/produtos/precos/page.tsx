@@ -63,7 +63,7 @@ export default async function ProductPricesPage({ searchParams }: PageProps) {
         <div>
           <h1 className="font-poppins text-[26px] leading-[32px] font-semibold text-white">Editar preços</h1>
           <p className="mt-[6px] font-helvetica text-[15px] text-brand-fg-muted">
-            Escolha o jogo e a aba, troque preço, nome ou categoria e salve tudo de uma vez.
+            Escolha o jogo e a aba, troque preço, nome, categoria ou quantidade mínima e salve tudo de uma vez.
           </p>
         </div>
         {game ? (
@@ -121,7 +121,8 @@ export default async function ProductPricesPage({ searchParams }: PageProps) {
               tabId={tab.id}
               quoted={isQuotedLayout(tab.layout)}
               packages={tab.layout === "PACKAGES"}
-              servers={servers.map(({ id, label }) => ({ id, label }))}
+              catalog={tab.layout === "CATALOG"}
+              servers={servers.map(({ id, label, platform }) => ({ id, label, platform }))}
               categories={listed.categories ?? []}
               initialServerId={serverId}
               initialCategoryId={first(params[PARAM.category]) ?? ""}

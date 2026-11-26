@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useId } from "react";
 import { cn } from "@/lib/cn";
 import { Field, fieldSurface } from "./Field";
+import type { ReactNode } from "react";
 
 /**
  * `image` (2026-10-23): logo do jogo à esquerda do rótulo, na moldura do menu
@@ -12,7 +13,8 @@ import { Field, fieldSurface } from "./Field";
  * opção ter a chave para a lista inteira ganhar a coluna do logo — vazia nas
  * que não têm arte ("Outros"), para os nomes ficarem alinhados.
  */
-type Option = { value: string; label: string; image?: string | null };
+/** `icon` (2026-11-26): ícone pequeno antes do rótulo — a plataforma do servidor. */
+type Option = { value: string; label: string; image?: string | null; icon?: ReactNode };
 
 type SelectFieldProps = {
   label: string;
@@ -204,6 +206,11 @@ export function SelectField({
                     {withThumbs ? (
                       <span className="flex min-w-0 items-center gap-[12px]">
                         <OptionThumb src={option.image ?? null} />
+                        <span className="truncate">{option.label}</span>
+                      </span>
+                    ) : option.icon ? (
+                      <span className="flex min-w-0 items-center gap-[8px]">
+                        {option.icon}
                         <span className="truncate">{option.label}</span>
                       </span>
                     ) : (

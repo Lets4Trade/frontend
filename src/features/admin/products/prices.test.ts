@@ -5,6 +5,7 @@ import {
   buildRowChanges,
   categoriesInScope,
   categoryWithChildren,
+  parseMinUnitsInput,
   parseNameInput,
   changeRatio,
   formatPriceInput,
@@ -245,5 +246,43 @@ describe("groupRowsByCategory (2026-11-19)", () => {
       servers,
     );
     expect(groups.map((group) => group.label)).toEqual(["Armas · Brasil", "Armas · EUA", "Ouro"]);
+  });
+});
+
+describe("quantidade mínima (2026-11-26)", () => {
+  it.each([
+    ["100", 100],
+    [" 25 ", 25],
+    ["1.000", 1000],
+    ["", 1],
+    ["1", 1],
+    ["1000000", 1_000_000],
+  ])("%j → %s", (raw, expected) => {
+    expect(parseMinUnitsInput(raw)).toBe(expected);
+  });
+
+  it.each(["0", "-5", "2,5", "abc", "1000001"])("%j é inválido", (raw) => {
+    expect(parseMinUnitsInput(raw)).toBeNull();
+  });
+
+  const rows = [
+    { id: "a", priceCents: 100, name: "A" },
+    { id: "b", priceCents: 200, name: "B", minUnits: 50 },
+  ];
+  const empty = { price: {}, name: {}, category: {} };
+
+  it("só a mínima já é alteração, com a lida como trava (ausente = 1)", () => {
+    const { changes, invalid } = buildRowChanges(rows, { ...empty, minUnits: { a: "100", b: "" } });
+    expect(invalid).toEqual([]);
+    expect(changes).toEqual([
+      { id: "a", expectedPriceCents: 100, minUnits: 100, expectedMinUnits: 1 },
+      { id: "b", expectedPriceCents: 200, minUnits: 1, expectedMinUnits: 50 },
+    ]);
+  });
+
+  it("igual à gravada não muda; inválida bloqueia a linha", () => {
+    const { changes, invalid } = buildRowChanges(rows, { ...empty, minUnits: { a: "1", b: "0" } });
+    expect(changes).toEqual([]);
+    expect(invalid).toEqual(["b"]);
   });
 });

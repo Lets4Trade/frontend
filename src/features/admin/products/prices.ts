@@ -6,6 +6,7 @@
 
 import { MAX_PRICE_CENTS } from "@/features/pricing/quote";
 import { categorySelectOptions } from "./categoryOptions";
+import { MAX_MIN_UNITS } from "./schema";
 
 /** Mesmo teto do `priceCents` do backend (`CreateProductDto`): R$ 20 mi. */
 export { MAX_PRICE_CENTS };
@@ -89,6 +90,18 @@ export function changeRatio(currentCents: number, nextCents: number): number {
 export const NAME_MIN = 2;
 export const NAME_MAX = 160;
 
+/**
+ * Quantidade mínima digitada (2026-11-26) → inteiro, ou `null` se inválida.
+ * Vazio = 1 (sem mínimo), como no formulário do produto; aceita "1.000".
+ */
+export function parseMinUnitsInput(raw: string): number | null {
+  const text = raw.replace(/[.\s]/g, "");
+  if (!text) return 1;
+  if (!/^\d+$/.test(text)) return null;
+  const value = Number(text);
+  return value >= 1 && value <= MAX_MIN_UNITS ? value : null;
+}
+
 /** Valor do filtro "Sem categoria" (`?categoria=sem-categoria`); id de verdade é cuid. */
 export const NO_CATEGORY = "sem-categoria";
 
@@ -99,6 +112,8 @@ export type EditableRow = {
   categoryId?: string | null;
   /** Oculto do site (2026-11-17). */
   hidden?: boolean;
+  /** Quantidade mínima por compra (2026-11-26). Ausente = 1. */
+  minUnits?: number;
 };
 
 /**
@@ -113,6 +128,8 @@ export type RowDrafts = {
   hidden?: Readonly<Record<string, boolean>>;
   /** Excluir (2026-11-17): marcadas para a lixeira no salvar. */
   remove?: Readonly<Record<string, boolean>>;
+  /** Quantidade mínima (2026-11-26): o texto digitado. */
+  minUnits?: Readonly<Record<string, string>>;
 };
 
 export type RowChange = {
@@ -129,6 +146,9 @@ export type RowChange = {
   hidden?: boolean;
   /** Excluir (2026-11-17): manda para a lixeira (reativável na Central). */
   remove?: true;
+  /** Quantidade mínima (2026-11-26), com a lida como trava. */
+  minUnits?: number;
+  expectedMinUnits?: number;
 };
 
 /** Nome digitado → nome a gravar, ou `null` se não couber nas regras. */
@@ -178,6 +198,17 @@ export function buildRowChanges(rows: readonly EditableRow[], drafts: RowDrafts)
     const hiddenDraft = drafts.hidden?.[row.id];
     if (hiddenDraft !== undefined && hiddenDraft !== Boolean(row.hidden)) change.hidden = hiddenDraft;
 
+    const minDraft = drafts.minUnits?.[row.id];
+    if (minDraft !== undefined) {
+      const units = parseMinUnitsInput(minDraft);
+      const currentUnits = row.minUnits ?? 1;
+      if (units === null) bad = true;
+      else if (units !== currentUnits) {
+        change.minUnits = units;
+        change.expectedMinUnits = currentUnits;
+      }
+    }
+
     // Excluir vence o resto: a linha vai para a lixeira, e um preço inválido
     // digitado nela antes não bloqueia o salvar.
     if (drafts.remove?.[row.id]) {
@@ -190,7 +221,8 @@ export function buildRowChanges(rows: readonly EditableRow[], drafts: RowDrafts)
       change.priceCents !== undefined ||
       change.name !== undefined ||
       change.categoryId !== undefined ||
-      change.hidden !== undefined
+      change.hidden !== undefined ||
+      change.minUnits !== undefined
     ) {
       changes.push(change);
     }

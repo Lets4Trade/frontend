@@ -6,9 +6,10 @@ import { toastError, toastOk } from "@/components/ui/Toasts";
 import { ACTION_FAILED_MESSAGE, runAction } from "@/lib/safeAction";
 import { cn } from "@/lib/cn";
 import { updateTabAction } from "./actions";
+import { ServerName } from "../../ServerName";
 import type { GameTab } from "./types";
 
-type Server = { id: string; label: string };
+type Server = { id: string; label: string; platform?: string | null };
 
 /**
  * Em quais SERVIDORES a aba aparece (2026-11-17). Cada servidor tem as suas
@@ -85,7 +86,7 @@ export function TabServersPicker({
             onChange={(event) => setOn(server, event.target.checked)}
             className="size-[18px] accent-[var(--brand-orange)]"
           />
-          Aparece em {server.label}
+          Aparece em <ServerName label={server.label} platform={server.platform} />
         </label>
         <p className="mt-[6px] pl-[28px] font-helvetica text-[12px] text-brand-fg-subtle">
           {on
@@ -146,7 +147,7 @@ export function TabServersPicker({
               }}
               className={chip(active)}
             >
-              {item.label}
+              <ServerName label={item.label} platform={item.platform} />
             </button>
           );
         })}

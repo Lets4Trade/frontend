@@ -63,9 +63,9 @@ export function TabDetailPanel({
   gameSlug: string;
   tab: GameTab;
   /** Servidores do jogo, na ordem — "Aparece nos servidores" (2026-11-17). */
-  servers?: readonly { id: string; label: string }[];
+  servers?: readonly { id: string; label: string; platform?: string | null }[];
   /** Servidor escolhido no alto da Central: vira uma caixinha só "Aparece em X". */
-  server?: { id: string; label: string } | null;
+  server?: { id: string; label: string; platform?: string | null } | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -508,7 +508,7 @@ export function NewTabForm({
   gameId: string;
   onCreated: (tab: GameTab) => void;
   /** Servidor escolhido na Central (2026-11-17): a aba nasce só nele. */
-  server?: { id: string; label: string } | null;
+  server?: { id: string; label: string; platform?: string | null } | null;
 }) {
   const [label, setLabel] = useState("");
   const [layout, setLayout] = useState<TabLayout>("CATALOG");
@@ -717,7 +717,7 @@ export function NewTabPanel({
   server = null,
 }: {
   gameId: string;
-  server?: { id: string; label: string } | null;
+  server?: { id: string; label: string; platform?: string | null } | null;
 }) {
   const router = useRouter();
   return (

@@ -4,6 +4,7 @@ import { QuantityField } from "@/features/cart/QuantityField";
 import Image from "next/image";
 import { useId, useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
+import { AddToCartButton } from "./AddToCartButton";
 import { cn } from "@/lib/cn";
 import { SelectField } from "@/components/ui/SelectField";
 import { formatHours } from "@/features/cart/store";
@@ -149,8 +150,9 @@ export function ProductSelect({
   return (
     <SelectField
       label="Selecionar serviço:"
-      // Nome próprio do menu quando o admin escreveu um (2026-11-04).
-      options={products.map((item) => ({ value: item.id, label: item.serviceLabel || item.name }))}
+      // Sempre o nome do produto (2026-11-26: o "nome no menu" saiu do painel,
+      // pedido do usuário — o campo não servia para nada).
+      options={products.map((item) => ({ value: item.id, label: item.name }))}
       value={value}
       onValueChange={onChange}
       className="desk:max-w-[452px]"
@@ -191,7 +193,7 @@ function ProductControls({ product, context }: { product: GameProduct; context: 
     );
   }
 
-  const buy = () => buyNow(product, result, multiUnit ? units : 1, maxUnits);
+  const buy = (checkout = true) => buyNow(product, result, multiUnit ? units : 1, maxUnits, checkout);
   const shownUnits = multiUnit ? units : 1;
 
   return (
@@ -261,9 +263,16 @@ function ProductControls({ product, context }: { product: GameProduct; context: 
         {multiUnit ? <UnitStepper value={units} max={maxUnits} onChange={setUnits} label={product.name} /> : null}
       </div>
 
-      <Button variant="cta" fullWidth className="mt-[15px]" disabled={!result.ok} onClick={buy}>
-        COMPRAR AGORA
-      </Button>
+      <div className="mt-[15px] flex items-center gap-[10px]">
+        <Button variant="cta" className="min-w-0 flex-1" disabled={!result.ok} onClick={() => buy()}>
+          COMPRAR AGORA
+        </Button>
+        <AddToCartButton
+          label={`Adicionar ${product.name} ao carrinho`}
+          disabled={!result.ok}
+          onClick={() => buy(false)}
+        />
+      </div>
     </>
   );
 }
@@ -711,9 +720,10 @@ function AddonBox({ on, small = false }: { on: boolean; small?: boolean }) {
 }
 
 /**
- * Seletor de quantidade do preço fixo (2026-11-11): − N +, no estilo dos
- * botões do card de produto. 1 a `max` (o `maxUnits` do painel); o backend
- * confere de novo.
+ * Seletor de quantidade do preço fixo (2026-11-11): − campo + numa caixa só,
+ * no visual do card do catálogo (2026-11-26, pedido do usuário). Campo
+ * digitável; vai de 1 a `max` (o `maxUnits` do painel, ou sem limite). O
+ * backend confere de novo.
  */
 function UnitStepper({
   value,
@@ -728,9 +738,13 @@ function UnitStepper({
   label: string;
 }) {
   const STEP_BUTTON =
-    "flex size-[40px] items-center justify-center rounded-[8px] border border-white/10 bg-[image:var(--brand-surface-fill)] font-poppins text-[18px] font-bold text-white transition-opacity outline-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-brand-orange disabled:cursor-not-allowed disabled:opacity-40";
+    "flex h-full w-[36px] shrink-0 items-center justify-center rounded-[7px] font-poppins text-[18px] font-bold text-white transition-colors outline-none hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-brand-orange disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent";
   return (
-    <div role="group" aria-label={`Quantidade de ${label}`} className="flex shrink-0 items-center gap-[10px]">
+    <div
+      role="group"
+      aria-label={`Quantidade de ${label}`}
+      className="flex h-[50px] w-[150px] shrink-0 items-center rounded-[8px] border border-white/10 bg-[image:var(--brand-surface-fill)]"
+    >
       <button
         type="button"
         className={STEP_BUTTON}
@@ -740,14 +754,17 @@ function UnitStepper({
       >
         −
       </button>
-      {/* Digitável (2026-11-18, pedido do usuário), como no card de produto. */}
-      <QuantityField
-        value={value}
-        max={max}
-        onChange={(next) => onChange(() => next)}
-        label={`Quantidade de ${label}`}
-        className="h-[40px] min-w-[24px] text-[18px]"
-      />
+      {/* `fit`: número grande encolhe para caber, como no card. */}
+      <div className="relative h-full min-w-0 flex-1 overflow-hidden">
+        <QuantityField
+          fit
+          value={value}
+          max={max}
+          onChange={(next) => onChange(() => next)}
+          label={`Quantidade de ${label}`}
+          className="leading-none text-[18px]"
+        />
+      </div>
       <button
         type="button"
         className={STEP_BUTTON}

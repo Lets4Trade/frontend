@@ -1,4 +1,4 @@
-import { isAddonGroup, type Pricing, type PricingAddon } from "@/features/pricing/quote";
+import { isAddonGroup, type Pricing, type PricingAddon, type Quote } from "@/features/pricing/quote";
 
 /**
  * Lógica PURA dos configuradores (serviço, quantidade/gold, pacote) — fora dos
@@ -152,4 +152,26 @@ export function toggleAddon(
 /** Lista no limite (e com máximo acima de 1): os não marcados ficam apagados. */
 export function atLimit(chosen: number, max: number | undefined): boolean {
   return Boolean(max && max > 1 && chosen >= max);
+}
+
+/**
+ * Quantidade como a PÁGINA mostra (2026-11-26, pedido do usuário: no carrinho
+ * a Gold dizia "1.000.000 Gold" e a página "1Mi Gold"). A mesma conta da
+ * linha "Quantidade" do card "Preço" (`QuantityConfigurator`).
+ */
+export function quantityText(pricing: Pick<QuantityPricing, "unitLabel" | "unitSize">, quantity: number): string {
+  return `${formatQuantity(quantity * (pricing.unitSize ?? 1))} ${pricing.unitLabel}`;
+}
+
+/**
+ * O resumo da linha do carrinho/checkout: o do `quote`, com a QUANTIDADE no
+ * texto da página. Só troca o primeiro pedaço ("1.000.000 Gold"); adicionais
+ * (" · Prioridade") seguem como vieram. O pedido no backend continua com o
+ * número por extenso — é o que a equipe entrega.
+ */
+export function cartSummary(pricing: Pricing, result: Extract<Quote, { ok: true }>): string {
+  const quantity = result.selection.quantity;
+  if (pricing.mode !== "QUANTITY" || quantity === undefined) return result.summary;
+  const [, ...rest] = result.summary.split(" · ");
+  return [quantityText(pricing, quantity), ...rest].join(" · ");
 }

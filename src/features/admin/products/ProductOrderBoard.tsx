@@ -22,6 +22,7 @@ import Image from "next/image";
 import { useMemo, useState, useTransition, type MouseEvent } from "react";
 import { Field, fieldSurface } from "@/components/ui/Field";
 import { SelectField } from "@/components/ui/SelectField";
+import { serverIcon } from "../ServerName";
 import { cn } from "@/lib/cn";
 import { ACTION_FAILED_MESSAGE, runAction } from "@/lib/safeAction";
 import { saveProductOrderAction } from "./actions";
@@ -90,7 +91,7 @@ export function ProductOrderBoard({
   /** Ordem gravada de cada categoria (id → ids). */
   initialCategoryOrders?: Record<string, string[]>;
   /** Servidores do jogo (filtro). */
-  servers?: { id: string; label: string }[];
+  servers?: { id: string; label: string; platform?: string | null }[];
   /** Categorias que valem NESTA aba (globais + as da aba), lista plana com `parentId`. */
   categories?: OrderCategory[];
 }) {
@@ -328,7 +329,7 @@ export function ProductOrderBoard({
           onValueChange={(server: string) => changeFilters({ server })}
           options={[
             { value: ALL, label: "Todos os servidores" },
-            ...servers.map((server) => ({ value: server.id, label: server.label })),
+            ...servers.map((server) => ({ value: server.id, label: server.label, icon: serverIcon(server.platform) })),
             ...(hasNoServer ? [{ value: NONE, label: "Sem servidor" }] : []),
           ]}
         />

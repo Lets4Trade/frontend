@@ -50,8 +50,6 @@ export type AdminProduct = {
   minUnits?: number;
   /** Oculto do site (2026-11-17): continua no painel, some da loja. */
   isHidden?: boolean;
-  /** Nome no "Selecionar serviço" (2026-11-04). Ausente = usa o `name`. */
-  serviceLabel?: string | null;
   createdAt: string;
   game: { id: string; slug: string; name: string };
   server: { id: string; label: string } | null;

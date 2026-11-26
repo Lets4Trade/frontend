@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useId, useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { AddToCartButton } from "./AddToCartButton";
 import { quantityDiscountPercent, quote, type Pricing } from "@/features/pricing/quote";
 import { formatQuantity, initialQuantity, snapQuantity, validPresets } from "./configurator";
 import { formatPrice } from "./content";
@@ -310,15 +311,20 @@ function QuantityPanel({
         {/* `mt-auto` encosta o botão no pé do card (352 no arquivo); o `pt`
             garante o respiro mesmo quando o conteúdo enche o card — sem ele a
             linha "Quantidade" colava no botão. */}
-        <div className="mt-auto pt-[25px]">
+        <div className="mt-auto flex items-center gap-[10px] pt-[25px]">
           <Button
             variant="cta"
-            fullWidth
+            className="min-w-0 flex-1"
             disabled={unavailable || !result.ok}
             onClick={() => buyNow(product, result)}
           >
             COMPRAR AGORA
           </Button>
+          <AddToCartButton
+            label={`Adicionar ${product.name} ao carrinho`}
+            disabled={unavailable || !result.ok}
+            onClick={() => buyNow(product, result, 1, 1, false)}
+          />
         </div>
       </section>
     </div>
