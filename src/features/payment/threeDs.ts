@@ -41,6 +41,10 @@ export class ThreeDsError extends Error {
 
 type AuthParams = {
   paymentId: string;
+  /** Crédito desde 2026-11-27 (pedido do usuário); o débito saiu da loja em 2026-10-27. */
+  method?: "Credit" | "Debit";
+  /** Parcelas do crédito — o emissor vê o mesmo parcelamento da autorização. */
+  installments?: number;
   /** Tem que ser IDÊNTICO ao valor cobrado: divergência invalida o CAVV. */
   amountCents: number;
   card: { number: string; holder: string; expiry: string };
@@ -103,7 +107,34 @@ function detail<T>(event: unknown): T {
   return event as T;
 }
 
-export async function authenticateDebit(params: AuthParams): Promise<ThreeDsPayload> {
+/** Textos de recusa por forma de pagamento (o cliente lê na tela do checkout). */
+const MESSAGES = {
+  Credit: {
+    failure: "O banco não confirmou a compra no cartão. Tente de novo, use outro cartão ou pague com PIX.",
+    disabled: "Verificação do banco indisponível no momento.",
+    brand: "Esta bandeira não participa da verificação do banco.",
+  },
+  Debit: {
+    failure: "O banco não autorizou a compra no débito. Use outro cartão ou PIX.",
+    disabled: "Débito indisponível no momento. Use crédito ou PIX.",
+    brand: "Esta bandeira não aceita débito online. Use crédito ou PIX.",
+  },
+} as const;
+
+/** Débito: mantido pelo nome de antes (o 3DS nasceu nele, 2026-09-24). */
+export function authenticateDebit(params: AuthParams): Promise<ThreeDsPayload> {
+  return authenticateCard({ ...params, method: "Debit", installments: 1 });
+}
+
+/**
+ * Crédito (2026-11-27): mesma verificação do débito. Com CAVV a venda vai à
+ * Cielo como AUTENTICADA e o risco de chargeback por fraude passa ao banco.
+ */
+export function authenticateCredit(params: AuthParams): Promise<ThreeDsPayload> {
+  return authenticateCard({ ...params, method: "Credit" });
+}
+
+async function authenticateCard(params: AuthParams & { method: "Credit" | "Debit" }): Promise<ThreeDsPayload> {
   const token = await fetchThreeDsToken(params.paymentId);
   if (!token) {
     throw new ThreeDsError("TOKEN_ERROR", "Não conseguimos iniciar a verificação do banco. Tente de novo.");
@@ -118,22 +149,25 @@ export async function authenticateDebit(params: AuthParams): Promise<ThreeDsPayl
   // ISO 4217 numérico — o SDK não aceita "BRL".
   setField("bpmpi_currency", "986");
   setField("bpmpi_totalamount", String(params.amountCents));
-  setField("bpmpi_installments", "1");
-  // "Debit" em Title Case: em cartão múltiplo, é o que diz QUAL função autenticar.
-  setField("bpmpi_paymentmethod", "Debit");
+  setField("bpmpi_installments", String(params.installments ?? 1));
+  // "Credit"/"Debit" em Title Case: em cartão múltiplo, é o que diz QUAL função autenticar.
+  setField("bpmpi_paymentmethod", params.method);
   setField("bpmpi_cardnumber", params.card.number);
   setField("bpmpi_cardexpirationmonth", month);
   setField("bpmpi_cardexpirationyear", `20${year}`);
   setField("bpmpi_cardalias", params.card.holder);
 
   try {
-    return await runSdk(token.environment);
+    return await runSdk(token.environment, MESSAGES[params.method]);
   } finally {
     clearFields();
   }
 }
 
-function runSdk(environment: keyof typeof SDK_URL): Promise<ThreeDsPayload> {
+function runSdk(
+  environment: keyof typeof SDK_URL,
+  messages: (typeof MESSAGES)[keyof typeof MESSAGES],
+): Promise<ThreeDsPayload> {
   return new Promise<ThreeDsPayload>((resolve, reject) => {
     let settled = false;
     let cardinalRetried = false;
@@ -221,10 +255,9 @@ function runSdk(environment: keyof typeof SDK_URL): Promise<ThreeDsPayload> {
         const d = detail<{ Eci?: string }>(event);
         finish(() => resolve({ eci: String(d.Eci ?? "") }));
       },
-      onFailure: () => fail("FAILURE", "O banco não autorizou a compra no débito. Use outro cartão ou PIX."),
-      onDisabled: () => fail("DISABLED", "Débito indisponível no momento. Use crédito ou PIX."),
-      onUnsupportedBrand: () =>
-        fail("UNSUPPORTED_BRAND", "Esta bandeira não aceita débito online. Use crédito ou PIX."),
+      onFailure: () => fail("FAILURE", messages.failure),
+      onDisabled: () => fail("DISABLED", messages.disabled),
+      onUnsupportedBrand: () => fail("UNSUPPORTED_BRAND", messages.brand),
       onError: (event: unknown) => {
         const d = detail<{ ReturnMessage?: string }>(event);
         if (!cardinalRetried && /Cardinal is not defined/i.test(String(d?.ReturnMessage ?? ""))) {

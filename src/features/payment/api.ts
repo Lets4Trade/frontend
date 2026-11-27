@@ -27,8 +27,16 @@ export type PayRequest =
       method: Extract<PaymentMethod, "CREDIT_CARD">;
       installments: number;
     } & (
-      /** Cartão digitado; `saveCard` = a caixa "salvar" marcada (2026-11-02). */
-      | { card: CardPayload; saveCard?: boolean }
+      /**
+       * Cartão digitado; `saveCard` = a caixa "salvar" marcada (2026-11-02);
+       * `threeDs` = o que a verificação do banco devolveu (2026-11-27).
+       */
+      | { card: CardPayload; saveCard?: boolean; threeDs?: ThreeDsPayload }
+      /**
+       * Cartão tokenizado no navegador pelo Silent Order Post (2026-11-27): o
+       * número foi direto à Braspag; aqui só o token e o que pode trafegar.
+       */
+      | { sop: SopCardPayload; saveCard?: boolean; threeDs?: ThreeDsPayload }
       /** Cartão salvo: o `id` da lista e o CVV — o token fica no backend. */
       | { savedCard: { id: string; cvv: string } }
     ))
@@ -39,6 +47,20 @@ export type PayRequest =
     };
 
 export type CardPayload = { holder: string; number: string; expiry: string; cvv: string };
+
+/**
+ * `paymentToken` (uso único) OU `cardToken` + `cvv` (cartão salvo na hora).
+ * `bin` = 6 primeiros dígitos (o backend tira a bandeira); `last4` para a tela.
+ */
+export type SopCardPayload = {
+  paymentToken?: string;
+  cardToken?: string;
+  cvv?: string;
+  bin: string;
+  last4: string;
+  holder: string;
+  expiry: string;
+};
 
 export type ThreeDsPayload = {
   cavv?: string;
@@ -159,5 +181,42 @@ export async function fetchThreeDsToken(
     return { accessToken: token, environment: body.data?.environment === "PRD" ? "PRD" : "SDB" };
   } catch {
     return null;
+  }
+}
+
+export type SopTokenResult =
+  | { status: "off" }
+  | { status: "error" }
+  | { status: "ok"; accessToken: string; environment: "sandbox" | "production" };
+
+/**
+ * AccessToken do Silent Order Post (2026-11-27).
+ * - `off`: módulo desligado no servidor — a tela segue com o cartão pelo
+ *   backend, como antes;
+ * - `error`: ligado mas falhou — a tela PARA (não cai no envio do número).
+ */
+export async function fetchSopToken(id: string): Promise<SopTokenResult> {
+  if (API_URL === "") return { status: "off" };
+  try {
+    const response = await fetchWithSession(
+      `${API_URL}/payments/${encodeURIComponent(id)}/sop-token`,
+      { headers: HEADERS, cache: "no-store" },
+    );
+    // 404 = backend ainda sem a rota (o front costuma ir ao ar antes): desligado.
+    if (response.status === 404) return { status: "off" };
+    if (!response.ok) return { status: "error" };
+    const body = (await response.json()) as {
+      data?: { enabled?: boolean; accessToken?: string; environment?: string };
+    };
+    if (body.data?.enabled === false) return { status: "off" };
+    const token = body.data?.accessToken;
+    if (!token) return { status: "error" };
+    return {
+      status: "ok",
+      accessToken: token,
+      environment: body.data?.environment === "production" ? "production" : "sandbox",
+    };
+  } catch {
+    return { status: "error" };
   }
 }

@@ -27,7 +27,15 @@ import {
   CheckoutSidePanel,
   PanelReferencesRow,
 } from "./CheckoutPanel";
-import { payPayment, type PaymentCallResult } from "@/features/payment/api";
+import {
+  fetchSopToken,
+  payPayment,
+  type PaymentCallResult,
+  type SopCardPayload,
+  type ThreeDsPayload,
+} from "@/features/payment/api";
+import { SopError, tokenizeCard } from "@/features/payment/silentOrderPost";
+import { authenticateCredit, ThreeDsError } from "@/features/payment/threeDs";
 import {
   cartSignature,
   clearPendingPayment,
@@ -359,6 +367,76 @@ export function CheckoutClient({
             cvv: read("cvv").replace(/\D/g, ""),
           };
 
+    // 3DS no crédito (2026-11-27, pedido do usuário): o banco confirma a compra
+    // (às vezes com SMS/app) e a venda vai AUTENTICADA — o risco de chargeback
+    // por fraude passa ao emissor. Só cartão DIGITADO: o salvo não tem número
+    // no navegador para o MPI.
+    //
+    // Trade-off: só a RECUSA do banco para a compra. Verificação indisponível
+    // (token, script, bandeira fora do programa) segue sem 3DS — no crédito ele
+    // é proteção a mais, e travar toda venda por uma falha da verificação seria
+    // pior que vender sem ela. O antifraude da Cielo continua valendo.
+    let threeDs: ThreeDsPayload | undefined;
+    if (method !== "pix" && !usingSavedCard) {
+      try {
+        const auth = await authenticateCredit({
+          paymentId: pending.id,
+          // Tem que ser o MESMO valor que a Cielo vai cobrar (pedidos + taxa),
+          // senão o CAVV não vale para a autorização.
+          amountCents: pending.amountCents + cardFeeCents(pending.amountCents),
+          card: card!,
+          installments: effectiveInstallments,
+        });
+        if (auth.cavv) threeDs = auth;
+      } catch (error) {
+        if (error instanceof ThreeDsError && error.code === "FAILURE") {
+          setIsSubmitting(false);
+          setFormError(error.message);
+          return;
+        }
+      }
+    }
+
+    // Silent Order Post (2026-11-27): com o módulo ligado no servidor, o cartão
+    // vai daqui DIRETO à Braspag e o backend recebe só o token — o número nunca
+    // passa pelo nosso servidor. Desligado, segue como antes. Ligado e com
+    // falha, a compra PARA: cair no envio do número desfaria a proteção.
+    let sop: SopCardPayload | undefined;
+    if (method !== "pix" && !usingSavedCard) {
+      const access = await fetchSopToken(pending.id);
+      if (access.status === "error") {
+        setIsSubmitting(false);
+        setFormError("Não conseguimos preparar o pagamento no cartão. Tente de novo em instantes ou pague com PIX.");
+        return;
+      }
+      if (access.status === "ok") {
+        try {
+          const tokens = await tokenizeCard({
+            accessToken: access.accessToken,
+            environment: access.environment,
+            card: card!,
+            // "Salvar cartão": a Braspag devolve o token PERMANENTE.
+            tokenize: saveCard,
+          });
+          sop = {
+            ...tokens,
+            // O token permanente pede o CVV a cada compra (como o cartão salvo).
+            ...(tokens.cardToken ? { cvv: card!.cvv } : {}),
+            bin: card!.number.slice(0, 6),
+            last4: card!.number.slice(-4),
+            holder: card!.holder,
+            expiry: card!.expiry,
+          };
+        } catch (error) {
+          setIsSubmitting(false);
+          setFormError(
+            error instanceof SopError ? error.message : "Não conseguimos validar o cartão. Tente de novo ou pague com PIX.",
+          );
+          return;
+        }
+      }
+    }
+
     let result: PaymentCallResult;
     try {
       result =
@@ -371,12 +449,21 @@ export function CheckoutClient({
                 savedCard: { id: cardChoice, cvv: read("cvv").replace(/\D/g, "") },
                 installments: effectiveInstallments,
               })
-            : await payPayment(pending.id, {
-                method: "CREDIT_CARD",
-                card: card!,
-                installments: effectiveInstallments,
-                saveCard,
-              });
+            : sop
+              ? await payPayment(pending.id, {
+                  method: "CREDIT_CARD",
+                  sop,
+                  installments: effectiveInstallments,
+                  saveCard,
+                  ...(threeDs ? { threeDs } : {}),
+                })
+              : await payPayment(pending.id, {
+                  method: "CREDIT_CARD",
+                  card: card!,
+                  installments: effectiveInstallments,
+                  saveCard,
+                  ...(threeDs ? { threeDs } : {}),
+                });
     } catch {
       setIsSubmitting(false);
       setFormError("Não conseguimos processar o pagamento. Tente de novo em instantes.");
@@ -518,7 +605,14 @@ export function CheckoutClient({
               value="credit"
               current={method}
               onSelect={setMethod}
-              tag={<FeeTag tone="fee">+{CREDIT_CARD_FEE_BPS / 100}%</FeeTag>}
+              disabled={!CREDIT_CARD_ENABLED}
+              tag={
+                CREDIT_CARD_ENABLED ? (
+                  <FeeTag tone="fee">+{CREDIT_CARD_FEE_BPS / 100}%</FeeTag>
+                ) : (
+                  <FeeTag tone="soon">EM BREVE</FeeTag>
+                )
+              }
             />
           </fieldset>
 
@@ -836,28 +930,43 @@ export function CheckoutClient({
  * escolhido. É um `<input type="radio">` de verdade por baixo — o desenho é
  * customizado, o comportamento (teclado, leitor de tela, agrupamento) não.
  */
+/**
+ * Cartão de crédito no checkout (2026-11-27, pedido do usuário): "EM BREVE"
+ * enquanto a Braspag não libera o crédito na conta de produção (vendas voltam
+ * status 0, código 002). Aparece, mas não dá para escolher. Religar = `true`.
+ * O backend continua aceitando crédito: isto é só a vitrine.
+ */
+const CREDIT_CARD_ENABLED = false;
+
 function MethodRadio({
   label,
   value,
   current,
   onSelect,
   tag,
+  disabled = false,
 }: {
   label: string;
   value: Method;
   current: Method;
   onSelect: (value: Method) => void;
-  /** Selo do custo ao lado do nome ("SEM TAXA", "+5%"). */
+  /** Selo do custo ao lado do nome ("SEM TAXA", "+5%") ou "EM BREVE". */
   tag?: ReactNode;
+  /** Forma que aparece mas não pode ser escolhida (crédito "em breve"). */
+  disabled?: boolean;
 }) {
   const checked = current === value;
   return (
-    <label className="flex cursor-pointer items-center gap-[13px]">
+    <label
+      className={`flex items-center gap-[13px] ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+      aria-disabled={disabled || undefined}
+    >
       <input
         type="radio"
         name="method"
         value={value}
         checked={checked}
+        disabled={disabled}
         onChange={() => onSelect(value)}
         className="peer sr-only"
       />
@@ -884,11 +993,15 @@ function MethodRadio({
  * verde só no "sem taxa" — é a vantagem que se quer mostrar; a taxa do crédito
  * fica neutra, informada sem alarde.
  */
-function FeeTag({ tone, children }: { tone: "free" | "fee"; children: ReactNode }) {
+function FeeTag({ tone, children }: { tone: "free" | "fee" | "soon"; children: ReactNode }) {
   return (
     <span
       className={`rounded-full border px-[8px] py-[2px] font-poppins text-[11px] leading-[14px] font-semibold tracking-[0.3px] ${
-        tone === "free" ? "border-[#22c55e]/40 bg-[#22c55e]/10 text-[#4ade80]" : "border-white/15 text-white/60"
+        tone === "free"
+          ? "border-[#22c55e]/40 bg-[#22c55e]/10 text-[#4ade80]"
+          : tone === "soon"
+            ? "border-brand-orange/50 text-brand-orange"
+            : "border-white/15 text-white/60"
       }`}
     >
       {children}

@@ -44,6 +44,8 @@ import type { NextConfig } from "next";
 const THREE_DS_SCRIPT_SOURCES = [
   "https://mpi.braspag.com.br",
   "https://mpisandbox.braspag.com.br",
+  // Silent Order Post (2026-11-27): o script que leva o cartão direto à Braspag.
+  "https://www.pagador.com.br",
   "https://*.cardinalcommerce.com",
   "https://*.cardinaltrusted.com",
   "https://apata.io",
