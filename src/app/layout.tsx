@@ -15,7 +15,9 @@ import { chatConfig } from "@/features/support/chatConfig";
 import { ExitIntentCoupon } from "@/features/promo/ExitIntentCoupon";
 import { exitOfferConfig, getExitOffer } from "@/features/promo/exitOffer";
 import {
+  SITE_DEFAULT_DESCRIPTION,
   SITE_DEFAULT_PHRASE,
+  SITE_OG_IMAGE,
   SITE_TITLE_TEMPLATE,
   withSiteName,
 } from "@/lib/siteTitle";
@@ -101,24 +103,30 @@ const BASE_METADATA: Metadata = {
     default: withSiteName(SITE_DEFAULT_PHRASE),
     template: SITE_TITLE_TEMPLATE,
   },
-  description:
-    "Lets4Trade",
-  keywords: ["lets4trade", "tickets", "events", "management"],
-  authors: [{ name: "Lets4Trade Team" }],
+  // Padrão de quem não declara a sua (2026-11-27): antes era só "Lets4Trade",
+  // e as palavras-chave ainda eram as do projeto de ingressos ("tickets",
+  // "events") — o Google ignora `keywords`, mas outros buscadores não.
+  description: SITE_DEFAULT_DESCRIPTION,
+  keywords: ["lets4trade", "comprar gold", "comprar currency", "comprar itens de jogos", "gamecoins"],
+  authors: [{ name: "Lets4Trade" }],
   creator: "Lets4Trade",
   publisher: "Lets4Trade",
   openGraph: {
     title: withSiteName(SITE_DEFAULT_PHRASE),
-    description:
-      "Lets4Trade",
+    description: SITE_DEFAULT_DESCRIPTION,
     type: "website",
-    locale: "pt-BR",
+    // Open Graph usa sublinhado ("pt_BR"); "pt-BR" não é reconhecido.
+    locale: "pt_BR",
+    siteName: "Lets4Trade",
+    // Prévia padrão do link (WhatsApp, Discord): o logo sobre o fundo da loja.
+    // A página de jogo troca pelo banner do jogo.
+    images: [SITE_OG_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
     title: withSiteName(SITE_DEFAULT_PHRASE),
-    description:
-      "Lets4Trade",
+    description: SITE_DEFAULT_DESCRIPTION,
+    images: [SITE_OG_IMAGE.url],
   },
 };
 

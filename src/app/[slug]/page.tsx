@@ -5,12 +5,17 @@ import { getPublishedPage } from "@/features/pages/public";
 import { GAME_LEGACY_GAP } from "@/features/pages/registry";
 import type { Metadata } from "next";
 import Image from "next/image";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
+import { findGameRedirect, tabAliasRedirect } from "@/features/game/redirects";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { parseCatalogQuery, scopePageToQuery } from "@/features/game/catalog";
-import { buildSeoDescription, buildTabTitle, getCatalog, getGamePage, withActiveTab } from "@/features/game/content";
-import { withSiteName } from "@/lib/siteTitle";
+import { getCatalog, getGamePage, withActiveTab } from "@/features/game/content";
+import { tabSeoDescription, tabSeoTitle, titleHasBrand } from "@/features/game/seo";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { breadcrumbJsonLd } from "@/lib/structuredData";
+import type { GamePage as GamePageData } from "@/features/game/types";
+import { SITE_OG_IMAGE, withSiteName } from "@/lib/siteTitle";
 import { GamePageSections } from "@/features/game/GamePageSections";
 import { GAME_SLUG, gameHref, isReservedGameSlug } from "@/features/game/href";
 
@@ -25,6 +30,19 @@ type RouteParams = { slug: string };
  */
 function isGameSlug(slug: string): boolean {
   return GAME_SLUG.test(slug) && !isReservedGameSlug(slug);
+}
+
+/**
+ * Endereço canônico = o da ABA (2026-11-27). Antes era sempre a raiz do jogo,
+ * e o Google juntava todas as abas na padrão: "comprar itens diablo 4" ficava
+ * sem página própria. Agora cada aba é uma página para o buscador
+ * (`/diablo-4?aba=itens`); servidor, categoria, ordem, busca e página da grade
+ * continuam apontando para a aba — são filtros, não páginas novas.
+ * O `href` da aba já é esse endereço (a padrão sai sem `?aba=`).
+ */
+function canonicalOf(page: GamePageData, tabId: string): string {
+  const tab = page.tabs.find((item) => item.id === tabId);
+  return tab && tab.layout !== "LINK" ? tab.href : gameHref(page.slug);
 }
 type RouteSearch = Record<string, string | string[] | undefined>;
 
@@ -47,22 +65,31 @@ export async function generateMetadata({
   // leitura do jogo é a mesma do render (memorizada pelo `fetch` do Next).
   const query = parseCatalogQuery(await searchParams, page);
   const activeTab = page.tabs.find((tab) => tab.id === query.tab);
-  const title = buildTabTitle(page.name, activeTab);
-  // A descrição segue a aba como o título (2026-11-24): antes vinha de
-  // `page.seo.description`, montada só com a aba padrão.
-  const description = buildSeoDescription(page.name, activeTab);
+  // O escrito no painel (Central → aba → "Aparência no Google") ou o
+  // automático. A descrição segue a aba como o título (2026-11-24).
+  const title = tabSeoTitle(page.name, activeTab);
+  const description = tabSeoDescription(page.name, activeTab);
+  // Título que já traz a marca vai inteiro — sem " | Lets 4 Trade" repetido.
+  const fullTitle = titleHasBrand(title) ? title : withSiteName(title);
+  const canonical = canonicalOf(page, query.tab);
+  // Prévia do link (WhatsApp, Discord, Google Discover): o banner largo do
+  // jogo; sem banner, a arte. Sem nenhum, fica a imagem padrão do site.
+  const image = page.banners[0]?.image.src ?? page.identity.logo?.src;
 
   return {
-    title,
+    title: titleHasBrand(title) ? { absolute: title } : title,
     description,
-    alternates: { canonical: gameHref(page.slug) },
+    alternates: { canonical },
     openGraph: {
-      title: withSiteName(title),
+      title: fullTitle,
       description,
-      url: gameHref(page.slug),
+      url: canonical,
       type: "website",
       siteName: "Lets4Trade",
+      locale: "pt_BR",
+      images: [image ? { url: image } : SITE_OG_IMAGE],
     },
+    twitter: { card: "summary_large_image", title: fullTitle, description, images: [image ?? SITE_OG_IMAGE.url] },
   };
 }
 
@@ -109,7 +136,18 @@ export default async function GamePage({ params, searchParams }: PageProps) {
   const { slug } = await params;
   if (!isGameSlug(slug)) notFound();
   const base = await getGamePage(slug);
-  if (!base) notFound();
+  if (!base) {
+    // Não é jogo: pode ser endereço antigo — do site anterior ou de um jogo
+    // renomeado no Builder (2026-11-27). O banco diz para onde ele leva HOJE.
+    // 308 permanente: o Google passa a posição para o endereço novo.
+    const target = await findGameRedirect(slug, await searchParams);
+    if (target) permanentRedirect(target);
+    notFound();
+  }
+
+  // `?aba=` de uma aba que foi renomeada: leva à aba de hoje, mesmo motivo.
+  const aliasTarget = tabAliasRedirect(base.slug, base.tabAliases, await searchParams);
+  if (aliasTarget) permanentRedirect(aliasTarget);
 
   // A query é validada CONTRA a página (abas e servidores deste jogo), e a
   // página só sabe qual aba está ativa depois disso. Daí a ordem: lê, valida,
@@ -130,8 +168,20 @@ export default async function GamePage({ params, searchParams }: PageProps) {
   }
   const published = base.id ? await getPublishedPage(`jogo-${base.id}`) : null;
 
+  // Trilha do resultado do Google: "Lets4Trade › Diablo 4 › Itens". A aba
+  // padrão não ganha o terceiro nível — o endereço dela é o do jogo.
+  const activeTab = page.tabs.find((tab) => tab.id === page.activeTabId);
+  const crumbs = [
+    { name: "Lets4Trade", path: "/" },
+    { name: page.name, path: gameHref(page.slug) },
+    ...(activeTab && activeTab.layout !== "LINK" && activeTab.href !== gameHref(page.slug)
+      ? [{ name: activeTab.label.charAt(0) + activeTab.label.slice(1).toLocaleLowerCase("pt-BR"), path: activeTab.href }]
+      : []),
+  ];
+
   return (
     <div className="flex min-h-[var(--dvh)] flex-col bg-brand-bg">
+      <JsonLd data={breadcrumbJsonLd(crumbs)} />
       <SiteHeader />
 
       {/*

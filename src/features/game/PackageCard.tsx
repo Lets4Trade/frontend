@@ -40,7 +40,7 @@ export function PackageCard({
   const art = (
     <>
       {product.image ? (
-        <Image src={product.image.src} alt="" fill sizes="265px" className="object-cover" />
+        <Image src={product.image.src} alt={product.image.alt ?? ""} fill sizes="265px" className="object-cover" />
       ) : null}
       {/* Degradê de 114px no pé da arte, que passa por trás do nome. */}
       <div

@@ -59,7 +59,7 @@ export function sectionItemToNews(item: SectionItemView): GameNewsItem {
     id: item.id,
     title: item.title ?? "",
     excerpt: item.body ?? "",
-    ...(item.image ? { image: { src: item.image, width: 1280, height: 720, alt: "" } } : {}),
+    ...(item.image ? { image: { src: item.image, width: 1280, height: 720, alt: item.title ?? "" } } : {}),
     ...(item.secondaryImage ? { logo: item.secondaryImage } : {}),
     tag: "",
     date: formatBlogDate(item.createdAt),

@@ -26,7 +26,17 @@ export type ApiGameTab = {
   content?: unknown;
   /** Servidores onde aparece (2026-11-17); vazio = todos. */
   serverSlugs?: unknown;
+  /** Título/descrição no Google (2026-11-27); ausente = automático. */
+  seoTitle?: unknown;
+  seoDescription?: unknown;
 };
+
+/** Texto de SEO vindo da API: só string de uma linha, sem excesso; senão nada. */
+function seoText(value: unknown, max: number): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const text = value.replace(/\s+/g, " ").trim();
+  return text ? text.slice(0, max) : undefined;
+}
 
 export type ApiCategory = {
   id?: string;
@@ -131,6 +141,8 @@ export function tabsFromApi(gameSlug: string, raw: readonly ApiGameTab[]): GameT
       ...(Array.isArray(tab.serverSlugs) && tab.serverSlugs.length > 0
         ? { serverSlugs: tab.serverSlugs.filter((slug): slug is string => typeof slug === "string" && SLUG.test(slug)) }
         : {}),
+      ...(seoText(tab.seoTitle, 120) ? { seoTitle: seoText(tab.seoTitle, 120) } : {}),
+      ...(seoText(tab.seoDescription, 320) ? { seoDescription: seoText(tab.seoDescription, 320) } : {}),
     });
   }
 

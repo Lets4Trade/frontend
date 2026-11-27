@@ -41,7 +41,35 @@ export type GameTab = {
   productCount: number;
   /** Servidores onde aparece (2026-11-17); vazio/ausente = todos. */
   serverIds?: string[];
+  /** Título e descrição no Google (2026-11-27); vazio/ausente = automático. */
+  seoTitle?: string | null;
+  seoDescription?: string | null;
 };
+
+/**
+ * Tetos do SEO da aba — os mesmos do backend (`VarChar(120)`/`VarChar(320)`).
+ * O Google corta o título em ~60 caracteres e a descrição em ~155; o teto é
+ * maior para não brigar com quem escreve, e a tela mostra o contador.
+ */
+export const SEO_TITLE_MAX = 120;
+export const SEO_DESCRIPTION_MAX = 320;
+/** Até onde o Google costuma mostrar — a partir daí o contador fica amarelo. */
+export const SEO_TITLE_IDEAL = 60;
+export const SEO_DESCRIPTION_IDEAL = 155;
+
+/** Texto de uma linha, sem caractere de controle; vazio = `null` (automático). */
+const seoText = (max: number) =>
+  z
+    .string()
+    .transform((value) => value.replace(/\s+/g, " ").trim())
+    .pipe(
+      z
+        .string()
+        .max(max, `Use no máximo ${max} caracteres.`)
+        .regex(/^[^\u0000-\u001f\u007f]*$/, "O texto não pode ter caracteres de controle."),
+    )
+    .transform((value) => (value === "" ? null : value))
+    .nullable();
 
 /** Os 6 layouts, com o nome em português e uma linha do que a aba mostra na loja. */
 export const TAB_LAYOUTS: readonly { value: TabLayout; label: string; hint: string }[] = [
@@ -243,6 +271,9 @@ export const updateTabSchema = z
     isActive: z.boolean().optional(),
     // Servidores onde a aba aparece (2026-11-17); quem confere se são do jogo é o backend.
     serverIds: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,100}$/, "Servidor inválido.")).max(200).optional(),
+    // SEO da aba (2026-11-27); vazio/null = volta ao automático.
+    seoTitle: seoText(SEO_TITLE_MAX).optional(),
+    seoDescription: seoText(SEO_DESCRIPTION_MAX).optional(),
   })
   .superRefine((value, ctx) => {
     if (value.layout === undefined) return;

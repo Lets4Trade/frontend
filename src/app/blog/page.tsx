@@ -9,7 +9,7 @@ import { getBlogGames, getBlogList } from "@/features/blog/data";
 import { gameListTitle, getBlogTexts } from "@/features/blog/texts";
 import { blogListHref, parseBlogQuery, type BlogQuery } from "@/features/blog/query";
 import type { BlogGameRef, BlogListView } from "@/features/blog/types";
-import { withSiteName } from "@/lib/siteTitle";
+import { SITE_OG_IMAGE, withSiteName } from "@/lib/siteTitle";
 
 type RouteSearch = Record<string, string | string[] | undefined>;
 
@@ -44,6 +44,7 @@ export async function generateMetadata({
       url: canonical,
       type: "website",
       siteName: "Lets4Trade",
+      images: [SITE_OG_IMAGE],
     },
   };
 }

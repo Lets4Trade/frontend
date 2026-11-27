@@ -89,6 +89,12 @@ export type GameTab = {
    * todos. Ver `tabShowsOnServer`.
    */
   serverSlugs?: string[];
+  /**
+   * Título e descrição no Google escritos no painel (2026-11-27). Ausentes =
+   * automáticos (`features/game/seo.ts`).
+   */
+  seoTitle?: string;
+  seoDescription?: string;
 };
 
 /**
@@ -264,6 +270,11 @@ export type GamePage = {
    * desenha a página sem catálogo (ver `GamePageSections`).
    */
   tabs: GameTab[];
+  /**
+   * Endereços antigos de abas renomeadas (2026-11-27): `?aba=velho` → slug da
+   * aba de hoje. A página responde com redirect permanente.
+   */
+  tabAliases?: Record<string, string>;
   /** Qual aba está ativa nesta página. */
   activeTabId: string;
 

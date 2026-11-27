@@ -43,10 +43,10 @@ describe("buildTabTitle (título da aba do navegador)", () => {
 describe("buildSeoDescription (descrição da página)", () => {
   it("segue a aba ativa, como o título", () => {
     expect(buildSeoDescription("ARC Raiders", { label: "ITENS", layout: "CATALOG" })).toBe(
-      "Compre Itens ARC Raiders na Lets4Trade: entrega rápida, suporte e preço justo.",
+      "Compre Itens ARC Raiders na Lets4Trade: +1.000 referências, entrega rápida, pagamento via PIX ou cartão e atendimento personalizado.",
     );
     expect(buildSeoDescription("ARC Raiders", { label: "MOEDAS", layout: "QUANTITY" })).toBe(
-      "Compre Moedas ARC Raiders na Lets4Trade: entrega rápida, suporte e preço justo.",
+      "Compre Moedas ARC Raiders na Lets4Trade: +1.000 referências, entrega rápida, pagamento via PIX ou cartão e atendimento personalizado.",
     );
   });
 });

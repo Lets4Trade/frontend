@@ -39,6 +39,7 @@ import {
 import { cn } from "@/lib/cn";
 import { TAB_TEMPLATES } from "@/features/game/tabs";
 import { TabServersPicker } from "./TabServersPicker";
+import { TabSeoFields } from "./TabSeoFields";
 
 /**
  * Peças do editor das ABAS de um jogo (contrato `game-tabs.md`, 2026-09-28),
@@ -55,12 +56,15 @@ import { TabServersPicker } from "./TabServersPicker";
 export function TabDetailPanel({
   gameId,
   gameSlug,
+  gameName,
   tab,
   servers = [],
   server = null,
 }: {
   gameId: string;
   gameSlug: string;
+  /** Nome do jogo — o título automático do Google ("Compre Itens Diablo 4"). */
+  gameName: string;
   tab: GameTab;
   /** Servidores do jogo, na ordem — "Aparece nos servidores" (2026-11-17). */
   servers?: readonly { id: string; label: string; platform?: string | null }[];
@@ -176,7 +180,13 @@ export function TabDetailPanel({
           aria-expanded={editing}
           className="h-[36px] rounded-full border border-white/15 px-[16px] font-poppins text-[12px] font-bold text-white transition-colors hover:bg-white/5"
         >
-          {editing ? "Fechar configurações" : hasTabContent(tab.layout) ? "Editar nome, layout e textos" : "Editar nome e layout"}
+          {editing
+            ? "Fechar configurações"
+            : hasTabContent(tab.layout)
+              ? "Editar nome, textos e Google"
+              : tab.layout === "LINK"
+                ? "Editar nome e layout"
+                : "Editar nome e Google"}
         </button>
       </div>
 
@@ -186,6 +196,8 @@ export function TabDetailPanel({
           // aba escolhida): o rascunho nunca fica com o valor velho.
           key={tabSignature(tab)}
           gameId={gameId}
+          gameSlug={gameSlug}
+          gameName={gameName}
           tab={tab}
           onSaved={() => {
             setEditing(false);
@@ -199,7 +211,7 @@ export function TabDetailPanel({
 
 /** Tudo o que o formulário da aba mostra — muda = remonta com o valor novo. */
 export function tabSignature(tab: GameTab): string {
-  return JSON.stringify([tab.id, tab.label, tab.slug, tab.layout, tab.linkHref, tab.content]);
+  return JSON.stringify([tab.id, tab.label, tab.slug, tab.layout, tab.linkHref, tab.content, tab.seoTitle, tab.seoDescription]);
 }
 
 export function HiddenBadge() {
@@ -365,10 +377,14 @@ export function TabIconUpload({
  */
 export function TabEditPanel({
   gameId,
+  gameSlug,
+  gameName,
   tab,
   onSaved,
 }: {
   gameId: string;
+  gameSlug: string;
+  gameName: string;
   tab: GameTab;
   onSaved: (tab: GameTab) => void;
 }) {
@@ -377,6 +393,9 @@ export function TabEditPanel({
   const [layout, setLayout] = useState<TabLayout>(tab.layout);
   const [linkHref, setLinkHref] = useState(tab.linkHref ?? "");
   const [sections, setSections] = useState<SectionDraft[]>(() => toSectionDrafts(tab.content?.sections));
+  // Aparência no Google (2026-11-27). Vazio = automático.
+  const [seoTitle, setSeoTitle] = useState(tab.seoTitle ?? "");
+  const [seoDescription, setSeoDescription] = useState(tab.seoDescription ?? "");
   // Trocar de layout é raro e muda o que a aba É na loja: os 6 cartões só
   // aparecem a pedido, para não serem clicados de passagem.
   const [pickingLayout, setPickingLayout] = useState(false);
@@ -400,6 +419,9 @@ export function TabEditPanel({
         : tab.content
           ? { content: null }
           : {}),
+      // Só o que mudou viaja; vazio vira `null` no schema (= automático).
+      ...(seoTitle.trim() !== (tab.seoTitle ?? "") ? { seoTitle } : {}),
+      ...(seoDescription.trim() !== (tab.seoDescription ?? "") ? { seoDescription } : {}),
     };
     startTransition(async () => {
       const result = await runAction(() => updateTabAction(gameId, tab.id, input), FAILED);
@@ -463,6 +485,21 @@ export function TabEditPanel({
           </p>
         ) : null}
       </div>
+
+      {/* Aba LINK só leva para outra página: não tem página própria no Google. */}
+      {layout !== "LINK" ? (
+        <TabSeoFields
+          gameName={gameName}
+          gameSlug={gameSlug}
+          tabSlug={tab.slug}
+          layout={layout}
+          label={label}
+          title={seoTitle}
+          description={seoDescription}
+          onTitleChange={setSeoTitle}
+          onDescriptionChange={setSeoDescription}
+        />
+      ) : null}
 
       {hasTabContent(layout) ? (
         <div className="max-w-[900px]">

@@ -1,3 +1,4 @@
+import { SITE_OG_IMAGE } from "@/lib/siteTitle";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -31,7 +32,7 @@ export async function generateMetadata({ params }: { params: Promise<RouteParams
       type: "article",
       siteName: "Lets4Trade",
       ...(post.publishedAt ? { publishedTime: post.publishedAt } : {}),
-      ...(post.cover ? { images: [{ url: post.cover, alt: post.title }] } : {}),
+      images: [post.cover ? { url: post.cover, alt: post.title } : SITE_OG_IMAGE],
     },
     twitter: {
       card: post.cover ? "summary_large_image" : "summary",

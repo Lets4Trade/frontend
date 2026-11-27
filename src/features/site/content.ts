@@ -1,5 +1,16 @@
 import { backendAsset, publicApiGet } from "@/lib/publicApi";
 import { sectionKey, sitePage, type SiteSectionDef } from "./sections";
+import { LAYOUT_TAG } from "./layoutContent";
+
+/**
+ * Textos e itens das sessões CACHEADOS (2026-11-27, velocidade da página para o
+ * Google). Antes cada visita à home e ao jogo ia ao backend buscar as duas
+ * listas — iguais para todo visitante, sem preço. Mesmas opções do cabeçalho
+ * (`layoutContent.ts`): a MESMA entrada de cache serve cabeçalho, rodapé e
+ * sessões, e toda escrita do painel em sessões derruba `LAYOUT_TAG` na hora
+ * (`features/site/actions.ts`, inclusive depois do upload de vídeo).
+ */
+const SECTIONS_CACHE = { revalidate: 3600, tags: [LAYOUT_TAG] };
 
 /** Espelha `VIDEO_PATH` do backend (`video-storage.ts`). */
 const VIDEO_PATH = /^\/uploads\/videos\/[a-f0-9-]{36}\.(mp4|webm)$/;
@@ -100,7 +111,7 @@ export async function getSectionsFor(
   pageKey: string,
 ): Promise<(key: string) => SectionView> {
   const page = sitePage(pageKey);
-  const rows = (await publicApiGet<RawSection[]>("/site-sections")) ?? [];
+  const rows = (await publicApiGet<RawSection[]>("/site-sections", SECTIONS_CACHE)) ?? [];
   const byKey = new Map(
     Array.isArray(rows) ? rows.map((row) => [row.key, row]) : [],
   );
@@ -185,7 +196,7 @@ export async function getSectionItemsFor(
   pageKey: string,
 ): Promise<(key: string) => SectionItemView[]> {
   const raw =
-    (await publicApiGet<Record<string, RawItem[]>>("/site-section-items")) ?? {};
+    (await publicApiGet<Record<string, RawItem[]>>("/site-section-items", SECTIONS_CACHE)) ?? {};
 
   return (key: string): SectionItemView[] => {
     const rows = raw[sectionKey(pageKey, key)];
@@ -225,7 +236,7 @@ export async function getSectionItemsFor(
 export async function getSectionLayout(pageKey: string): Promise<SectionLayout> {
   const page = sitePage(pageKey);
   const catalogKeys = page?.sections.map((section) => section.key) ?? [];
-  const rows = (await publicApiGet<SectionLayoutRow[]>("/site-sections")) ?? [];
+  const rows = (await publicApiGet<SectionLayoutRow[]>("/site-sections", SECTIONS_CACHE)) ?? [];
 
   return resolveSectionLayout(catalogKeys, Array.isArray(rows) ? rows : [], pageKey);
 }

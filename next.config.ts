@@ -226,6 +226,10 @@ const nextConfig: NextConfig = {
       // página; manda para a home em vez de 404.
       { source: "/games", destination: "/", permanent: true },
       { source: "/games/:slug", destination: "/:slug", permanent: true },
+      // Endereços do SITE ANTIGO e de jogos/abas renomeados NÃO moram aqui
+      // (2026-11-27): ficam no banco, apontando para o jogo e a aba por id, e a
+      // página `app/[slug]` responde o redirect com o endereço ATUAL. Linha fixa
+      // aqui quebraria no primeiro renome feito no painel.
     ];
   },
   async headers() {

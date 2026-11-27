@@ -209,7 +209,7 @@ export function TabsSection({
         ) : (
           <>
             {/* `key`: outra aba abre com as configurações fechadas. */}
-            <TabDetailPanel key={tab.id} gameId={game.id} gameSlug={game.slug} tab={tab} servers={servers} server={server} />
+            <TabDetailPanel key={tab.id} gameId={game.id} gameSlug={game.slug} gameName={game.name} tab={tab} servers={servers} server={server} />
             {isProductTab(tab) ? (
               <TabProductsAndCategories game={game} tab={tab} servers={servers} server={server} />
             ) : (

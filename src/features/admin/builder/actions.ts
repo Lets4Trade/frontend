@@ -2,6 +2,7 @@
 
 import { revalidatePath, updateTag } from "next/cache";
 import { GAMES_MENU_TAG } from "@/features/game/menuGames";
+import { LAYOUT_TAG } from "@/features/site/layoutContent";
 import { backendAsset } from "@/lib/publicApi";
 import { getSessionRole } from "@/features/auth/session";
 import {
@@ -391,6 +392,9 @@ function revalidate(slug: string) {
   revalidatePath("/", "layout");
   // Nome e logo do jogo aparecem no menu GAMES do cabeçalho (`menuGames.ts`).
   updateTag(GAMES_MENU_TAG);
+  // O save copia nome/link do jogo nos itens de sessão ligados a ele, e as
+  // sessões da home são lidas cacheadas desde 2026-11-27 (`site/content.ts`).
+  updateTag(LAYOUT_TAG);
 }
 
 /**

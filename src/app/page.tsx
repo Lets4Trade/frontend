@@ -12,25 +12,51 @@ import { HomeMotion } from "@/features/home/HomeMotion";
 import { getHomeItems } from "@/features/home/homeNews";
 import { composeBlocks, legacyNodesFrom } from "@/features/pages/compose";
 import { getPublishedPage } from "@/features/pages/public";
-import { SITE_DEFAULT_PHRASE, withSiteName } from "@/lib/siteTitle";
+import { SITE_DEFAULT_PHRASE, SITE_OG_IMAGE, withSiteName } from "@/lib/siteTitle";
+import { getMenuGames } from "@/features/game/menuGames";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { organizationJsonLd, websiteJsonLd } from "@/lib/structuredData";
 
 // Título inteiro aqui: o `title.template` do layout raiz não vale para a página
 // do mesmo segmento (a home).
 const OG_TITLE = withSiteName(SITE_DEFAULT_PHRASE);
-const OG_DESCRIPTION = "Sua loja de gamecoins.";
 
-export const metadata: Metadata = {
-  title: OG_TITLE,
-  description: OG_DESCRIPTION,
-  alternates: { canonical: "/" },
-  openGraph: {
+/** "A, B e C" — a lista de jogos da descrição. */
+function joinNames(names: readonly string[]): string {
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} e ${names[names.length - 1]}`;
+}
+
+/**
+ * Descrição da home com os JOGOS da loja (2026-11-27). Antes era "Sua loja de
+ * gamecoins." — o site antigo listava os jogos e vendia o clique com
+ * referências e forma de pagamento. A lista vem do menu (cache de 1h, derrubado
+ * pelo painel), então jogo novo entra sem deploy. Só os 5 primeiros: o Google
+ * corta a frase em ~155 caracteres.
+ */
+async function homeDescription(): Promise<string> {
+  const names = (await getMenuGames()).slice(0, 5).map((game) => game.name);
+  const games = names.length > 0 ? ` de ${joinNames(names)}` : " de jogos";
+  return `Compre moedas, itens e serviços${games} com +1.000 referências, entrega rápida e pagamento via PIX ou cartão.`;
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const description = await homeDescription();
+  return {
     title: OG_TITLE,
-    description: OG_DESCRIPTION,
-    url: "/",
-    type: "website",
-    siteName: "Lets4Trade",
-  },
-};
+    description,
+    alternates: { canonical: "/" },
+    openGraph: {
+      title: OG_TITLE,
+      description,
+      url: "/",
+      type: "website",
+      siteName: "Lets4Trade",
+      locale: "pt_BR",
+      images: [SITE_OG_IMAGE],
+    },
+  };
+}
 
 /**
  * Home — Figma nó 131:1504 (1920×5770).
@@ -86,6 +112,9 @@ export default async function Home() {
 
   return (
     <div className="flex min-h-[var(--dvh)] flex-col bg-brand-bg">
+      {/* A loja e o site para o Google (o site antigo já os declarava). */}
+      <JsonLd data={organizationJsonLd("/images/lets4trade-logo.png")} />
+      <JsonLd data={websiteJsonLd()} />
       <SiteHeader />
 
       {/*
@@ -115,6 +144,11 @@ export default async function Home() {
           vêm no HTML e o CSS escolhe — sem detectar aparelho no servidor, o que
           quebraria o cache da página e erraria em tela girada. */}
       <main className="flex flex-1 flex-col">
+        {/* Título principal da página (2026-11-27): a home não tinha H1 — o
+            desenho abre com banner e atalhos, sem frase. Fica só para leitor
+            de tela e buscador (`sr-only`), com o que a página de fato É; não é
+            texto escondido para enganar o Google, é o rótulo da página. */}
+        <h1 className="sr-only">Lets4Trade: compre moedas, itens e serviços de jogos</h1>
         <div className="flex-1 overflow-x-clip px-[25px] pt-[20px] pb-[60px] min-[1185px]:hidden">
           <div className="mx-auto max-w-[560px] lg:max-w-[720px]">
             {mobileBlocks.map((block, index) => (

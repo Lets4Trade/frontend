@@ -168,6 +168,8 @@ export async function updateTabAction(
   }
   if (data.isActive !== undefined) body.isActive = data.isActive;
   if (data.serverIds !== undefined) body.serverIds = [...new Set(data.serverIds)];
+  if (data.seoTitle !== undefined) body.seoTitle = data.seoTitle;
+  if (data.seoDescription !== undefined) body.seoDescription = data.seoDescription;
   if (Object.keys(body).length === 0) {
     return { ok: false, reason: "invalid", message: "Nada para salvar." };
   }

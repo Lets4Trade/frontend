@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { splitName } from "./nameBreak";
+import { buildSeoDescription, buildTabTitle, tabSeoDescription, tabSeoTitle } from "./seo";
 import { backendAsset, publicApiGet } from "@/lib/publicApi";
 import { getGameNews } from "@/features/blog/data";
 import { blogCardTexts, gameBlogHref } from "@/features/home/blogCard";
@@ -69,6 +70,8 @@ type StorefrontGame = {
    * = jogo sem aba ativa.
    */
   tabs?: ApiGameTab[] | null;
+  /** Endereços antigos de abas renomeadas (2026-11-27): `?aba=slug` → `tabSlug`. */
+  tabAliases?: { slug: string; tabSlug: string }[] | null;
   servers: { slug: string; label: string; platform?: string | null }[];
   /**
    * Árvore de dois níveis (contrato C da FASE 4): raízes com `children` OU lista
@@ -150,6 +153,27 @@ const PAGE_SIZE = 30;
  */
 export const getGamePage = cache(loadGamePage);
 
+/**
+ * Apelidos de aba vindos da API → `{ velho: atual }`, só para abas que a página
+ * tem de fato (2026-11-27). Dado de API: slug fora do formato ou apontando para
+ * aba que não está na página é descartado — o redirect nunca leva a lugar nenhum
+ * que a loja não desenharia.
+ */
+function tabAliasMap(
+  raw: StorefrontGame["tabAliases"],
+  tabs: readonly { id: string; layout: string }[],
+): Record<string, string> | undefined {
+  if (!Array.isArray(raw) || raw.length === 0) return undefined;
+  const valid = new Set(tabs.filter((tab) => tab.layout !== "LINK").map((tab) => tab.id));
+  const map: Record<string, string> = {};
+  for (const alias of raw) {
+    if (!alias || typeof alias.slug !== "string" || typeof alias.tabSlug !== "string") continue;
+    if (!/^[a-z0-9-]{1,60}$/.test(alias.slug) || valid.has(alias.slug) || !valid.has(alias.tabSlug)) continue;
+    map[alias.slug] = alias.tabSlug;
+  }
+  return Object.keys(map).length > 0 ? map : undefined;
+}
+
 async function loadGamePage(slug: string): Promise<GamePage | null> {
   // As leituras em paralelo: em série somariam latência à página mais navegada
   // da loja.
@@ -203,8 +227,8 @@ async function loadGamePage(slug: string): Promise<GamePage | null> {
     name: game.name,
     seo: {
       // Só a frase (aba padrão); a marca vem do template do layout raiz.
-      title: buildTabTitle(game.name, tabs.find((tab) => tab.id === activeTabId)),
-      description: buildSeoDescription(game.name, tabs.find((tab) => tab.id === activeTabId)),
+      title: tabSeoTitle(game.name, tabs.find((tab) => tab.id === activeTabId)),
+      description: tabSeoDescription(game.name, tabs.find((tab) => tab.id === activeTabId)),
     },
 
     /**
@@ -218,7 +242,9 @@ async function loadGamePage(slug: string): Promise<GamePage | null> {
             id: banner.id,
             image: {
               src: backendAsset(banner.imageUrl) ?? banner.imageUrl,
-              alt: "",
+              // Texto alternativo = o jogo (2026-11-27): leitor de tela e busca
+              // de imagens do Google; antes, todas as artes saíam com alt vazio.
+              alt: game.name,
               // As medidas do arquivo (1715×490). O `next/image` as usa para
               // reservar o espaço; a arte entra recortada por `object-cover`.
               width: 1715,
@@ -227,7 +253,7 @@ async function loadGamePage(slug: string): Promise<GamePage | null> {
             mobileImage: banner.mobileImageUrl
               ? {
                   src: backendAsset(banner.mobileImageUrl) ?? banner.mobileImageUrl,
-                  alt: "",
+                  alt: game.name,
                   width: MOBILE_BANNER.width,
                   height: MOBILE_BANNER.height,
                 }
@@ -235,6 +261,8 @@ async function loadGamePage(slug: string): Promise<GamePage | null> {
             href: banner.href ?? undefined,
           }))
         : editorial.banners,
+
+    tabAliases: tabAliasMap(game.tabAliases, tabs),
 
     identity: {
       // `?? undefined` e não `?? null`: o campo é opcional no tipo, e um jogo
@@ -387,7 +415,7 @@ export function blogNewsItem(post: BlogCardView, gameName: string, gameLogo?: st
     id: `blog:${post.slug}`,
     title: post.title,
     excerpt: post.excerpt,
-    image: post.cover ? { src: post.cover, width: 1280, height: 720, alt: "" } : undefined,
+    image: post.cover ? { src: post.cover, width: 1280, height: 720, alt: post.title } : undefined,
     ...(logo ? { logo } : {}),
     tag: post.game?.name ?? gameName,
     date: post.date,
@@ -516,8 +544,10 @@ function toProduct(item: StorefrontProductPage["items"][number]): GameProduct {
     // As medidas são só a proporção que o `next/image` usa para reservar o
     // espaço — o card recorta com `object-cover`, e a arte vem do admin sem
     // dimensão conhecida.
-    image: image ? { src: image, alt: "", width: 263, height: 276 } : undefined,
-    banner: banner ? { src: banner, alt: "", width: 551, height: 327 } : undefined,
+    // Alt = nome do produto (2026-11-27): é o que a busca de imagens do Google
+    // lê ("divine orb") — antes saía vazio.
+    image: image ? { src: image, alt: item.name, width: 263, height: 276 } : undefined,
+    banner: banner ? { src: banner, alt: item.name, width: 551, height: 327 } : undefined,
     // O backend apaga da resposta todo campo nulo, então estes chegam ausentes
     // e não como `null`. Teste por falsy, nunca por `=== null`.
     serverSlug: item.serverSlug ?? undefined,
@@ -590,35 +620,9 @@ function buildHeading(name: string, tab: { label: string; layout: string } | und
   return `Compre ${what} De ${name}`;
 }
 
-/**
- * Frase do título da aba do navegador (2026-11-18, padrão MMOEXP): "Compre
- * Moedas ARC Raiders" — a marca (" | Lets 4 Trade") entra pelo template do
- * layout raiz. Segue a ABA ativa, inclusive a escolhida por `?aba=`, e ignora o
- * título escrito pelo admin: aquele é o da página, este é o do Google.
- */
-export function buildTabTitle(
-  name: string,
-  tab: { label: string; layout: string } | undefined,
-): string {
-  if (!tab) return `Compre itens de ${name}`;
-  // Aba SELL é a pessoa vendendo para a loja.
-  if (tab.layout === "SELL") return `Venda seus itens de ${name}`;
-  const label = tab.label.trim();
-  const what = label.charAt(0) + label.slice(1).toLocaleLowerCase("pt-BR");
-  return `Compre ${what} ${name}`;
-}
-
-/**
- * Descrição da página (meta `description`, a frase do Google e da prévia do
- * link). Segue a ABA ativa como o título (2026-11-24, pedido do usuário: na
- * aba Itens do ARC ela seguia dizendo "Compre Moedas…").
- */
-export function buildSeoDescription(
-  name: string,
-  tab: { label: string; layout: string } | undefined,
-): string {
-  return `${buildTabTitle(name, tab)} na Lets4Trade: entrega rápida, suporte e preço justo.`;
-}
+// O título e a descrição do Google moram em `seo.ts` (módulo puro, o painel
+// também importa); reexportados aqui para quem já os lia deste arquivo.
+export { buildSeoDescription, buildTabTitle };
 
 /** Preço em centavos → "R$ 25,00". Formatação fixa em pt-BR, como o arquivo. */
 export function formatPrice(cents: number) {

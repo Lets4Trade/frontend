@@ -206,7 +206,7 @@ describe("TabDetailPanel", () => {
   it("ativar/ocultar grava na hora e revalida a página", async () => {
     const current = tab("t1", "Moedas", "CATALOG");
     updateTabAction.mockResolvedValue({ ok: true, data: { ...current, isActive: false } });
-    render(<TabDetailPanel gameId="g1" gameSlug="poe" tab={current} />);
+    render(<TabDetailPanel gameId="g1" gameSlug="poe" gameName="Path of Exile" tab={current} />);
     expect(screen.getByRole("link", { name: "Ver na loja ↗" })).toHaveAttribute("href", "/games/poe?aba=t1");
     await act(async () => {
       fireEvent.click(screen.getByLabelText("Ativa na loja"));
@@ -216,9 +216,9 @@ describe("TabDetailPanel", () => {
   });
 
   it("configurações começam FECHADAS; o layout só troca a pedido", () => {
-    render(<TabDetailPanel gameId="g1" gameSlug="poe" tab={tab("t1", "Moedas", "CATALOG")} />);
+    render(<TabDetailPanel gameId="g1" gameSlug="poe" gameName="Path of Exile" tab={tab("t1", "Moedas", "CATALOG")} />);
     expect(screen.queryByLabelText("Nome da aba")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Editar nome, layout e textos" }));
+    fireEvent.click(screen.getByRole("button", { name: "Editar nome, textos e Google" }));
     expect(screen.getByLabelText("Nome da aba")).toBeInTheDocument();
     // Os 6 cartões não ficam abertos de passagem.
     expect(screen.queryByRole("radio")).toBeNull();
@@ -226,8 +226,38 @@ describe("TabDetailPanel", () => {
     expect(screen.getAllByRole("radio")).toHaveLength(6);
   });
 
+  it("Aparência no Google: vazio mostra o automático; o escrito vai no PATCH e a prévia acompanha", async () => {
+    const current = tab("t1", "Moedas", "CATALOG");
+    updateTabAction.mockResolvedValue({ ok: true, data: { ...current, seoTitle: "Compre Aqui Divine Orb" } });
+    render(<TabDetailPanel gameId="g1" gameSlug="poe" gameName="Path of Exile" tab={current} />);
+    fireEvent.click(screen.getByRole("button", { name: "Editar nome, textos e Google" }));
+
+    const title = screen.getByLabelText("Título no Google");
+    expect(title).toHaveAttribute("placeholder", "Compre Moedas Path of Exile");
+    const preview = screen.getByLabelText("Prévia do resultado no Google");
+    expect(preview).toHaveTextContent("Compre Moedas Path of Exile | Lets 4 Trade");
+
+    fireEvent.change(title, { target: { value: "Compre Aqui Divine Orb" } });
+    expect(preview).toHaveTextContent("Compre Aqui Divine Orb | Lets 4 Trade");
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "SALVAR ABA" }));
+    });
+    await waitFor(() => expect(updateTabAction).toHaveBeenCalled());
+    const input = updateTabAction.mock.calls[0][2];
+    expect(input.seoTitle).toBe("Compre Aqui Divine Orb");
+    // A descrição não mudou: não viaja (ausente = não mexer).
+    expect(input).not.toHaveProperty("seoDescription");
+  });
+
+  it("aba de link não tem Aparência no Google", () => {
+    render(<TabDetailPanel gameId="g1" gameSlug="poe" gameName="Path of Exile" tab={{ ...tab("t1", "Fidelidade", "LINK"), linkHref: "/fidelidade" }} />);
+    fireEvent.click(screen.getByRole("button", { name: "Editar nome e layout" }));
+    expect(screen.queryByLabelText("Título no Google")).toBeNull();
+  });
+
   it("aba ativa e vazia mostra o aviso", () => {
-    render(<TabDetailPanel gameId="g1" gameSlug="poe" tab={{ ...tab("t1", "Mentoria", "CATALOG"), productCount: 0 }} />);
+    render(<TabDetailPanel gameId="g1" gameSlug="poe" gameName="Path of Exile" tab={{ ...tab("t1", "Mentoria", "CATALOG"), productCount: 0 }} />);
     expect(screen.getByText(/não tem produto/)).toBeInTheDocument();
   });
 });
