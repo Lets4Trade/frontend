@@ -99,6 +99,9 @@ export function PaymentStatusClient({ initial }: { initial: PaymentView }) {
           <Notice title="Pagamento em análise">
             A operadora está conferindo a compra. Esta tela atualiza sozinha. Em
             geral leva poucos minutos.
+            {/* Prazo do pedido (2026-11-27): antes a tela não dizia até quando
+                esperava, e o cliente só descobria no "O prazo para pagar acabou". */}
+            <Countdown until={payment.expiresAt} />
           </Notice>
         )}
       </div>
